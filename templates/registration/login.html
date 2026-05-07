@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% load static fa_digits %}
+
+{% block title %}ورود به حساب کاربری{% endblock %}
+
+{% block content %}
+<!-- بخش مربوط به عکس پس‌زمینه -->
+<div class="fixed inset-0 z-0 overflow-hidden">
+    <img src="{% static 'images/backgerand_login.png' %}" alt="Background" class="w-full h-full object-cover scale-105">
+    <div class="absolute inset-0 bg-gray-200/40 dark:bg-gray-950/70 backdrop-blur-sm"></div>
+</div>
+
+<!-- محتوای اصلی -->
+<div class="relative z-10 flex items-start justify-center px-4 pt-2 pb-20 min-h-screen md:pt-3">
+    
+    <!-- کارت اصلی شیشه‌ای -->
+    <div class="w-full max-w-md bg-white/20 dark:bg-gray-900/30 backdrop-blur-3xl rounded-3xl border border-white/60 dark:border-gray-700/50 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)] overflow-hidden">
+        
+        <!-- نوار گرادینت بالای کارت -->
+        <div class="h-2 bg-gradient-to-r from-primary/30 via-primary to-primary/30"></div>
+
+        <div class="p-6 md:p-8">
+            <!-- هدر بخش ورود -->
+            <div class="flex flex-col items-center border-b border-white/30 dark:border-gray-700/50 pb-6 mb-6 text-center">
+                <!-- لوگو/آیکون -->
+                <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-white shadow-lg shadow-primary/30">
+                    <span class="material-symbols-outlined text-[32px] font-bold">login</span> 
+                </div>
+
+                <h1 class="text-2xl font-bold font-display text-gray-900 dark:text-white drop-shadow-sm">فروشگاه آثار هنری</h1>
+                <p class="text-sm text-gray-800 dark:text-gray-300 mt-1 mb-4">خوش‌آمدید، لطفاً وارد شوید</p>
+                
+                <!-- دکمه شیشه‌ای برای هدایت به ثبت‌نام -->
+                <a class="inline-flex items-center gap-2 px-4 py-2 text-sm font-bold text-primary bg-white/40 dark:bg-gray-800/40 backdrop-blur-md border border-white/50 dark:border-gray-600/50 hover:bg-white/60 dark:hover:bg-gray-700/50 rounded-xl transition-all duration-300 shadow-sm" href="{% url 'signup' %}">
+                    ایجاد حساب کاربری جدید
+                    <svg class="w-4 h-4 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg>
+                </a>
+            </div>
+
+            <!-- فرم ورود (اضافه شدن آیدی loginForm) -->
+            <form id="loginForm" method="post" class="space-y-5 m-0 p-0 bg-transparent shadow-none border-none">
+                {% csrf_token %}
+
+                <!-- نمایش خطاهای کلی فرم -->
+                {% if form.non_field_errors %}
+                    <div class="bg-red-50 dark:bg-red-900/20 border border-red-200/70 dark:border-red-800/40 rounded-xl p-4 text-sm text-red-700 dark:text-red-300 mb-6">
+                        {% for error in form.non_field_errors %}
+                            <p class="flex items-center gap-2">
+                                <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
+                                {{ error|fa_digits }}
+                            </p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <!-- گرید فیلدها -->
+                <div class="flex flex-col gap-5">
+                    
+                    <!-- نام کاربری / شماره موبایل -->
+                    <div class="flex flex-col gap-2">
+                        <label for="{{ form.username.id_for_label }}" class="text-sm font-bold text-gray-900 dark:text-white mr-1">
+                            شماره موبایل (نام کاربری) <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            {{ form.username }}
+                        </div>
+                        {% if form.username.errors %}
+                            <p class="text-[11px] font-bold text-red-600 dark:text-red-400 mt-1 mr-1">{{ form.username.errors.0|fa_digits }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- رمز عبور -->
+                    <div class="flex flex-col gap-2">
+                        <div class="flex items-center justify-between mr-1">
+                            <label for="{{ form.password.id_for_label }}" class="text-sm font-bold text-gray-900 dark:text-white">
+                                رمز عبور <span class="text-red-500">*</span>
+                            </label>
+                            <!-- لینک فراموشی رمز عبور -->
+                            <a class="text-xs font-bold text-primary hover:text-primary/80 transition-colors" href="#">
+                                فراموشی رمز عبور؟
+                            </a>
+                        </div>
+                        <div class="relative flex items-center">
+                            {{ form.password }}
+                            <!-- دکمه نمایش/مخفی کردن رمز عبور -->
+                            <button type="button" onclick="togglePassword()" class="absolute right-3 text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors focus:outline-none flex items-center justify-center z-10">
+                                <span id="toggle-eye-icon" class="material-symbols-outlined text-[20px]">visibility</span>
+                            </button>
+                        </div>
+                        {% if form.password.errors %}
+                            <p class="text-[11px] font-bold text-red-600 dark:text-red-400 mt-1 mr-1">{{ form.password.errors.0|fa_digits }}</p>
+                        {% endif %}
+                    </div>
+
+                </div>
+
+                <!-- دکمه ورود نهایی -->
+                <div class="pt-6">
+                    <button type="submit" class="!m-0 w-full flex items-center justify-center gap-2 px-6 py-4 text-base font-bold text-white bg-primary hover:bg-primary/90 rounded-2xl transition-all duration-300 shadow-lg shadow-primary/20 active:scale-[0.98]">
+                        ورود به حساب
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- استایل‌های فرم -->
+<style>
+    /* این استایل‌ها به صورت خودکار روی فیلدهای رندر شده توسط جنگو اعمال می‌شوند */
+    input[type="text"], input[type="email"], input[type="password"], input[type="tel"], textarea {
+        @apply w-full px-4 py-3 bg-white/40 dark:bg-gray-900/50 backdrop-blur-md border border-white/60 dark:border-gray-600/40 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all duration-300 outline-none shadow-sm;
+        font-family: inherit;
+        direction: rtl; 
+        text-align: right;
+    }
+    
+    input[type="text"]:not(:placeholder-shown),
+    input[type="email"]:not(:placeholder-shown),
+    input[type="password"]:not(:placeholder-shown),
+    input[type="tel"]:not(:placeholder-shown) {
+        direction: ltr;
+        text-align: left;
+    }
+
+    input[type="password"], input[name="password"] {
+        padding-right: 2.75rem !important;
+        padding-left: 1rem !important;
+    }
+</style>
+
+<!-- اسکریپت‌های صفحه -->
+<script>
+    // تابع نمایش/مخفی کردن رمز عبور
+    function togglePassword() {
+        const passwordField = document.getElementById('id_password');
+        const eyeIcon = document.getElementById('toggle-eye-icon');
+        
+        if (passwordField) {
+            if (passwordField.type === 'password') {
+                passwordField.type = 'text';
+                eyeIcon.innerText = 'visibility_off';
+            } else {
+                passwordField.type = 'password';
+                eyeIcon.innerText = 'visibility';
+            }
+        }
+    }
+</script>
+{% endblock %}

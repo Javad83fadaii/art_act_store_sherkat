@@ -1,0 +1,377 @@
+{% extends 'admin_panel/base.html' %}
+
+{% block title %}گزارشات سیستم | آرت‌پنل{% endblock %}
+{% block page_title %}گزارشات سیستم{% endblock %}
+
+{% block content %}
+<div class="flex flex-col gap-6" id="reports-app">
+    <div class="bg-admin-surface-light dark:bg-admin-surface-dark rounded-2xl p-5 md:p-6 shadow-sm border border-gray-100 dark:border-white/5">
+        <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+            <div>
+                <h3 class="text-lg font-black text-text-main dark:text-white">مرکز گزارشات و لاگ‌ها</h3>
+                <p class="text-xs font-bold text-text-muted mt-1">گزارش فعالیت‌ها، خطاهای سیستم و عملیات مدیران را از همین بخش بررسی و پایش کنید.</p>
+            </div>
+
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full xl:w-auto">
+                <div class="flex items-center gap-2 overflow-x-auto custom-scrollbar bg-admin-bg-light dark:bg-admin-bg-dark p-1 rounded-2xl">
+                    <button id="tab-activity" type="button" class="report-tab px-4 py-2 rounded-xl text-xs font-black whitespace-nowrap transition-all duration-300" data-tab="activity">
+                        گزارش فعالیت‌ها
+                    </button>
+                    <button id="tab-errors" type="button" class="report-tab px-4 py-2 rounded-xl text-xs font-black whitespace-nowrap transition-all duration-300" data-tab="errors">
+                        گزارش خطاها
+                    </button>
+                    <button id="tab-admins" type="button" class="report-tab px-4 py-2 rounded-xl text-xs font-black whitespace-nowrap transition-all duration-300" data-tab="admins">
+                        عملیات مدیران
+                    </button>
+                </div>
+
+                <a href="{% url 'admin_panel:reports-export' %}" class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-glow hover:bg-primary hover:text-white text-xs font-black transition-all">
+                    خروجی CSV کاربران
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-admin-surface-light dark:bg-admin-surface-dark rounded-2xl p-5 border border-gray-100 dark:border-white/5 shadow-sm">
+            <p class="text-xs font-bold text-text-muted">تعداد رکوردهای بارگذاری‌شده</p>
+            <p id="metric-total" class="mt-3 text-3xl font-black text-text-main dark:text-white">۰</p>
+        </div>
+        <div class="bg-admin-surface-light dark:bg-admin-surface-dark rounded-2xl p-5 border border-gray-100 dark:border-white/5 shadow-sm">
+            <p class="text-xs font-bold text-text-muted">رکوردهای نیازمند اقدام</p>
+            <p id="metric-pending" class="mt-3 text-3xl font-black text-amber-500">۰</p>
+        </div>
+        <div class="bg-admin-surface-light dark:bg-admin-surface-dark rounded-2xl p-5 border border-gray-100 dark:border-white/5 shadow-sm">
+            <p class="text-xs font-bold text-text-muted">تب فعال</p>
+            <p id="metric-tab" class="mt-3 text-lg font-black text-text-main dark:text-white">گزارش فعالیت‌ها</p>
+        </div>
+    </div>
+
+    <div class="bg-admin-surface-light dark:bg-admin-surface-dark rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 overflow-hidden">
+        <div class="p-4 border-b border-gray-100 dark:border-white/5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+            <div class="relative w-full lg:max-w-sm">
+                <input id="searchInput" type="text" placeholder="جستجو در رکوردهای همین تب..." class="w-full bg-admin-bg-light dark:bg-admin-bg-dark border border-gray-200 dark:border-white/10 rounded-xl pl-4 pr-10 py-2.5 text-sm font-bold text-text-main dark:text-white focus:outline-none focus:border-primary transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+            </div>
+
+        </div>
+
+        <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-right border-collapse">
+                <thead id="reports-head" class="bg-admin-bg-light dark:bg-admin-bg-dark border-b border-gray-100 dark:border-white/5 text-[11px] font-black text-text-muted"></thead>
+                <tbody id="reports-body" class="text-xs font-bold text-text-main dark:text-gray-300 divide-y divide-gray-100 dark:divide-white/5">
+                    <tr>
+                        <td colspan="5" class="p-8 text-center text-text-muted">در حال بارگذاری اطلاعات...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const initialTab = '{{ request.GET.tab|default:"activity" }}';
+    const params = new URLSearchParams(window.location.search);
+    const searchInput = document.getElementById('searchInput');
+    const headEl = document.getElementById('reports-head');
+    const bodyEl = document.getElementById('reports-body');
+    const totalEl = document.getElementById('metric-total');
+    const pendingEl = document.getElementById('metric-pending');
+    const tabEl = document.getElementById('metric-tab');
+
+    const endpoints = {
+        activity: "{% url 'admin_panel:reports-activity-logs' %}",
+        errors: "{% url 'admin_panel:reports-error-logs' %}",
+        admins: "{% url 'admin_panel:reports-admin-logs' %}",
+        resolveBase: "{% url 'admin_panel:reports-error-logs' %}",
+    };
+
+    const tabTitles = {
+        activity: 'گزارش فعالیت‌ها',
+        errors: 'گزارش خطاها',
+        admins: 'عملیات مدیران',
+    };
+
+    const state = {
+        activeTab: ['activity', 'errors', 'admins'].includes(initialTab) ? initialTab : 'activity',
+        rawItems: [],
+        filteredItems: [],
+    };
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === `${name}=`) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    function toPersianDigits(value) {
+        return String(value).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[d]);
+    }
+
+    function formatDate(value) {
+        if (!value) {
+            return '-';
+        }
+
+        const date = new Date(value);
+        const time = new Intl.DateTimeFormat('fa-IR', { hour: '2-digit', minute: '2-digit' }).format(date);
+        const day = new Intl.DateTimeFormat('fa-IR', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
+        return `${time} - ${day}`;
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#39;');
+    }
+
+    function setActiveTabStyles() {
+        document.querySelectorAll('.report-tab').forEach((button) => {
+            if (button.dataset.tab === state.activeTab) {
+                button.className = 'report-tab px-4 py-2 rounded-xl text-xs font-black whitespace-nowrap transition-all duration-300 bg-primary text-white shadow-md shadow-primary/30';
+            } else {
+                button.className = 'report-tab px-4 py-2 rounded-xl text-xs font-black whitespace-nowrap transition-all duration-300 text-text-muted hover:bg-white dark:hover:bg-white/5';
+            }
+        });
+        tabEl.textContent = tabTitles[state.activeTab];
+    }
+
+    function normalizePayload(tab, payload) {
+        if (tab === 'activity') {
+            return (payload.logs || []).map((item, index) => ({
+                id: index + 1,
+                admin: item.admin || 'نامشخص',
+                action: item.action || '-',
+                timestamp: item.timestamp,
+                searchable: `${item.admin || ''} ${item.action || ''} ${item.timestamp || ''}`.toLowerCase(),
+            }));
+        }
+
+        if (tab === 'errors') {
+            return (payload.results || []).map((item) => ({
+                id: item.id,
+                type: item.error_type || '-',
+                url: item.url || '-',
+                method: item.method || '-',
+                user: item.user__full_name || item.user__phone_number || 'کاربر ناشناس',
+                resolved: Boolean(item.resolved),
+                timestamp: item.timestamp,
+                searchable: `${item.error_type || ''} ${item.url || ''} ${item.method || ''} ${item.user__full_name || ''} ${item.user__phone_number || ''}`.toLowerCase(),
+            }));
+        }
+
+        return (payload.results || []).map((item) => ({
+            id: item.id,
+            admin: item.admin_user__full_name || 'مدیر نامشخص',
+            action: item.action || '-',
+            objectId: item.object_id || '-',
+            ip: item.ip_address || '-',
+            changes: item.changes ? JSON.stringify(item.changes) : '-',
+            timestamp: item.timestamp,
+            searchable: `${item.admin_user__full_name || ''} ${item.action || ''} ${item.object_id || ''} ${item.ip_address || ''}`.toLowerCase(),
+        }));
+    }
+
+    function renderHead() {
+        if (state.activeTab === 'activity') {
+            headEl.innerHTML = `
+                <tr>
+                    <th class="p-4">ردیف</th>
+                    <th class="p-4">مدیر</th>
+                    <th class="p-4">عملیات</th>
+                    <th class="p-4">زمان ثبت</th>
+                </tr>
+            `;
+            return;
+        }
+
+        if (state.activeTab === 'errors') {
+            headEl.innerHTML = `
+                <tr>
+                    <th class="p-4">شناسه</th>
+                    <th class="p-4">نوع خطا</th>
+                    <th class="p-4">کاربر</th>
+                    <th class="p-4">آدرس</th>
+                    <th class="p-4">متد</th>
+                    <th class="p-4">زمان</th>
+                    <th class="p-4 text-center">وضعیت</th>
+                    <th class="p-4 text-center">اقدام</th>
+                </tr>
+            `;
+            return;
+        }
+
+        headEl.innerHTML = `
+            <tr>
+                <th class="p-4">شناسه</th>
+                <th class="p-4">مدیر</th>
+                <th class="p-4">عملیات</th>
+                <th class="p-4">Object ID</th>
+                <th class="p-4">IP</th>
+                <th class="p-4">زمان</th>
+                <th class="p-4">تغییرات</th>
+            </tr>
+        `;
+    }
+
+    function renderMetrics() {
+        totalEl.textContent = toPersianDigits(state.filteredItems.length);
+
+        if (state.activeTab === 'errors') {
+            const unresolved = state.filteredItems.filter((item) => !item.resolved).length;
+            pendingEl.textContent = toPersianDigits(unresolved);
+        } else {
+            pendingEl.textContent = '۰';
+        }
+    }
+
+    function renderBody() {
+        if (!state.filteredItems.length) {
+            bodyEl.innerHTML = `<tr><td colspan="${state.activeTab === 'errors' ? 8 : state.activeTab === 'admins' ? 7 : 4}" class="p-8 text-center text-text-muted">رکوردی برای نمایش پیدا نشد.</td></tr>`;
+            renderMetrics();
+            return;
+        }
+
+        if (state.activeTab === 'activity') {
+            bodyEl.innerHTML = state.filteredItems.map((item) => `
+                <tr class="hover:bg-admin-bg-light/50 dark:hover:bg-white/[0.02] transition-colors">
+                    <td class="p-4 text-text-muted">${toPersianDigits(item.id)}</td>
+                    <td class="p-4">${escapeHtml(item.admin)}</td>
+                    <td class="p-4">
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-glow">
+                            ${escapeHtml(item.action)}
+                        </span>
+                    </td>
+                    <td class="p-4 text-text-muted">${escapeHtml(formatDate(item.timestamp))}</td>
+                </tr>
+            `).join('');
+            renderMetrics();
+            return;
+        }
+
+        if (state.activeTab === 'errors') {
+            bodyEl.innerHTML = state.filteredItems.map((item) => `
+                <tr class="hover:bg-admin-bg-light/50 dark:hover:bg-white/[0.02] transition-colors">
+                    <td class="p-4 text-text-muted">#${toPersianDigits(item.id)}</td>
+                    <td class="p-4">${escapeHtml(item.type)}</td>
+                    <td class="p-4">${escapeHtml(item.user)}</td>
+                    <td class="p-4 max-w-[280px] truncate" dir="ltr">${escapeHtml(item.url)}</td>
+                    <td class="p-4">${escapeHtml(item.method)}</td>
+                    <td class="p-4 text-text-muted">${escapeHtml(formatDate(item.timestamp))}</td>
+                    <td class="p-4 text-center">
+                        ${item.resolved
+                            ? '<span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-green-500/10 text-green-600 dark:text-green-400">رفع شده</span>'
+                            : '<span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-500">باز</span>'
+                        }
+                    </td>
+                    <td class="p-4 text-center">
+                        ${item.resolved
+                            ? '<span class="text-xs text-text-muted">-</span>'
+                            : `<button type="button" class="resolve-btn px-3 py-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white text-[11px] font-black transition-all" data-id="${item.id}">رفع خطا</button>`
+                        }
+                    </td>
+                </tr>
+            `).join('');
+            renderMetrics();
+            return;
+        }
+
+        bodyEl.innerHTML = state.filteredItems.map((item) => `
+            <tr class="hover:bg-admin-bg-light/50 dark:hover:bg-white/[0.02] transition-colors">
+                <td class="p-4 text-text-muted">#${toPersianDigits(item.id)}</td>
+                <td class="p-4">${escapeHtml(item.admin)}</td>
+                <td class="p-4">${escapeHtml(item.action)}</td>
+                <td class="p-4">${escapeHtml(item.objectId)}</td>
+                <td class="p-4 font-mono text-[11px]" dir="ltr">${escapeHtml(item.ip)}</td>
+                <td class="p-4 text-text-muted">${escapeHtml(formatDate(item.timestamp))}</td>
+                <td class="p-4 max-w-[320px] truncate" title="${escapeHtml(item.changes)}">${escapeHtml(item.changes)}</td>
+            </tr>
+        `).join('');
+        renderMetrics();
+    }
+
+    function applySearch() {
+        const term = searchInput.value.trim().toLowerCase();
+        state.filteredItems = term
+            ? state.rawItems.filter((item) => item.searchable.includes(term))
+            : [...state.rawItems];
+        renderBody();
+    }
+
+    async function loadData() {
+        bodyEl.innerHTML = `<tr><td colspan="${state.activeTab === 'errors' ? 8 : state.activeTab === 'admins' ? 7 : 4}" class="p-8 text-center text-text-muted">در حال بارگذاری اطلاعات...</td></tr>`;
+        renderHead();
+        setActiveTabStyles();
+
+        try {
+            const endpointUrl = new URL(endpoints[state.activeTab], window.location.origin);
+            const response = await fetch(endpointUrl, { credentials: 'include' });
+            if (!response.ok) {
+                throw new Error('load failed');
+            }
+            const payload = await response.json();
+            state.rawItems = normalizePayload(state.activeTab, payload);
+            applySearch();
+        } catch (error) {
+            bodyEl.innerHTML = `<tr><td colspan="${state.activeTab === 'errors' ? 8 : state.activeTab === 'admins' ? 7 : 4}" class="p-8 text-center text-red-500">دریافت اطلاعات این بخش با خطا مواجه شد.</td></tr>`;
+        }
+    }
+
+    async function resolveError(errorId) {
+        try {
+            const response = await fetch(`${endpoints.resolveBase}${errorId}/`, {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken') || '',
+                },
+            });
+            if (!response.ok) {
+                throw new Error('resolve failed');
+            }
+            await loadData();
+        } catch (error) {
+            window.alert('رفع خطا با مشکل مواجه شد.');
+        }
+    }
+
+    document.querySelectorAll('.report-tab').forEach((button) => {
+        button.addEventListener('click', () => {
+            state.activeTab = button.dataset.tab;
+            const url = new URL(window.location.href);
+            url.searchParams.set('tab', state.activeTab);
+            window.history.replaceState({}, '', url.toString());
+            searchInput.value = '';
+            loadData();
+        });
+    });
+
+    searchInput.addEventListener('input', applySearch);
+
+    bodyEl.addEventListener('click', (event) => {
+        const button = event.target.closest('.resolve-btn');
+        if (!button) {
+            return;
+        }
+        resolveError(button.dataset.id);
+    });
+
+    loadData();
+});
+</script>
+{% endblock %}

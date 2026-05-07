@@ -1,0 +1,221 @@
+{% load humanize fa_digits jalali_tags auction_tags %}
+<div class="mb-12">
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-lg font-bold text-gray-900 dark:text-white drop-shadow-sm flex items-center gap-3">
+            <span class="p-2 bg-white/40 dark:bg-gray-800/40 backdrop-blur-sm border border-white/50 dark:border-gray-600/40 rounded-lg text-primary">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m1.6 8L5.4 5M7 13l-1.293 1.293A1 1 0 006.414 16H19m-12 0a1 1 0 100 2 1 1 0 000-2zm12 0a1 1 0 100 2 1 1 0 000-2z"></path></svg>
+            </span>
+            سبد خرید مزایده
+        </h2>
+        <div class="flex items-center gap-2">
+            <span class="px-3 py-1 bg-white/40 dark:bg-gray-800/50 backdrop-blur-md border border-white/60 dark:border-gray-600/50 text-primary dark:text-white text-xs font-bold rounded-full shadow-sm">
+                {{ auction_cart_active_total|fa_digits }} آیتم فعال
+            </span>
+            <span class="px-3 py-1 bg-amber-100/70 dark:bg-amber-900/30 backdrop-blur-md border border-amber-200/70 dark:border-amber-700/50 text-amber-700 dark:text-amber-300 text-xs font-bold rounded-full shadow-sm dir-ltr">
+                ${{ auction_reserved_credit|default:"0"|floatformat:"0"|intcomma|fa_digits }}
+            </span>
+        </div>
+    </div>
+
+    {% if current_auction_cart_items %}
+        <div class="space-y-3">
+            {% for item in current_auction_cart_items %}
+                <details class="group overflow-hidden rounded-2xl border border-white/40 dark:border-gray-600/30 bg-white/20 dark:bg-gray-800/20 backdrop-blur-md shadow-[0_4px_30px_rgba(0,0,0,0.05)] transition-all duration-300 open:border-white/60 dark:open:border-gray-500/40 {% if not item.is_active %}opacity-70{% endif %}">
+                    <summary class="list-none cursor-pointer p-4 sm:p-5 [&::-webkit-details-marker]:hidden">
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="flex items-start gap-3 min-w-0 flex-1">
+                                <div class="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full border border-white/60 dark:border-gray-600/50 bg-white/50 dark:bg-gray-900/40 text-primary dark:text-white transition-transform duration-300 group-open:rotate-180 shrink-0">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                </div>
+
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        {% get_user_product_rank user item.product as user_rank %}
+                                        {% if user_rank == 1 %}
+                                            <div class="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-600 shadow-lg border border-yellow-200/50 shrink-0" title="رتبه اول">
+                                                <span class="text-white text-xs font-black drop-shadow-sm">۱</span>
+                                            </div>
+                                        {% elif user_rank == 2 %}
+                                            <div class="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-gray-200 via-gray-400 to-gray-500 shadow-lg border border-gray-100/50 shrink-0" title="رتبه دوم">
+                                                <span class="text-white text-xs font-black drop-shadow-sm">۲</span>
+                                            </div>
+                                        {% elif user_rank == 3 %}
+                                            <div class="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-orange-300 via-orange-500 to-orange-700 shadow-lg border border-orange-200/50 shrink-0" title="رتبه سوم">
+                                                <span class="text-white text-xs font-black drop-shadow-sm">۳</span>
+                                            </div>
+                                        {% endif %}
+
+                                        <h3 class="font-bold text-sm text-gray-900 dark:text-white truncate">{{ item.product.title|fa_digits }}</h3>
+                                    </div>
+
+                                    <div class="mt-1 text-xs text-gray-600 dark:text-gray-400">
+                                        {{ item.product.artist.name|fa_digits }}
+                                        <span class="mx-1 text-gray-400 dark:text-gray-500">/</span>
+                                        {{ item.auction.name|default:"مزایده"|fa_digits }}
+                                    </div>
+
+                                    <div class="mt-3 flex flex-wrap items-center gap-2">
+                                        {% if item.is_active %}
+                                            <span class="inline-flex items-center rounded-lg bg-emerald-100/70 dark:bg-emerald-900/30 border border-emerald-200/80 dark:border-emerald-700/40 px-3 py-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
+                                                فعال
+                                            </span>
+                                        {% else %}
+                                            <span class="inline-flex items-center rounded-lg bg-gray-200/70 dark:bg-gray-700/40 border border-gray-300/80 dark:border-gray-600/60 px-3 py-1 text-[11px] font-bold text-gray-700 dark:text-gray-300">
+                                                غیرفعال
+                                            </span>
+                                        {% endif %}
+
+                                        <span class="inline-flex items-center rounded-lg {% if item.is_active %}bg-amber-100/70 dark:bg-amber-900/30 border-amber-200/80 dark:border-amber-700/40 text-amber-700 dark:text-amber-300{% else %}bg-gray-200/70 dark:bg-gray-700/40 border-gray-300/80 dark:border-gray-600/60 text-gray-700 dark:text-gray-300{% endif %} border px-3 py-1 text-[11px] font-black dir-ltr">
+                                            ${{ item.reserved_amount|floatformat:"0"|intcomma|fa_digits }}
+                                        </span>
+
+                                        <span class="inline-flex items-center rounded-lg bg-white/40 dark:bg-gray-900/40 border border-white/50 dark:border-gray-600/40 px-3 py-1 text-[11px] font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                                            {{ item.bid.created_at|to_jalali:'%Y/%m/%d | %H:%M'|fa_digits }}
+                                        </span>
+
+                                        <span class="inline-flex items-center rounded-lg bg-white/40 dark:bg-gray-900/40 border border-white/50 dark:border-gray-600/40 px-3 py-1 text-[11px] font-bold text-primary dark:text-white">
+                                            {{ item.bid_history_count|fa_digits }} بید
+                                        </span>
+                                    </div>
+
+                                    {% if not item.is_active %}
+                                        <div class="mt-2 text-[11px] text-amber-600 dark:text-amber-400 font-bold">
+                                            پیشنهاد شما، دیگر بالاترین پیشنهاد نیست. قیمت فعلی: ${{ item.product.current_price|floatformat:"0"|intcomma|fa_digits }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </summary>
+
+                    <div class="border-t border-white/30 dark:border-gray-600/30 px-4 sm:px-5 pb-4 pt-3">
+                        <div class="mb-3 flex items-center justify-between gap-3">
+                            <span class="text-xs font-bold text-gray-700 dark:text-gray-300">تاریخچه بیدهای این محصول</span>
+                            <a href="{% url 'auction:auction_product_detail' item.product.pk %}" class="inline-flex items-center gap-1 text-[11px] font-bold text-primary dark:text-blue-300 hover:text-blue-700 dark:hover:text-blue-200 transition-colors" data-track-visit="1" data-track-kind="auction_product" data-track-id="{{ item.product.pk }}">
+                                مشاهده مزایده
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                            </a>
+                        </div>
+
+                        {% if item.bid_history %}
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {% for bid in item.bid_history %}
+                                    <div class="flex items-center justify-between gap-3 rounded-xl border border-white/50 dark:border-gray-600/40 bg-white/30 dark:bg-gray-900/40 p-3 shadow-sm">
+                                        <div class="flex items-center gap-2 min-w-0">
+                                            {% with rank=bid|get_bid_rank %}
+                                                {% if rank == 1 %}
+                                                    <div class="flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-600 shadow-sm border border-yellow-200/50 shrink-0">
+                                                        <span class="text-white text-[10px] font-black">۱</span>
+                                                    </div>
+                                                {% elif rank == 2 %}
+                                                    <div class="flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-br from-gray-200 via-gray-400 to-gray-500 shadow-sm border border-gray-100/50 shrink-0">
+                                                        <span class="text-white text-[10px] font-black">۲</span>
+                                                    </div>
+                                                {% elif rank == 3 %}
+                                                    <div class="flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-br from-orange-300 via-orange-500 to-orange-700 shadow-sm border border-orange-200/50 shrink-0">
+                                                        <span class="text-white text-[10px] font-black">۳</span>
+                                                    </div>
+                                                {% else %}
+                                                    <div class="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_5px_currentColor] shrink-0"></div>
+                                                {% endif %}
+                                            {% endwith %}
+                                            <span class="text-sm font-black text-gray-900 dark:text-white dir-ltr">${{ bid.bid_amount|floatformat:"0"|intcomma|fa_digits }}</span>
+                                        </div>
+                                        <span class="text-[10px] font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">{{ bid.created_at|to_jalali:'%Y/%m/%d | %H:%M'|fa_digits }}</span>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="rounded-xl border border-dashed border-white/50 dark:border-gray-600/40 bg-white/10 dark:bg-gray-800/10 px-4 py-5 text-center text-xs text-gray-700 dark:text-gray-300">
+                                تاریخچه بیدی برای این محصول پیدا نشد.
+                            </div>
+                        {% endif %}
+                    </div>
+                </details>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="py-12 text-center border-2 border-dashed border-white/50 dark:border-gray-600/30 rounded-3xl bg-white/10 dark:bg-gray-800/10 backdrop-blur-sm">
+            <p class="text-sm text-gray-700 dark:text-gray-300 drop-shadow-sm">در حال حاضر هیچ محصولی در سبد مزایده شما نیست.</p>
+        </div>
+    {% endif %}
+
+    <details class="group mt-6 overflow-hidden rounded-2xl border border-white/40 dark:border-gray-600/30 bg-white/15 dark:bg-gray-800/15 backdrop-blur-md shadow-[0_4px_30px_rgba(0,0,0,0.04)] transition-all duration-300 open:border-white/60 dark:open:border-gray-500/40">
+        <summary class="list-none cursor-pointer p-4 sm:p-5 [&::-webkit-details-marker]:hidden">
+            <div class="flex items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="flex h-8 w-8 items-center justify-center rounded-full border border-white/60 dark:border-gray-600/50 bg-white/50 dark:bg-gray-900/40 text-amber-600 dark:text-amber-300 transition-transform duration-300 group-open:rotate-180 shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-sm text-gray-900 dark:text-white">مزایده‌های گذشته</h3>
+                        <p class="text-[11px] text-gray-600 dark:text-gray-400 mt-1">سبد شما در مزایده‌های پایان‌یافته</p>
+                    </div>
+                </div>
+                <span class="px-3 py-1 bg-white/40 dark:bg-gray-800/50 backdrop-blur-md border border-white/60 dark:border-gray-600/50 text-xs font-bold rounded-full shadow-sm text-gray-700 dark:text-gray-200">
+                    {{ past_auction_cart_items|length|fa_digits }} مورد
+                </span>
+            </div>
+        </summary>
+
+        <div class="border-t border-white/30 dark:border-gray-600/30 px-4 sm:px-5 pb-4 pt-4">
+            {% if past_auction_cart_items %}
+                <div class="space-y-3">
+                    {% for item in past_auction_cart_items %}
+                        <div class="rounded-2xl border border-white/40 dark:border-gray-600/30 bg-white/20 dark:bg-gray-800/20 p-4 shadow-sm">
+                            <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <h4 class="font-bold text-sm text-gray-900 dark:text-white truncate">{{ item.product.title|fa_digits }}</h4>
+                                        {% if item.product.winner_id == user.id %}
+                                            <span class="inline-flex items-center rounded-lg bg-emerald-100/70 dark:bg-emerald-900/30 border border-emerald-200/80 dark:border-emerald-700/40 px-3 py-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
+                                                برنده شدید
+                                            </span>
+                                        {% elif item.product.winner_id %}
+                                            <span class="inline-flex items-center rounded-lg bg-gray-200/70 dark:bg-gray-700/40 border border-gray-300/80 dark:border-gray-600/60 px-3 py-1 text-[11px] font-bold text-gray-700 dark:text-gray-300">
+                                                برنده نشدید
+                                            </span>
+                                        {% else %}
+                                            <span class="inline-flex items-center rounded-lg bg-amber-100/70 dark:bg-amber-900/30 border border-amber-200/80 dark:border-amber-700/40 px-3 py-1 text-[11px] font-bold text-amber-700 dark:text-amber-300">
+                                                بدون برنده
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="mt-1 text-xs text-gray-600 dark:text-gray-400">
+                                        {{ item.product.artist.name|fa_digits }}
+                                        <span class="mx-1 text-gray-400 dark:text-gray-500">/</span>
+                                        {{ item.auction.name|default:"مزایده"|fa_digits }}
+                                    </div>
+                                    <div class="mt-3 flex flex-wrap items-center gap-2">
+                                        <span class="inline-flex items-center rounded-lg bg-white/40 dark:bg-gray-900/40 border border-white/50 dark:border-gray-600/40 px-3 py-1 text-[11px] font-black text-gray-800 dark:text-gray-200 dir-ltr">
+                                            بید شما: ${{ item.reserved_amount|floatformat:"0"|intcomma|fa_digits }}
+                                        </span>
+                                        <span class="inline-flex items-center rounded-lg bg-primary/10 border border-primary/20 px-3 py-1 text-[11px] font-black text-primary dir-ltr">
+                                            قیمت نهایی: ${{ item.product.current_price|floatformat:"0"|intcomma|fa_digits }}
+                                        </span>
+                                        <span class="inline-flex items-center rounded-lg bg-white/40 dark:bg-gray-900/40 border border-white/50 dark:border-gray-600/40 px-3 py-1 text-[11px] font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                                            پایان مزایده: {{ item.auction.end_date|to_jalali:'%Y/%m/%d | %H:%M'|fa_digits }}
+                                        </span>
+                                    </div>
+                                    {% if item.product.winner_id == user.id %}
+                                        <div class="mt-3 text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
+                                            این محصول به بخش خریدهای مزایده شما منتقل شده است.
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <a href="{% url 'auction:auction_product_detail' item.product.pk %}" class="inline-flex items-center justify-center gap-1 rounded-xl border border-primary/20 bg-primary/10 px-4 py-2 text-[11px] font-bold text-primary transition-colors hover:bg-primary hover:text-white" data-track-visit="1" data-track-kind="auction_product" data-track-id="{{ item.product.pk }}">
+                                    مشاهده مزایده
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                                </a>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="rounded-xl border border-dashed border-white/50 dark:border-gray-600/40 bg-white/10 dark:bg-gray-800/10 px-4 py-5 text-center text-xs text-gray-700 dark:text-gray-300">
+                    هنوز آیتمی در مزایده‌های گذشته برای سبد شما ثبت نشده است.
+                </div>
+            {% endif %}
+        </div>
+    </details>
+</div>

@@ -1,0 +1,380 @@
+{% extends 'admin_panel/base.html' %}
+{% load static %}
+
+{% block title %}ویرایش محصول فروشگاه | آرت‌پنل{% endblock %}
+{% block page_title %}جزئیات محصول فروشگاه{% endblock %}
+
+{% block content %}
+<div class="flex flex-col gap-6 w-full relative">
+    <!-- Header Card -->
+    <div class="bg-white dark:bg-admin-surface-dark rounded-2xl p-5 border border-gray-100 dark:border-white/5 shadow-sm flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+        <div class="flex flex-col gap-1">
+            <div class="text-lg font-black text-text-main dark:text-white" id="product-title">در حال بارگذاری...</div>
+            <div class="text-xs font-bold text-text-muted" id="product-meta"></div>
+        </div>
+        <div class="flex items-center gap-2 w-full lg:w-auto">
+            <a id="public-link" href="#" target="_blank" class="w-full lg:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary-glow text-sm font-black hover:bg-primary hover:text-white transition-colors">
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                </svg>
+                مشاهده در سایت
+            </a>
+            <a id="report-link" href="#" class="w-full lg:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-white/10 dark:hover:bg-white/20 text-gray-700 dark:text-gray-200 text-sm font-black transition-colors">
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                </svg>
+                گزارش بازدید
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Product Information Card -->
+        <div class="bg-white dark:bg-admin-surface-dark rounded-2xl p-5 border border-gray-100 dark:border-white/5 shadow-sm lg:col-span-2 relative">
+            <!-- Loading Overlay -->
+            <div id="loading-indicator" class="absolute inset-0 bg-white/60 dark:bg-admin-surface-dark/60 backdrop-blur-sm z-10 rounded-2xl flex items-center justify-center hidden">
+                <div class="flex items-center gap-2 text-primary font-bold bg-white dark:bg-admin-surface-dark px-4 py-2 rounded-xl shadow-lg border border-gray-100 dark:border-white/5">
+                    <svg class="animate-spin size-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    در حال بارگذاری...
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between gap-3 mb-5 pb-4 border-b border-gray-100 dark:border-white/5">
+                <div class="text-sm font-black text-text-main dark:text-white">اطلاعات محصول</div>
+                <button id="saveBtn" onclick="saveChanges()" class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-primary text-white text-sm font-black hover:bg-primary-glow transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    ذخیره تغییرات
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Title -->
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-black text-text-muted mb-2">عنوان محصول</label>
+                    <input id="titleInput" type="text" placeholder="عنوان محصول را وارد کنید" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500">
+                </div>
+
+                <!-- Product ID -->
+                <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">کد محصول (Product ID)</label>
+                    <input id="productIdInput" type="text" placeholder="مثال: ART-2024-001" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right placeholder:text-gray-400 dark:placeholder:text-gray-500">
+                </div>
+
+                <!-- Price -->
+                <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">قیمت (دلار)</label>
+                    <input id="priceInput" type="number" placeholder="0" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right placeholder:text-gray-400 dark:placeholder:text-gray-500">
+                </div>
+
+                <!-- Artist -->
+                <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">هنرمند</label>
+                    <select id="artistSelect" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
+                        <option value="">در حال بارگذاری...</option>
+                    </select>
+                </div>
+
+                <!-- Artwork Type -->
+                <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">نوع اثر</label>
+                    <select id="typeSelect" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
+                        <option value="">در حال بارگذاری...</option>
+                    </select>
+                </div>
+
+                <!-- Sale Status -->
+                <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">وضعیت فروش</label>
+                    <select id="soldInput" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
+                        <option value="0">موجود</option>
+                        <option value="2">رزرو شده</option>
+                        <option value="1">فروخته شده</option>
+                    </select>
+                </div>
+
+                <!-- Authenticity -->
+                <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">وضعیت اصالت</label>
+                    <select id="authInput" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
+                        <option value="0">اصالت تایید شده</option>
+                        <option value="1">اصالت تایید نشده</option>
+                    </select>
+                </div>
+
+                <!-- Dimensions -->
+                <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">ابعاد</label>
+                    <input id="dimensionsInput" type="text" placeholder="مثال: 100×80 سانتی‌متر" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500">
+                </div>
+
+                <!-- Creation Year -->
+                <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">سال خلق</label>
+                    <input id="yearInput" type="number" placeholder="1400" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right placeholder:text-gray-400 dark:placeholder:text-gray-500">
+                </div>
+
+                <!-- Description -->
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-black text-text-muted mb-2">توضیحات محصول</label>
+                    <textarea id="descInput" rows="5" placeholder="توضیحات کامل درباره محصول را وارد کنید..." class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white resize-none placeholder:text-gray-400 dark:placeholder:text-gray-500"></textarea>
+                </div>
+
+                <!-- Provenance -->
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-black text-text-muted mb-2">پیشینه و منشأ اثر</label>
+                    <textarea id="provInput" rows="4" placeholder="اطلاعات مربوط به پیشینه و منشأ اثر را وارد کنید..." class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white resize-none placeholder:text-gray-400 dark:placeholder:text-gray-500"></textarea>
+                </div>
+            </div>
+
+            <!-- Message Box -->
+            <div id="messageBox" class="mt-4 hidden px-4 py-3 rounded-xl text-sm font-black"></div>
+        </div>
+
+        <!-- Stats Sidebar -->
+        <div class="bg-white dark:bg-admin-surface-dark rounded-2xl p-5 border border-gray-100 dark:border-white/5 shadow-sm">
+            <div class="text-sm font-black text-text-main dark:text-white mb-4 pb-3 border-b border-gray-100 dark:border-white/5">آمار و اطلاعات</div>
+            <div class="flex flex-col gap-3">
+                <!-- Views -->
+                <div class="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10">
+                    <div class="flex items-center gap-2">
+                        <svg class="size-4 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                        </svg>
+                        <span class="text-xs font-black text-text-muted">بازدید</span>
+                    </div>
+                    <span class="text-sm font-black text-text-main dark:text-white" id="viewsBox">0</span>
+                </div>
+
+                <!-- Seller/Artist -->
+                <div class="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10">
+                    <div class="flex items-center gap-2">
+                        <svg class="size-4 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                        </svg>
+                        <span class="text-xs font-black text-text-muted">هنرمند</span>
+                    </div>
+                    <span class="text-sm font-black text-text-main dark:text-white" id="sellerBox">-</span>
+                </div>
+
+                <!-- Created At -->
+                <div class="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10">
+                    <div class="flex items-center gap-2">
+                        <svg class="size-4 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        <span class="text-xs font-black text-text-muted">تاریخ ایجاد</span>
+                    </div>
+                    <span class="text-xs font-black text-text-main dark:text-white dir-ltr text-right" id="createdAtBox">-</span>
+                </div>
+
+                <!-- Product ID Display -->
+                <div class="flex flex-col gap-1 p-3 rounded-xl bg-primary/5 dark:bg-primary/10 border border-primary/20">
+                    <span class="text-xs font-black text-text-muted">شناسه داخلی</span>
+                    <span class="text-sm font-black text-primary dark:text-primary-glow" id="internalIdBox">-</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const PRODUCT_PK = {{ product_pk|default:"null" }};
+    const API_DETAIL_URL = "{% url 'admin_panel:products-store-detail' 0 %}".replace('/0/', `/${PRODUCT_PK}/`);
+    const STORE_PUBLIC_URL = "{% url 'store:artwork_detail' 0 %}".replace('/0/', `/${PRODUCT_PK}/`);
+    const REPORTS_PAGE_URL = "{% url 'admin_panel_pages:products-reports' %}";
+    const OPTIONS_URL = "{% url 'admin_panel:products-options' %}";
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+
+    const dateFormatter = new Intl.DateTimeFormat('fa-IR', { 
+        year: 'numeric', 
+        month: '2-digit', 
+        day: '2-digit' 
+    });
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        if (!PRODUCT_PK) {
+            showMessage('شناسه محصول معتبر نیست.', 'error');
+            return;
+        }
+
+        document.getElementById('public-link').href = STORE_PUBLIC_URL;
+        document.getElementById('report-link').href = `${REPORTS_PAGE_URL}?type=store&product_id=${PRODUCT_PK}`;
+        
+        await loadOptions();
+        await loadDetails();
+    });
+
+    function showMessage(text, type) {
+        const box = document.getElementById('messageBox');
+        box.classList.remove('hidden');
+        box.innerText = text;
+        
+        if (type === 'success') {
+            box.className = 'mt-4 px-4 py-3 rounded-xl text-sm font-black bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-400 border border-green-200 dark:border-green-500/20';
+        } else {
+            box.className = 'mt-4 px-4 py-3 rounded-xl text-sm font-black bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400 border border-red-200 dark:border-red-500/20';
+        }
+
+        setTimeout(() => {
+            box.classList.add('hidden');
+        }, 5000);
+    }
+
+    async function loadOptions() {
+        const loading = document.getElementById('loading-indicator');
+        loading.classList.remove('hidden');
+
+        try {
+            const res = await fetch(OPTIONS_URL);
+            if (!res.ok) throw new Error('Failed to load options');
+            
+            const data = await res.json();
+            const artistSel = document.getElementById('artistSelect');
+            const typeSel = document.getElementById('typeSelect');
+
+            artistSel.innerHTML = '<option value="">انتخاب هنرمند</option>';
+            (data.artists || []).forEach(a => {
+                const opt = document.createElement('option');
+                opt.value = a.id;
+                opt.textContent = a.name;
+                artistSel.appendChild(opt);
+            });
+
+            typeSel.innerHTML = '<option value="">انتخاب نوع اثر</option>';
+            (data.artwork_types || []).forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t.id;
+                opt.textContent = t.name;
+                typeSel.appendChild(opt);
+            });
+        } catch (e) {
+            console.error('Error loading options:', e);
+            showMessage('خطا در بارگذاری گزینه‌ها.', 'error');
+        } finally {
+            loading.classList.add('hidden');
+        }
+    }
+
+    async function loadDetails() {
+        const loading = document.getElementById('loading-indicator');
+        loading.classList.remove('hidden');
+
+        try {
+            const response = await fetch(API_DETAIL_URL);
+            if (!response.ok) throw new Error('Failed to fetch product details');
+            
+            const data = await response.json();
+
+            // Update header
+            document.getElementById('product-title').innerText = data.title || `محصول #${data.id}`;
+            document.getElementById('product-meta').innerText = `شناسه داخلی: #${data.id} | کد محصول: ${data.product_id || '-'}`;
+
+            // Update form fields
+            document.getElementById('titleInput').value = data.title || '';
+            document.getElementById('productIdInput').value = data.product_id || '';
+            document.getElementById('priceInput').value = data.price || '';
+            document.getElementById('soldInput').value = String(data.is_sold ?? '0');
+            document.getElementById('authInput').value = String(data.authenticity_status ?? '0');
+            document.getElementById('artistSelect').value = data.artist_id || '';
+            document.getElementById('typeSelect').value = data.artwork_type_id || '';
+            document.getElementById('dimensionsInput').value = data.dimensions || '';
+            document.getElementById('yearInput').value = data.creation_year || '';
+            document.getElementById('descInput').value = data.description || '';
+            document.getElementById('provInput').value = data.provenance || '';
+
+            // Update stats
+            document.getElementById('viewsBox').innerText = Number(data.views || 0).toLocaleString('fa-IR');
+            document.getElementById('sellerBox').innerText = data.seller || '-';
+            document.getElementById('internalIdBox').innerText = `#${data.id}`;
+            
+            const createdDate = data.created_at ? dateFormatter.format(new Date(data.created_at)) : '-';
+            document.getElementById('createdAtBox').innerText = createdDate;
+
+        } catch (e) {
+            console.error('Error loading details:', e);
+            showMessage('خطا در دریافت اطلاعات محصول.', 'error');
+        } finally {
+            loading.classList.add('hidden');
+        }
+    }
+
+    async function saveChanges() {
+        const btn = document.getElementById('saveBtn');
+        const originalText = btn.innerHTML;
+        
+        btn.disabled = true;
+        btn.innerHTML = `
+            <svg class="animate-spin size-4" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            در حال ذخیره...
+        `;
+
+        try {
+            const payload = {
+                title: document.getElementById('titleInput').value.trim(),
+                product_id: document.getElementById('productIdInput').value.trim(),
+                artist_id: document.getElementById('artistSelect').value ? Number(document.getElementById('artistSelect').value) : null,
+                artwork_type_id: document.getElementById('typeSelect').value ? Number(document.getElementById('typeSelect').value) : null,
+                price: document.getElementById('priceInput').value,
+                is_sold: Number(document.getElementById('soldInput').value),
+                authenticity_status: Number(document.getElementById('authInput').value),
+                dimensions: document.getElementById('dimensionsInput').value.trim(),
+                creation_year: document.getElementById('yearInput').value ? Number(document.getElementById('yearInput').value) : null,
+                description: document.getElementById('descInput').value.trim(),
+                provenance: document.getElementById('provInput').value.trim(),
+            };
+
+            const response = await fetch(API_DETAIL_URL, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken,
+                },
+                body: JSON.stringify(payload),
+            });
+
+            const data = await response.json().catch(() => ({}));
+            
+            if (!response.ok) {
+                throw new Error(data.error || 'خطا در ذخیره تغییرات');
+            }
+
+            showMessage('تغییرات با موفقیت ذخیره شد.', 'success');
+            await loadDetails();
+
+        } catch (e) {
+            console.error('Error saving changes:', e);
+            showMessage(e.message || 'خطا در ذخیره تغییرات.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    }
+</script>
+{% endblock %}

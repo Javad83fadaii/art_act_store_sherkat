@@ -1,0 +1,233 @@
+<!-- templates/admin_panel/saved_filters.html -->
+{% extends 'admin_panel/base.html' %}
+
+{% block title %}مدیریت فیلترهای ذخیره شده{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2>فیلترهای ذخیره شده</h2>
+        </div>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="row">
+        <!-- فرم ایجاد فیلتر -->
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">ایجاد فیلتر جدید</h5>
+                </div>
+                <div class="card-body">
+                    <!-- اصلاح نام URL در اکشن فرم -->
+                    <form method="post" action="{% url 'admin_panel:saved-filters-create' %}">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label class="form-label text-muted fw-bold">نام فیلتر</label>
+                            <input type="text" name="name" class="form-control" placeholder="مثال: کاربران فعال امسال" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-muted fw-bold">صفحه</label>
+                            <select name="page" class="form-select" id="pageSelect" required>
+                                <option value="">انتخاب کنید</option>
+                                <option value="users">کاربران</option>
+                                <option value="orders">سفارشات</option>
+                            </select>
+                        </div>
+
+                        <!-- فیلترهای کاربران -->
+                        <div id="usersFilters" class="filter-section" style="display:none;">
+                            <hr>
+                            <h6 class="mb-3 text-primary">فیلترهای کاربران</h6>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">وضعیت</label>
+                                <select name="status" class="form-select">
+                                    <option value="">همه</option>
+                                    <option value="active">فعال</option>
+                                    <option value="inactive">غیرفعال</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">تاریخ عضویت از</label>
+                                <input type="date" name="date_joined__gte" class="form-control">
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">تاریخ عضویت تا</label>
+                                <input type="date" name="date_joined__lte" class="form-control">
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input type="checkbox" name="is_staff" value="true" class="form-check-input" id="isStaff">
+                                    <label class="form-check-label" for="isStaff">فقط کارمندان</label>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input type="checkbox" name="exclude_staff" value="true" class="form-check-input" id="excludeStaff">
+                                    <label class="form-check-label" for="excludeStaff">بدون کارمندان</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- فیلترهای سفارشات -->
+                        <div id="ordersFilters" class="filter-section" style="display:none;">
+                            <hr>
+                            <h6 class="mb-3 text-primary">فیلترهای سفارشات</h6>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">وضعیت سفارش</label>
+                                <select name="order_status" class="form-select">
+                                    <option value="">همه</option>
+                                    <option value="pending">در انتظار</option>
+                                    <option value="processing">در حال پردازش</option>
+                                    <option value="completed">تکمیل شده</option>
+                                    <option value="cancelled">لغو شده</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">تاریخ سفارش از</label>
+                                <input type="date" name="created_at__gte" class="form-control">
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">تاریخ سفارش تا</label>
+                                <input type="date" name="created_at__lte" class="form-control">
+                            </div>
+                        </div>
+
+                        <hr>
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input type="checkbox" name="is_default" value="true" class="form-check-input" id="isDefault">
+                                <label class="form-check-label" for="isDefault">تنظیم به عنوان فیلتر پیش‌فرض</label>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">ذخیره فیلتر</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- لیست فیلترهای ذخیره شده -->
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">فیلترهای من</h5>
+                </div>
+                <div class="card-body">
+                    {% if saved_filters %}
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>نام</th>
+                                        <th>صفحه</th>
+                                        <th>شرایط</th>
+                                        <th>وضعیت</th>
+                                        <th>عملیات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for filter in saved_filters %}
+                                    <tr>
+                                        <td><strong>{{ filter.name }}</strong></td>
+                                        <td>
+                                            {% if filter.page == 'users' %}
+                                                <span class="badge bg-info text-dark">کاربران</span>
+                                            {% elif filter.page == 'orders' %}
+                                                <span class="badge bg-warning text-dark">سفارشات</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="d-flex flex-wrap gap-1">
+                                                {% for key, value in filter.filters.items %}
+                                                    <span class="badge bg-secondary" dir="ltr">{{ key }}: {{ value }}</span>
+                                                {% endfor %}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {% if filter.is_default %}
+                                                <span class="badge bg-success">پیش‌فرض</span>
+                                            {% else %}
+                                                <!-- اصلاح نام URL -->
+                                                <form method="post" action="{% url 'admin_panel:saved-filters-set-default' filter.id %}" style="display:inline;">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-sm btn-outline-success">تنظیم پیش‌فرض</button>
+                                                </form>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <!-- اصلاح نام URL -->
+                                                <a href="{% url 'admin_panel:saved-filters-apply' filter.id %}" class="btn btn-sm btn-primary">اعمال</a>
+                                                <!-- اصلاح نام URL -->
+                                                <form method="post" action="{% url 'admin_panel:saved-filters-delete' filter.id %}" style="display:inline;" onsubmit="return confirm('آیا از حذف این فیلتر مطمئن هستید؟')">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-sm btn-danger">حذف</button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <p class="text-muted mb-0">هنوز فیلتری ذخیره نکرده‌اید.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const pageSelect = document.getElementById('pageSelect');
+    const filterSections = document.querySelectorAll('.filter-section');
+
+    function toggleFilters() {
+        const selectedPage = pageSelect.value;
+
+        filterSections.forEach(section => {
+            section.style.display = 'none';
+            const inputs = section.querySelectorAll('input, select');
+            inputs.forEach(input => input.disabled = true);
+        });
+        
+        if (selectedPage === 'users') {
+            const usersSection = document.getElementById('usersFilters');
+            usersSection.style.display = 'block';
+            usersSection.querySelectorAll('input, select').forEach(input => input.disabled = false);
+        } else if (selectedPage === 'orders') {
+            const ordersSection = document.getElementById('ordersFilters');
+            ordersSection.style.display = 'block';
+            ordersSection.querySelectorAll('input, select').forEach(input => input.disabled = false);
+        }
+    }
+
+    pageSelect.addEventListener('change', toggleFilters);
+    toggleFilters();
+});
+</script>
+{% endblock %}

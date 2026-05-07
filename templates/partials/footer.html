@@ -1,0 +1,92 @@
+<!-- نگهدارنده اصلی برای ایجاد فاصله از لبه‌های مرورگر (پایین و کناره‌ها) -->
+<div class="px-4 py-8 md:p-12 bg-transparent dir-rtl">
+    
+    <!-- کانتینر نسبی برای کنترل مستطیل دکوراتیو پشتی -->
+    <div class="relative max-w-[1440px] mx-auto">
+        
+        <!-- مستطیل دکوراتیو (رنگ اصلی) که از گوشه بالا-راست بیرون زده است -->
+        <!-- با استفاده از z-10- به پشت فوتر فرستاده شده است -->
+        <div class="absolute -top-4 -right-4 md:-top-6 md:-right-6 w-32 h-32 md:w-48 md:h-48 bg-primary rounded-3xl -z-10"></div>
+
+        <!-- بدنه اصلی فوتر با لبه‌های گرد و سایه -->
+        <footer class="bg-[#1C1917] rounded-3xl p-8 md:p-12 shadow-2xl relative z-10 border border-[#292524]">
+            
+            <!-- ساختار گرید ۴ ستونه -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12 text-center md:text-right">
+
+                <!-- ستون ۱: درباره ما -->
+                <div class="flex flex-col items-center md:items-start">
+                    <div class="size-12 rounded-full border border-primary text-primary flex items-center justify-center mb-6 bg-transparent">
+                        <span class="material-symbols-outlined text-[24px]">gavel</span>
+                    </div>
+                    <p class="text-[#A8A29E] text-sm leading-8 font-medium font-body">
+                        تجربه‌ای متفاوت از خرید و فروش آثار هنری. ما پلی هستیم میان هنرمندان و دوستداران هنر، با
+                        استانداردهای جهانی و تضمین اصالت.
+                    </p>
+                </div>
+
+                <!-- ستون ۲: دسترسی سریع -->
+                <div class="flex flex-col items-center md:items-start">
+                    <h4 class="font-bold text-lg text-[#FFFFFF] mb-6 font-display whitespace-nowrap">دسترسی سریع</h4>
+                    <ul class="space-y-4 text-sm text-[#A8A29E] font-body">
+                        <li><a class="hover:text-primary transition-colors flex items-center justify-center md:justify-start gap-2" href="{% url 'home' %}">
+                            <span class="w-1.5 h-1.5 rounded-full bg-primary/40 hidden md:block"></span>
+                            گالری آثار
+                        </a></li>
+                        <li><a class="hover:text-primary transition-colors flex items-center justify-center md:justify-start gap-2" href="{% url 'auction:auction' %}">
+                            <span class="w-1.5 h-1.5 rounded-full bg-primary/40 hidden md:block"></span>
+                            تقویم مزایده‌ها
+                        </a></li>
+                        <li><a class="hover:text-primary transition-colors flex items-center justify-center md:justify-start gap-2" href="{% url 'store:artwork_list' %}">
+                            <span class="w-1.5 h-1.5 rounded-full bg-primary/40 hidden md:block"></span>
+                            لیست محصولات
+                        </a></li>
+                    </ul>
+                </div>
+
+                <!-- ستون ۳: خدمات مشتریان -->
+                <div class="flex flex-col items-center md:items-start">
+                    <h4 class="font-bold text-lg text-[#FFFFFF] mb-6 font-display whitespace-nowrap">خدمات مشتریان</h4>
+                    <ul class="space-y-4 text-sm text-[#A8A29E] font-body">
+                        <li><a class="hover:text-primary transition-colors flex items-center justify-center md:justify-start gap-2" href="#">
+                            <span class="w-1.5 h-1.5 rounded-full bg-primary/40 hidden md:block"></span>
+                            اصالت سنجی
+                        </a></li>
+                        <li><a class="hover:text-primary transition-colors flex items-center justify-center md:justify-start gap-2" href="{% url 'about' %}">
+                            <span class="w-1.5 h-1.5 rounded-full bg-primary/40 hidden md:block"></span>
+                            تماس با ما
+                        </a></li>
+                        <li><a class="hover:text-primary transition-colors flex items-center justify-center md:justify-start gap-2" href="{% url 'site_rules' %}">
+                            <span class="w-1.5 h-1.5 rounded-full bg-primary/40 hidden md:block"></span>
+                              سیاست‌ها و مقررات
+                        </a></li>
+                    </ul>
+                </div>
+
+                <!-- ستون ۴: خبرنامه -->
+                <div class="flex flex-col items-center md:items-start">
+                    <h4 class="font-bold text-lg text-[#FFFFFF] mb-6 font-display">خبرنامه</h4>
+                    <div class="flex flex-col gap-3 w-full">
+                        <!-- کلاس‌های placeholder:text-xs و placeholder:font-body به اینپوت اضافه شد -->
+                        <input
+                            class="bg-[#292524] border border-[#44403C] text-[#FFFFFF] placeholder-[#78716C] placeholder:text-xs placeholder:font-body rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none w-full text-center md:text-right font-body transition-all"
+                            placeholder="ایمیل خود را وارد کنید" type="email" />
+                        <button
+                            class="bg-primary hover:bg-[#967A49] text-white py-3 rounded-xl font-bold transition-colors font-body shadow-lg shadow-black/20 w-full">
+                            عضویت
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- نوار پایینی (کپی رایت) داخل بدنه اصلی فوتر -->
+            <div class="mt-12 bg-[#292524] rounded-xl px-6 py-5 flex flex-col items-center justify-center text-center">
+                <p class="text-[#78716C] text-xs font-body">
+                    تمامی حقوق برای <span class="text-[#FFFFFF]">مزایده آثار هنری </span> محفوظ است © ۱۴۰۴
+                </p>
+            </div>
+
+        </footer>
+    </div>
+</div>

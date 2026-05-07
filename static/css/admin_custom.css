@@ -1,0 +1,404 @@
+/* پالت رنگی جدید: آبی یاقوتی و آسمانی درخشان */
+:root {
+    /* رنگ‌های پایه پس‌زمینه و متن */
+    --body-bg: #f3f4f6;        /* پس‌زمینه کل صفحه: طوسی-آبی بسیار روشن */
+    --body-fg: #1f2937;        /* رنگ متن اصلی: خاکستری تیره مایل به سرمه‌ای */
+    --body-quiet-color: #6b7280; /* رنگ متون فرعی */
+    --body-loud-color: #111827;  /* رنگ عناوین مهم: مشکی نرم */
+    
+    /* هدر (نوار بالایی) */
+    --header-color: #ffffff;
+    --header-branding-color: #38bdf8; /* رنگ لوگو/تایتل هدر: آبی آسمانی روشن */
+    --header-bg: #111827;      /* پس‌زمینه هدر: سرمه‌ای بسیار عمیق */
+    --header-link-color: #9ca3af; /* لینک‌های هدر در حالت عادی */
+    
+    /* رنگ‌های اصلی (دکمه‌ها، لینک‌ها، هاور) - تم Sky Blue */
+    --primary: #0ea5e9;        /* رنگ اصلی دکمه‌ها: آبی آسمانی درخشان */
+    --secondary: #0284c7;      /* رنگ دکمه‌ها در حالت هاور: آبی تیره‌تر */
+    --link-fg: #0ea5e9;
+    --link-hover-color: #0369a1; 
+    --link-selected-fg: #38bdf8; 
+
+    /* ساختار نوار مسیر (Breadcrumbs) */
+    --breadcrumbs-fg: #4b5563;
+    --breadcrumbs-link-fg: #0ea5e9;
+    --breadcrumbs-bg: #ffffff;
+    
+    /* جداول و لیست‌ها */
+    --selected-bg: #f0f9ff;    /* پس‌زمینه ردیف انتخاب شده: هاله آبی */
+    --selected-row: #e0f2fe;   /* ردیف‌های فعال‌تر */
+    --darkened-bg: #f9fafb;    /* هاور ردیف‌های جدول */
+    
+    /* پیام‌های سیستم (آلرت‌ها) با رنگ‌های زنده */
+    --message-success-bg: #f0fdf4; 
+    --message-warning-bg: #fffbeb; 
+    --message-error-bg: #fef2f2;   
+
+    /* تایپوگرافی */
+    --font-family-primary: 'Vazirmatn', system-ui, -apple-system, sans-serif;
+    
+    /* سایه‌ها و لبه‌ها - ظریف‌تر و مدرن‌تر */
+    --tw-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+    --tw-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --tw-radius: 1rem; /* 16px - لبه‌های گردتر و زیباتر */
+}
+
+/* مدیریت Box Model برای جلوگیری از روی هم افتادن المان‌ها */
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-family-primary);
+    background-color: var(--body-bg);
+    color: var(--body-fg);
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+}
+
+/* هدر */
+#header {
+    background-color: var(--header-bg);
+    color: var(--header-color);
+    padding: 1rem 2rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    border-bottom: 3px solid var(--primary); /* یک خط رنگی زیبا زیر هدر */
+}
+
+#branding h1 {
+    font-size: 1.25rem;
+    font-weight: 800;
+    margin: 0;
+    color: var(--header-branding-color);
+    letter-spacing: -0.5px;
+}
+
+#user-tools {
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+#user-tools a {
+    color: var(--header-link-color);
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+#user-tools a:hover {
+    color: var(--header-color);
+}
+
+/* نوار مسیر */
+div.breadcrumbs {
+    background: var(--breadcrumbs-bg);
+    padding: 1rem 2rem;
+    color: var(--breadcrumbs-fg);
+    font-size: 0.875rem;
+    box-shadow: var(--tw-shadow-sm);
+    margin-bottom: 2rem;
+    border-radius: 0 0 1rem 1rem; /* گرد کردن لبه‌های پایین نوار مسیر */
+    display: inline-block;
+    width: 100%;
+}
+
+div.breadcrumbs a {
+    color: var(--breadcrumbs-link-fg);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+div.breadcrumbs a:hover {
+    color: var(--link-hover-color);
+    text-decoration: underline;
+}
+
+/* کارت‌های داشبورد (ماژول‌ها) */
+.module {
+    background: #ffffff;
+    border-radius: var(--tw-radius);
+    box-shadow: var(--tw-shadow);
+    border: 1px solid #e5e7eb;
+    margin-bottom: 2rem;
+    overflow: hidden; 
+    width: 100%;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.module:hover {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02);
+}
+
+.module caption, .module h2 {
+    background-color: #ffffff;
+    color: var(--body-loud-color);
+    padding: 1.25rem 1.5rem;
+    font-size: 1.1rem;
+    font-weight: 800;
+    border-bottom: 1px solid #e5e7eb;
+    text-align: right;
+    margin: 0;
+}
+
+.module table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.module table th, .module table td {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #f3f4f6;
+    text-align: right;
+    color: var(--body-fg);
+}
+
+.module table tr:hover td, 
+.module table tr:hover th {
+    background-color: var(--darkened-bg);
+}
+
+/* لیست تغییرات و سایدبار فیلتر */
+#changelist {
+    background: #ffffff;
+    border-radius: var(--tw-radius);
+    box-shadow: var(--tw-shadow);
+    border: 1px solid #e5e7eb;
+    display: flex;
+    flex-wrap: wrap; 
+    align-items: flex-start;
+    overflow: hidden;
+}
+
+#changelist-filter {
+    background: #f8fafc;
+    border-right: 1px solid #e5e7eb;
+    flex: 0 0 280px; 
+    max-width: 100%;
+}
+
+#changelist-filter h2 {
+    background-color: #f3f4f6;
+    color: var(--body-loud-color);
+    padding: 1.25rem 1.5rem;
+    font-weight: 800;
+    font-size: 0.85rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+#changelist-filter li.selected {
+    border-right: 4px solid var(--primary);
+    background-color: var(--selected-bg);
+}
+
+.changelist-form-container {
+    flex: 1 1 auto;
+    min-width: 0; 
+    overflow-x: auto; 
+}
+
+/* نوار ابزار جستجو */
+#toolbar {
+    background-color: #ffffff;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+#toolbar form input[type="text"] {
+    border: 1.5px solid #d1d5db;
+    border-radius: 0.75rem;
+    padding: 0.625rem 1.25rem;
+    font-family: var(--font-family-primary);
+    width: 100%;
+    max-width: 350px;
+    transition: all 0.3s ease;
+    background-color: #f9fafb;
+}
+
+#toolbar form input[type="text"]:focus {
+    outline: none;
+    border-color: var(--primary);
+    background-color: #ffffff;
+    box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.15);
+}
+
+/* فرم‌های ورود و ویرایش */
+fieldset {
+    border: 1px solid #e5e7eb;
+    border-radius: var(--tw-radius);
+    padding: 2rem;
+    margin-bottom: 2rem;
+    background: #ffffff;
+    width: 100%;
+    box-shadow: var(--tw-shadow-sm);
+}
+
+fieldset h2 {
+    font-size: 1.25rem;
+    color: var(--body-loud-color);
+    border-bottom: 2px solid #f3f4f6;
+    padding-bottom: 1rem;
+    margin-bottom: 2rem;
+    font-weight: 800;
+}
+
+/* ردیف‌های فرم - رفع مشکل روی هم افتادگی */
+.form-row {
+    border-bottom: 1px dashed #e5e7eb; /* خط چین زیبا برای جدا کردن فیلدها */
+    padding: 1.5rem 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem; 
+    align-items: flex-start;
+}
+
+.form-row:last-child {
+    border-bottom: none;
+}
+
+.form-row > div {
+    flex: 1 1 280px; 
+    min-width: 0;
+}
+
+/* لیبل‌ها (Labels) */
+label {
+    display: block; 
+    font-weight: 700;
+    color: var(--body-loud-color);
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+}
+
+label.vCheckboxLabel {
+    display: inline-block;
+    vertical-align: middle;
+    margin-bottom: 0;
+    margin-right: 0.5rem;
+}
+
+/* فیلدهای ورودی */
+input[type="text"], input[type="password"], input[type="email"], 
+input[type="number"], input[type="url"], textarea, select {
+    border: 1.5px solid #d1d5db;
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem;
+    font-family: var(--font-family-primary);
+    color: var(--body-loud-color);
+    background-color: #f9fafb;
+    transition: all 0.3s ease;
+    width: 100%; 
+    max-width: 100%;
+    display: block;
+    font-size: 0.95rem;
+}
+
+input[type="text"]:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--primary);
+    background-color: #ffffff;
+    box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.15);
+}
+
+/* دکمه‌ها - جذاب و برجسته */
+.button, input[type="submit"], input[type="button"], .submit-row input, a.button {
+    background-color: var(--primary);
+    color: #ffffff;
+    border: none;
+    border-radius: 0.75rem;
+    padding: 0.75rem 1.5rem;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 6px -1px rgba(14, 165, 233, 0.3);
+    font-family: var(--font-family-primary);
+    display: inline-block;
+    text-align: center;
+    text-decoration: none;
+    letter-spacing: 0.5px;
+}
+
+.button:hover, input[type="submit"]:hover {
+    background-color: var(--secondary);
+    box-shadow: 0 6px 8px -1px rgba(14, 165, 233, 0.4);
+    transform: translateY(-2px);
+}
+
+.button:active, input[type="submit"]:active {
+    transform: translateY(0);
+}
+
+/* ردیف دکمه‌های ذخیره (Submit Row) */
+.submit-row {
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: var(--tw-radius);
+    padding: 1.25rem 2rem;
+    box-shadow: var(--tw-shadow);
+    margin-top: 2rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: flex-start; 
+    align-items: center;
+}
+
+.submit-row a.deletelink {
+    color: #ef4444; 
+    background-color: transparent;
+    border: 2px solid #ef4444;
+    padding: 0.65rem 1.25rem;
+    border-radius: 0.75rem;
+    text-decoration: none;
+    font-weight: 700;
+    transition: all 0.3s ease;
+}
+
+.submit-row a.deletelink:hover {
+    background-color: #ef4444;
+    color: #ffffff;
+    box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.3);
+}
+
+/* پیام‌های سیستم */
+ul.messagelist {
+    padding: 0;
+    margin: 0 0 2rem 0;
+}
+
+ul.messagelist li {
+    border-radius: 0.75rem;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1rem;
+    box-shadow: var(--tw-shadow-sm);
+    font-weight: 600;
+    list-style: none;
+    display: flex;
+    align-items: center;
+}
+
+ul.messagelist li.success {
+    background-color: var(--message-success-bg);
+    color: #166534; 
+    border-right: 6px solid #22c55e; 
+}
+
+ul.messagelist li.warning {
+    background-color: var(--message-warning-bg);
+    color: #92400e; 
+    border-right: 6px solid #f59e0b; 
+}
+
+ul.messagelist li.error {
+    background-color: var(--message-error-bg);
+    color: #991b1b; 
+    border-right: 6px solid #ef4444; 
+}

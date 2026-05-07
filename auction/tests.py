@@ -1,0 +1,369 @@
+from decimal import Decimal
+from datetime import timedelta
+import json
+
+from django.test import Client, TestCase
+from django.urls import reverse
+from django.utils import timezone
+
+from accounts.models import CreditIncreaseRequest, CustomUser
+from store.models import Artist, Artwork, ArtworkType, PurchaseHistory
+
+from .models import Auction, AuctionCartItem, AuctionProduct, AuctionVisitHistory
+
+
+class AuctionBidCreditFlowTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.artist = Artist.objects.create(id=1, name='هنرمند تست')
+        self.artwork_type = ArtworkType.objects.create(name='نقاشی')
+        self.auction = Auction.objects.create(
+            name='مزایده تست',
+            start_date=timezone.now() - timedelta(hours=1),
+            end_date=timezone.now() + timedelta(hours=1),
+            products_count=1,
+        )
+        self.product = AuctionProduct.objects.create(
+            auction=self.auction,
+            product_id='A-1001',
+            title='تابلو تست',
+            artist=self.artist,
+            artwork_type=self.artwork_type,
+            base_price=Decimal('100'),
+            bid_criteria=AuctionProduct.BidCriteria.FIXED_AMOUNT,
+            bid_value=Decimal('10'),
+        )
+        self.user_one = self._create_verified_user('09120000001', 'کاربر اول', Decimal('1000'))
+        self.user_two = self._create_verified_user('09120000002', 'کاربر دوم', Decimal('1000'))
+
+    def _create_verified_user(self, phone_number, full_name, credit):
+        user = CustomUser.objects.create_user(
+            phone_number=phone_number,
+            password='Test@1234',
+            full_name=full_name,
+        )
+        user.is_verified = 1
+        user.credit = credit
+        user.current_credit = credit
+        user.save()
+        return user
+
+    def test_first_highest_bid_creates_cart_item_and_deducts_credit(self):
+        self.product.place_bid(self.user_one, '200')
+
+        self.user_one.refresh_from_db()
+        self.product.refresh_from_db()
+        cart_item = AuctionCartItem.objects.get(product=self.product, is_active=True)
+
+        self.assertEqual(self.user_one.credit, Decimal('1000'))
+        self.assertEqual(self.user_one.current_credit, Decimal('800'))
+        self.assertEqual(cart_item.user, self.user_one)
+        self.assertEqual(cart_item.reserved_amount, Decimal('200'))
+        self.assertTrue(cart_item.is_active)
+        self.assertEqual(self.product.current_price, Decimal('200'))
+        self.assertEqual(self.product.winner, self.user_one)
+
+    def test_outbid_refunds_previous_bidder_and_keeps_previous_cart_item_inactive(self):
+        self.product.place_bid(self.user_one, '200')
+        self.product.place_bid(self.user_two, '250')
+
+        self.user_one.refresh_from_db()
+        self.user_two.refresh_from_db()
+        self.product.refresh_from_db()
+        active_cart_item = AuctionCartItem.objects.get(product=self.product, is_active=True)
+        inactive_cart_item = AuctionCartItem.objects.get(user=self.user_one, product=self.product, is_active=False)
+
+        self.assertEqual(self.user_one.credit, Decimal('1000'))
+        self.assertEqual(self.user_one.current_credit, Decimal('1000'))
+        self.assertEqual(self.user_two.credit, Decimal('1000'))
+        self.assertEqual(self.user_two.current_credit, Decimal('750'))
+        self.assertEqual(active_cart_item.user, self.user_two)
+        self.assertEqual(active_cart_item.reserved_amount, Decimal('250'))
+        self.assertEqual(inactive_cart_item.reserved_amount, Decimal('200'))
+        self.assertIsNotNone(inactive_cart_item.outbid_at)
+        self.assertEqual(self.product.winner, self.user_two)
+        self.assertEqual(AuctionCartItem.objects.count(), 2)
+
+    def test_outbid_user_bids_again_updates_same_cart_row(self):
+        self.product.place_bid(self.user_one, '200')
+        first_cart_item = AuctionCartItem.objects.get(user=self.user_one, product=self.product)
+
+        self.product.place_bid(self.user_two, '250')
+        self.product.place_bid(self.user_one, '300')
+
+        self.user_one.refresh_from_db()
+        self.user_two.refresh_from_db()
+        updated_cart_item = AuctionCartItem.objects.get(user=self.user_one, product=self.product)
+        active_cart_item = AuctionCartItem.objects.get(product=self.product, is_active=True)
+
+        self.assertEqual(first_cart_item.pk, updated_cart_item.pk)
+        self.assertEqual(updated_cart_item.reserved_amount, Decimal('300'))
+        self.assertTrue(updated_cart_item.is_active)
+        self.assertIsNone(updated_cart_item.outbid_at)
+        self.assertEqual(active_cart_item.user, self.user_one)
+        self.assertEqual(AuctionCartItem.objects.filter(user=self.user_one, product=self.product).count(), 1)
+        self.assertEqual(AuctionCartItem.objects.count(), 2)
+        self.assertEqual(self.user_one.current_credit, Decimal('700'))
+        self.assertEqual(self.user_two.current_credit, Decimal('1000'))
+
+    def test_same_user_raises_bid_only_for_incremental_amount(self):
+        self.product.place_bid(self.user_one, '200')
+        self.product.place_bid(self.user_one, '260')
+
+        self.user_one.refresh_from_db()
+        cart_item = AuctionCartItem.objects.get(product=self.product, is_active=True)
+
+        self.assertEqual(self.user_one.credit, Decimal('1000'))
+        self.assertEqual(self.user_one.current_credit, Decimal('740'))
+        self.assertEqual(cart_item.reserved_amount, Decimal('260'))
+        self.assertEqual(AuctionCartItem.objects.count(), 1)
+        self.assertEqual(self.product.bids.filter(user=self.user_one).count(), 2)
+
+    def test_updating_total_credit_recalculates_current_credit_from_active_cart(self):
+        self.product.place_bid(self.user_one, '200')
+
+        self.user_one.refresh_from_db()
+        self.user_one.credit = Decimal('1200')
+        self.user_one.save(update_fields=['credit'])
+        self.user_one.refresh_from_db()
+
+        self.assertEqual(self.user_one.credit, Decimal('1200'))
+        self.assertEqual(self.user_one.current_credit, Decimal('1000'))
+
+    def test_finished_auction_releases_reserved_credit(self):
+        self.product.place_bid(self.user_one, '200')
+        self.auction.end_date = timezone.now() - timedelta(seconds=1)
+        self.auction.save(update_fields=['end_date'])
+
+        self.user_one.refresh_current_credit()
+        self.user_one.refresh_from_db()
+
+        self.assertEqual(self.user_one.credit, Decimal('1000'))
+        self.assertEqual(self.user_one.current_credit, Decimal('1000'))
+
+    def test_ajax_bid_without_credit_returns_existing_credit_request_state(self):
+        self.user_one.credit = Decimal('50')
+        self.user_one.save(update_fields=['credit'])
+        CreditIncreaseRequest.objects.create(
+            user=self.user_one,
+            current_credit=Decimal('50'),
+            status=CreditIncreaseRequest.RequestStatus.PENDING,
+        )
+        self.client.force_login(self.user_one)
+
+        response = self.client.post(
+            reverse('auction:place_bid', kwargs={'pk': self.product.pk}),
+            {'amount': '200'},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+
+        self.assertEqual(response.status_code, 400)
+        payload = response.json()
+        self.assertFalse(payload['success'])
+        self.assertTrue(payload['needs_credit_increase'])
+        self.assertEqual(payload['credit_request_state'], 'pending')
+        self.assertEqual(AuctionCartItem.objects.count(), 0)
+
+    def test_ajax_bid_returns_live_payload_for_immediate_ui_update(self):
+        self.client.force_login(self.user_one)
+
+        response = self.client.post(
+            reverse('auction:place_bid', kwargs={'pk': self.product.pk}),
+            {'amount': '200'},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload['success'])
+        self.assertEqual(payload['current_price'], 200)
+        self.assertEqual(payload['bid_count'], 1)
+        self.assertEqual(payload['min_next_bid'], 210)
+        self.assertEqual(payload['my_bids_count'], 1)
+        self.assertIn('200', payload['my_bids_html'])
+
+    def test_live_state_endpoint_returns_latest_price_and_history_html(self):
+        self.product.place_bid(self.user_one, '200')
+        self.client.force_login(self.user_one)
+
+        response = self.client.get(
+            reverse('auction:auction_product_live_state', kwargs={'pk': self.product.pk}),
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload['success'])
+        self.assertEqual(payload['current_price'], 200)
+        self.assertEqual(payload['bid_count'], 1)
+        self.assertEqual(payload['my_bids_count'], 1)
+        self.assertIn('تاریخچه بیدهای شما', payload['my_bids_html'])
+
+    def test_profile_shows_active_auction_cart_items(self):
+        self.product.place_bid(self.user_one, '200')
+        self.client.force_login(self.user_one)
+
+        response = self.client.get(reverse('profile'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'سبد خرید مزایده')
+        self.assertContains(response, 'تابلو تست')
+        self.assertContains(response, '200')
+
+    def test_profile_shows_outbid_cart_items_as_inactive(self):
+        self.product.place_bid(self.user_one, '200')
+        self.product.place_bid(self.user_two, '250')
+        self.client.force_login(self.user_one)
+
+        response = self.client.get(reverse('profile'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'غیرفعال')
+        self.assertContains(response, 'دیگر بالاترین پیشنهاد نیست')
+
+    def test_profile_moves_bid_history_into_auction_cart(self):
+        self.product.place_bid(self.user_one, '200')
+        self.product.place_bid(self.user_one, '210')
+        self.client.force_login(self.user_one)
+
+        response = self.client.get(reverse('profile'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'تاریخچه بیدهای این محصول')
+        self.assertContains(response, '۲۱۰')
+        self.assertNotContains(response, 'بیدهای ثبت شده')
+
+    def test_finished_auction_moves_won_product_to_auction_purchases(self):
+        self.product.place_bid(self.user_one, '200')
+        self.auction.end_date = timezone.now() - timedelta(seconds=1)
+        self.auction.save(update_fields=['end_date'])
+        self.client.force_login(self.user_one)
+
+        response = self.client.get(reverse('profile'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'خریدهای مزایده')
+        self.assertContains(response, 'برنده مزایده')
+        self.assertContains(response, 'مزایده‌های گذشته')
+        self.assertContains(response, 'این محصول به بخش خریدهای مزایده شما منتقل شده است.')
+
+    def test_profile_separates_store_purchases_from_auction_purchases(self):
+        self.product.place_bid(self.user_one, '200')
+        self.auction.end_date = timezone.now() - timedelta(seconds=1)
+        self.auction.save(update_fields=['end_date'])
+
+        store_artwork = Artwork.objects.create(
+            title='اثر فروشگاه',
+            artist=self.artist,
+            artwork_type=self.artwork_type,
+            description='توضیح تست',
+            price=Decimal('500'),
+            is_sold=Artwork.IsSoldStatus.SOLD,
+        )
+        PurchaseHistory.objects.create(user=self.user_one, artwork=store_artwork)
+        self.client.force_login(self.user_one)
+
+        response = self.client.get(reverse('profile'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'خریدهای فروشگاه')
+        self.assertContains(response, 'خریدهای مزایده')
+        self.assertContains(response, 'اثر فروشگاه')
+        self.assertContains(response, 'تابلو تست')
+
+    def test_finished_auction_products_page_shows_sold_badge_for_winner(self):
+        self.product.place_bid(self.user_one, '200')
+        self.auction.end_date = timezone.now() - timedelta(seconds=1)
+        self.auction.save(update_fields=['end_date'])
+
+        response = self.client.get(reverse('auction:auction_products', kwargs={'pk': self.auction.pk}))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'به فروش رسید')
+        self.assertContains(response, 'data-has-winner="1"')
+
+
+class AuctionVisitTrackingTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.artist = Artist.objects.create(id=2, name='هنرمند بازدید')
+        self.artwork_type = ArtworkType.objects.create(name='مجسمه')
+        self.auction = Auction.objects.create(
+            name='مزایده بازدید',
+            start_date=timezone.now() - timedelta(hours=1),
+            end_date=timezone.now() + timedelta(hours=1),
+            products_count=1,
+        )
+        self.product = AuctionProduct.objects.create(
+            auction=self.auction,
+            product_id='A-2001',
+            title='اثر بازدید',
+            artist=self.artist,
+            artwork_type=self.artwork_type,
+            base_price=Decimal('100'),
+            bid_criteria=AuctionProduct.BidCriteria.FIXED_AMOUNT,
+            bid_value=Decimal('10'),
+        )
+
+    def test_auction_products_page_refresh_does_not_track_visit(self):
+        response = self.client.get(reverse('auction:auction_products', kwargs={'pk': self.auction.pk}))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(AuctionVisitHistory.objects.count(), 0)
+
+    def test_track_visit_endpoint_creates_auction_visit_only_on_click(self):
+        response = self.client.post(
+            reverse('track_public_visit'),
+            data=json.dumps({'kind': 'auction', 'object_id': self.auction.pk}),
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(AuctionVisitHistory.objects.count(), 1)
+        visit = AuctionVisitHistory.objects.get()
+        self.assertEqual(visit.auction, self.auction)
+        self.assertIsNone(visit.product)
+
+    def test_auction_list_page_marks_auction_links_for_guarded_visit_tracking(self):
+        response = self.client.get(reverse('auction:action'))
+
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        self.assertIn('data-track-visit="1"', html)
+        self.assertIn('data-track-guard="auction-access"', html)
+
+    def test_auction_product_detail_page_refresh_does_not_track_visit(self):
+        response = self.client.get(reverse('auction:auction_product_detail', kwargs={'pk': self.product.pk}))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(AuctionVisitHistory.objects.count(), 0)
+
+    def test_auction_products_page_marks_product_detail_links_for_guarded_visit_tracking(self):
+        response = self.client.get(reverse('auction:auction_products', kwargs={'pk': self.auction.pk}))
+
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        self.assertIn(reverse('auction:auction_product_detail', kwargs={'pk': self.product.pk}), html)
+        self.assertIn('data-track-kind="auction_product"', html)
+        self.assertIn('data-track-guard="auction-access"', html)
+
+    def test_track_visit_endpoint_creates_auction_product_visit_only_on_click(self):
+        response = self.client.post(
+            reverse('track_public_visit'),
+            data=json.dumps({'kind': 'auction_product', 'object_id': self.product.pk}),
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(AuctionVisitHistory.objects.count(), 1)
+        visit = AuctionVisitHistory.objects.get()
+        self.assertEqual(visit.auction, self.auction)
+        self.assertEqual(visit.product, self.product)
+
+    def test_home_page_marks_active_auction_links_for_guarded_visit_tracking(self):
+        response = self.client.get(reverse('home'))
+
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        self.assertIn(reverse('auction:auction_products', kwargs={'pk': self.auction.pk}), html)
+        self.assertIn('data-track-guard="auction-access"', html)

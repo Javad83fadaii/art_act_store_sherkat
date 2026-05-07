@@ -1,0 +1,392 @@
+@font-face {
+  font-family: 'Morabba';
+  src: url('../fonts/Morabba-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Morabba';
+  src: url('../fonts/Morabba-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Morabba';
+  src: url('../fonts/Morabba-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Morabba';
+  src: url('../fonts/Morabba-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Morabba';
+  src: url('../fonts/Morabba-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Morabba';
+  src: url('../fonts/Morabba-Black.ttf') format('truetype');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* =====================
+   ROOT VARIABLES
+===================== */
+:root {
+  --primary: #ff6b00;
+  --secondary: #2c2c54;
+  --bg: #f4f6f9;
+  --white: #ffffff;
+  --text: #2f3640;
+  --border: #e5e5e5;
+  --surface: #ffffff;
+
+  --success: #2ecc71;
+  --danger: #e74c3c;
+  --warning: #f1c40f;
+
+  --radius: 8px;
+  --transition: 0.3s ease;
+}
+
+:root[data-theme='dark'] {
+  --primary: #ff8533;
+  --secondary: #4a4a8a;
+  --bg: #121212;
+  --white: #1e1e1e;
+  --text: #e0e0e0;
+  --border: #333333;
+  --surface: #1e1e1e;
+}
+
+/* =====================
+   RESET & BASE
+===================== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Morabba', sans-serif;
+  font-weight: 500;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+  direction: rtl; /* فعال‌سازی راست‌چین سراسری */
+  text-align: start;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+.font-en {
+  font-family: 'Morabba', sans-serif;
+  direction: ltr;
+  display: inline-block;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d4d4d8;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1aa;
+}
+
+/* =====================
+   GLOBAL - CONTAINER WIDTH REDUCED TO 2/3
+===================== */
+.container {
+  /* کاهش عرض از 1200px به 800px برای کوچک‌تر شدن کلی کار */
+  max-width: 800px; 
+  margin: auto;
+  padding: 16px;
+  width: 100%;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+  transition: var(--transition);
+}
+
+a:hover {
+  color: var(--primary);
+}
+
+/* =====================
+   HEADER / NAV
+===================== */
+header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: var(--surface);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+  transition: background 0.3s ease;
+}
+
+nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+nav ul {
+  display: flex;
+  list-style: none;
+  gap: 20px;
+}
+
+/* =====================
+   PANELS
+===================== */
+.panel {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* SIDEBAR */
+.sidebar {
+  width: 240px;
+  padding: 20px;
+  background: var(--white);
+  border-inline-end: 1px solid var(--border);
+}
+
+.sidebar ul {
+  list-style: none;
+}
+
+.sidebar li {
+  margin-bottom: 15px;
+}
+
+/* CONTENT AREA - ADJUSTED FOR SMALLER WIDTH */
+.panel-content {
+  flex: 1;
+  padding: 30px;
+  max-width: 100%;
+}
+
+/* =====================
+   LOGO COLOR FILL ANIMATION
+===================== */
+.logo-bg-reveal {
+  position: relative;
+  z-index: 10;
+  background-color: #ffffff;
+  animation: colorFillEffect 5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  will-change: background-color, box-shadow;
+}
+
+@keyframes colorFillEffect {
+  0% {
+    background-color: #ffffff;
+    box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+    border: 1px solid rgba(0,0,0,0.05);
+  }
+  30% {
+    background-color: #ffffff;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  }
+  100% {
+    background-color: #8C703F; 
+    box-shadow: 0 10px 15px -3px rgba(124, 124, 123, 0.25);
+    border-color: transparent;
+    color: #ffffff;
+  }
+}
+
+/* =====================
+   DESIGN: GOLDEN THEME
+===================== */
+:root {
+    --bg-color: #ffffff;
+    --control-bg: #f5f7fa;
+    --accent-gold: #C9A06B;
+    --shadow-light: #ffffff;
+    --shadow-dark: rgba(163, 177, 198, 0.4);
+}
+
+/* STEP CONTROL */
+.step-control-bold {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: 'Morabba', sans-serif;
+    margin-top: 15px;
+}
+
+.step-label-bold {
+    font-size: 0.9rem;
+    color: #555;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+}
+
+.step-input-group-bold {
+    display: flex;
+    align-items: center;
+    background: var(--bg-color);
+    padding: 8px 12px;
+    border-radius: 16px;
+    box-shadow: 1px 1px 3px var(--shadow-dark), -1px -1px 3px var(--shadow-light);
+    transition: all 0.3s ease;
+}
+
+.step-btn-bold {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    background: var(--bg-color);
+    color: var(--accent-gold);
+    font-size: 1.5rem;
+    cursor: pointer;
+    box-shadow: 3px 3px 6px var(--shadow-dark), -3px -3px 6px var(--shadow-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.step-input-bold {
+    width: 70px;
+    height: 40px;
+    border: none;
+    background: transparent;
+    text-align: center;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #333;
+    outline: none;
+}
+
+.step-control-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 12px;
+    width: 100%;
+    max-width: 400px; /* محدود کردن عرض ردیف کنترل */
+}
+
+.step-control-row .step-label-bold {
+    margin-bottom: 0;
+    margin-inline-start: 10px;
+}
+
+/* GOLD BOX INFO */
+.step-control-box-gold.one-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    border-radius: 16px;
+    background: var(--bg-color);
+    box-shadow: 5px 5px 10px var(--shadow-dark), -5px -5px 10px var(--shadow-light);
+}
+
+.step-badge-gold {
+    font-size: 0.7rem;
+    font-weight: 800;
+    padding: 5px 10px;
+    border-radius: 8px;
+    margin-inline-start: auto;
+    color: #8a6d3b;
+    background: rgba(201, 160, 107, 0.15);
+    border: 1px solid rgba(201, 160, 107, 0.25);
+}
+
+/* SUBMIT BUTTON */
+.submit-bid-btn-gold {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 56px;
+    width: 100%;
+    max-width: 400px; /* هم‌راستا با عرض کنترلرها */
+    margin: 20px auto 0;
+    background: #AB8C58;
+    border: none;
+    border-radius: 14px;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #ffffff;
+    cursor: pointer;
+    box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.25);
+}
+
+/* ANIMATIONS */
+@keyframes gavel-swing {
+    0%   { transform: rotate(0deg); }
+    20%  { transform: rotate(-18deg); }
+    40%  { transform: rotate(6deg); }
+    100% { transform: rotate(0deg); }
+}
+
+.btn-icon-gold {
+    font-size: 1.6rem;
+    display: inline-block;
+    transform-origin: 60% 65%;
+}
+
+.submit-bid-btn-gold:hover .btn-icon-gold {
+    animation: gavel-swing 0.65s ease-in-out;
+}
+
+@keyframes hourglass-flip {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.animate-hourglass {
+    animation: hourglass-flip 4s ease-in-out infinite;
+}
+
+/* RESPONSIVE */
+@media (max-width: 640px) {
+    .container {
+        padding: 12px;
+    }
+    .step-input-bold {
+        width: 60px;
+    }
+}
+
+@media (max-width: 500px) {
+    .step-control-row {
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
+}

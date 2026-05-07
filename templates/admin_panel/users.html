@@ -1,0 +1,478 @@
+{% extends 'admin_panel/base.html' %}
+{% load static %}
+
+{% block title %}مدیریت کاربران | آرت‌پنل{% endblock %}
+{% block page_title %}لیست کاربران{% endblock %}
+
+{% block extra_head %}
+<style>
+    .rotate-180 {
+        transform: rotate(180deg);
+    }
+    .sortable {
+        user-select: none;
+    }
+    /* اسکرول‌بار اختصاصی و زیبا برای جدول */
+    .custom-scrollbar::-webkit-scrollbar {
+        height: 8px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background-color: rgba(156, 163, 175, 0.5);
+        border-radius: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="flex flex-col gap-6 w-full relative">
+
+    <!-- بخش فیلترها و جستجو (بهبود یافته و مینیمال) -->
+    <div class="bg-white dark:bg-admin-surface-dark rounded-2xl p-4 md:p-5 border border-gray-100 dark:border-white/5 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+            
+            <!-- باکس جستجو -->
+            <div class="relative w-full sm:w-72">
+                <input type="text" id="searchInput" placeholder="جستجوی نام یا ایمیل..." 
+                    class="w-full bg-transparent border border-gray-200 dark:border-gray-700 rounded-xl pr-11 pl-4 py-2.5 text-sm outline-none focus:border-primary dark:focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500" style="font-family: inherit;">
+                <svg class="size-5 text-gray-400 absolute right-3.5 top-1/2 -translate-y-1/2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"></path></svg>
+            </div>
+            
+            <button onclick="currentPage = 1; fetchUsers(1)" class="w-full sm:w-auto bg-primary text-white rounded-xl px-6 py-2.5 text-sm font-medium hover:bg-primary-dark hover:shadow-lg hover:shadow-primary/20 active:scale-95 transition-all shrink-0">
+                جستجو
+            </button>
+            <button id="showAllBtn" onclick="toggleShowAll()" class="w-full sm:w-auto bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-300 rounded-xl px-5 py-2.5 text-sm font-medium hover:bg-gray-100 dark:hover:bg-white/10 transition-all shrink-0 border border-transparent">
+                مشاهده همه
+            </button>
+        </div>
+        
+        <div class="flex items-center gap-2 w-full md:w-auto relative">
+            <!-- فیلتر وضعیت -->
+            <select id="statusFilter" onchange="currentPage = 1; fetchUsers(1)" 
+                class="w-full sm:w-48 bg-transparent border border-gray-200 dark:border-gray-700 rounded-xl pr-4 pl-10 py-2.5 text-sm outline-none focus:border-primary dark:focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all text-gray-800 dark:text-gray-100 cursor-pointer appearance-none" style="font-family: inherit;">
+                <option value="" class="bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100">همه وضعیت‌ها</option>
+                <option value="active" class="bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100">فعال</option>
+                <option value="inactive" class="bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100">غیرفعال</option>
+            </select>
+            <!-- آیکون سفارشی برای سلکت -->
+            <svg class="size-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        </div>
+    </div>
+
+    <!-- جدول کاربران -->
+    <div class="bg-white dark:bg-admin-surface-dark rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm overflow-hidden flex flex-col relative">
+        
+        <!-- وضعیت لودینگ -->
+        <div id="loading-indicator" class="absolute inset-0 bg-white/60 dark:bg-admin-surface-dark/70 backdrop-blur-sm z-10 flex items-center justify-center transition-opacity duration-300 opacity-0 pointer-events-none">
+            <div class="flex items-center gap-3 text-primary font-bold bg-white dark:bg-gray-800 px-6 py-3 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700">
+                <svg class="animate-spin size-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                در حال دریافت کاربران...
+            </div>
+        </div>
+
+        <div class="w-full overflow-x-auto custom-scrollbar">
+            <table class="w-full text-right border-collapse min-w-[950px] whitespace-nowrap">
+                <thead class="bg-gray-50/80 dark:bg-white/5 text-text-muted text-xs font-bold border-b border-gray-100 dark:border-white/5">
+                    <tr>
+                        <th class="py-4 px-3 font-bold w-10 text-center">#</th>
+                        <th class="py-4 px-3 font-bold sortable" data-sort="phone_number">
+                            <div class="flex items-center gap-1 cursor-pointer hover:text-primary transition-colors">
+                                <span>مشخصات کاربر</span>
+                                <svg class="size-3 sort-icon opacity-0 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                <span class="sort-order-badge hidden text-[10px] font-black bg-primary text-white rounded-full size-4 flex items-center justify-center"></span>
+                            </div>
+                        </th>
+                        <th class="py-4 px-3 font-bold sortable" data-sort="is_active">
+                            <div class="flex items-center gap-1 cursor-pointer hover:text-primary transition-colors">
+                                <span>وضعیت</span>
+                                <svg class="size-3 sort-icon opacity-0 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                <span class="sort-order-badge hidden text-[10px] font-black bg-primary text-white rounded-full size-4 flex items-center justify-center"></span>
+                            </div>
+                        </th>
+                        <th class="py-4 px-2 font-bold sortable text-center" data-sort="is_verified" title="درخواست مزایده">
+                            <div class="flex items-center justify-center gap-1 cursor-pointer hover:text-primary transition-colors">
+                                <span>درخواست مزایده</span>
+                                <svg class="size-3 sort-icon opacity-0 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                <span class="sort-order-badge hidden text-[10px] font-black bg-primary text-white rounded-full size-4 flex items-center justify-center"></span>
+                            </div>
+                        </th>
+                        
+                        <!-- بخش ادغام شده بازدیدها -->
+                        <th class="py-2 px-4 text-center border-x border-gray-200/50 dark:border-white/5 bg-white/50 dark:bg-transparent">
+                            <div class="flex flex-col items-center gap-2">
+                                <span class="text-[10px] uppercase tracking-wider font-black text-primary bg-primary/10 px-3 py-1 rounded-full shadow-sm">
+                                    آمار بازدیدها
+                                </span>
+                               <div class="flex items-center justify-center gap-4">
+                                   <div class="sortable flex items-center gap-1 cursor-pointer hover:text-blue-500 transition-colors" data-sort="store_visits_count" title="مرتب‌سازی بر اساس بازدید فروشگاه">
+                                       <span class="text-xs">فروشگاه</span>
+                                       <svg class="size-3 sort-icon opacity-0 transition-transform duration-200 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                        <span class="sort-order-badge hidden text-[10px] font-black bg-blue-500 text-white rounded-full size-4 flex items-center justify-center"></span>
+                                    </div>
+                                    <div class="sortable flex items-center gap-1 cursor-pointer hover:text-purple-500 transition-colors" data-sort="auction_visits_count" title="مرتب‌سازی بر اساس بازدید مزایده">
+                                        <span class="text-xs">مزایده</span>
+                                        <svg class="size-3 sort-icon opacity-0 transition-transform duration-200 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                        <span class="sort-order-badge hidden text-[10px] font-black bg-purple-500 text-white rounded-full size-4 flex items-center justify-center"></span>
+                                    </div>
+                                    <div class="sortable flex items-center gap-1 cursor-pointer hover:text-pink-500 transition-colors" data-sort="auction_product_visits_count" title="مرتب‌سازی بر اساس بازدید محصول">
+                                        <span class="text-xs">محصول مزایده</span>
+                                        <svg class="size-3 sort-icon opacity-0 transition-transform duration-200 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                        <span class="sort-order-badge hidden text-[10px] font-black bg-pink-500 text-white rounded-full size-4 flex items-center justify-center"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </th>
+
+                        <th class="py-4 px-3 font-bold sortable" data-sort="last_activity_time">
+                            <div class="flex items-center gap-1 cursor-pointer hover:text-primary transition-colors">
+                                <span>آخرین فعالیت</span>
+                                <svg class="size-3 sort-icon opacity-0 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                <span class="sort-order-badge hidden text-[10px] font-black bg-primary text-white rounded-full size-4 flex items-center justify-center"></span>
+                            </div>
+                        </th>
+                        <th class="py-4 px-3 font-bold sortable" data-sort="date_joined">
+                            <div class="flex items-center gap-1 cursor-pointer hover:text-primary transition-colors">
+                                <span>تاریخ عضویت</span>
+                                <svg class="size-3 sort-icon opacity-0 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                <span class="sort-order-badge hidden text-[10px] font-black bg-primary text-white rounded-full size-4 flex items-center justify-center"></span>
+                            </div>
+                        </th>
+                        <th class="py-4 px-3 font-bold text-center">عملیات</th>
+                    </tr>
+                </thead>
+                <tbody id="users-tbody" class="text-sm font-medium text-text-main dark:text-white divide-y divide-gray-50 dark:divide-white/5">
+                    <!-- رکوردها توسط JS تولید می‌شوند -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- صفحه‌بندی -->
+        <div class="p-4 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-50/50 dark:bg-white/5">
+            <span class="text-sm font-bold text-text-muted bg-white dark:bg-gray-800 px-4 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm" id="total-users-text">تعداد کل: 0 کاربر</span>
+            <div class="flex items-center gap-1.5" id="pagination-container">
+                <!-- دکمه‌های صفحه‌بندی -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const API_LIST_URL = "{% url 'admin_panel:users-list' %}";
+    const USER_HISTORY_BASE_URL = "/admin-panel/users/";
+    
+    const dateFormatter = new Intl.DateTimeFormat('fa-IR', {
+        year: 'numeric', month: '2-digit', day: '2-digit'
+    });
+    
+    const dateTimeFormatter = new Intl.DateTimeFormat('fa-IR', {
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit'
+    });
+
+    let currentPage = 1;
+    let sortState = {}; 
+    let sortOrder = [];
+    let isShowAll = false; 
+    
+    let fetchController = null;
+    let lastFetchTime = 0;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        fetchUsers(1);
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') { currentPage = 1; fetchUsers(1); }
+        });
+        
+        document.querySelectorAll('.sortable').forEach(header => {
+            header.addEventListener('click', () => handleSort(header.dataset.sort));
+        });
+    });
+
+    function toggleShowAll() {
+        isShowAll = !isShowAll;
+        const btn = document.getElementById('showAllBtn');
+        if (isShowAll) {
+            btn.classList.add('bg-primary/10', 'text-primary', 'border-primary/30');
+            btn.classList.remove('bg-gray-50', 'text-gray-600', 'border-transparent', 'dark:bg-white/5', 'dark:text-gray-300');
+            btn.innerText = 'لغو مشاهده همه';
+        } else {
+            btn.classList.remove('bg-primary/10', 'text-primary', 'border-primary/30');
+            btn.classList.add('bg-gray-50', 'text-gray-600', 'border-transparent', 'dark:bg-white/5', 'dark:text-gray-300');
+            btn.innerText = 'مشاهده همه';
+        }
+        currentPage = 1;
+        fetchUsers(1);
+    }
+    
+    function handleSort(field) {
+        const currentState = sortState[field] || null;
+        let newState;
+        
+        if (currentState === null) {
+            newState = 'desc';
+        } else if (currentState === 'desc') {
+            newState = 'asc';
+        } else {
+            newState = null;
+            delete sortState[field];
+        }
+        
+        if (newState !== null) {
+            sortState[field] = newState;
+        }
+        
+        updateSortOrder();
+        updateSortIcons();
+        updateSortOrderBadges();
+        
+        fetchUsers(1, true); 
+    }
+    
+    function updateSortOrder() {
+        sortOrder = [];
+        for (const [field, state] of Object.entries(sortState)) {
+            if (state === 'desc') {
+                sortOrder.push('-' + field);
+            } else if (state === 'asc') {
+                sortOrder.push(field);
+            }
+        }
+    }
+    
+    function updateSortIcons() {
+        document.querySelectorAll('.sortable').forEach(header => {
+            const field = header.dataset.sort;
+            const icon = header.querySelector('.sort-icon');
+            const state = sortState[field];
+            
+            if (state === null || state === undefined) {
+                icon.classList.add('opacity-0');
+                icon.classList.remove('rotate-180');
+            } else if (state === 'desc') {
+                icon.classList.remove('opacity-0', 'rotate-180');
+            } else if (state === 'asc') {
+                icon.classList.remove('opacity-0');
+                icon.classList.add('rotate-180');
+            }
+        });
+    }
+    
+    function updateSortOrderBadges() {
+        document.querySelectorAll('.sort-order-badge').forEach(badge => {
+            badge.classList.add('hidden');
+            badge.textContent = '';
+        });
+        
+        let orderIndex = 1;
+        for (const [field, state] of Object.entries(sortState)) {
+            if (state !== null) {
+                const header = document.querySelector(`.sortable[data-sort="${field}"]`);
+                if (header) {
+                    const badge = header.querySelector('.sort-order-badge');
+                    badge.textContent = orderIndex++;
+                    badge.classList.remove('hidden');
+                }
+            }
+        }
+    }
+
+    async function fetchUsers(page = 1, skipLoading = false) {
+        currentPage = page;
+        const loading = document.getElementById('loading-indicator');
+        const search = document.getElementById('searchInput').value.trim();
+        const status = document.getElementById('statusFilter').value;
+        
+        if (fetchController) {
+            fetchController.abort();
+        }
+        fetchController = new AbortController();
+        
+        const now = Date.now();
+        const showLoading = !skipLoading || (now - lastFetchTime > 500);
+
+        if (showLoading) {
+            loading.classList.remove('opacity-0', 'pointer-events-none');
+        }
+
+        try {
+            const url = new URL(API_LIST_URL, window.location.origin);
+            url.searchParams.append('page', page);
+            if (search) url.searchParams.append('search', search);
+            if (status) url.searchParams.append('status', status);
+            if (sortOrder.length > 0) url.searchParams.append('sort', sortOrder.join(','));
+            if (isShowAll) url.searchParams.append('show_all', 'true'); 
+
+            const response = await fetch(url, { 
+                signal: fetchController.signal,
+                priority: 'high'
+            });
+            if (!response.ok) throw new Error('Network error');
+            const data = await response.json();
+
+            renderUsersTable(data.users, data.page_size || 100); 
+            renderPagination(data.pages);
+            document.getElementById('total-users-text').innerText = `تعداد کل: ${data.total} کاربر`;
+            
+            lastFetchTime = Date.now();
+        } catch (error) {
+            if (error.name !== 'AbortError') {
+                console.error('Error fetching users:', error);
+                document.getElementById('users-tbody').innerHTML = `<tr><td colspan="8" class="py-8 text-center text-red-500 font-bold">خطا در دریافت لیست کاربران.</td></tr>`;
+            }
+        } finally {
+            loading.classList.add('opacity-0', 'pointer-events-none');
+            fetchController = null;
+        }
+    }
+
+    function renderUsersTable(users, pageSize) {
+        const tbody = document.getElementById('users-tbody');
+        tbody.innerHTML = '';
+
+        if (!users || users.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="8" class="py-16 text-center text-text-muted font-bold flex flex-col items-center justify-center gap-2">
+                <svg class="size-10 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4"></path></svg>
+                کاربری یافت نشد.
+            </td></tr>`;
+            return;
+        }
+
+        users.forEach((user, index) => {
+            const rowNumber = (currentPage - 1) * pageSize + index + 1;
+            const dateJoined = user.date_joined ? dateFormatter.format(new Date(user.date_joined)) : '-';
+            const lastActivity = user.last_activity ? dateTimeFormatter.format(new Date(user.last_activity)) : '-';
+            const shortName = (user.name && user.name.length >= 2) ? user.name.substring(0, 2) : 'کا';
+            
+            const statusBadge = user.is_active 
+                ? `<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20 shadow-sm"><span class="size-1.5 rounded-full bg-emerald-500 animate-pulse"></span>فعال</span>`
+                : `<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 border border-rose-100 dark:border-rose-500/20 shadow-sm"><span class="size-1.5 rounded-full bg-rose-500"></span>غیرفعال</span>`;
+
+            let auctionRequestBadge = `<span class="text-gray-300 dark:text-gray-600 bg-gray-50 dark:bg-gray-800 rounded-full px-3 py-1 text-xs">-</span>`;
+            if (user.auction_request_status === 'approved') {
+                auctionRequestBadge = `<div class="bg-blue-50 dark:bg-blue-500/10 text-blue-500 p-1.5 rounded-xl border border-blue-100 dark:border-blue-500/20 inline-block shadow-sm" title="تایید شده"><svg xmlns="http://www.w3.org/2000/svg" class="size-5 mx-auto" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M8.603 3.799A4.49 4.49 0 0 1 12 2.25c1.357 0 2.573.6 3.397 1.549a4.49 4.49 0 0 1 3.498 1.307 4.491 4.491 0 0 1 1.307 3.497A4.49 4.49 0 0 1 21.75 12a4.49 4.49 0 0 1-1.549 3.397 4.491 4.491 0 0 1-1.307 3.497 4.491 4.491 0 0 1-3.497 1.307A4.49 4.49 0 0 1 12 21.75a4.49 4.49 0 0 1-3.397-1.549 4.49 4.49 0 0 1-3.498-1.306 4.491 4.491 0 0 1-1.307-3.498A4.49 4.49 0 0 1 2.25 12c0-1.357.6-2.573 1.549-3.397a4.49 4.49 0 0 1 1.307-3.497 4.49 4.49 0 0 1 3.497-1.307Zm7.007 6.387a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clip-rule="evenodd" /></svg></div>`;
+            } else if (user.auction_request_status === 'pending') {
+                auctionRequestBadge = `<div class="bg-amber-50 dark:bg-amber-500/10 text-amber-500 p-1.5 rounded-xl border border-amber-100 dark:border-amber-500/20 inline-block shadow-sm" title="در انتظار بررسی"><svg xmlns="http://www.w3.org/2000/svg" class="size-5 mx-auto" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg></div>`;
+            }
+
+            const row = `
+                <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors group">
+                    <td class="py-4 px-3 text-center text-text-muted font-bold">${rowNumber}</td>
+                    <td class="py-4 px-3">
+                        <div class="flex items-center gap-3">
+                            <div class="size-10 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 text-primary flex items-center justify-center font-black text-sm shrink-0 border border-primary/10 shadow-sm group-hover:scale-105 transition-transform">${shortName}</div>
+                            <div class="flex flex-col gap-0.5">
+                                <span class="font-bold text-sm truncate max-w-[150px] text-gray-800 dark:text-gray-200" title="${user.name}">${user.name}</span>
+                                <span class="text-[11px] font-medium text-text-muted dir-ltr text-right">${user.phone_number || '-'}</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="py-4 px-3">${statusBadge}</td>
+                    <td class="py-4 px-2 text-center">
+                        ${auctionRequestBadge}
+                    </td>
+                    
+                    <td class="py-4 px-4 text-center border-x border-gray-100 dark:border-white/5 bg-gray-50/30 dark:bg-transparent transition-colors">
+                        <div class="flex items-center justify-center gap-3">
+                            <div class="flex items-center gap-1.5 bg-blue-50 dark:bg-blue-500/10 px-3 py-1.5 rounded-xl border border-blue-100 dark:border-blue-500/20 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-default" title="تعداد بازدید از محصولات فروشگاه">
+                                <svg class="size-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+                                <span class="text-xs font-black text-blue-700 dark:text-blue-400 min-w-[1rem]">${user.store_visits_count || 0}</span>
+                            </div>
+                            <div class="flex items-center gap-1.5 bg-purple-50 dark:bg-purple-500/10 px-3 py-1.5 rounded-xl border border-purple-100 dark:border-purple-500/20 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-default" title="تعداد بازدید از مزایده‌ها">
+                                <svg class="size-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z"></path></svg>
+                                <span class="text-xs font-black text-purple-700 dark:text-purple-400 min-w-[1rem]">${user.auction_visits_count || 0}</span>
+                            </div>
+                            <div class="flex items-center gap-1.5 bg-pink-50 dark:bg-pink-500/10 px-3 py-1.5 rounded-xl border border-pink-100 dark:border-pink-500/20 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-default" title="تعداد بازدید از محصولات مزایده">
+                                <svg class="size-4 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                                <span class="text-xs font-black text-pink-700 dark:text-pink-400 min-w-[1rem]">${user.auction_product_visits_count || 0}</span>
+                            </div>
+                        </div>
+                    </td>
+
+                    <td class="py-4 px-3">
+                        <div class="inline-flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800 px-2.5 py-1 rounded-lg">
+                            <svg class="size-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <span class="text-xs font-medium text-gray-600 dark:text-gray-300">${lastActivity}</span>
+                        </div>
+                    </td>
+                    <td class="py-4 px-3 text-xs font-medium text-gray-500 dark:text-gray-400 dir-ltr text-right">${dateJoined}</td>
+                    <td class="py-4 px-3 text-center">
+                        <div class="flex items-center justify-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
+                            <a href="${USER_HISTORY_BASE_URL}${user.id}/history/?edit=1" class="inline-flex items-center justify-center size-9 rounded-xl bg-blue-50 hover:bg-blue-500 dark:bg-blue-500/10 dark:hover:bg-blue-500 text-blue-600 hover:text-white dark:text-blue-400 dark:hover:text-white transition-all shadow-sm hover:shadow-md hover:shadow-blue-500/30" title="ویرایش مشخصات کاربر">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                            </a>
+                            <a href="${USER_HISTORY_BASE_URL}${user.id}/history/" class="inline-flex items-center justify-center size-9 rounded-xl bg-gray-100 hover:bg-gray-800 dark:bg-white/10 dark:hover:bg-white text-gray-600 hover:text-white dark:text-gray-300 dark:hover:text-gray-900 transition-all shadow-sm hover:shadow-md" title="مشاهده تاریخچه">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            tbody.insertAdjacentHTML('beforeend', row);
+        });
+    }
+
+    function renderPagination(totalPages) {
+        const container = document.getElementById('pagination-container');
+        container.innerHTML = '';
+        
+        if (totalPages <= 1 || isShowAll) return;
+
+        const prevBtn = document.createElement('button');
+        prevBtn.className = `size-9 rounded-xl flex items-center justify-center text-sm font-bold transition-all ${currentPage > 1 ? 'bg-white dark:bg-white/10 text-text-main dark:text-white hover:bg-gray-100 dark:hover:bg-white/20 border border-gray-200 dark:border-transparent shadow-sm' : 'bg-transparent text-gray-300 border border-transparent cursor-not-allowed'}`;
+        prevBtn.innerHTML = '<svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>';
+        prevBtn.disabled = currentPage === 1;
+        prevBtn.onclick = () => changePage(currentPage - 1);
+        container.appendChild(prevBtn);
+
+        let startPage = Math.max(1, currentPage - 2);
+        let endPage = Math.min(totalPages, currentPage + 2);
+
+        if (currentPage <= 3) endPage = Math.min(5, totalPages);
+        if (currentPage >= totalPages - 2) startPage = Math.max(1, totalPages - 4);
+
+        if (startPage > 1) {
+            container.appendChild(createPageButton(1));
+            if (startPage > 2) container.appendChild(createEllipsis());
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            container.appendChild(createPageButton(i));
+        }
+
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) container.appendChild(createEllipsis());
+            container.appendChild(createPageButton(totalPages));
+        }
+
+        const nextBtn = document.createElement('button');
+        nextBtn.className = `size-9 rounded-xl flex items-center justify-center text-sm font-bold transition-all ${currentPage < totalPages ? 'bg-white dark:bg-white/10 text-text-main dark:text-white hover:bg-gray-100 dark:hover:bg-white/20 border border-gray-200 dark:border-transparent shadow-sm' : 'bg-transparent text-gray-300 border border-transparent cursor-not-allowed'}`;
+        nextBtn.innerHTML = '<svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>';
+        nextBtn.disabled = currentPage === totalPages;
+        nextBtn.onclick = () => fetchUsers(currentPage + 1);
+        container.appendChild(nextBtn);
+    }
+    
+    function changePage(page) {
+        if(page >= 1) fetchUsers(page);
+    }
+
+    function createPageButton(pageNumber) {
+        const btn = document.createElement('button');
+        btn.className = `size-9 rounded-xl flex items-center justify-center text-sm font-bold transition-all shadow-sm ${pageNumber === currentPage ? 'bg-primary text-white hover:bg-primary-dark hover:shadow-primary/30 hover:shadow-md' : 'bg-white dark:bg-white/10 text-text-main dark:text-white border border-gray-200 dark:border-transparent hover:bg-gray-100 dark:hover:bg-white/20'}`;
+        btn.innerText = pageNumber;
+        btn.onclick = () => fetchUsers(pageNumber);
+        return btn;
+    }
+
+    function createEllipsis() {
+        const span = document.createElement('span');
+        span.className = 'px-1.5 text-gray-400 font-black tracking-widest';
+        span.innerText = '...';
+        return span;
+    }
+</script>
+{% endblock %}

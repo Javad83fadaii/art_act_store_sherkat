@@ -1,0 +1,45 @@
+import json
+
+from channels.db import database_sync_to_async
+from channels.generic.websocket import AsyncWebsocketConsumer
+
+from .realtime import build_bid_live_payload, get_auction_product_group_name
+
+
+class AuctionProductBidConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.product_pk = int(self.scope['url_route']['kwargs']['product_pk'])
+        self.group_name = get_auction_product_group_name(self.product_pk)
+
+        await self.channel_layer.group_add(self.group_name, self.channel_name)
+        await self.accept()
+
+        payload = await database_sync_to_async(build_bid_live_payload)(
+            self.product_pk,
+            self.scope.get('user'),
+        )
+        await self.send(
+            text_data=json.dumps(
+                {
+                    'type': 'initial_state',
+                    'payload': payload,
+                }
+            )
+        )
+
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard(self.group_name, self.channel_name)
+
+    async def auction_bid_update(self, event):
+        payload = await database_sync_to_async(build_bid_live_payload)(
+            self.product_pk,
+            self.scope.get('user'),
+        )
+        await self.send(
+            text_data=json.dumps(
+                {
+                    'type': 'bid_update',
+                    'payload': payload,
+                }
+            )
+        )

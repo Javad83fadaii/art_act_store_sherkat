@@ -1,0 +1,212 @@
+{% extends 'admin_panel/base.html' %}
+{% load static %}
+
+{% block title %}تاریخچه حضور در سایت | آرت‌پنل{% endblock %}
+{% block page_title %}تاریخچه حضور در سایت{% endblock %}
+
+{% block content %}
+<div class="flex flex-col gap-6" id="site-visits-app">
+    
+    <!-- هدر بخش و فیلترها -->
+    <div class="bg-admin-surface-light dark:bg-admin-surface-dark rounded-2xl p-4 lg:p-6 shadow-sm border border-gray-100 dark:border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-4 relative overflow-hidden">
+        <!-- افکت پس زمینه -->
+        <div class="absolute -right-10 -top-10 size-40 bg-primary/5 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="flex flex-col gap-1 relative z-10">
+            <h3 class="text-lg font-black text-text-main dark:text-white flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-primary"><path d="M2 12h3"></path><path d="M19 12h3"></path><path d="M12 2v3"></path><path d="M12 19v3"></path><circle cx="12" cy="12" r="7"></circle></svg>
+                مدیریت لاگ‌های حضور
+            </h3>
+            <p class="text-xs font-bold text-text-muted">در این بخش می‌توانید لیست کاربرانی که در سایت آنلاین بوده‌اند را همراه با IP و مدت زمان حضور بررسی کنید.</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3 relative z-10">
+            <!-- جستجو -->
+            <div class="relative">
+                <input type="text" id="searchInput" placeholder="جستجوی IP یا نام کاربر..." class="w-full md:w-64 bg-admin-bg-light dark:bg-admin-bg-dark border border-gray-200 dark:border-white/10 rounded-xl pl-4 pr-10 py-2 text-xs font-bold text-text-main dark:text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+            </div>
+            
+            <!-- فیلتر وضعیت -->
+            <select id="statusFilter" class="bg-admin-bg-light dark:bg-admin-bg-dark border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2 text-xs font-bold text-text-main dark:text-white focus:outline-none focus:border-primary transition-all cursor-pointer">
+                <option value="">همه وضعیت‌ها</option>
+                <option value="active">در حال بازدید (آنلاین)</option>
+                <option value="closed">بازدید پایان یافته</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- جدول نمایش اطلاعات -->
+    <div class="bg-admin-surface-light dark:bg-admin-surface-dark rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 overflow-hidden">
+        <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-right border-collapse">
+                <thead>
+                    <tr class="bg-admin-bg-light dark:bg-admin-bg-dark border-b border-gray-100 dark:border-white/5 text-text-muted text-[11px] font-black">
+                        <th class="p-4 whitespace-nowrap">کاربر / مهمان</th>
+                        <th class="p-4 whitespace-nowrap">آدرس IP</th>
+                        <th class="p-4 whitespace-nowrap text-center">زمان ورود</th>
+                        <th class="p-4 whitespace-nowrap text-center">آخرین فعالیت</th>
+                        <th class="p-4 whitespace-nowrap text-center">مدت زمان</th>
+                        <th class="p-4 whitespace-nowrap text-center">وضعیت</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody" class="text-xs font-bold text-text-main dark:text-gray-300 divide-y divide-gray-100 dark:divide-white/5 relative">
+                    <!-- لودینگ اولیه -->
+                    <tr id="loadingRow">
+                        <td colspan="6" class="p-8 text-center">
+                            <div class="flex flex-col items-center justify-center gap-3">
+                                <svg class="animate-spin size-8 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                <span class="text-text-muted text-xs">در حال دریافت اطلاعات...</span>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- بخش صفحه‌بندی -->
+        <div class="p-4 border-t border-gray-100 dark:border-white/5 flex items-center justify-between bg-admin-bg-light/50 dark:bg-admin-bg-dark/50">
+            <div class="text-xs font-bold text-text-muted" id="paginationInfo">
+                نمایش ۰ نتیجه
+            </div>
+            <div class="flex items-center gap-1" id="paginationControls">
+                <!-- دکمه‌ها توسط جاوااسکریپت تولید می‌شوند -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    let currentPage = 1;
+    let searchTimer = null;
+    
+    const tableBody = document.getElementById('tableBody');
+    const searchInput = document.getElementById('searchInput');
+    const statusFilter = document.getElementById('statusFilter');
+    const paginationInfo = document.getElementById('paginationInfo');
+    const paginationControls = document.getElementById('paginationControls');
+
+    // تابع فرمت‌دهی تاریخ جلالی
+    const formatJalaliDate = (isoString) => {
+        if (!isoString) return '-';
+        const date = new Date(isoString);
+        const dateStr = new Intl.DateTimeFormat('fa-IR', { year: 'numeric', month: 'short', day: 'numeric' }).format(date);
+        const timeStr = new Intl.DateTimeFormat('fa-IR', { hour: '2-digit', minute: '2-digit' }).format(date);
+        return `<div class="flex flex-col gap-0.5 items-center"><span class="text-text-main dark:text-white">${timeStr}</span><span class="text-[10px] text-text-muted">${dateStr}</span></div>`;
+    };
+
+    // تبدیل اعداد انگلیسی به فارسی برای رندر جاوااسکریپتی
+    const e2p = s => s.toString().replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
+
+    // تابع اصلی واکشی داده‌ها از API
+    const fetchLogs = async (page = 1) => {
+        tableBody.innerHTML = `<tr><td colspan="6" class="p-8 text-center"><div class="flex flex-col items-center gap-3"><svg class="animate-spin size-6 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></div></td></tr>`;
+        
+        try {
+            const queryParams = new URLSearchParams({
+                page: page,
+                search: searchInput.value,
+                status: statusFilter.value
+            });
+
+            // ---> آدرس در این خط اصلاح شد <---
+            const response = await fetch(`{% url 'admin_panel:api-site-visits' %}?${queryParams.toString()}`);
+            if (!response.ok) throw new Error('خطا در دریافت اطلاعات');
+            
+            const data = await response.json();
+            renderTable(data);
+            renderPagination(data);
+            currentPage = data.current_page;
+            
+        } catch (error) {
+            console.error(error);
+            tableBody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-red-500 text-xs font-bold">خطا در برقراری ارتباط با سرور. لطفاً دوباره تلاش کنید.</td></tr>`;
+        }
+    };
+
+    // رندر کردن سطرهای جدول
+    const renderTable = (data) => {
+        if (!data.logs || data.logs.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="6" class="p-10 text-center text-text-muted text-sm font-bold">هیچ رکورد بازدیدی یافت نشد.</td></tr>`;
+            return;
+        }
+
+        tableBody.innerHTML = data.logs.map(log => {
+            const isGuest = log.user_display.includes('مهمان');
+            const userIcon = isGuest 
+                ? `<div class="size-8 rounded-lg bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-400 shrink-0"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></div>`
+                : `<div class="size-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></div>`;
+            
+            const userHtml = log.user_url 
+                ? `<a href="${log.user_url}" class="hover:text-primary transition-colors">${log.user_display}</a>`
+                : `<span>${log.user_display}</span>`;
+
+            const statusHtml = log.is_closed
+                ? `<span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 text-[10px] font-black"><span class="size-1.5 rounded-full bg-gray-400"></span> پایان یافته</span>`
+                : `<span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-green-500/10 text-green-600 dark:text-green-400 text-[10px] font-black"><span class="size-1.5 rounded-full bg-green-500 animate-pulse"></span> آنلاین</span>`;
+
+            return `
+                <tr class="hover:bg-admin-bg-light/50 dark:hover:bg-white/[0.02] transition-colors group">
+                    <td class="p-4">
+                        <div class="flex items-center gap-3">
+                            ${userIcon}
+                            <div class="flex flex-col">
+                                <span class="font-black text-sm">${userHtml}</span>
+                                <span class="text-[10px] text-text-muted dir-ltr text-right">Session: ${log.session_key}</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="p-4 font-sans text-sm tracking-wider text-text-muted dir-ltr text-right">
+                        ${log.ip_address}
+                    </td>
+                    <td class="p-4">${formatJalaliDate(log.start_time)}</td>
+                    <td class="p-4">${formatJalaliDate(log.last_activity)}</td>
+                    <td class="p-4 text-center">
+                        <span class="bg-primary/5 dark:bg-white/5 text-primary dark:text-gray-300 px-2.5 py-1 rounded-lg text-xs font-black">
+                            ${e2p(log.duration_minutes)} دقیقه
+                        </span>
+                    </td>
+                    <td class="p-4 text-center">${statusHtml}</td>
+                </tr>
+            `;
+        }).join('');
+    };
+
+    // رندر کردن کنترل‌های صفحه‌بندی
+    const renderPagination = (data) => {
+        paginationInfo.textContent = `کل رکوردها: ${e2p(data.total)} مورد (صفحه ${e2p(data.current_page)} از ${e2p(data.pages)})`;
+        
+        let html = '';
+        
+        // دکمه قبلی
+        html += `<button onclick="window.loadVisitPage(${data.current_page - 1})" ${data.current_page === 1 ? 'disabled' : ''} class="size-8 flex items-center justify-center rounded-lg border border-gray-200 dark:border-white/10 text-text-muted hover:bg-admin-surface-light dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed transition-all"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></button>`;
+        
+        // دکمه بعدی
+        html += `<button onclick="window.loadVisitPage(${data.current_page + 1})" ${data.current_page >= data.pages ? 'disabled' : ''} class="size-8 flex items-center justify-center rounded-lg border border-gray-200 dark:border-white/10 text-text-muted hover:bg-admin-surface-light dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed transition-all"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg></button>`;
+
+        paginationControls.innerHTML = html;
+    };
+
+    // در دسترس قرار دادن تابع تغییر صفحه برای دکمه‌های HTML
+    window.loadVisitPage = (page) => {
+        fetchLogs(page);
+    };
+
+    // رویدادهای فیلتر و جستجو
+    searchInput.addEventListener('input', () => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => fetchLogs(1), 500); // تاخیر برای جلوگیری از درخواست‌های مکرر
+    });
+
+    statusFilter.addEventListener('change', () => {
+        fetchLogs(1);
+    });
+
+    // لود اولیه
+    fetchLogs(1);
+});
+</script>
+{% endblock %}

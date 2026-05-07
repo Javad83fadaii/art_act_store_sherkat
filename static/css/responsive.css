@@ -1,0 +1,35 @@
+/* =========================================
+   Mobile Menu Helpers
+   این کلاس‌ها توسط جاوااسکریپت برای نمایش منو استفاده می‌شوند
+   ========================================= */
+
+/* نمایش لایه تاریک پشت منو */
+#mobile-menu-overlay.open {
+    display: block;
+    opacity: 1;
+}
+
+/* باز کردن سایدبار (آوردن به داخل صفحه - ریست کردن ترنسلیت) */
+#mobile-menu-sidebar.open {
+    transform: translateX(0) !important;
+}
+
+/* در سایز دسکتاپ (بالای 1024 پیکسل) منوی موبایل و دکمه‌ها کلا مخفی شوند */
+@media screen and (min-width: 1024px) {
+    #mobile-menu-btn,
+    #mobile-menu-overlay,
+    #mobile-menu-sidebar {
+        display: none !important;
+    }
+}
+@media (max-width: 768px) {
+    .logo-wrapper {
+        width: 48px;
+        height: 48px;
+    }
+
+    .logo-img {
+        width: 24px;
+        height: 24px;
+    }
+}

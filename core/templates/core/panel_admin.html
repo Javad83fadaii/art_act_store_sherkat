@@ -1,0 +1,577 @@
+{% load static %}
+<!DOCTYPE html>
+<html dir="rtl" lang="fa">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>پنل مدیریت حراجی | آرت گالری</title>
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+    <script src="{% static 'js/tailwind.min.js' %}"></script>
+    <script src="{% static 'js/app.js' %}" defer></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            DEFAULT: '#C5A059',
+                            light: '#F9F1D8',
+                            dark: '#997B44'
+                        },
+
+                        gold: {
+                            50: '#FCF9F0',
+                            100: '#F9F1D8',
+                            400: '#D4AF37',
+                            500: '#C5A059',
+                            600: '#997B44',
+                        },
+                        copper: {
+                            500: '#B87333',
+                        },
+                        cream: {
+                            50: '#FDFCF8',
+                            100: '#F7F5F0',
+                        },
+                        charcoal: {
+                            800: '#1F1F1F',
+                            900: '#111111',
+                        },
+                        "background-light": "#FDFCF8",
+                        "background-dark": "#0F0F0F",
+                        "text-main": "#1F1F1F",
+                        "text-secondary": "#666666",
+                        "surface": "#FFFFFF",
+                    },
+                    fontFamily: {
+                        "display": ["Morabba", "sans-serif"],
+                        "body": ["Morabba", "sans-serif"],
+                    },
+                    boxShadow: {
+                        'luxury': '0 4px 20px -2px rgba(197, 160, 89, 0.15)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #FDFCF8;
+            color: #1F1F1F;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #C5A059;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #997B44;
+        }
+
+        .chart-path {
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            animation: draw 2s ease-out forwards;
+        }
+
+        @keyframes draw {
+            to {
+                stroke-dashoffset: 0;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-cream-50 text-charcoal-800 flex flex-col min-h-screen font-body font-medium antialiased">
+
+
+    <header class="sticky top-0 z-[1000] w-full border-b border-primary/10 dark:border-white/5 glass-effect">
+        <div class="max-w-[1440px] mx-auto px-4 md:px-6 h-20 flex items-center justify-between relative">
+            <div class="flex items-center gap-3">
+                <div
+                    class="size-11 rounded-full bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20 shrink-0">
+                    <span class="material-symbols-outlined text-[24px]">gavel</span>
+                </div>
+                <div class="flex flex-col">
+                    <h1
+                        class="text-xl font-bold tracking-tight text-text-main dark:text-black leading-none font-display">
+                        فروشگاه آثار هنری</h1>
+                    <span
+                        class="text-xs text-primary font-medium tracking-wide mt-1 hidden sm:block uppercase">Sotheby’s
+                        Inspired</span>
+                </div>
+            </div>
+            <nav class="hidden lg:flex items-center gap-6">
+                <a class="text-sm font-bold text-text-secondary hover:text-primary transition-colors font-body relative group py-2"
+                    href="store.html">
+                    فروشگاه
+                    <span
+                        class="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
+                </a>
+                <a class="text-sm font-bold text-text-secondary hover:text-primary transition-colors font-body relative group py-2"
+                    href="../../../auction/templates/auction/auction.html">
+                    مزایده
+                    <span
+                        class="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
+                </a>
+                <a class="text-sm font-bold text-text-secondary hover:text-primary transition-colors font-body relative group py-2"
+                    href="index.html">
+                    درباره ما
+                    <span
+                        class="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
+                </a>
+            </nav>
+            <div class="flex items-center gap-2 md:gap-3">
+                <div class="hidden md:flex items-center gap-2">
+                    <details class="relative z-50">
+                        <summary
+                            class="list-none cursor-pointer flex items-center justify-center w-10 h-10 rounded-full text-text-secondary hover:text-primary hover:bg-primary/5 transition-all outline-none">
+                            <span class="material-symbols-outlined text-[24px]">search</span>
+                        </summary>
+                        <div
+                            class="absolute top-full -left-2 mt-4 w-80 p-5 bg-surface dark:bg-[#1a1a1a] rounded-2xl shadow-2xl border border-primary/10 dark:border-gray-800">
+                            <div class="relative">
+                                <input
+                                    class="w-full bg-gray-50 dark:bg-white/5 border border-transparent focus:border-primary/30 rounded-xl py-3 pr-11 pl-4 text-sm text-text-main dark:text-white placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all font-body"
+                                    placeholder="جستجو در آثار..." type="text" />
+                                <span
+                                    class="absolute top-1/2 -translate-y-1/2 right-3 text-text-secondary pointer-events-none flex items-center">
+                                    <span class="material-symbols-outlined text-[20px]">search</span>
+                                </span>
+                            </div>
+                        </div>
+                    </details>
+                    <a class="flex items-center justify-center w-10 h-10 rounded-full text-text-secondary hover:text-[#229ED9] hover:bg-primary/5 transition-all"
+                        href="https://t.me/" target="_blank" rel="noopener noreferrer" title="Telegram">
+                        <svg class="size-[20px]" fill="currentColor" viewBox="0 0 24 24"
+                            xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z">
+                            </path>
+                        </svg>
+                    </a>
+                    <a class="flex items-center justify-center w-10 h-10 rounded-full text-text-secondary hover:text-[#25D366] hover:bg-primary/5 transition-all"
+                        href="https://wa.me/" target="_blank" rel="noopener noreferrer" title="WhatsApp">
+                        <svg class="size-[20px]" fill="currentColor" viewBox="0 0 24 24"
+                            xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.008-.57-.008-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z">
+                            </path>
+                        </svg>
+                    </a>
+                    <div class="relative group">
+                        <button
+                            class="flex items-center gap-2 p-1 text-primary hover:text-primary-dark transition-colors rounded-full bg-primary/5 hover:bg-primary/10">
+                            <span class="material-symbols-outlined text-[28px]">account_circle</span>
+                        </button>
+                        <div
+                            class="absolute left-0 top-full mt-4 w-60 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform translate-y-4 group-hover:translate-y-0 z-50 pt-2">
+                            <div
+                                class="bg-surface dark:bg-gray-900 rounded-2xl shadow-2xl shadow-primary/5 border border-primary/10 dark:border-gray-800 p-2 overflow-hidden">
+                                <div
+                                    class="px-4 py-3 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-white/5 rounded-t-xl mb-1">
+                                    <p class="text-xs text-text-secondary font-body">خوش آمدید</p>
+                                    <p class="text-sm font-bold text-text-main dark:text-white mt-1 font-body">کاربر
+                                        مهمان</p>
+                                </div>
+                                <a class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-text-secondary hover:text-primary hover:bg-primary-light/50 dark:hover:bg-gray-800 rounded-xl transition-colors font-body"
+                                    href="../../../templates/registration/login.html">
+                                    <span class="material-symbols-outlined text-[20px]">login</span>
+                                    ورود به حساب
+                                </a>
+                                <a class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-text-secondary hover:text-primary hover:bg-primary-light/50 dark:hover:bg-gray-800 rounded-xl transition-colors font-body"
+                                    href="../../../templates/registration/login.html">
+                                    <span class="material-symbols-outlined text-[20px]">person_add</span>
+                                    ثبت نام
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button class="md:hidden p-2 text-text-main dark:text-white">
+                    <span class="material-symbols-outlined text-[24px]">menu</span>
+                </button>
+            </div>
+        </div>
+    </header>
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div class="flex flex-col lg:flex-row gap-8">
+            <aside class="w-full lg:w-64 flex-shrink-0">
+                <div class="bg-white rounded-2xl shadow-luxury p-6 sticky top-28 border border-gray-100">
+                    <div class="mb-6 pb-6 border-b border-gray-100 text-center">
+                        <p class="text-xs text-gray-400 font-display uppercase tracking-widest">Admin Panel</p>
+                        <h2 class="text-xl font-bold text-charcoal-900 mt-1 font-display">داشبورد</h2>
+                    </div>
+                    <nav class="space-y-1">
+                        <a class="flex items-center gap-3 px-4 py-3 rounded-xl bg-gold-50 text-gold-600 font-medium transition-all"
+                            href="#">
+                            <span class="material-symbols-outlined">dashboard</span>
+                            داشبورد
+                        </a>
+                        <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-50 hover:text-charcoal-900 transition-all"
+                            href="#">
+                            <span class="material-symbols-outlined">palette</span>
+                            آثار هنری
+                        </a>
+                        <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-50 hover:text-charcoal-900 transition-all"
+                            href="#">
+                            <span class="material-symbols-outlined">gavel</span>
+                            مزایده‌ها
+                            <span class="mr-auto bg-red-50 text-red-600 text-xs px-2 py-0.5 rounded-full">۳</span>
+                        </a>
+                        <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-50 hover:text-charcoal-900 transition-all"
+                            href="#">
+                            <span class="material-symbols-outlined">group</span>
+                            کاربران
+                        </a>
+                        <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-50 hover:text-charcoal-900 transition-all"
+                            href="#">
+                            <span class="material-symbols-outlined">analytics</span>
+                            گزارشات
+                        </a>
+                        <div class="my-4 border-t border-gray-100"></div>
+                        <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-50 hover:text-charcoal-900 transition-all"
+                            href="#">
+                            <span class="material-symbols-outlined">settings</span>
+                            تنظیمات
+                        </a>
+                        <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-red-500 hover:bg-red-50 transition-all"
+                            href="#">
+                            <span class="material-symbols-outlined">logout</span>
+                            خروج
+                        </a>
+                    </nav>
+                </div>
+            </aside>
+            <div class="flex-1 space-y-8">
+                <div class="flex flex-col md:flex-row justify-between items-end gap-4 border-b border-gray-200 pb-6">
+                    <div>
+                        <h2 class="text-3xl font-display font-bold text-charcoal-900">سلام علی عزیز،</h2>
+                        <p class="text-gray-500 mt-2 font-normal">گزارش‌های امروز حراجی آماده بررسی است.</p>
+                    </div>
+                    <div
+                        class="flex items-center gap-2 bg-white px-4 py-2 rounded-full border border-gray-200 shadow-sm text-sm text-gray-600">
+                        <span class="material-symbols-outlined text-gold-500 text-lg">calendar_today</span>
+                        <span dir="ltr">۱۴۰۳/۰۸/۱۵ - ۱۲:۳۰</span>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div
+                        class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-luxury hover:-translate-y-1 transition-all duration-300">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">آثار فعال</p>
+                                <h3 class="text-2xl font-bold text-charcoal-900 mt-2 font-display">۳۴ <span
+                                        class="text-sm font-normal text-gray-400">اثر</span></h3>
+                            </div>
+                            <div class="bg-blue-50 p-2 rounded-lg text-blue-600">
+                                <span class="material-symbols-outlined">gavel</span>
+                            </div>
+                        </div>
+                        <div
+                            class="mt-4 flex items-center gap-1 text-sm text-blue-600 bg-blue-50 w-fit px-2 py-1 rounded-md">
+                            <span class="material-symbols-outlined text-base">add</span>
+                            <span class="font-medium">۵</span>
+                            <span class="text-gray-400 text-xs mr-1">امروز</span>
+                        </div>
+                    </div>
+                    <div
+                        class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-luxury hover:-translate-y-1 transition-all duration-300">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">کاربران جدید</p>
+                                <h3 class="text-2xl font-bold text-charcoal-900 mt-2 font-display">۱۸ <span
+                                        class="text-sm font-normal text-gray-400">نفر</span></h3>
+                            </div>
+                            <div class="bg-gray-100 p-2 rounded-lg text-gray-600">
+                                <span class="material-symbols-outlined">person_add</span>
+                            </div>
+                        </div>
+                        <div
+                            class="mt-4 flex items-center gap-1 text-sm text-green-600 bg-green-50 w-fit px-2 py-1 rounded-md">
+                            <span class="material-symbols-outlined text-base">arrow_upward</span>
+                            <span class="font-medium">۸٪</span>
+                            <span class="text-gray-400 text-xs mr-1">هفتگی</span>
+                        </div>
+                    </div>
+                    <div
+                        class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-luxury hover:-translate-y-1 transition-all duration-300">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">بازدید کل</p>
+                                <h3 class="text-2xl font-bold text-charcoal-900 mt-2 font-display">۱۲,۵۰۰</h3>
+                            </div>
+                            <div class="bg-gray-100 p-2 rounded-lg text-gray-600">
+                                <span class="material-symbols-outlined">visibility</span>
+                            </div>
+                        </div>
+                        <div
+                            class="mt-4 flex items-center gap-1 text-sm text-red-600 bg-red-50 w-fit px-2 py-1 rounded-md">
+                            <span class="material-symbols-outlined text-base">arrow_downward</span>
+                            <span class="font-medium">۲٪</span>
+                            <span class="text-gray-400 text-xs mr-1">کاهش</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                    <div class="xl:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+                        <div class="flex justify-between items-center mb-8">
+                            <h3 class="font-display text-lg font-bold text-charcoal-900">آمار بازدید و تعامل</h3>
+                            <div class="flex gap-1 bg-gray-50 p-1 rounded-lg">
+                                <button
+                                    class="px-3 py-1 text-xs text-gray-500 hover:text-gold-500 rounded-md transition-colors">هفتگی</button>
+                                <button
+                                    class="px-3 py-1 text-xs bg-white text-gold-600 shadow-sm rounded-md font-medium">ماهانه</button>
+                            </div>
+                        </div>
+                        <div class="grid lg:grid-cols-2 gap-8">
+                            <div>
+                                <div class="flex items-baseline gap-2 mb-4">
+                                    <span class="text-3xl font-display font-bold text-charcoal-900">۱۵,۴۰۰</span>
+                                    <span class="text-sm text-gray-400">بازدید این ماه</span>
+                                </div>
+                                <div class="relative h-48 w-full">
+                                    <svg class="h-full w-full overflow-visible" viewBox="0 0 300 100">
+                                        <defs>
+                                            <linearGradient id="gradientLine" x1="0" x2="0" y1="0" y2="1">
+                                                <stop offset="0%" stop-color="#C5A059" stop-opacity="0.2"></stop>
+                                                <stop offset="100%" stop-color="#C5A059" stop-opacity="0"></stop>
+                                            </linearGradient>
+                                        </defs>
+                                        <path d="M0 80 Q 30 70, 60 50 T 120 40 T 180 60 T 240 30 T 300 10" fill="none"
+                                            stroke="#E5E5E5" stroke-width="1"></path>
+                                        <path class="opacity-50"
+                                            d="M0 80 Q 30 70, 60 50 T 120 40 T 180 60 T 240 30 T 300 10 L 300 100 L 0 100 Z"
+                                            fill="url(#gradientLine)"></path>
+                                        <path class="chart-path drop-shadow-md"
+                                            d="M0 80 Q 30 70, 60 50 T 120 40 T 180 60 T 240 30 T 300 10" fill="none"
+                                            stroke="#C5A059" stroke-linecap="round" stroke-width="2"></path>
+                                        <circle cx="60" cy="50" fill="#C5A059" r="3" stroke="white" stroke-width="2">
+                                        </circle>
+                                        <circle cx="180" cy="60" fill="#C5A059" r="3" stroke="white" stroke-width="2">
+                                        </circle>
+                                        <circle cx="240" cy="30" fill="#C5A059" r="3" stroke="white" stroke-width="2">
+                                        </circle>
+                                    </svg>
+                                </div>
+                                <div class="flex justify-between text-xs text-gray-400 mt-2 font-normal">
+                                    <span>هفته ۱</span>
+                                    <span>هفته ۲</span>
+                                    <span>هفته ۳</span>
+                                    <span>هفته ۴</span>
+                                </div>
+                            </div>
+                            <div class="border-t lg:border-t-0 lg:border-r border-gray-100 pt-6 lg:pt-0 lg:pr-8">
+                                <div class="flex items-baseline gap-2 mb-4">
+                                    <span class="text-3xl font-display font-bold text-charcoal-900">۲,۳۰۰</span>
+                                    <span class="text-sm text-gray-400">لایک‌های اخیر</span>
+                                </div>
+                                <div class="flex h-48 items-end justify-between gap-4">
+                                    <div class="group flex w-full flex-col items-center gap-2">
+                                        <div
+                                            class="w-full bg-gold-100 rounded-t-sm h-[60%] transition-all hover:bg-gold-400">
+                                        </div>
+                                        <span class="text-xs text-gray-400">اثر الف</span>
+                                    </div>
+                                    <div class="group flex w-full flex-col items-center gap-2">
+                                        <div
+                                            class="w-full bg-gold-500 rounded-t-sm h-[85%] relative shadow-lg shadow-gold-500/20 transition-all hover:bg-gold-600">
+                                            <div
+                                                class="absolute -top-8 left-1/2 -translate-x-1/2 bg-charcoal-900 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                                                850</div>
+                                        </div>
+                                        <span class="text-xs font-bold text-charcoal-900">اثر ب</span>
+                                    </div>
+                                    <div class="group flex w-full flex-col items-center gap-2">
+                                        <div
+                                            class="w-full bg-gold-100 rounded-t-sm h-[40%] transition-all hover:bg-gold-400">
+                                        </div>
+                                        <span class="text-xs text-gray-400">اثر ج</span>
+                                    </div>
+                                    <div class="group flex w-full flex-col items-center gap-2">
+                                        <div
+                                            class="w-full bg-gold-100 rounded-t-sm h-[55%] transition-all hover:bg-gold-400">
+                                        </div>
+                                        <span class="text-xs text-gray-400">اثر د</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="xl:col-span-1 flex flex-col gap-6">
+                        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                            <div
+                                class="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+                                <h3 class="font-display text-lg font-bold text-charcoal-900">افزودن اثر جدید</h3>
+                                <div class="flex bg-gray-200 rounded-lg p-1">
+                                    <button
+                                        class="px-3 py-1 text-xs font-bold bg-white shadow-sm rounded-md text-charcoal-900">مزایده</button>
+                                    <button
+                                        class="px-3 py-1 text-xs text-gray-500 hover:text-charcoal-900 transition-colors">فروش</button>
+                                </div>
+                            </div>
+                            <div class="p-6 space-y-4">
+                                <div
+                                    class="border-2 border-dashed border-gray-200 rounded-xl bg-gray-50 h-32 flex flex-col items-center justify-center text-gray-400 hover:border-gold-500 hover:bg-gold-50 hover:text-gold-600 transition-all cursor-pointer">
+                                    <span class="material-symbols-outlined text-3xl">add_photo_alternate</span>
+                                    <span class="text-xs font-medium mt-2">آپلود تصویر</span>
+                                    <input class="hidden" type="file" />
+                                </div>
+                                <div class="space-y-3">
+                                    <input
+                                        class="w-full text-sm border-gray-200 rounded-lg focus:ring-gold-500 focus:border-gold-500 bg-gray-50 placeholder-gray-400"
+                                        placeholder="نام اثر" type="text" />
+                                    <input
+                                        class="w-full text-sm border-gray-200 rounded-lg focus:ring-gold-500 focus:border-gold-500 bg-gray-50 placeholder-gray-400"
+                                        placeholder="نام هنرمند" type="text" />
+                                </div>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <input
+                                        class="w-full text-sm border-gray-200 rounded-lg focus:ring-gold-500 focus:border-gold-500 bg-gray-50 placeholder-gray-400"
+                                        placeholder="قیمت پایه" type="number" />
+                                    <input
+                                        class="w-full text-sm border-gray-200 rounded-lg focus:ring-gold-500 focus:border-gold-500 bg-gray-50 placeholder-gray-400"
+                                        type="number" value="24" />
+                                </div>
+                                <button
+                                    class="w-full bg-gold-500 hover:bg-gold-600 text-white font-bold py-3 rounded-xl shadow-luxury transition-all text-sm">
+                                    ثبت و شروع مزایده
+                                </button>
+                            </div>
+                        </div>
+                        <div class="bg-charcoal-900 rounded-2xl p-6 text-white shadow-luxury relative overflow-hidden">
+                            <div
+                                class="absolute right-0 top-0 h-32 w-32 translate-x-10 -translate-y-10 rounded-full bg-gold-500/20 blur-2xl">
+                            </div>
+                            <h4 class="font-display font-bold text-lg relative z-10">وضعیت سرور</h4>
+                            <p class="text-gray-400 text-xs mt-1 relative z-10 font-normal">تمامی سیستم‌ها پایدار هستند
+                            </p>
+                            <div class="mt-4 flex items-center gap-2 relative z-10">
+                                <span class="relative flex h-2.5 w-2.5">
+                                    <span
+                                        class="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
+                                    <span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500"></span>
+                                </span>
+                                <span class="text-xs font-medium text-green-400">آنلاین</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="px-6 py-5 border-b border-gray-100 flex justify-between items-center">
+                        <h3 class="font-display text-lg font-bold text-charcoal-900">آخرین فعالیت‌های ورود و خروج</h3>
+                        <a class="text-sm text-gold-600 hover:text-gold-500 font-medium" href="#">مشاهده همه</a>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50 text-xs text-gray-500 uppercase tracking-wider font-medium">
+                                <tr>
+                                    <th class="px-6 py-4 text-right">کاربر</th>
+                                    <th class="px-6 py-4 text-right">وضعیت</th>
+                                    <th class="px-6 py-4 text-right">زمان</th>
+                                    <th class="px-6 py-4 text-right">آی‌پی</th>
+                                    <th class="px-6 py-4 text-left">عملیات</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                <tr class="hover:bg-cream-50 transition-colors group">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center gap-3">
+                                            <div class="h-8 w-8 rounded-full bg-gray-200 bg-cover bg-center"
+                                                style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAQUDLoxaMUEyyX1UmRC5qYhn-kGHWTwbCBFiNP_lftegCEggfyGbCdv98KRaTUReycpQFZciLspt1T5wLL3EDcyfrjiOIEsfuWsaG2g3-HWrFk9ofNEVNhDGZHR5DQpH_VksEi8cKnakOmLainqSYUAU2ddFj04ZelKQlnOxtuYRHF1JMfy8fI4JWFDltY8TFBNSKNAqz_9UU6UFNrqDkGPqMee5th_Y5VYIbU655Q6Kq9itJEKF0uv_kfp7NgQEV_VlwJwbTe_fs')">
+                                            </div>
+                                            <span class="text-sm font-medium text-charcoal-900">سارا احمدی</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span
+                                            class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-green-600"></span>
+                                            ورود موفق
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dir-ltr text-right">
+                                        14:32</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">192.168.1.1
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-left">
+                                        <button class="text-gray-400 hover:text-gold-500"><span
+                                                class="material-symbols-outlined">more_horiz</span></button>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-cream-50 transition-colors group">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center gap-3">
+                                            <div class="h-8 w-8 rounded-full bg-gray-200 bg-cover bg-center"
+                                                style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBFIybGwrFBYfxYkxg93Rc6pGztJqQGL1dzCKLUZpsh_vBBB97NsGm_n3fcpP3SziJDSIpRMfSvi66UE-ODS4LxDLiZOH0kdHb1Ms8iZ9g7hzbJDsllFn4vJx9kOnG-XjO4Czg1mFr71bRiZLz_ad5k0usOOddS4UMSAA9FeY5owVHlvmyBMG3Ys5j_3Z8pnEo7Ye4VACHVt6nl88ZAa-FF8sg4fKPJyw0p6OWHn_7yy5oab2htAZV84RgTMnttPzW5QdNs60OmCyo')">
+                                            </div>
+                                            <span class="text-sm font-medium text-charcoal-900">رضا کاظمی</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span
+                                            class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-gray-500"></span>
+                                            خروج
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dir-ltr text-right">
+                                        12:15</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">178.14.22.1
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-left">
+                                        <button class="text-gray-400 hover:text-gold-500"><span
+                                                class="material-symbols-outlined">more_horiz</span></button>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-cream-50 transition-colors group">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center gap-3">
+                                            <div class="h-8 w-8 rounded-full bg-gray-200 bg-cover bg-center"
+                                                style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuA-ZxHsNQ00bLozrnkDSA9f_HNb3owbfD6s-6rTv1wrokmToJlY4cNkh3e2PKLMEzrRJdSyLbhDZwgSPDYTZ7e-w7PSUuI0MYoQ6FleOyg5OTZM1TNgCTnALwGO34HZ0gMPV9fctfaBmg6ATmOWuJd9nhuYsOUsCd9Xr3St_aAAk5RteHgzmihxnt0F4-MALa5KYFPgz5349jEuba1GgDeJO3ECS8B-ezKp9IxibFBh9HhJNneJ0UcabkTBXfyQgDp5wzYK3S6NQ4s')">
+                                            </div>
+                                            <span class="text-sm font-medium text-charcoal-900">محمد حسینی</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span
+                                            class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700">
+                                            <span class="material-symbols-outlined text-[10px]">close</span>
+                                            ناموفق
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dir-ltr text-right">
+                                        09:45</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">5.200.12.9
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-left">
+                                        <button class="text-gray-400 hover:text-gold-500"><span
+                                                class="material-symbols-outlined">more_horiz</span></button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+
+</html>

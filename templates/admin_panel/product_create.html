@@ -1,0 +1,719 @@
+{% extends 'admin_panel/base.html' %}
+{% load static %}
+
+{% block title %}ایجاد محصول / مزایده | آرت‌پنل{% endblock %}
+{% block page_title %}ایجاد محصول / مزایده{% endblock %}
+
+{% block content %}
+<div class="flex flex-col gap-4 md:gap-6 w-full">
+    <!-- راهنما -->
+    <div class="bg-white dark:bg-admin-surface-dark rounded-2xl p-4 md:p-5 border border-gray-100 dark:border-white/5 shadow-sm">
+        <div class="flex flex-col gap-2">
+            <div class="text-base md:text-lg font-black text-text-main dark:text-white">ساخت سریع</div>
+            <div class="text-xs md:text-sm font-bold text-text-muted">از طریق تب‌های زیر می‌توانید محصولات فروشگاه، یک مزایده جدید همراه با محصولات آن، و یا یک تک‌محصول برای مزایده‌های از قبل ساخته شده را ایجاد کنید.</div>
+        </div>
+    </div>
+
+    <!-- تب‌ها -->
+    <div class="bg-white dark:bg-admin-surface-dark rounded-2xl p-2 border border-gray-100 dark:border-white/5 shadow-sm flex flex-col sm:flex-row gap-2">
+        <button id="tab-store" onclick="switchTab('store')" class="flex-1 px-4 py-2.5 rounded-xl text-sm font-black transition-colors bg-primary text-white">محصول فروشگاه</button>
+        <button id="tab-auction" onclick="switchTab('auction')" class="flex-1 px-4 py-2.5 rounded-xl text-sm font-black transition-colors text-text-muted hover:bg-gray-50 dark:hover:bg-white/5">ایجاد مزایده جدید (گروهی)</button>
+        <button id="tab-auction-product" onclick="switchTab('auction_product')" class="flex-1 px-4 py-2.5 rounded-xl text-sm font-black transition-colors text-text-muted hover:bg-gray-50 dark:hover:bg-white/5">افزودن محصول به مزایده موجود</button>
+    </div>
+
+    <!-- پنل محصول فروشگاه -->
+    <div id="panel-store" class="bg-white dark:bg-admin-surface-dark rounded-2xl p-4 md:p-5 border border-gray-100 dark:border-white/5 shadow-sm">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-5 border-b border-gray-100 dark:border-white/5 pb-4">
+            <div class="flex flex-col gap-1">
+                <div class="text-sm font-black text-text-main dark:text-white">ایجاد محصول فروشگاه</div>
+                <div class="text-xs font-bold text-text-muted">این محصول مستقیماً برای فروش در بخش فروشگاه سایت قرار می‌گیرد.</div>
+            </div>
+            <button id="createStoreBtn" onclick="createStoreProduct()" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-primary text-white text-sm font-black hover:bg-primary-glow transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                ایجاد محصول
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="md:col-span-2">
+                <label class="block text-xs font-black text-text-muted mb-2">عنوان</label>
+                <input id="sTitle" type="text" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
+            </div>
+            <div>
+                <label class="block text-xs font-black text-text-muted mb-2">product_id (اختیاری)</label>
+                <input id="sProductId" type="text" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
+            </div>
+            <div>
+                <label class="block text-xs font-black text-text-muted mb-2">هنرمند</label>
+                <select id="sArtistId" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
+                    <option value="">در حال بارگذاری...</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-black text-text-muted mb-2">قیمت</label>
+                <input id="sPrice" type="number" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
+            </div>
+            <div>
+                <label class="block text-xs font-black text-text-muted mb-2">نوع اثر (اختیاری)</label>
+                <select id="sArtworkTypeId" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
+                    <option value="">در حال بارگذاری...</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-black text-text-muted mb-2">وضعیت فروش</label>
+                <select id="sSold" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
+                    <option value="0">موجود</option>
+                    <option value="2">رزرو شده</option>
+                    <option value="1">فروخته شده</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-black text-text-muted mb-2">اصالت</label>
+                <select id="sAuth" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
+                    <option value="0">اصالت تایید شده</option>
+                    <option value="1">اصالت تایید نشده</option>
+                </select>
+            </div>
+            <div class="md:col-span-2">
+                <label class="block text-xs font-black text-text-muted mb-2">توضیحات</label>
+                <textarea id="sDesc" rows="4" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white"></textarea>
+            </div>
+            <div>
+                <label class="block text-xs font-black text-text-muted mb-2">ابعاد</label>
+                <input id="sDim" type="text" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
+            </div>
+            <div>
+                <label class="block text-xs font-black text-text-muted mb-2">سال خلق</label>
+                <input id="sYear" type="number" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
+            </div>
+            <div class="md:col-span-2">
+                <label class="block text-xs font-black text-text-muted mb-2">پیشینه</label>
+                <textarea id="sProv" rows="3" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white"></textarea>
+            </div>
+        </div>
+
+        <div id="storeMsg" class="mt-4 hidden px-4 py-3 rounded-xl text-sm font-black"></div>
+    </div>
+
+    <!-- پنل افزودن محصول به مزایده موجود -->
+    <div id="panel-auction-product" class="hidden bg-white dark:bg-admin-surface-dark rounded-2xl p-4 md:p-5 border border-gray-100 dark:border-white/5 shadow-sm">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-5 border-b border-gray-100 dark:border-white/5 pb-4">
+            <div class="flex flex-col gap-1">
+                <div class="text-sm font-black text-text-main dark:text-white">افزودن تک‌محصول به مزایده از پیش ساخته شده</div>
+                <div class="text-xs font-bold text-text-muted">از این بخش فقط زمانی استفاده کنید که مزایده قبلاً ایجاد شده و قصد اضافه کردن یک محصول جامانده به آن را دارید.</div>
+            </div>
+            <button id="createAuctionProductBtn" onclick="createAuctionProductOnly()" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-primary text-white text-sm font-black hover:bg-primary-glow transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                ثبت محصول در مزایده
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="md:col-span-2 bg-gray-50 dark:bg-white/5 p-4 rounded-xl border border-gray-100 dark:border-white/5">
+                <label class="block text-xs font-black text-primary mb-2">انتخاب مزایده مقصد (الزامی)</label>
+                <select id="apAuctionId" class="w-full bg-white dark:bg-admin-surface-dark border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white font-bold shadow-sm">
+                    <option value="">در حال بارگذاری...</option>
+                </select>
+            </div>
+            <div class="md:col-span-2">
+                <label class="block text-xs font-black text-text-muted mb-2">عنوان</label>
+                <input id="apTitle" type="text" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
+            </div>
+            <div>
+                <label class="block text-xs font-black text-text-muted mb-2">product_id (اختیاری)</label>
+                <input id="apProductId" type="text" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
+            </div>
+            <div>
+                <label class="block text-xs font-black text-text-muted mb-2">اصالت</label>
+                <select id="apAuth" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
+                    <option value="0">اصالت تایید شده</option>
+                    <option value="1">اصالت تایید نشده</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-black text-text-muted mb-2">هنرمند</label>
+                <select id="apArtistId" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
+                    <option value="">در حال بارگذاری...</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-black text-text-muted mb-2">نوع اثر</label>
+                <select id="apArtworkTypeId" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
+                    <option value="">در حال بارگذاری...</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-black text-text-muted mb-2">ابعاد</label>
+                <input id="apDim" type="text" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
+            </div>
+            <div>
+                <label class="block text-xs font-black text-text-muted mb-2">سال خلق</label>
+                <input id="apYear" type="number" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
+            </div>
+            <div class="md:col-span-2">
+                <label class="block text-xs font-black text-text-muted mb-2">توضیحات</label>
+                <textarea id="apDesc" rows="3" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white"></textarea>
+            </div>
+            <div>
+                <label class="block text-xs font-black text-text-muted mb-2">قیمت پایه</label>
+                <input id="apReserve" type="number" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
+            </div>
+            <div>
+                <label class="block text-xs font-black text-text-muted mb-2">current_price (اختیاری)</label>
+                <input id="apCurrentPrice" type="number" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
+            </div>
+            <div>
+                <label class="block text-xs font-black text-text-muted mb-2">bid_criteria</label>
+                <select id="apBidCriteria" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
+                    <option value="0">percentage-based</option>
+                    <option value="1">fixed-amount</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-black text-text-muted mb-2">bid_value</label>
+                <input id="apBidValue" type="number" value="0" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
+            </div>
+            <div>
+                <label class="block text-xs font-black text-text-muted mb-2">suggested_price (اختیاری)</label>
+                <input id="apSuggestedPrice" type="number" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
+            </div>
+            <div>
+                <label class="block text-xs font-black text-text-muted mb-2">winner_id (اختیاری)</label>
+                <input id="apWinnerId" type="number" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
+            </div>
+        </div>
+
+        <div id="auctionProductMsg" class="mt-4 hidden px-4 py-3 rounded-xl text-sm font-black"></div>
+    </div>
+
+    <!-- پنل مزایده -->
+    <div id="panel-auction" class="hidden bg-white dark:bg-admin-surface-dark rounded-2xl p-4 md:p-5 border border-gray-100 dark:border-white/5 shadow-sm">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-5 border-b border-gray-100 dark:border-white/5 pb-4">
+            <div class="flex flex-col gap-1">
+                <div class="text-sm font-black text-text-main dark:text-white">ایجاد مزایده جدید همراه با محصولات</div>
+                <div class="text-xs font-bold text-text-muted">ابتدا اطلاعات پایه مزایده را وارد کرده و سپس لیست محصولات آن را از طریق دکمه "افزودن محصول جدید" اضافه کنید.</div>
+            </div>
+            <button id="createAuctionBtn" onclick="createAuctionWithProducts()" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-primary text-white text-sm font-black hover:bg-primary-glow transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                ثبت و ایجاد مزایده
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="md:col-span-2">
+                <label class="block text-xs font-black text-text-muted mb-2">نام مزایده</label>
+                <input id="aName" type="text" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
+            </div>
+            <div>
+                <label class="block text-xs font-black text-text-muted mb-2">زمان شروع (ISO)</label>
+                <input id="aStart" type="text" placeholder="2026-04-09T12:00:00Z" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
+            </div>
+            <div>
+                <label class="block text-xs font-black text-text-muted mb-2">زمان پایان (ISO)</label>
+                <input id="aEnd" type="text" placeholder="2026-04-10T12:00:00Z" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
+            </div>
+            <div>
+                <label class="block text-xs font-black text-text-muted mb-2">products_count (اختیاری)</label>
+                <input id="aCount" type="number" value="0" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
+            </div>
+        </div>
+
+        <div class="mt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div class="text-sm font-black text-text-main dark:text-white">محصولات آماده شده برای این مزایده</div>
+            <button onclick="openProductModal()" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary-glow text-sm font-black hover:bg-primary hover:text-white transition-colors">
+                + افزودن محصول جدید
+            </button>
+        </div>
+
+        <!-- جدول ساده شده برای نمایش اطلاعات -->
+        <div class="mt-4 w-full overflow-x-auto custom-scrollbar">
+            <table class="w-full text-right border-collapse min-w-max">
+                <thead class="bg-gray-50/50 dark:bg-white/5 text-text-muted text-xs font-bold border-b border-gray-100 dark:border-white/5">
+                    <tr>
+                        <th class="py-3 px-4 font-bold text-center w-12">#</th>
+                        <th class="py-3 px-4 font-bold">عنوان محصول</th>
+                        <th class="py-3 px-4 font-bold">شناسه (Product ID)</th>
+                        <th class="py-3 px-4 font-bold">هنرمند</th>
+                        <th class="py-3 px-4 font-bold">قیمت پایه</th>
+                        <th class="py-3 px-4 font-bold text-center w-20">عملیات</th>
+                    </tr>
+                </thead>
+                <tbody id="auction-products-tbody" class="text-sm font-medium text-text-main dark:text-white">
+                    <!-- ردیف‌ها از طریق جاوا اسکریپت رندر می‌شوند -->
+                </tbody>
+            </table>
+        </div>
+
+        <div id="auctionMsg" class="mt-4 hidden px-4 py-3 rounded-xl text-sm font-black"></div>
+    </div>
+</div>
+
+<!-- Modal افزودن محصول به لیست مزایده -->
+<div id="product-modal" data-admin-modal-root class="fixed inset-0 z-[120] hidden flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+    <div class="bg-white dark:bg-admin-surface-dark rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-xl border border-gray-100 dark:border-white/10">
+        <!-- هدر مودال -->
+        <div class="flex items-center justify-between p-4 md:p-5 border-b border-gray-100 dark:border-white/5">
+            <div class="text-base font-black text-text-main dark:text-white">افزودن محصول به لیست מזایده</div>
+            <button onclick="closeProductModal()" class="text-gray-400 hover:text-red-500 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        
+        <!-- بدنه فرم (قابل اسکرول) -->
+        <div class="p-4 md:p-5 overflow-y-auto custom-scrollbar flex-1">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-black text-text-muted mb-2">عنوان (الزامی)</label>
+                    <input id="mTitle" type="text" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">product_id (اختیاری)</label>
+                    <input id="mProductId" type="text" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">هنرمند</label>
+                    <select id="mArtistId" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
+                        <option value="">در حال بارگذاری...</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">نوع اثر</label>
+                    <select id="mArtworkTypeId" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
+                        <option value="">در حال بارگذاری...</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">اصالت</label>
+                    <select id="mAuth" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
+                        <option value="0">اصالت تایید شده</option>
+                        <option value="1">اصالت تایید نشده</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">ابعاد</label>
+                    <input id="mDim" type="text" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">سال خلق</label>
+                    <input id="mYear" type="number" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-black text-text-muted mb-2">توضیحات</label>
+                    <textarea id="mDesc" rows="3" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white"></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">قیمت پایه</label>
+                    <input id="mReserve" type="number" value="0" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">current_price (اختیاری)</label>
+                    <input id="mCurrentPrice" type="number" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">bid_criteria</label>
+                    <select id="mBidCriteria" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
+                        <option value="0">percentage-based</option>
+                        <option value="1">fixed-amount</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">bid_value</label>
+                    <input id="mBidValue" type="number" value="0" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">suggested_price (اختیاری)</label>
+                    <input id="mSuggestedPrice" type="number" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">winner_id (اختیاری)</label>
+                    <input id="mWinnerId" type="number" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
+                </div>
+            </div>
+            <div id="modalMsg" class="mt-4 hidden px-4 py-3 rounded-xl text-sm font-black text-red-600 bg-red-50 dark:bg-red-500/10 dark:text-red-400"></div>
+        </div>
+        
+        <!-- فوتر مودال -->
+        <div class="p-4 md:p-5 border-t border-gray-100 dark:border-white/5 flex gap-3 justify-end bg-gray-50/50 dark:bg-white/5 rounded-b-2xl">
+            <button onclick="closeProductModal()" class="px-5 py-2.5 rounded-xl text-sm font-bold text-text-muted hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">انصراف</button>
+            <button onclick="saveProductFromModal()" class="px-5 py-2.5 rounded-xl text-sm font-black bg-primary text-white hover:bg-primary-glow transition-colors shadow-sm">تایید و افزودن به لیست</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const API_STORE_CREATE = "{% url 'admin_panel:products-store-list' %}";
+    const API_AUCTION_CREATE = "{% url 'admin_panel:products-auction-main-list' %}";
+    const API_AUCTION_PRODUCT_CREATE = "{% url 'admin_panel:products-auction-list' %}";
+    const API_OPTIONS_URL = "{% url 'admin_panel:products-options' %}";
+    const ADMIN_AUCTION_DETAIL_TEMPLATE = "{% url 'admin_panel_pages:products-auctions-detail' 0 %}";
+    const ADMIN_STORE_DETAIL_TEMPLATE = "{% url 'admin_panel_pages:products-store-detail' 0 %}";
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+
+    let currentTab = 'store';
+    let productRows = []; // حالا به جای ردیف‌های DOM، مستقیما آبجکت محصولات را ذخیره می‌کند
+    let optionsData = { artists: [], artwork_types: [], auctions: [] };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        switchTab('store');
+        renderAuctionProductRows();
+        loadOptions();
+    });
+
+    function buildUrlFromTemplate(template, pk) {
+        return template.replace('/0/', `/${pk}/`);
+    }
+
+    function switchTab(tab) {
+        currentTab = tab;
+        const storeBtn = document.getElementById('tab-store');
+        const auctionBtn = document.getElementById('tab-auction');
+        const auctionProductBtn = document.getElementById('tab-auction-product');
+        const storePanel = document.getElementById('panel-store');
+        const auctionPanel = document.getElementById('panel-auction');
+        const auctionProductPanel = document.getElementById('panel-auction-product');
+
+        const activeClasses = 'flex-1 px-4 py-2.5 rounded-xl text-sm font-black transition-colors bg-primary text-white w-full sm:w-auto';
+        const inactiveClasses = 'flex-1 px-4 py-2.5 rounded-xl text-sm font-black transition-colors text-text-muted hover:bg-gray-50 dark:hover:bg-white/5 w-full sm:w-auto';
+
+        if (tab === 'store') {
+            storeBtn.className = activeClasses;
+            auctionBtn.className = inactiveClasses;
+            auctionProductBtn.className = inactiveClasses;
+            storePanel.classList.remove('hidden');
+            auctionPanel.classList.add('hidden');
+            auctionProductPanel.classList.add('hidden');
+            return;
+        }
+
+        if (tab === 'auction') {
+            auctionBtn.className = activeClasses;
+            storeBtn.className = inactiveClasses;
+            auctionProductBtn.className = inactiveClasses;
+            auctionPanel.classList.remove('hidden');
+            storePanel.classList.add('hidden');
+            auctionProductPanel.classList.add('hidden');
+            return;
+        }
+
+        auctionProductBtn.className = activeClasses;
+        storeBtn.className = inactiveClasses;
+        auctionBtn.className = inactiveClasses;
+        auctionProductPanel.classList.remove('hidden');
+        storePanel.classList.add('hidden');
+        auctionPanel.classList.add('hidden');
+    }
+
+    async function loadOptions() {
+        try {
+            const response = await fetch(API_OPTIONS_URL);
+            if (!response.ok) throw new Error('failed');
+            optionsData = await response.json();
+
+            // Store Product Dropdowns
+            hydrateSelect('sArtistId', optionsData.artists, true, 'انتخاب کنید');
+            hydrateSelect('sArtworkTypeId', optionsData.artwork_types, false, 'بدون انتخاب');
+
+            // Add Single Auction Product Dropdowns
+            hydrateSelect('apAuctionId', optionsData.auctions, true, 'انتخاب کنید', 'title');
+            hydrateSelect('apArtistId', optionsData.artists, true, 'انتخاب کنید');
+            hydrateSelect('apArtworkTypeId', optionsData.artwork_types, true, 'انتخاب کنید');
+
+            // Modal Dropdowns
+            hydrateSelect('mArtistId', optionsData.artists, true, 'انتخاب کنید');
+            hydrateSelect('mArtworkTypeId', optionsData.artwork_types, false, 'بدون انتخاب');
+
+        } catch (e) {
+            console.error("Error loading options:", e);
+        }
+    }
+
+    function hydrateSelect(selectId, items, required, emptyLabel, labelKey) {
+        const el = document.getElementById(selectId);
+        if (!el) return;
+        const key = labelKey || 'name';
+        el.innerHTML = `<option value="">${emptyLabel || (required ? 'انتخاب کنید' : 'بدون انتخاب')}</option>`;
+        (items || []).forEach((it) => {
+            el.innerHTML += `<option value="${it.id}">${it[key]}</option>`;
+        });
+    }
+
+    function showBox(id, text, type) {
+        const box = document.getElementById(id);
+        box.classList.remove('hidden');
+        box.innerText = text;
+        if (type === 'success') {
+            box.className = 'mt-4 px-4 py-3 rounded-xl text-sm font-black bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-400';
+        } else {
+            box.className = 'mt-4 px-4 py-3 rounded-xl text-sm font-black bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400';
+        }
+    }
+
+    // --- Modal Logic ---
+    function openProductModal() {
+        document.getElementById('product-modal').classList.remove('hidden');
+        document.getElementById('modalMsg').classList.add('hidden');
+    }
+
+    function closeProductModal() {
+        document.getElementById('product-modal').classList.add('hidden');
+        clearModalInputs();
+    }
+
+    function clearModalInputs() {
+        document.getElementById('mTitle').value = '';
+        document.getElementById('mProductId').value = '';
+        document.getElementById('mArtistId').value = '';
+        document.getElementById('mArtworkTypeId').value = '';
+        document.getElementById('mAuth').value = '0';
+        document.getElementById('mDim').value = '';
+        document.getElementById('mYear').value = '';
+        document.getElementById('mDesc').value = '';
+        document.getElementById('mReserve').value = '0';
+        document.getElementById('mCurrentPrice').value = '';
+        document.getElementById('mBidCriteria').value = '0';
+        document.getElementById('mBidValue').value = '0';
+        document.getElementById('mSuggestedPrice').value = '';
+        document.getElementById('mWinnerId').value = '';
+    }
+
+    function saveProductFromModal() {
+        const title = document.getElementById('mTitle').value.trim();
+        if (!title) {
+            const msg = document.getElementById('modalMsg');
+            msg.classList.remove('hidden');
+            msg.innerText = 'لطفا حداقل عنوان محصول را وارد کنید.';
+            return;
+        }
+
+        const newProduct = {
+            id: crypto.randomUUID(),
+            title: title,
+            product_id: document.getElementById('mProductId').value.trim(),
+            artist_id: document.getElementById('mArtistId').value,
+            artwork_type_id: document.getElementById('mArtworkTypeId').value,
+            authenticity_status: document.getElementById('mAuth').value,
+            dimensions: document.getElementById('mDim').value.trim(),
+            creation_year: document.getElementById('mYear').value,
+            description: document.getElementById('mDesc').value,
+            reserve_price: document.getElementById('mReserve').value,
+            current_price: document.getElementById('mCurrentPrice').value,
+            bid_criteria: document.getElementById('mBidCriteria').value,
+            bid_value: document.getElementById('mBidValue').value,
+            suggested_price: document.getElementById('mSuggestedPrice').value,
+            winner_id: document.getElementById('mWinnerId').value
+        };
+
+        productRows.push(newProduct);
+        renderAuctionProductRows();
+        closeProductModal();
+    }
+
+    function removeAuctionProductRow(id) {
+        productRows = productRows.filter(r => r.id !== id);
+        renderAuctionProductRows();
+    }
+
+    function renderAuctionProductRows() {
+        const tbody = document.getElementById('auction-products-tbody');
+        tbody.innerHTML = '';
+        if (!productRows.length) {
+            tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-text-muted font-bold">هیچ محصولی به لیست اضافه نشده است.</td></tr>`;
+            return;
+        }
+
+        productRows.forEach((row, idx) => {
+            // پیدا کردن نام هنرمند جهت نمایش در جدول
+            let artistName = '-';
+            if (row.artist_id && optionsData.artists) {
+                const artist = optionsData.artists.find(a => a.id == row.artist_id);
+                if (artist) artistName = artist.name;
+            }
+
+            const html = `
+                <tr class="border-b border-gray-50 dark:border-white/5 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors">
+                    <td class="py-3 px-4 text-center text-text-muted font-bold">${idx + 1}</td>
+                    <td class="py-3 px-4 font-bold">${row.title}</td>
+                    <td class="py-3 px-4 dir-ltr text-right text-text-muted">${row.product_id || '-'}</td>
+                    <td class="py-3 px-4">${artistName}</td>
+                    <td class="py-3 px-4 dir-ltr text-right">${row.reserve_price || '0'}</td>
+                    <td class="py-3 px-4 text-center">
+                        <button onclick="removeAuctionProductRow('${row.id}')" title="حذف" class="inline-flex items-center justify-center size-8 rounded-xl bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
+                    </td>
+                </tr>
+            `;
+            tbody.insertAdjacentHTML('beforeend', html);
+        });
+    }
+
+    // --- Submission Logic ---
+    async function createStoreProduct() {
+        const btn = document.getElementById('createStoreBtn');
+        btn.disabled = true;
+        try {
+            const payload = {
+                product_id: document.getElementById('sProductId').value.trim(),
+                title: document.getElementById('sTitle').value.trim(),
+                artist_id: document.getElementById('sArtistId').value ? Number(document.getElementById('sArtistId').value) : null,
+                price: document.getElementById('sPrice').value,
+                description: document.getElementById('sDesc').value,
+                dimensions: document.getElementById('sDim').value.trim(),
+                creation_year: document.getElementById('sYear').value ? Number(document.getElementById('sYear').value) : null,
+                provenance: document.getElementById('sProv').value,
+                is_sold: Number(document.getElementById('sSold').value),
+                authenticity_status: Number(document.getElementById('sAuth').value),
+                artwork_type_id: document.getElementById('sArtworkTypeId').value ? Number(document.getElementById('sArtworkTypeId').value) : null,
+            };
+
+            const response = await fetch(API_STORE_CREATE, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+                body: JSON.stringify(payload),
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                showBox('storeMsg', data.error || 'خطا در ایجاد محصول.', 'error');
+                return;
+            }
+            const detailUrl = buildUrlFromTemplate(ADMIN_STORE_DETAIL_TEMPLATE, data.id);
+            showBox('storeMsg', `محصول با موفقیت ساخته شد. برای ویرایش وارد شوید: ${detailUrl}`, 'success');
+        } catch (e) {
+            showBox('storeMsg', 'خطا در ایجاد محصول.', 'error');
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    async function createAuctionWithProducts() {
+        const btn = document.getElementById('createAuctionBtn');
+        btn.disabled = true;
+        try {
+            const countInput = document.getElementById('aCount').value;
+            const actualCount = productRows.length > 0 ? productRows.length : Number(countInput || 0);
+
+            const auctionPayload = {
+                name: document.getElementById('aName').value.trim(),
+                start_date: document.getElementById('aStart').value.trim(),
+                end_date: document.getElementById('aEnd').value.trim(),
+                products_count: actualCount,
+            };
+
+            const auctionRes = await fetch(API_AUCTION_CREATE, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+                body: JSON.stringify(auctionPayload),
+            });
+            const auctionData = await auctionRes.json().catch(() => ({}));
+            if (!auctionRes.ok) {
+                showBox('auctionMsg', auctionData.error || 'خطا در ایجاد مزایده.', 'error');
+                return;
+            }
+
+            const auctionId = auctionData.id;
+            const errors = [];
+            
+            // ذخیره محصولاتی که در state (productRows) هستند
+            for (const r of productRows) {
+                const productPayload = {
+                    auction_id: auctionId,
+                    product_id: (r.product_id || '').trim(),
+                    title: (r.title || '').trim(),
+                    authenticity_status: r.authenticity_status !== undefined && r.authenticity_status !== '' ? Number(r.authenticity_status) : 0,
+                    artist_id: r.artist_id ? Number(r.artist_id) : null,
+                    artwork_type_id: r.artwork_type_id ? Number(r.artwork_type_id) : null,
+                    description: r.description || '',
+                    dimensions: (r.dimensions || '').trim(),
+                    creation_year: r.creation_year ? Number(r.creation_year) : null,
+                    reserve_price: r.reserve_price ? Number(r.reserve_price) : 0,
+                    current_price: r.current_price ? Number(r.current_price) : null,
+                    bid_criteria: r.bid_criteria !== undefined && r.bid_criteria !== '' ? Number(r.bid_criteria) : 0,
+                    bid_value: r.bid_value ? Number(r.bid_value) : 0,
+                    suggested_price: r.suggested_price ? Number(r.suggested_price) : null,
+                    winner_id: r.winner_id ? Number(r.winner_id) : null,
+                };
+
+                const prodRes = await fetch(API_AUCTION_PRODUCT_CREATE, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+                    body: JSON.stringify(productPayload),
+                });
+                const prodData = await prodRes.json().catch(() => ({}));
+                if (!prodRes.ok) errors.push(prodData.error || `خطا در ساخت محصول: ${productPayload.title}`);
+            }
+
+            const detailUrl = buildUrlFromTemplate(ADMIN_AUCTION_DETAIL_TEMPLATE, auctionId);
+            if (errors.length) {
+                showBox('auctionMsg', `مزایده ساخته شد (شناسه: ${auctionId}). اما برخی محصولات خطا داشتند: ${errors.join(' | ')}. لینک ویرایش مزایده: ${detailUrl}`, 'error');
+                return;
+            }
+            showBox('auctionMsg', `مزایده و محصولات با موفقیت ساخته شد. لینک ویرایش مزایده: ${detailUrl}`, 'success');
+            
+            // پاکسازی جدول بعد از موفقیت
+            productRows = [];
+            renderAuctionProductRows();
+        } catch (e) {
+            showBox('auctionMsg', 'خطا در ارتباط با سرور.', 'error');
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    async function createAuctionProductOnly() {
+        const btn = document.getElementById('createAuctionProductBtn');
+        btn.disabled = true;
+        try {
+            const payload = {
+                auction_id: document.getElementById('apAuctionId').value ? Number(document.getElementById('apAuctionId').value) : null,
+                product_id: document.getElementById('apProductId').value.trim(),
+                title: document.getElementById('apTitle').value.trim(),
+                authenticity_status: Number(document.getElementById('apAuth').value),
+                artist_id: document.getElementById('apArtistId').value ? Number(document.getElementById('apArtistId').value) : null,
+                artwork_type_id: document.getElementById('apArtworkTypeId').value ? Number(document.getElementById('apArtworkTypeId').value) : null,
+                dimensions: document.getElementById('apDim').value.trim(),
+                creation_year: document.getElementById('apYear').value ? Number(document.getElementById('apYear').value) : null,
+                description: document.getElementById('apDesc').value,
+                reserve_price: document.getElementById('apReserve').value ? Number(document.getElementById('apReserve').value) : 0,
+                current_price: document.getElementById('apCurrentPrice').value ? Number(document.getElementById('apCurrentPrice').value) : null,
+                bid_criteria: Number(document.getElementById('apBidCriteria').value),
+                bid_value: document.getElementById('apBidValue').value ? Number(document.getElementById('apBidValue').value) : 0,
+                suggested_price: document.getElementById('apSuggestedPrice').value ? Number(document.getElementById('apSuggestedPrice').value) : null,
+                winner_id: document.getElementById('apWinnerId').value ? Number(document.getElementById('apWinnerId').value) : null,
+            };
+
+            const response = await fetch(API_AUCTION_PRODUCT_CREATE, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+                body: JSON.stringify(payload),
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                showBox('auctionProductMsg', data.error || 'خطا در ایجاد محصول مزایده.', 'error');
+                return;
+            }
+            showBox('auctionProductMsg', `محصول مزایده با موفقیت ساخته شد. شناسه: ${data.id}`, 'success');
+        } catch (e) {
+            showBox('auctionProductMsg', 'خطا در ایجاد محصول مزایده.', 'error');
+        } finally {
+            btn.disabled = false;
+        }
+    }
+</script>
+{% endblock %}

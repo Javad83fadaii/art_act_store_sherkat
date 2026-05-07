@@ -1,0 +1,672 @@
+{% extends 'admin_panel/base.html' %}
+
+{% block title %}داشبورد ادمین | آرت‌پنل{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* تنظیمات پایه و انیمیشن‌ها */
+    :root {
+        --card-shadow: 0 10px 40px -10px rgba(0,0,0,0.08);
+        --card-shadow-hover: 0 20px 40px -10px rgba(0,0,0,0.12);
+    }
+
+    .dark {
+        --card-shadow: 0 10px 40px -10px rgba(0,0,0,0.5);
+        --card-shadow-hover: 0 20px 40px -10px rgba(0,0,0,0.7);
+    }
+
+    .glass-card {
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: var(--card-shadow);
+    }
+
+    .glass-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--card-shadow-hover);
+    }
+
+    /* استایل کارت‌های آماری */
+    .stat-card {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stat-card::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        filter: blur(40px);
+        opacity: 0.15;
+        z-index: 0;
+        transform: translate(30%, -30%);
+        pointer-events: none;
+    }
+
+    .stat-card.blue::after { background: #3b82f6; }
+    .stat-card.purple::after { background: #8b5cf6; }
+    .stat-card.green::after { background: #10b981; }
+    .stat-card.orange::after { background: #f59e0b; }
+
+    .stat-card > * { position: relative; z-index: 1; }
+
+    .icon-glow {
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2), 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    /* اسکرول‌بار سفارشی */
+    .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: rgba(156,163,175,0.4); border-radius: 20px; }
+    .custom-scroll::-webkit-scrollbar-thumb:hover { background: rgba(156,163,175,0.7); }
+
+    /* انیمیشن‌های ورود */
+    @keyframes smoothSlideUp {
+        0% { opacity: 0; transform: translateY(20px); filter: blur(4px); }
+        100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+    }
+    
+    .animate-entrance {
+        animation: smoothSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        opacity: 0;
+    }
+
+    /* تاخیر برای انیمیشن‌های آبشاری */
+    .delay-100 { animation-delay: 100ms; }
+    .delay-200 { animation-delay: 200ms; }
+    .delay-300 { animation-delay: 300ms; }
+
+    /* پالس ملایم برای وضعیت‌ها */
+    @keyframes softPulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.7; transform: scale(1.1); }
+    }
+    .status-dot { animation: softPulse 2s infinite; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex flex-col gap-8 relative">
+    
+    <!-- بک‌گراند تزئینی ملایم -->
+    <div class="fixed top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
+        <div class="absolute top-[-10%] right-[-5%] w-[40%] h-[40%] rounded-full bg-blue-500/5 blur-[120px]"></div>
+        <div class="absolute bottom-[-10%] left-[-5%] w-[40%] h-[40%] rounded-full bg-purple-500/5 blur-[120px]"></div>
+    </div>
+
+    <!-- هدر صفحه -->
+    <div class="animate-entrance flex flex-col md:flex-row justify-between items-start md:items-end gap-4 pb-6 border-b border-gray-200/60 dark:border-white/10">
+        <div class="flex flex-col gap-1.5">
+            <div class="flex items-center gap-2 bg-green-500/10 w-max px-3 py-1 rounded-full border border-green-500/20">
+                <div class="w-2 h-2 rounded-full bg-green-500 status-dot"></div>
+                <span class="text-[11px] font-bold text-green-700 dark:text-green-400 tracking-wide">سیستم در وضعیت پایدار</span>
+            </div>
+            <h1 class="text-3xl font-black text-slate-800 dark:text-white tracking-tight">خلاصه وضعیت</h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 font-medium">نمای کلی از عملکرد پلتفرم و آمارهای لحظه‌ای</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'admin_panel_pages:products-create' %}" class="group relative inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:-translate-y-0.5 transition-all duration-300 text-sm font-bold gap-2 overflow-hidden">
+                <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-in-out"></div>
+                <svg class="w-4 h-4 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                <span class="relative z-10">محصول جدید</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- کارت‌های آماری -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+
+        <!-- کاربران -->
+        <div class="stat-card glass-card blue animate-entrance delay-100 p-6 rounded-3xl bg-white/80 dark:bg-slate-800/80 border border-white/40 dark:border-white/5 flex flex-col gap-4">
+            <div class="flex items-center justify-between">
+                <span class="text-sm font-bold text-slate-500 dark:text-slate-400">کل کاربران</span>
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-400 to-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/30 icon-glow">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                </div>
+            </div>
+            <div class="text-4xl font-black text-slate-800 dark:text-white tracking-tight" id="stat-users">
+                <div class="h-10 w-24 bg-slate-200 dark:bg-slate-700/50 rounded-xl animate-pulse"></div>
+            </div>
+            <div class="flex items-center gap-2 mt-1">
+                <span class="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100/50 dark:bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-500/20" id="stat-active-users">
+                    <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                    ...
+                </span>
+                <span class="text-[11px] font-medium text-slate-400">فعال در ۷ روز اخیر</span>
+            </div>
+        </div>
+
+        <!-- مزایده -->
+        <div class="stat-card glass-card purple animate-entrance delay-200 p-6 rounded-3xl bg-white/80 dark:bg-slate-800/80 border border-white/40 dark:border-white/5 flex flex-col gap-4">
+            <div class="flex items-center justify-between">
+                <span class="text-sm font-bold text-slate-500 dark:text-slate-400">محصولات مزایده‌ای</span>
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-400 to-purple-600 text-white flex items-center justify-center shadow-lg shadow-purple-500/30 icon-glow">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+            </div>
+            <div class="text-4xl font-black text-slate-800 dark:text-white tracking-tight" id="stat-auctions">
+                <div class="h-10 w-16 bg-slate-200 dark:bg-slate-700/50 rounded-xl animate-pulse"></div>
+            </div>
+            <div class="flex items-center gap-2 mt-1">
+                <span class="inline-flex items-center text-xs font-bold text-purple-700 dark:text-purple-400 bg-purple-100/50 dark:bg-purple-500/10 px-2.5 py-1 rounded-lg border border-purple-200 dark:border-purple-500/20">در جریان</span>
+            </div>
+        </div>
+
+        <!-- فروشگاه -->
+        <div class="stat-card glass-card green animate-entrance delay-300 p-6 rounded-3xl bg-white/80 dark:bg-slate-800/80 border border-white/40 dark:border-white/5 flex flex-col gap-4">
+            <div class="flex items-center justify-between">
+                <span class="text-sm font-bold text-slate-500 dark:text-slate-400">محصولات فروشگاه</span>
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-500/30 icon-glow">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                </div>
+            </div>
+            <div class="text-4xl font-black text-slate-800 dark:text-white tracking-tight" id="stat-products">
+                <div class="h-10 w-16 bg-slate-200 dark:bg-slate-700/50 rounded-xl animate-pulse"></div>
+            </div>
+            <div class="flex items-center gap-2 mt-1">
+                <span class="inline-flex items-center text-xs font-bold text-blue-700 dark:text-blue-400 bg-blue-100/50 dark:bg-blue-500/10 px-2.5 py-1 rounded-lg border border-blue-200 dark:border-blue-500/20">موجود در انبار</span>
+            </div>
+        </div>
+
+        <!-- درخواست‌ها -->
+        <div class="stat-card glass-card orange animate-entrance delay-300 p-6 rounded-3xl bg-white/80 dark:bg-slate-800/80 border border-white/40 dark:border-white/5 flex flex-col gap-4">
+            <div class="flex items-center justify-between">
+                <span class="text-sm font-bold text-slate-500 dark:text-slate-400">درخواست‌های معلق</span>
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 text-white flex items-center justify-center shadow-lg shadow-amber-500/30 icon-glow">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+                </div>
+            </div>
+            <div class="text-4xl font-black text-slate-800 dark:text-white tracking-tight" id="stat-requests">
+                <div class="h-10 w-12 bg-slate-200 dark:bg-slate-700/50 rounded-xl animate-pulse"></div>
+            </div>
+            <div class="flex items-center gap-2 mt-1">
+                <span class="inline-flex items-center text-xs font-bold text-amber-700 dark:text-amber-400 bg-amber-100/50 dark:bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-200 dark:border-amber-500/20">نیازمند بررسی فوری</span>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- نمودارها -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-entrance delay-300">
+
+        <!-- نمودار ثبت‌نام کاربران -->
+        <div class="glass-card rounded-3xl bg-white/80 dark:bg-slate-800/80 border border-white/40 dark:border-white/5 p-6 flex flex-col gap-6">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h2 class="text-lg font-black text-slate-800 dark:text-white">روند رشد کاربران</h2>
+                    <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">آمار ثبت‌نام در ۳۰ روز گذشته</p>
+                </div>
+                <div class="bg-slate-100 dark:bg-slate-700/50 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full bg-blue-500"></div>
+                    <span class="text-[11px] font-bold text-slate-600 dark:text-slate-300">ورودی جدید</span>
+                </div>
+            </div>
+            <div class="relative w-full h-[300px]">
+                <canvas id="usersChart"></canvas>
+                <div id="usersChartLoading" class="absolute inset-0 flex items-center justify-center z-10 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl">
+                    <div class="flex flex-col items-center gap-3">
+                        <div class="w-8 h-8 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"></div>
+                        <span class="text-xs text-slate-500 font-bold tracking-wide">در حال پردازش...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- نمودار بازدید محصولات -->
+        <div class="glass-card rounded-3xl bg-white/80 dark:bg-slate-800/80 border border-white/40 dark:border-white/5 p-6 flex flex-col gap-6">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h2 class="text-lg font-black text-slate-800 dark:text-white">ترافیک محصولات</h2>
+                    <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">مقایسه بازدید در ۳۰ روز گذشته</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="bg-emerald-50 dark:bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-100 dark:border-emerald-500/20 flex items-center gap-1.5">
+                        <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
+                        <span class="text-[10px] font-bold text-emerald-700 dark:text-emerald-400">فروشگاه</span>
+                    </div>
+                    <div class="bg-blue-50 dark:bg-blue-500/10 px-2.5 py-1 rounded-md border border-blue-100 dark:border-blue-500/20 flex items-center gap-1.5">
+                        <div class="w-2 h-2 rounded-full bg-blue-500"></div>
+                        <span class="text-[10px] font-bold text-blue-700 dark:text-blue-400">مزایده</span>
+                    </div>
+                </div>
+            </div>
+            <div class="relative w-full h-[300px]">
+                <canvas id="visitsChart"></canvas>
+                <div id="visitsChartLoading" class="absolute inset-0 flex items-center justify-center z-10 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl">
+                    <div class="flex flex-col items-center gap-3">
+                        <div class="w-8 h-8 border-4 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin"></div>
+                        <span class="text-xs text-slate-500 font-bold tracking-wide">در حال پردازش...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- بخش پایینی: جداول و لیست‌ها -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-entrance delay-300">
+
+        <!-- درخواست‌های اخیر -->
+        <div class="lg:col-span-2 glass-card rounded-3xl bg-white/80 dark:bg-slate-800/80 border border-white/40 dark:border-white/5 p-6 flex flex-col gap-5">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h2 class="text-lg font-black text-slate-800 dark:text-white">آخرین درخواست‌ها</h2>
+                    <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">لیست تراکنش‌ها و تیکت‌های اخیر سیستم</p>
+                </div>
+                <a href="{% url 'admin_panel_pages:requests' %}" class="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 px-4 py-2 rounded-xl transition-colors">مشاهده همه</a>
+            </div>
+
+            <div class="overflow-x-auto rounded-xl border border-slate-100 dark:border-slate-700/50">
+                <table class="w-full text-sm text-right">
+                    <thead class="bg-slate-50/50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-[11px] uppercase tracking-wider font-bold">
+                        <tr>
+                            <th class="py-3 px-4 first:rounded-tr-xl">کاربر</th>
+                            <th class="py-3 px-4">عنوان درخواست</th>
+                            <th class="py-3 px-4">وضعیت</th>
+                            <th class="py-3 px-4 last:rounded-tl-xl">تاریخ ثبت</th>
+                        </tr>
+                    </thead>
+                    <tbody id="orders-body" class="divide-y divide-slate-100 dark:divide-slate-700/50">
+                        <!-- Skeleton -->
+                        <tr>
+                            <td class="py-4 px-4"><div class="h-4 w-24 bg-slate-200 dark:bg-slate-700 rounded animate-pulse"></div></td>
+                            <td class="py-4 px-4"><div class="h-4 w-40 bg-slate-200 dark:bg-slate-700 rounded animate-pulse"></div></td>
+                            <td class="py-4 px-4"><div class="h-6 w-16 bg-slate-200 dark:bg-slate-700 rounded-full animate-pulse"></div></td>
+                            <td class="py-4 px-4"><div class="h-4 w-20 bg-slate-200 dark:bg-slate-700 rounded animate-pulse"></div></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ستون کناری -->
+        <div class="flex flex-col gap-6">
+
+            <!-- مزایده‌های رو به اتمام -->
+            <div class="glass-card rounded-3xl bg-white/80 dark:bg-slate-800/80 border border-white/40 dark:border-white/5 p-6 flex flex-col gap-4">
+                <div class="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-700/50">
+                    <h2 class="text-base font-black text-slate-800 dark:text-white">رو به اتمام</h2>
+                    <div class="flex items-center gap-1.5 px-2 py-1 rounded-md bg-rose-50 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-500/20">
+                        <div class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></div>
+                        <span class="text-[10px] font-bold text-rose-600 dark:text-rose-400">مزایده زنده</span>
+                    </div>
+                </div>
+                <div class="flex flex-col gap-3 max-h-[220px] overflow-y-auto pr-1 custom-scroll" id="ending-auctions">
+                    <!-- Skeleton -->
+                    <div class="flex items-center gap-3 p-2">
+                        <div class="w-12 h-12 rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse"></div>
+                        <div class="flex-1 space-y-2">
+                            <div class="h-3 w-24 bg-slate-200 dark:bg-slate-700 rounded animate-pulse"></div>
+                            <div class="h-3 w-16 bg-slate-200 dark:bg-slate-700 rounded animate-pulse"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- کاربران جدید -->
+            <div class="glass-card rounded-3xl bg-white/80 dark:bg-slate-800/80 border border-white/40 dark:border-white/5 p-6 flex flex-col gap-4">
+                <div class="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-700/50">
+                    <h2 class="text-base font-black text-slate-800 dark:text-white">اعضای جدید</h2>
+                    <a href="{% url 'admin_panel_pages:users' %}" class="text-[11px] font-bold text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">مشاهده لیست</a>
+                </div>
+                <div class="flex flex-col gap-3 max-h-[220px] overflow-y-auto pr-1 custom-scroll" id="new-users-list">
+                    <!-- Skeleton -->
+                    <div class="flex items-center gap-3 p-2">
+                        <div class="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 animate-pulse"></div>
+                        <div class="flex-1 space-y-2">
+                            <div class="h-3 w-20 bg-slate-200 dark:bg-slate-700 rounded animate-pulse"></div>
+                            <div class="h-2.5 w-28 bg-slate-200 dark:bg-slate-700 rounded animate-pulse"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    const URLS = {
+        stats:      "{% url 'admin_panel:dashboard-stats' %}",
+        charts:     "{% url 'admin_panel:dashboard-charts' %}?days=30",
+        orders:     "{% url 'admin_panel:dashboard-orders' %}",
+        auctions:   "{% url 'admin_panel:dashboard-ending-auctions' %}",
+        newUsers:   "{% url 'admin_panel:dashboard-new-users' %}"
+    };
+
+    const isDark = () => document.documentElement.classList.contains('dark');
+
+    const fetchJson = async (url) => {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+    };
+
+    let usersChartInstance = null;
+    let visitsChartInstance = null;
+
+    // پیکربندی پیشرفته چارت‌ها
+    const chartDefaults = () => ({
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                rtl: true,
+                backgroundColor: isDark() ? 'rgba(15, 23, 42, 0.9)' : 'rgba(255, 255, 255, 0.9)',
+                titleColor: isDark() ? '#f8fafc' : '#0f172a',
+                bodyColor: isDark() ? '#cbd5e1' : '#475569',
+                borderColor: isDark() ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+                borderWidth: 1,
+                backdropFilter: 'blur(8px)',
+                cornerRadius: 16,
+                padding: 16,
+                titleFont: { family: 'inherit', weight: '900', size: 14 },
+                bodyFont: { family: 'inherit', size: 13, weight: '500' },
+                usePointStyle: true,
+                boxPadding: 6,
+                boxWidth: 8,
+                boxHeight: 8
+            }
+        },
+        scales: {
+            x: {
+                grid: { display: false, drawBorder: false },
+                ticks: {
+                    color: isDark() ? '#64748b' : '#94a3b8',
+                    font: { family: 'inherit', size: 11, weight: '600' },
+                    maxRotation: 0,
+                    maxTicksLimit: 8
+                }
+            },
+            y: {
+                grid: {
+                    color: isDark() ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)',
+                    drawBorder: false,
+                    borderDash: [5, 5]
+                },
+                ticks: {
+                    color: isDark() ? '#64748b' : '#94a3b8',
+                    font: { family: 'inherit', size: 11, weight: '600' },
+                    padding: 12
+                },
+                beginAtZero: true
+            }
+        }
+    });
+
+    const makeGradient = (ctx, colorStart, colorEnd) => {
+        const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+        gradient.addColorStop(0, colorStart);
+        gradient.addColorStop(1, colorEnd);
+        return gradient;
+    };
+
+    const formatNumber = (num) => new Intl.NumberFormat('fa-IR').format(num);
+    const formatPrice = (num) => formatNumber(num) + ' دلار';
+    const persianDateFormatter = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    });
+    const persianDateTimeFormatter = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+    const formatJalaliDate = (value, withTime = false) => {
+        if (!value) return '—';
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return value;
+        return (withTime ? persianDateTimeFormatter : persianDateFormatter).format(date);
+    };
+    const mapChartLabelsToJalali = (labels = []) => labels.map((label) => formatJalaliDate(label));
+
+    const animateValue = (el, target) => {
+        let current = 0;
+        const duration = 1000;
+        const stepTime = Math.abs(Math.floor(duration / (target || 1)));
+        const timer = setInterval(() => {
+            current += Math.ceil(target / 20);
+            if (current >= target) {
+                el.textContent = formatNumber(target);
+                clearInterval(timer);
+            } else {
+                el.textContent = formatNumber(current);
+            }
+        }, stepTime > 0 ? stepTime : 10);
+    };
+
+    const loadStats = async () => {
+        try {
+            const data = await fetchJson(URLS.stats);
+            animateValue(document.getElementById('stat-users'), data.total_users || 0);
+            animateValue(document.getElementById('stat-auctions'), data.auction_products || 0);
+            animateValue(document.getElementById('stat-products'), data.shop_products || 0);
+            animateValue(document.getElementById('stat-requests'), data.pending_requests || 0);
+
+            if (data.active_users_week !== undefined) {
+                document.getElementById('stat-active-users').innerHTML = `
+                    <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                    ${formatNumber(data.active_users_week)}
+                `;
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const buildUsersChart = (labels, values) => {
+        const ctx = document.getElementById('usersChart').getContext('2d');
+        const gradient = makeGradient(ctx, 'rgba(59, 130, 246, 0.4)', 'rgba(59, 130, 246, 0.0)');
+        if (usersChartInstance) usersChartInstance.destroy();
+
+        usersChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'ثبت‌نام جدید',
+                    data: values,
+                    borderColor: '#3b82f6',
+                    backgroundColor: gradient,
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4, // انحنای نرم
+                    pointRadius: 0,
+                    pointHoverRadius: 6,
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: '#3b82f6',
+                    pointHoverBorderWidth: 3
+                }]
+            },
+            options: chartDefaults()
+        });
+        document.getElementById('usersChartLoading').style.opacity = '0';
+        setTimeout(() => document.getElementById('usersChartLoading').style.display = 'none', 300);
+    };
+
+    const buildVisitsChart = (labels, storeVisits, auctionVisits) => {
+        const ctx = document.getElementById('visitsChart').getContext('2d');
+        const gradGreen = makeGradient(ctx, 'rgba(16, 185, 129, 0.3)', 'rgba(16, 185, 129, 0.0)');
+        const gradBlue = makeGradient(ctx, 'rgba(59, 130, 246, 0.3)', 'rgba(59, 130, 246, 0.0)');
+
+        if (visitsChartInstance) visitsChartInstance.destroy();
+
+        visitsChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'فروشگاه',
+                        data: storeVisits,
+                        borderColor: '#10b981',
+                        backgroundColor: gradGreen,
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 6,
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: '#10b981',
+                        pointHoverBorderWidth: 3
+                    },
+                    {
+                        label: 'مزایده',
+                        data: auctionVisits,
+                        borderColor: '#3b82f6',
+                        backgroundColor: gradBlue,
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 6,
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: '#3b82f6',
+                        pointHoverBorderWidth: 3
+                    }
+                ]
+            },
+            options: chartDefaults()
+        });
+        document.getElementById('visitsChartLoading').style.opacity = '0';
+        setTimeout(() => document.getElementById('visitsChartLoading').style.display = 'none', 300);
+    };
+
+    const loadCharts = async () => {
+        try {
+            const data = await fetchJson(URLS.charts);
+            if (data.registrations) {
+                buildUsersChart(mapChartLabelsToJalali(data.registrations.labels), data.registrations.data);
+            }
+            if (data.visits) {
+                buildVisitsChart(
+                    mapChartLabelsToJalali(data.visits.labels),
+                    data.visits.store_products || [],
+                    data.visits.auction_products || []
+                );
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const loadOrders = async () => {
+        try {
+            const data = await fetchJson(URLS.orders);
+            const tbody = document.getElementById('orders-body');
+            
+            if (!data.requests || !data.requests.length) {
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-sm text-slate-400">موردی یافت نشد.</td></tr>`;
+                return;
+            }
+
+            const stMap = {
+                'pending': { l: 'در انتظار', c: 'text-amber-700 bg-amber-50 border-amber-200 dark:text-amber-400 dark:bg-amber-500/10 dark:border-amber-500/20' },
+                'approved': { l: 'تایید شده', c: 'text-emerald-700 bg-emerald-50 border-emerald-200 dark:text-emerald-400 dark:bg-emerald-500/10 dark:border-emerald-500/20' },
+                'rejected': { l: 'رد شده', c: 'text-rose-700 bg-rose-50 border-rose-200 dark:text-rose-400 dark:bg-rose-500/10 dark:border-rose-500/20' }
+            };
+
+            tbody.innerHTML = data.requests.map((req, i) => {
+                const st = stMap[req.status] || { l: req.status || '—', c: 'text-slate-600 bg-slate-100 border-slate-200 dark:text-slate-400 dark:bg-slate-800 dark:border-slate-700' };
+                return `
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors group">
+                        <td class="py-4 px-4 text-sm font-bold text-slate-800 dark:text-slate-200">${req.user || '—'}</td>
+                        <td class="py-4 px-4 text-sm font-medium text-slate-600 dark:text-slate-400 truncate max-w-[200px]">
+                            <a href="${req.href || '#'}" class="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors hover:text-blue-600 dark:hover:text-blue-400">
+                                ${req.title || '—'}
+                            </a>
+                        </td>
+                        <td class="py-4 px-4">
+                            <span class="inline-flex px-2.5 py-1 rounded-lg border text-[11px] font-bold ${st.c}">${st.l}</span>
+                        </td>
+                        <td class="py-4 px-4 text-xs font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">${formatJalaliDate(req.date, true)}</td>
+                    </tr>`;
+            }).join('');
+        } catch (err) { console.error(err); }
+    };
+
+    const loadEndingAuctions = async () => {
+        try {
+            const data = await fetchJson(URLS.auctions);
+            const container = document.getElementById('ending-auctions');
+            if (!data.auctions || !data.auctions.length) {
+                container.innerHTML = '<p class="text-center text-xs text-slate-400 py-4">مزایده‌ای در حال اتمام نیست</p>';
+                return;
+            }
+            container.innerHTML = data.auctions.map(item => `
+                <a href="${item.url || '#'}" class="group flex items-center gap-4 p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/50 border border-transparent hover:border-slate-100 dark:hover:border-slate-700/50 transition-all">
+                    <div class="w-14 h-14 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 flex-shrink-0 shadow-sm">
+                        ${item.image ? `<img src="${item.image}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">` : ''}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-bold text-slate-800 dark:text-slate-200 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">${item.title}</p>
+                        <div class="flex items-center gap-2 mt-1.5">
+                            <span class="text-[11px] font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 px-2 py-0.5 rounded-md">${item.remaining}</span>
+                            <span class="text-[11px] font-medium text-slate-500">${formatPrice(item.current_price)}</span>
+                        </div>
+                    </div>
+                </a>
+            `).join('');
+        } catch (err) { console.error(err); }
+    };
+
+    const loadNewUsers = async () => {
+        try {
+            const data = await fetchJson(URLS.newUsers);
+            const container = document.getElementById('new-users-list');
+            if (!data.users || !data.users.length) {
+                container.innerHTML = '<p class="text-center text-xs text-slate-400 py-4">کاربر جدیدی یافت نشد</p>';
+                return;
+            }
+            container.innerHTML = data.users.map(user => `
+                <a href="${user.url || '#'}" class="group flex items-center gap-3 p-2.5 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/50 border border-transparent hover:border-slate-100 dark:hover:border-slate-700/50 transition-all">
+                    <div class="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm shadow-md shadow-indigo-500/20">
+                        ${user.avatar ? `<img src="${user.avatar}" class="w-full h-full object-cover">` : user.name.charAt(0)}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-bold text-slate-800 dark:text-slate-200 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">${user.name}</p>
+                        <p class="text-[11px] font-medium text-slate-500 truncate">${user.email || user.phone}</p>
+                    </div>
+                    <span class="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md">${formatJalaliDate(user.joined)}</span>
+                </a>
+            `).join('');
+        } catch (err) { console.error(err); }
+    };
+
+    // پشتیبانی از دارک مد
+    new MutationObserver(() => { if (usersChartInstance) loadCharts(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+
+    if (window.wsClient && typeof window.wsClient.on === 'function') {
+        window.wsClient.on('admin_panel_refresh', () => {
+            loadStats();
+            loadCharts();
+            loadOrders();
+            loadEndingAuctions();
+            loadNewUsers();
+        });
+    }
+
+    loadStats();
+    loadCharts();
+    loadOrders();
+    loadEndingAuctions();
+    loadNewUsers();
+});
+</script>
+{% endblock %}

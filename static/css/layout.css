@@ -1,0 +1,599 @@
+@font-face {
+  font-family: 'Morabba';
+  src: url('../fonts/Morabba-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Morabba';
+  src: url('../fonts/Morabba-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Morabba';
+  src: url('../fonts/Morabba-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Morabba';
+  src: url('../fonts/Morabba-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Morabba';
+  src: url('../fonts/Morabba-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Morabba';
+  src: url('../fonts/Morabba-Black.ttf') format('truetype');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* =====================
+   ROOT VARIABLES
+===================== */
+:root {
+  --primary: #ff6b00;
+  --secondary: #2c2c54;
+  --bg: #f4f6f9;
+  --white: #ffffff;
+  --text: #2f3640;
+  --border: #e5e5e5;
+  --surface: #ffffff;
+
+  --success: #2ecc71;
+  --danger: #e74c3c;
+  --warning: #f1c40f;
+
+  --radius: 8px;
+  --transition: 0.3s ease;
+}
+
+:root[data-theme='dark'] {
+  --primary: #ff8533;
+  --secondary: #4a4a8a;
+  --bg: #121212;
+  --white: #1e1e1e;
+  --text: #e0e0e0;
+  --border: #333333;
+  --surface: #1e1e1e;
+}
+
+/* =====================
+   RESET
+===================== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Morabba', sans-serif;
+  font-weight: 500;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+  direction: rtl; /* اضافه شده برای پشتیبانی کامل از راست‌چین (RTL) */
+  text-align: start; /* تراز کردن متن بر اساس جهت صفحه */
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+.font-en {
+  font-family: 'Morabba', sans-serif;
+  direction: ltr;
+  display: inline-block;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d4d4d8;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1aa;
+}
+
+/* =====================
+   GLOBAL
+===================== */
+.container {
+  max-width: 1200px;
+  margin: auto;
+  padding: 16px;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+  transition: var(--transition);
+}
+
+a:hover {
+  color: var(--primary);
+}
+
+/* =====================
+   FORM INPUTS (Glassmorphism & Sizing Fix)
+===================== */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="tel"],
+textarea {
+    width: 100%; /* این خط مشکل چسبیدن به راست را حل می‌کند */
+    padding: 12px 16px;
+    background-color: rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 12px;
+    color: var(--text);
+    font-family: ui-sans-serif, system-ui, sans-serif; /* فونت انگلیسی برای اعداد و رمز عبور */
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    outline: none;
+    text-align: left;
+    direction: ltr; /* باعث می‌شود تایپ از چپ به راست انجام شود */
+}
+
+/* استایل دارک‌مود برای فیلدها */
+:root[data-theme='dark'] input[type="text"],
+:root[data-theme='dark'] input[type="email"],
+:root[data-theme='dark'] input[type="password"],
+:root[data-theme='dark'] input[type="tel"],
+:root[data-theme='dark'] textarea {
+    background-color: rgba(17, 24, 39, 0.4);
+    border-color: rgba(75, 85, 99, 0.3);
+    color: #ffffff;
+}
+
+/* استایل هنگام فوکوس روی فیلد (کلیک کردن داخل آن) */
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="tel"]:focus,
+textarea:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.25);
+    background-color: rgba(255, 255, 255, 0.5);
+}
+
+:root[data-theme='dark'] input[type="text"]:focus,
+:root[data-theme='dark'] input[type="email"]:focus,
+:root[data-theme='dark'] input[type="password"]:focus,
+:root[data-theme='dark'] input[type="tel"]:focus,
+:root[data-theme='dark'] textarea:focus {
+    box-shadow: 0 0 0 3px rgba(255, 133, 51, 0.25);
+    background-color: rgba(17, 24, 39, 0.6);
+}
+
+/* =====================
+   HEADER / NAV
+===================== */
+header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: var(--surface);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+  transition: background 0.3s ease;
+}
+
+nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+nav ul {
+  display: flex;
+  list-style: none;
+  gap: 20px;
+}
+
+/* =====================
+   PANELS
+===================== */
+.panel {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* SIDEBAR */
+.sidebar {
+  width: 240px;
+  padding: 20px;
+  background: var(--white);
+  /* استفاده از border-inline-end به جای border-right برای سازگاری با RTL/LTR */
+  border-inline-end: 1px solid var(--border);
+}
+
+.sidebar ul {
+  list-style: none;
+}
+
+.sidebar li {
+  margin-bottom: 15px;
+}
+
+/* USER PANEL */
+.panel.user .sidebar {
+  background: #eaf6ff;
+}
+:root[data-theme='dark'] .panel.user .sidebar {
+  background: #1a2634;
+}
+
+.panel.user .sidebar a:hover {
+  color: var(--primary);
+}
+
+/* ADMIN PANEL */
+.panel.admin .sidebar {
+  background: var(--secondary);
+  color: #fff;
+}
+
+.panel.admin a {
+  color: #fff;
+}
+
+.panel.admin a:hover {
+  color: var(--warning);
+}
+
+/* CONTENT */
+.panel-content {
+  flex: 1;
+  padding: 30px;
+}
+
+/* =====================
+   LOGO COLOR FILL ANIMATION
+===================== */
+.logo-bg-reveal {
+  position: relative;
+  z-index: 10;
+  background-color: #ffffff;
+  animation: colorFillEffect 5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  will-change: background-color, box-shadow;
+}
+
+@keyframes colorFillEffect {
+  0% {
+    background-color: #ffffff;
+    box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+    border: 1px solid rgba(0,0,0,0.05);
+  }
+  30% {
+    background-color: #ffffff;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  }
+  100% {
+    background-color: #8C703F; 
+    box-shadow: 0 10px 15px -3px rgba(124, 124, 123, 0.25);
+    border-color: transparent;
+    color: #ffffff;
+  }
+}
+
+/* =====================
+   DESIGN: CLEAN MINIMAL & SOFT GOLD (Light Theme)
+===================== */
+:root {
+    --bg-color: #ffffff;
+    --control-bg: #f5f7fa;
+    --accent-gold: #C9A06B;
+    --shadow-light: #ffffff;
+    --shadow-dark: rgba(163, 177, 198, 0.4);
+}
+
+/* =====================
+   STEP CONTROL - BASE
+===================== */
+.step-control-bold {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: 'Morabba', 'Segoe UI', sans-serif;
+    margin-top: 15px;
+}
+
+.step-label-bold {
+    font-size: 0.9rem;
+    color: #555;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+}
+
+/* =====================
+   STEP INPUT GROUP
+===================== */
+.step-input-group-bold {
+    display: flex;
+    align-items: center;
+    background: var(--bg-color);
+    padding: 8px 12px;
+    border-radius: 16px;
+    box-shadow: 
+        1px 1px 3px var(--shadow-dark),
+        -1px -1px 3px var(--shadow-light),
+        inset 0 0 3px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+}
+
+.step-input-group-bold:focus-within {
+    box-shadow: 
+        2px 2px 5px var(--shadow-dark),
+        -2px -2px 5px var(--shadow-light);
+    border: 1px solid var(--accent-gold);
+}
+
+/* =====================
+   STEP BUTTONS
+===================== */
+.step-btn-bold {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    border-radius: 50%;
+    border: none;
+    background: var(--bg-color);
+    color: var(--accent-gold);
+    font-size: 1.5rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 
+        3px 3px 6px var(--shadow-dark),
+        -3px -3px 6px var(--shadow-light);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.step-btn-bold:hover {
+    color: #a87e4a;
+    transform: translateY(-1px);
+}
+
+.step-btn-bold:active {
+    box-shadow: 
+        inset 2px 2px 4px var(--shadow-dark),
+        inset -2px -2px 4px var(--shadow-light);
+    transform: scale(0.98);
+}
+
+.step-btn-bold:disabled {
+    color: #ccc;
+    cursor: not-allowed;
+    background: var(--control-bg);
+}
+
+/* =====================
+   STEP INPUT
+===================== */
+.step-input-bold {
+    width: 70px;
+    height: 40px;
+    border: none;
+    background: transparent;
+    text-align: center;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #333;
+    outline: none;
+    font-family: inherit;
+    -moz-appearance: textfield;
+}
+
+.step-input-bold:focus {
+    color: var(--accent-gold);
+}
+
+.step-input-bold::-webkit-outer-spin-button,
+.step-input-bold::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* =====================
+   STEP CONTROL ROW
+===================== */
+.step-control-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 12px;
+    padding: 0 5px;
+}
+
+.step-control-row .step-label-bold {
+    margin-bottom: 0;
+    /* تغییر از margin-left به margin-inline-start برای سازگاری با RTL */
+    margin-inline-start: 10px;
+    font-size: 1rem;
+}
+
+/* =====================
+   GOLD STEP INFO - ONE ROW
+===================== */
+.step-control-box-gold.one-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    white-space: nowrap;
+    padding: 14px 18px;
+    border-radius: 16px;
+    background: var(--bg-color);
+    box-shadow:
+        5px 5px 10px var(--shadow-dark),
+        -5px -5px 10px var(--shadow-light);
+}
+
+.step-label-gold {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--accent-gold);
+}
+
+.step-badge-gold {
+    font-size: 0.7rem;
+    font-weight: 800;
+    padding: 5px 10px;
+    border-radius: 8px;
+    margin-inline-start: auto; /* این مشخصه به درستی منطقی تعریف شده بود */
+    color: #8a6d3b;
+    background: rgba(201, 160, 107, 0.15);
+    border: 1px solid rgba(201, 160, 107, 0.25);
+}
+
+.step-value-gold {
+    font-size: 1rem;
+    font-weight: 900;
+    color: var(--accent-gold);
+    direction: ltr;
+}
+
+/* =====================
+   FINAL: SUBMIT BID BUTTON
+===================== */
+.submit-bid-btn-gold {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 56px;
+    width: 100%;
+    background: #AB8C58;
+    border: none;
+    border-radius: 14px;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #ffffff;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow:
+        4px 4px 8px rgba(0, 0, 0, 0.25),
+        -4px -4px 8px rgba(255, 255, 255, 0.25);
+}
+
+.submit-bid-btn-gold:not(.disabled-btn):hover {
+    background: #9e7f4c;
+    transform: translateY(-2px);
+}
+
+.submit-bid-btn-gold:not(.disabled-btn):active {
+    transform: translateY(1px);
+    box-shadow:
+        inset 3px 3px 6px rgba(0, 0, 0, 0.35),
+        inset -3px -3px 6px rgba(255, 255, 255, 0.35);
+}
+
+.submit-bid-btn-gold.disabled-btn {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: #bfa77a;
+}
+
+/* =====================
+   GAVEL ICON (ANIMATED)
+===================== */
+.btn-icon-gold {
+    font-size: 1.6rem;
+    color: #ffffff;
+    display: inline-block;
+    transform-origin: 60% 65%;
+}
+
+.submit-bid-btn-gold:hover .btn-icon-gold,
+.submit-bid-btn-gold:focus-visible .btn-icon-gold {
+    animation: gavel-swing 0.65s ease-in-out;
+}
+
+.submit-bid-btn-gold:active .btn-icon-gold {
+    animation: none;
+}
+
+@keyframes gavel-swing {
+    0%   { transform: rotate(0deg); }
+    20%  { transform: rotate(-18deg); }
+    40%  { transform: rotate(6deg); }
+    60%  { transform: rotate(-10deg); }
+    80%  { transform: rotate(3deg); }
+    100% { transform: rotate(0deg); }
+}
+
+/* =====================
+   RESPONSIVE
+===================== */
+@media (max-width: 640px) {
+    .step-btn-bold {
+        width: 36px;
+        height: 36px;
+        font-size: 1.3rem;
+    }
+    .step-input-bold {
+        width: 60px;
+        height: 36px;
+        font-size: 1.2rem;
+    }
+    .step-input-group-bold {
+        padding: 6px 10px;
+    }
+
+    .btn-icon-gold {
+        animation-duration: 0.45s;
+    }
+}
+
+@media (max-width: 500px) {
+    .step-control-row {
+        flex-direction: column;
+        align-items: flex-start; /* در صورت فعال بودن direction: rtl، این ویژگی به درستی محتوا را به سمت راست (آغاز چیدمان فارسی) می‌برد */
+    }
+}
+
+/* =====================
+   ANIMATIONS
+===================== */
+@keyframes hourglass-flip {
+    0% { transform: rotate(0deg); }
+    40% { transform: rotate(180deg); }
+    50% { transform: rotate(180deg); }
+    90% { transform: rotate(360deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.animate-hourglass {
+    animation: hourglass-flip 4s ease-in-out infinite;
+}

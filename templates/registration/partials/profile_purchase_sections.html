@@ -1,0 +1,102 @@
+{% load humanize jalali_tags fa_digits %}
+<div class="mb-12">
+    <h2 class="text-lg font-bold text-gray-900 dark:text-white drop-shadow-sm mb-6 flex items-center gap-3">
+        <span class="p-2 bg-white/40 dark:bg-gray-800/40 backdrop-blur-sm border border-white/50 dark:border-gray-600/40 rounded-lg text-emerald-600 dark:text-emerald-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+        </span>
+        محصولات خریداری شده
+    </h2>
+
+    <div class="space-y-6">
+        <section class="rounded-3xl border border-white/40 dark:border-gray-600/30 bg-white/15 dark:bg-gray-800/15 backdrop-blur-sm p-4 sm:p-5">
+            <div class="flex items-center justify-between gap-3 mb-4">
+                <h3 class="text-sm font-bold text-gray-900 dark:text-white">خریدهای فروشگاه</h3>
+                <span class="px-3 py-1 bg-white/40 dark:bg-gray-800/50 backdrop-blur-md border border-white/60 dark:border-gray-600/50 text-xs font-bold rounded-full shadow-sm text-gray-700 dark:text-gray-200">
+                    {{ store_purchases|length|fa_digits }} مورد
+                </span>
+            </div>
+
+            {% if store_purchases %}
+                <div class="space-y-3">
+                    {% for purchase in store_purchases %}
+                        <a href="{% url 'store:artwork_detail' purchase.artwork.id %}" class="flex flex-col sm:flex-row sm:items-center gap-4 p-3 bg-white/20 dark:bg-gray-800/20 backdrop-blur-sm hover:bg-white/40 dark:hover:bg-gray-700/40 border border-white/30 dark:border-gray-600/20 hover:border-white/60 dark:hover:border-gray-500/50 rounded-2xl transition-all duration-300 shadow-[0_4px_20px_rgba(0,0,0,0.03)]" data-track-visit="1" data-track-kind="store_product" data-track-id="{{ purchase.artwork.id }}">
+                            <div class="flex items-center gap-4 flex-1 min-w-0">
+                                <img src="{{ purchase.artwork.main_image_url }}" alt="{{ purchase.artwork.title|fa_digits }}" class="w-12 h-12 object-cover rounded-xl shadow-sm shrink-0">
+                                <div class="min-w-0 flex-1">
+                                    <h4 class="font-bold text-sm text-gray-900 dark:text-white truncate drop-shadow-sm">{{ purchase.artwork.title|fa_digits }}</h4>
+                                    <p class="text-xs text-gray-600 dark:text-gray-400 mt-0.5 truncate">{{ purchase.artwork.artist.name|fa_digits }}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto mt-2 sm:mt-0 px-1 sm:px-0">
+                                {% if purchase.artwork.is_sold == 2 %}
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-amber-100/60 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-700/50 backdrop-blur-md whitespace-nowrap shadow-sm">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                        رزرو شده توسط شما
+                                    </span>
+                                {% elif purchase.artwork.is_sold == 1 %}
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-emerald-100/60 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-700/50 backdrop-blur-md whitespace-nowrap shadow-sm">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                        خریداری شده توسط شما
+                                    </span>
+                                {% endif %}
+
+                                <div class="text-[10px] font-bold text-gray-700 dark:text-gray-300 bg-white/40 dark:bg-gray-900/40 backdrop-blur-md px-3 py-1 rounded-full border border-white/50 dark:border-gray-600/40 shadow-sm shrink-0">
+                                    {{ purchase.created_at|to_jalali:'%Y/%m/%d'|fa_digits }}
+                                </div>
+                            </div>
+                        </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="py-8 text-center border-2 border-dashed border-white/50 dark:border-gray-600/30 rounded-3xl bg-white/10 dark:bg-gray-800/10 backdrop-blur-sm">
+                    <p class="text-sm text-gray-700 dark:text-gray-300 drop-shadow-sm">هنوز خریدی از فروشگاه ثبت نشده است.</p>
+                </div>
+            {% endif %}
+        </section>
+
+        <section class="rounded-3xl border border-white/40 dark:border-gray-600/30 bg-white/15 dark:bg-gray-800/15 backdrop-blur-sm p-4 sm:p-5">
+            <div class="flex items-center justify-between gap-3 mb-4">
+                <h3 class="text-sm font-bold text-gray-900 dark:text-white">خریدهای مزایده</h3>
+                <span class="px-3 py-1 bg-white/40 dark:bg-gray-800/50 backdrop-blur-md border border-white/60 dark:border-gray-600/50 text-xs font-bold rounded-full shadow-sm text-gray-700 dark:text-gray-200">
+                    {{ auction_purchases|length|fa_digits }} مورد
+                </span>
+            </div>
+
+            {% if auction_purchases %}
+                <div class="space-y-3">
+                    {% for purchase in auction_purchases %}
+                        <a href="{% url 'auction:auction_product_detail' purchase.pk %}?access_token={{ purchase.detail_access_token|urlencode }}" class="flex flex-col sm:flex-row sm:items-center gap-4 p-3 bg-white/20 dark:bg-gray-800/20 backdrop-blur-sm hover:bg-white/40 dark:hover:bg-gray-700/40 border border-white/30 dark:border-gray-600/20 hover:border-white/60 dark:hover:border-gray-500/50 rounded-2xl transition-all duration-300 shadow-[0_4px_20px_rgba(0,0,0,0.03)]" data-track-visit="1" data-track-kind="auction_product" data-track-id="{{ purchase.pk }}">
+                            <div class="flex items-center gap-4 flex-1 min-w-0">
+                                <img src="{{ purchase.main_image_url }}" alt="{{ purchase.title|fa_digits }}" class="w-12 h-12 object-cover rounded-xl shadow-sm shrink-0">
+                                <div class="min-w-0 flex-1">
+                                    <h4 class="font-bold text-sm text-gray-900 dark:text-white truncate drop-shadow-sm">{{ purchase.title|fa_digits }}</h4>
+                                    <p class="text-xs text-gray-600 dark:text-gray-400 mt-0.5 truncate">
+                                        {{ purchase.artist.name|fa_digits }}
+                                        <span class="mx-1 text-gray-400 dark:text-gray-500">/</span>
+                                        {{ purchase.auction.name|default:"مزایده"|fa_digits }}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="flex flex-wrap items-center justify-between sm:justify-end gap-2 w-full sm:w-auto mt-2 sm:mt-0 px-1 sm:px-0">
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-primary/10 text-primary border border-primary/20 backdrop-blur-md whitespace-nowrap shadow-sm">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    برنده مزایده
+                                </span>
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black bg-emerald-100/60 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-700/50 backdrop-blur-md whitespace-nowrap shadow-sm dir-ltr">
+                                    ${{ purchase.current_price|floatformat:"0"|intcomma|fa_digits }}
+                                </span>
+                                <div class="text-[10px] font-bold text-gray-700 dark:text-gray-300 bg-white/40 dark:bg-gray-900/40 backdrop-blur-md px-3 py-1 rounded-full border border-white/50 dark:border-gray-600/40 shadow-sm shrink-0">
+                                    {{ purchase.auction.end_date|to_jalali:'%Y/%m/%d'|fa_digits }}
+                                </div>
+                            </div>
+                        </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="py-8 text-center border-2 border-dashed border-white/50 dark:border-gray-600/30 rounded-3xl bg-white/10 dark:bg-gray-800/10 backdrop-blur-sm">
+                    <p class="text-sm text-gray-700 dark:text-gray-300 drop-shadow-sm">هنوز خریدی از مزایده برای شما ثبت نشده است.</p>
+                </div>
+            {% endif %}
+        </section>
+    </div>
+</div>

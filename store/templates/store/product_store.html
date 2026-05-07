@@ -1,0 +1,717 @@
+{% extends 'base.html' %}
+{% load static humanize fa_digits %}
+
+{% block content %}
+
+<!-- استایل ضروری برای پر کردن آیکون قلب و محافظت از محتوا -->
+<style>
+    /* تنظیمات پیش‌فرض آیکون‌ها */
+    .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        transition: font-variation-settings 0.3s ease;
+    }
+    /* کلاسی که آیکون را توپر می‌کند */
+    .material-symbols-outlined.filled {
+        font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    
+    /* کلاس‌های محافظتی برای جلوگیری از انتخاب و کشیدن تصاویر */
+    .protected-content {
+        -webkit-user-select: none; /* Safari */
+        -moz-user-select: none; /* Firefox */
+        -ms-user-select: none; /* IE10+/Edge */
+        user-select: none; /* Standard */
+        -webkit-user-drag: none; /* Safari/Chrome */
+    }
+    
+    .protected-content img, .protected-content div {
+        -webkit-user-drag: none;
+    }
+</style>
+
+<div class="bg-background-light dark:bg-background-dark text-neutral-900 min-h-screen flex flex-col font-body selection:bg-primary/20">
+    <!-- کلاس protected-content به main اضافه شد -->
+    <main class="protected-content flex-grow w-full max-w-[1300px] mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 xl:gap-16">
+            <!-- ستون تصاویر -->
+            <div class="lg:col-span-7 flex flex-col gap-6">
+                <div class="relative w-full aspect-[4/3] bg-neutral-100 rounded-xl overflow-hidden shadow-sm border border-neutral-200 group zoom-container">
+
+                    <!-- دکمه‌های تغییر ویو -->
+                    <div class="absolute top-4 right-4 flex gap-2 z-20">
+                        <button id="btn-view-image" onclick="switchView('image')" class="px-3 py-1.5 bg-white/90 backdrop-blur-md border border-white/50 rounded-lg text-xs font-bold text-primary shadow-sm hover:bg-white transition-all ring-2 ring-primary">
+                            تصویر
+                        </button>
+                        {% if artwork.model_360_url %}
+                            <button id="btn-view-360" onclick="switchView('360')" class="px-3 py-1.5 bg-white/90 backdrop-blur-md border border-white/50 rounded-lg text-xs font-bold text-neutral-600 shadow-sm hover:bg-white transition-all hover:text-primary">
+                                نمای ۳۶۰
+                            </button>
+                        {% endif %}
+                    </div>
+
+                    <!-- ===== دکمه‌های ناوبری ===== -->
+                    <button id="next-slide" class="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white/80 hover:bg-white backdrop-blur-md border border-white/50 rounded-full flex items-center justify-center text-neutral-700 hover:text-primary shadow-md transition-all opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0 duration-300">
+                        <span class="material-symbols-outlined">chevron_left</span>
+                    </button>
+
+                    <button id="prev-slide" class="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white/80 hover:bg-white backdrop-blur-md border border-white/50 rounded-full flex items-center justify-center text-neutral-700 hover:text-primary shadow-md transition-all opacity-0 group-hover:opacity-100 -translate-x-4 group-hover:translate-x-0 duration-300">
+                        <span class="material-symbols-outlined">chevron_right</span>
+                    </button>
+
+                    <!-- بخش نمایش تصویر اصلی -->
+                   <div class="w-full h-full bg-cover bg-center transition-transform duration-700 ease-in-out hover:scale-110 {% if artwork.is_sold == 2 %}reserved-card{% endif %}"
+                        id="product-main-image"
+                        data-alt="{{ artwork.title|fa_digits }}"
+                        style="background-image: url('{{ artwork.main_image_url }}');">
+                    </div>
+                    {% if artwork.is_sold == 2 %}
+                        <div class="reserved-overlay"></div>
+                    {% endif %}
+
+                    {% if artwork.model_360_url %}
+                        <!-- بخش 360 درجه -->
+                        <div id="product-360-view" class="hidden absolute inset-0 bg-[#f5f5f4] flex items-center justify-center select-none overflow-hidden">
+                            <model-viewer
+                                src="{{ artwork.model_360_url }}"
+                                poster="{{ artwork.main_image_url }}"
+                                alt="360 View"
+                                camera-controls
+                                touch-action="pan-y"
+                                exposure="1"
+                                shadow-intensity="1"
+                                class="w-full h-full"
+                            ></model-viewer>
+                            <div class="absolute bottom-6 inset-x-0 text-center pointer-events-none">
+                                <span class="bg-white/80 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-neutral-600 shadow-sm border border-white/50 flex items-center gap-2 w-fit mx-auto">
+                                    <span class="material-symbols-outlined text-[16px]">360</span>
+                                    برای چرخش بکشید
+                                </span>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- بخش تصاویر گالری -->
+                <div class="grid {% if artwork.video_url and artwork.model_360_url %}grid-cols-6{% elif artwork.video_url or artwork.model_360_url %}grid-cols-5{% else %}grid-cols-4{% endif %} gap-3 sm:gap-4" id="product-thumbs">
+                    {% with image_count=artwork.gallery_images|length %}
+                        {% for image_url in artwork.gallery_images %}
+
+                            {# --- ۴ تصویر اول: نمایش عادی --- #}
+                            {% if forloop.counter <= 4 %}
+                                <button type="button"
+                                    class="product-thumb aspect-square rounded-lg overflow-hidden border border-transparent hover:border-neutral-300 opacity-70 hover:opacity-100 p-0.5 cursor-pointer relative group transition-all"
+                                    data-image-url="{{ image_url }}"
+                                    data-index="{{ forloop.counter0 }}">
+                                    <div class="w-full h-full rounded-md bg-cover bg-center"
+                                        style="background-image: url('{{ image_url }}');">
+                                    </div>
+                                </button>
+
+                            {# --- تصویر پنجم: اگر تصاویر بیشتر از ۵ تا باشند، دکمه + را نشان بده --- #}
+                            {% elif forloop.counter == 5 and image_count > 5 %}
+                                <button type="button"
+                                    class="relative aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+                                    onclick="openGalleryModal({{ forloop.counter0 }})">
+                                    <div class="w-full h-full bg-cover bg-center blur-[1px]"
+                                        style="background-image: url('{{ image_url }}');">
+                                    </div>
+                                    <div class="absolute inset-0 bg-black/50 flex items-center justify-center text-white font-bold text-xl dir-ltr">
+                                        <span>+{{ image_count|add:"-4"|fa_digits }}</span>
+                                    </div>
+                                    <span class="hidden product-hidden-img" data-image-url="{{ image_url }}"></span>
+                                </button>
+
+                            {# --- تصویر پنجم: اگر دقیقاً ۵ تصویر باشد --- #}
+                            {% elif forloop.counter == 5 and image_count == 5 %}
+                                 <button type="button"
+                                    class="product-thumb aspect-square rounded-lg overflow-hidden border border-transparent hover:border-neutral-300 opacity-70 hover:opacity-100 p-0.5 cursor-pointer relative group transition-all"
+                                    data-image-url="{{ image_url }}"
+                                    data-index="{{ forloop.counter0 }}">
+                                    <div class="w-full h-full rounded-md bg-cover bg-center"
+                                        style="background-image: url('{{ image_url }}');">
+                                    </div>
+                                </button>
+
+                            {# --- سایر تصاویر (مخفی) --- #}
+                            {% else %}
+                                <span class="hidden product-hidden-img" data-image-url="{{ image_url }}"></span>
+                            {% endif %}
+
+                        {% endfor %}
+                    {% endwith %}
+
+                    {% if artwork.model_360_url %}
+                        <!-- دکمه نمای ۳۶۰ -->
+                        <button type="button"
+                            class="aspect-square rounded-lg overflow-hidden bg-neutral-100 border border-transparent hover:border-neutral-300 hover:bg-neutral-200 cursor-pointer flex items-center justify-center transition-all"
+                            onclick="switchView('360')">
+                            <div class="flex flex-col items-center gap-1 text-secondary-text">
+                                <span class="material-symbols-outlined">360</span>
+                                <span class="text-[10px] font-bold">نمای ۳۶۰</span>
+                            </div>
+                        </button>
+                    {% endif %}
+
+                    {% if artwork.video_url %}
+                        <!-- دکمه ویدئو -->
+                        <button type="button"
+                            class="aspect-square rounded-lg overflow-hidden bg-neutral-100 border border-transparent hover:border-neutral-300 hover:bg-neutral-200 cursor-pointer flex items-center justify-center transition-all"
+                            onclick="openVideoModal('{{ artwork.video_url|escapejs }}')">
+                            <div class="flex flex-col items-center gap-1 text-secondary-text">
+                                <span class="material-symbols-outlined">smart_display</span>
+                                <span class="text-[10px] font-bold">ویدئو</span>
+                            </div>
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- ستون اطلاعات محصول -->
+            <div class="lg:col-span-5 flex flex-col">
+                <div class="sticky top-28 space-y-8">
+                    <div class="border-b border-neutral-200 pb-6 animate-fadeIn" style="animation-delay: 0.1s;">
+                        <h1 id="product-title"
+                            class="text-4xl lg:text-5xl font-bold text-neutral-900 mb-3 tracking-tight leading-tight">
+                            {{ artwork.title|fa_digits }}</h1>
+                        <h2 class="text-2xl lg:text-3xl text-neutral-600 font-medium mb-6" id="product-artist">{{ artwork.artist.name|fa_digits }}</h2>
+                        <div class="flex flex-wrap gap-y-3 gap-x-6 text-sm text-secondary-text font-medium">
+                            {% if artwork.creation_year %}
+                            <div class="flex items-center gap-2">
+                                <span class="material-symbols-outlined text-[20px] text-neutral-400">calendar_month</span>
+                                <span>{{ artwork.creation_year|fa_digits }}</span>
+                            </div>
+                            {% endif %}
+                            <div class="flex items-center gap-2">
+                                <span class="material-symbols-outlined text-[20px] text-neutral-400">square_foot</span>
+                                <span id="product-dimensions">{{ artwork.dimensions|default:"—"|fa_digits }}</span>
+                            </div>
+                            {% if artwork.authenticity_status == 0 %}
+                                <div class="flex items-center gap-2 text-primary bg-primary/10 px-2.5 py-1 rounded-full border border-primary/20">
+                                    <span class="material-symbols-outlined text-[18px] filled">verified</span>
+                                    {{ artwork.get_authenticity_status_display|fa_digits }}
+                                </div>
+                            {% elif artwork.authenticity_status == 1 %}
+                                <div class="flex items-center gap-2 text-neutral-500 bg-neutral-100 px-2.5 py-1 rounded-full border border-neutral-200">
+                                    <span class="material-symbols-outlined text-[18px]">new_releases</span>
+                                    {{ artwork.get_authenticity_status_display|fa_digits }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-neutral-200 space-y-6 animate-fadeIn"
+                        style="animation-delay: 0.2s;">
+                        <div>
+                            <div class="flex justify-between items-baseline mb-2">
+                                <span class="text-sm text-secondary-text font-medium">قیمت اثر</span>
+                            </div>
+                            {% if request.user.is_authenticated %}
+                                <div class="text-4xl font-bold text-neutral-900 tracking-tight">
+                                    <span id="product-price">{{ artwork.price|intcomma|fa_digits }} $</span> <span
+                                        class="text-lg font-bold text-neutral-500 align-top mr-1">دلار</span>
+                                </div>
+                            {% else %}
+                                <button type="button" class="text-lg font-bold text-primary hover:text-primary-dark transition-colors" onclick="window.openLoginRequiredModal(window.location.pathname + window.location.search, 'برای مشاهده قیمت این اثر، لطفاً ابتدا وارد حساب کاربری خود شوید.')">
+                                    ورود برای مشاهده قیمت
+                                </button>
+                            {% endif %}
+                        </div>
+                        <div class="border-t border-neutral-100 my-4"></div>
+
+                        <!-- ============ بخش دکمه خرید ============ -->
+                        <div class="flex gap-3 pt-2 items-stretch relative z-50">
+                            {% if artwork.is_sold == 1 %}
+                                <button type="button"
+                                    class="flex-1 bg-neutral-200 text-neutral-500 text-lg font-bold h-14 rounded-xl cursor-not-allowed flex items-center justify-center gap-2"
+                                    disabled>
+                                    <span class="material-symbols-outlined">block</span>
+                                     فروخته شده
+                                </button>
+                            {% elif artwork.is_sold == 2 %}
+                                <button type="button"
+                                    class="flex-1 bg-amber-100 text-amber-600 text-lg font-bold h-14 rounded-xl cursor-not-allowed flex items-center justify-center gap-2 opacity-80"
+                                    disabled>
+                                    <span class="material-symbols-outlined">hourglass_top</span>
+                                    رزرو شده
+                                </button>
+                            {% else %}
+                                <div class="flex-1 relative">
+                                    <!-- دکمه اصلی -->
+                                    <button id="btn-toggle-cart" type="button"
+                                        class="w-full h-14 bg-primary hover:bg-primary-hover text-white text-lg font-bold rounded-xl shadow-lg shadow-neutral-900/10 transition-all hover:translate-y-[-2px] active:translate-y-[1px] flex items-center justify-center gap-2"
+                                             onclick="openConfirmModal()">
+                                        <span class="material-symbols-outlined">shopping_bag</span>
+                                        خرید اثر
+                                    </button>
+                                </div>
+                            {% endif %}
+
+                            <!-- ============ دکمه علاقه‌مندی ============ -->
+                            <button type="button"
+                                id="like-button"
+                                onclick="toggleLike({{ artwork.id }})"
+                                class="size-14 bg-white hover:bg-neutral-50 border transition-colors rounded-xl flex items-center justify-center group {% if is_liked %}text-red-600 border-red-200{% else %}text-neutral-400 border-neutral-200{% endif %}"
+                                title="{% if is_liked %}حذف از علاقه‌مندی‌ها{% else %}افزودن به علاقه‌مندی‌ها{% endif %}">
+                                <!-- نکته مهم: کلاس filled توسط css تعریف شده در بالا کنترل می‌شود -->
+                                <span class="material-symbols-outlined text-[24px] group-hover:filled transition-all {% if is_liked %}filled{% endif %}">favorite</span>
+                            </button>
+                            <!-- =================================================== -->
+                        </div>
+
+                    </div>
+                    <div class="divide-y divide-neutral-200">
+                        <details class="group py-4" open="">
+                            <summary
+                                class="flex justify-between items-center font-bold text-lg text-neutral-900 cursor-pointer list-none select-none hover:text-primary transition-colors">
+                                <span>درباره اثر</span>
+                                <span class="transition-transform duration-300 group-open:rotate-180 text-neutral-400">
+                                    <span class="material-symbols-outlined">expand_more</span>
+                                </span>
+                            </summary>
+                            <div class="text-secondary-text text-base leading-8 mt-4 pl-4 text-justify animate-fadeIn font-medium"
+                                id="product-about">
+                                {{ artwork.description|linebreaksbr|fa_digits }}
+                            </div>
+                        </details>
+
+                        <details class="group py-4">
+                            <summary class="flex justify-between items-center font-bold text-lg text-neutral-900 cursor-pointer list-none select-none hover:text-primary transition-colors">
+                                <span>پیشینه (Provenance)</span>
+                                <span class="transition-transform duration-300 group-open:rotate-180 text-neutral-400"><span class="material-symbols-outlined">expand_more</span></span>
+                            </summary>
+                            <div class="text-secondary-text text-sm leading-7 mt-4 pl-4 font-medium">
+                                <div class="pr-4 space-y-2 text-justify" id="product-provenance">
+                                    {{ artwork.provenance|default:"اطلاعاتی در دسترس نیست."|linebreaksbr|fa_digits }}
+                                </div>
+                            </div>
+                        </details>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- ======================= -->
+<!-- Full Screen Gallery Modal -->
+<!-- ======================= -->
+
+
+<!-- Telegram Confirmation Modal -->
+
+
+<!-- Product Video Modal -->
+
+
+<script>
+    // ============================================
+    // کدهای محافظت از محتوا (Inspect & Right Click)
+    // ============================================
+    
+    // غیرفعال کردن کلیک راست در این صفحه
+    document.addEventListener('contextmenu', function(event) {
+        event.preventDefault();
+    });
+
+    // جلوگیری از کشیدن و رها کردن (Drag & Drop) تصاویر
+    document.addEventListener('dragstart', function(event) {
+        event.preventDefault();
+    });
+
+    // غیرفعال کردن کلیدهای میانبر برای Inspect Element و View Source
+    document.addEventListener('keydown', function(event) {
+        // F12
+        if (event.keyCode === 123) {
+            event.preventDefault();
+        }
+        // Ctrl+Shift+I (Inspect)
+        if (event.ctrlKey && event.shiftKey && event.keyCode === 73) {
+            event.preventDefault();
+        }
+        // Ctrl+Shift+J (Console)
+        if (event.ctrlKey && event.shiftKey && event.keyCode === 74) {
+            event.preventDefault();
+        }
+        // Ctrl+Shift+C (Inspect Element)
+        if (event.ctrlKey && event.shiftKey && event.keyCode === 67) {
+            event.preventDefault();
+        }
+        // Ctrl+U (View Source)
+        if (event.ctrlKey && event.keyCode === 85) {
+            event.preventDefault();
+        }
+    });
+
+    // ============================================
+
+    function toggleLike(artworkId) {
+        if (!{{ user.is_authenticated|yesno:"true,false" }}) {
+            window.openLoginRequiredModal(
+                window.location.pathname + window.location.search,
+                'برای افزودن این اثر به علاقه مندی ها، لطفاً ابتدا وارد حساب کاربری خود شوید.'
+            );
+            return;
+        }
+
+        fetch(`/store/artwork/${artworkId}/like/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (response.status === 401 || response.status === 403) {
+                window.openLoginRequiredModal(
+                    window.location.pathname + window.location.search,
+                    'برای افزودن این اثر به علاقه مندی ها، لطفاً ابتدا وارد حساب کاربری خود شوید.'
+                );
+                return;
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data) {
+                const btn = document.getElementById('like-button');
+                const icon = btn.querySelector('.material-symbols-outlined');
+                
+                if (data.is_liked) {
+                    btn.classList.remove('text-neutral-400', 'border-neutral-200');
+                    btn.classList.add('text-red-600', 'border-red-200');
+                    btn.title = 'حذف از علاقه‌مندی‌ها';
+                    icon.classList.add('filled');
+                } else {
+                    btn.classList.remove('text-red-600', 'border-red-200');
+                    btn.classList.add('text-neutral-400', 'border-neutral-200');
+                    btn.title = 'افزودن به علاقه‌مندی‌ها';
+                    icon.classList.remove('filled');
+                }
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+// ============================================
+// متغیرهای گلوبال برای گالری
+// ============================================
+let allGalleryImages = [];
+let currentGalleryIndex = 0;
+
+document.addEventListener('DOMContentLoaded', function() {
+
+    // --- جمع‌آوری لینک تمام تصاویر برای گالری ---
+    document.querySelectorAll('.product-thumb').forEach(el => {
+        const url = el.getAttribute('data-image-url');
+        if(url && !allGalleryImages.includes(url)) allGalleryImages.push(url);
+    });
+
+    document.querySelectorAll('.product-hidden-img').forEach(el => {
+        const url = el.getAttribute('data-image-url');
+        if(url && !allGalleryImages.includes(url)) allGalleryImages.push(url);
+    });
+
+    // ---------------------------------------------
+    // بخش اول: مدیریت گالری تصاویر کوچک (داخل صفحه)
+    // ---------------------------------------------
+    const mainImage = document.getElementById('product-main-image');
+    const thumbs = document.querySelectorAll('.product-thumb');
+
+    function updatePageDisplay(url, index) {
+        mainImage.style.opacity = '0.5';
+        setTimeout(() => {
+            mainImage.style.backgroundImage = `url('${url}')`;
+            mainImage.style.opacity = '1';
+        }, 200);
+
+        thumbs.forEach(t => {
+            t.classList.remove('border-primary', 'shadow-sm', 'opacity-100', 'ring-2', 'ring-primary');
+            t.classList.add('border-transparent', 'opacity-70');
+        });
+
+        const visibleThumb = document.querySelector(`.product-thumb[data-image-url="${url}"]`);
+        if (visibleThumb) {
+            visibleThumb.classList.remove('border-transparent', 'opacity-70');
+            visibleThumb.classList.add('border-primary', 'shadow-sm', 'opacity-100');
+        }
+    }
+
+    thumbs.forEach((thumb, i) => {
+        thumb.addEventListener('click', function() {
+            const url = this.getAttribute('data-image-url');
+            updatePageDisplay(url, i);
+        });
+    });
+
+    // دکمه‌های اسلایدر روی عکس اصلی
+    const prevBtn = document.getElementById('prev-slide');
+    const nextBtn = document.getElementById('next-slide');
+    let currentPageIndex = 0;
+
+    if(nextBtn) {
+        nextBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            currentPageIndex++;
+            if (currentPageIndex >= allGalleryImages.length) currentPageIndex = 0;
+            updatePageDisplay(allGalleryImages[currentPageIndex], currentPageIndex);
+        });
+    }
+
+    if(prevBtn) {
+        prevBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            currentPageIndex--;
+            if (currentPageIndex < 0) currentPageIndex = allGalleryImages.length - 1;
+            updatePageDisplay(allGalleryImages[currentPageIndex], currentPageIndex);
+        });
+    }
+
+    // ---------------------------------------------
+    // بخش دوم: مدیریت پاپ‌آپ خرید
+    // ---------------------------------------------
+    const cartBtn = document.getElementById('btn-toggle-cart');
+    const popover = document.getElementById('buy-popover');
+
+    if (cartBtn && popover) {
+        let isOpen = false;
+        function togglePopover() {
+            isOpen = !isOpen;
+            if (isOpen) {
+                popover.classList.remove('opacity-0', 'invisible', 'translate-y-4', 'pointer-events-none');
+                popover.classList.add('opacity-100', 'visible', 'translate-y-0');
+            } else {
+                popover.classList.add('opacity-0', 'invisible', 'translate-y-4', 'pointer-events-none');
+                popover.classList.remove('opacity-100', 'visible', 'translate-y-0');
+            }
+        }
+        cartBtn.addEventListener('click', function(e) { e.stopPropagation(); togglePopover(); });
+        popover.addEventListener('click', function(e) { e.stopPropagation(); });
+        document.addEventListener('click', function() { if (isOpen) togglePopover(); });
+    }
+});
+
+// ============================================
+// توابع مودال گالری (خارج از DOMContentLoaded)
+// ============================================
+const modal = document.getElementById('gallery-modal');
+const modalImg = document.getElementById('gallery-main-img');
+const modalCountEl = document.getElementById('gallery-total-count');
+const modalIndexEl = document.getElementById('gallery-current-index');
+const modalContent = document.getElementById('gallery-modal-content');
+
+function openGalleryModal(startIndex = 0) {
+    if(allGalleryImages.length === 0) return;
+
+    currentGalleryIndex = startIndex;
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        if (modalContent) {
+            modalContent.classList.remove('scale-95');
+            modalContent.classList.add('scale-100');
+        }
+    }, 10);
+
+    modalCountEl.innerText = Number(allGalleryImages.length).toLocaleString('fa-IR');
+    updateModalImage();
+    if (window.syncGalleryDownload) window.syncGalleryDownload(allGalleryImages[currentGalleryIndex]);
+    if (window.resetGalleryZoom) window.resetGalleryZoom();
+    document.body.style.overflow = 'hidden';
+}
+
+function closeGalleryModal() {
+    modal.classList.add('opacity-0');
+    if (modalContent) {
+        modalContent.classList.remove('scale-100');
+        modalContent.classList.add('scale-95');
+    }
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        document.body.style.overflow = '';
+    }, 300);
+}
+
+function changeGalleryImage(direction) {
+    currentGalleryIndex += direction;
+    if (currentGalleryIndex >= allGalleryImages.length) currentGalleryIndex = 0;
+    if (currentGalleryIndex < 0) currentGalleryIndex = allGalleryImages.length - 1;
+    updateModalImage();
+}
+
+function updateModalImage() {
+    modalImg.src = allGalleryImages[currentGalleryIndex];
+    modalIndexEl.innerText = Number(currentGalleryIndex + 1).toLocaleString('fa-IR');
+    if (window.syncGalleryDownload) window.syncGalleryDownload(allGalleryImages[currentGalleryIndex]);
+    if (window.resetGalleryZoom) window.resetGalleryZoom();
+}
+
+document.addEventListener('keydown', function(event) {
+    if (event.key === "Escape" && !modal.classList.contains('hidden')) {
+        closeGalleryModal();
+    }
+});
+
+// ============================================
+// توابع مودال تایید تلگرام
+// ============================================
+const confirmModal = document.getElementById('confirm-modal');
+const confirmModalContent = document.getElementById('confirm-modal-content');
+const btnConfirmSend = document.getElementById('btn-confirm-send');
+const loadingSpinner = document.getElementById('loading-spinner');
+const userIsAuthenticated = {{ user.is_authenticated|yesno:"true,false" }};
+
+function getCookie(name) {
+    const cookieValue = document.cookie
+        .split(';')
+        .map(c => c.trim())
+        .find(c => c.startsWith(name + '='));
+    return cookieValue ? decodeURIComponent(cookieValue.split('=').slice(1).join('=')) : null;
+}
+
+function openConfirmModal() {
+    if (!userIsAuthenticated) {
+        window.openLoginRequiredModal(
+            window.location.pathname + window.location.search,
+            'برای خرید این اثر، لطفاً ابتدا وارد حساب کاربری خود شوید.'
+        );
+        return;
+    }
+    confirmModal.classList.remove('hidden');
+    // Small delay to allow display:block to apply before opacity transition
+    setTimeout(() => {
+        confirmModal.classList.remove('opacity-0');
+        confirmModalContent.classList.remove('scale-95');
+        confirmModalContent.classList.add('scale-100');
+    }, 10);
+}
+
+function closeConfirmModal() {
+    confirmModal.classList.add('opacity-0');
+    confirmModalContent.classList.remove('scale-100');
+    confirmModalContent.classList.add('scale-95');
+    
+    setTimeout(() => {
+        confirmModal.classList.add('hidden');
+    }, 300);
+}
+
+function submitTelegramRequest() {
+    // Disable button and show loading
+    btnConfirmSend.disabled = true;
+    loadingSpinner.classList.remove('hidden');
+    
+    const artworkId = {{ artwork.id }};
+    const csrfToken = getCookie('csrftoken') || '{{ csrf_token }}';
+    
+    fetch(`/store/artwork/${artworkId}/reserve/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/json'
+        },
+        credentials: 'same-origin'
+    })
+    .then(async response => {
+        const contentType = response.headers.get('content-type') || '';
+        const data = contentType.includes('application/json') ? await response.json() : null;
+        return { response, data };
+    })
+    .then(({ response, data }) => {
+        if (response.status === 401) {
+            closeConfirmModal();
+            window.openLoginRequiredModal(
+                window.location.pathname + window.location.search,
+                'برای خرید این اثر، لطفاً ابتدا وارد حساب کاربری خود شوید.'
+            );
+            return;
+        }
+
+        if (data && data.success) {
+            closeConfirmModal();
+            
+            // تغییر حالت دکمه به "رزرو شده"
+            const buyBtn = document.getElementById('btn-toggle-cart');
+            if (buyBtn) {
+                buyBtn.disabled = true;
+                buyBtn.className = 'w-full h-14 bg-amber-100 text-amber-600 text-lg font-bold rounded-xl cursor-not-allowed flex items-center justify-center gap-2 opacity-80';
+                buyBtn.innerHTML = '<span class="material-symbols-outlined">hourglass_top</span>رزرو شده';
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    })
+    .finally(() => {
+        // Reset button state
+        btnConfirmSend.disabled = false;
+        loadingSpinner.classList.add('hidden');
+    });
+}
+
+// ============================================
+// توابع مودال پخش ویدئو
+// ============================================
+const videoModal = document.getElementById('video-modal');
+const videoModalContent = document.getElementById('video-modal-content');
+const videoPlayer = document.getElementById('product-video-player');
+
+function openVideoModal(videoUrl) {
+    if (!videoModal || !videoModalContent || !videoPlayer) return;
+
+    if (window.prepareVideoModal) {
+        window.prepareVideoModal(videoUrl);
+    } else {
+        videoPlayer.src = videoUrl;
+        videoPlayer.load();
+        videoPlayer.play().catch(() => {});
+    }
+
+    videoModal.classList.remove('hidden');
+    setTimeout(() => {
+        videoModal.classList.remove('opacity-0');
+        videoModalContent.classList.remove('scale-95');
+        videoModalContent.classList.add('scale-100');
+    }, 10);
+
+    document.body.style.overflow = 'hidden';
+}
+
+function closeVideoModal() {
+    if (!videoModal || !videoModalContent || !videoPlayer) return;
+
+    videoModal.classList.add('opacity-0');
+    videoModalContent.classList.remove('scale-100');
+    videoModalContent.classList.add('scale-95');
+
+    videoPlayer.pause();
+    videoPlayer.removeAttribute('src');
+    videoPlayer.load();
+
+    setTimeout(() => {
+        videoModal.classList.add('hidden');
+        document.body.style.overflow = '';
+    }, 300);
+
+    if (window.resetVideoModalUI) window.resetVideoModalUI();
+}
+
+if (videoModal) {
+    videoModal.addEventListener('click', function(e) {
+        if (e.target === videoModal) closeVideoModal();
+    });
+}
+
+document.addEventListener('keydown', function(event) {
+    // کد جلوگیری از کلیدهای Inspect در بالا نوشته شده است، اینجا فقط Escape هندل می‌شود.
+    if (event.key !== "Escape") return;
+    if (videoModal && !videoModal.classList.contains('hidden')) closeVideoModal();
+    if (confirmModal && !confirmModal.classList.contains('hidden')) closeConfirmModal();
+});
+</script>
+
+{% endblock %}
+
+{% block extra_js %}
+    {% if artwork.model_360_url %}
+        <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+    {% endif %}
+{% endblock %}

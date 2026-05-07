@@ -1,0 +1,70 @@
+# ======================
+# Python
+# ======================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# ======================
+# Django
+# ======================
+*.log
+db.sqlite3
+media/
+staticfiles/
+
+# ======================
+# MySQL (دیتابیس)
+# ======================
+*.sql
+*.sqlite3
+
+# ======================
+# Static images (Artworks)
+# مسیر خاص تصاویر محصولات
+# ======================
+static/images/artwork/
+
+# اگر مسیر کامل پروژه هم خواستی امن‌تر باشه:
+# art_act_stor/static/images/artwork/
+
+# ======================
+# Environment variables
+# ======================
+.env
+.env.*
+
+# ======================
+# Virtual Environments
+# ======================
+venv/
+env/
+.venv/
+
+# ======================
+# IDE / Editor
+# ======================
+.vscode/
+.idea/
+
+# ======================
+# OS
+# ======================
+.DS_Store
+Thumbs.db
+
+# Collected static images (very large)
+static_collected/
+
+.venv/
+__pycache__/
+*.pyc
+.env
+db.sqlite3
+staticfiles/
+node_modules/
+media/
+images/
+.idea/
+.vscode/

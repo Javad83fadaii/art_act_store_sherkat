@@ -1,0 +1,1000 @@
+{% load static %}
+<!DOCTYPE html>
+<html class="light overflow-x-hidden" dir="rtl" lang="fa">
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport" />
+
+    <title>{% block title %}فروشگاه آثار هنری{% endblock %}</title>
+    <link rel="icon" type="image/x-icon" href="{% static 'images/favicon2.ico' %}">
+
+    <!-- Preload critical fonts -->
+    <link rel="preload" href="{% static 'fonts/Morabba-Medium.ttf' %}" as="font" type="font/ttf" crossorigin>
+    <link rel="preload" href="{% static 'fonts/Morabba-Bold.ttf' %}" as="font" type="font/ttf" crossorigin>
+    <link rel="preload" href="{% static 'fonts/material-symbols-outlined.woff2' %}" as="font" type="font/woff2" crossorigin>
+
+    <!-- Tailwind CSS -->
+    <script src="{% static 'js/tailwind.min.js' %}"></script>
+    <link rel="stylesheet" href="{% static 'css/icons.css' %}">
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#AB8C58",
+                        "primary-dark": "#8C703F",
+                        "text-main": "#1C1C1C",
+                        "text-secondary": "#666666",
+                    },
+                    fontFamily: { "display": ["Morabba", "sans-serif"], "body": ["Morabba", "sans-serif"] },
+                },
+            },
+        }
+    </script>
+
+    <style>
+        /* استایل اسکرول‌بار سفارشی برای منو */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #e5e7eb;
+            border-radius: 20px;
+        }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #374151;
+        }
+        .site-modal-overlay {
+            z-index: 100002 !important;
+        }
+    </style>
+
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="bg-[#FDFBF8] dark:bg-[#0F0F0F] text-text-main dark:text-white font-body overflow-x-hidden w-full relative">
+
+    <div id="gallery-modal" class="fixed inset-0 z-[9999] bg-black/70 hidden flex flex-col opacity-0 transition-opacity duration-300">
+        <div class="flex-1 flex items-center justify-center p-4 sm:p-8 w-full h-full">
+            <div id="gallery-modal-content" class="bg-white/15 dark:bg-black/30 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-2xl w-full max-w-6xl max-h-[88vh] shadow-2xl transform scale-95 transition-transform duration-300 flex flex-col">
+                <div class="flex items-center justify-between px-4 sm:px-5 py-3">
+                    <div class="flex items-center gap-3">
+                        <span class="text-white/90 text-sm font-bold tracking-wide dir-ltr"><span id="gallery-current-index">۱</span> / <span id="gallery-total-count">۱</span></span>
+                        <!-- <a id="gallery-download-btn" href="#" download class="h-10 px-3 rounded-xl bg-white/10 hover:bg-white/15 text-white transition-colors flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-[20px]">download</span>
+                            <span dir="rtl" class="text-xs font-bold">دانلود</span>
+                        </a> -->
+                        <button type="button" onclick="galleryZoomBy(1.25)" class="h-10 px-3 rounded-xl bg-white/10 hover:bg-white/15 text-white transition-colors flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-[20px]">zoom_in</span>
+                            <span dir="rtl" class="text-xs font-bold">زوم</span>
+                        </button>
+                        <button type="button" onclick="galleryResetZoom()" class="h-10 px-3 rounded-xl bg-white/10 hover:bg-white/15 text-white transition-colors flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-[20px]">restart_alt</span>
+                            <span dir="rtl" class="text-xs font-bold">ریست</span>
+                        </button>
+                    </div>
+                    <button type="button" onclick="closeGalleryModal()" class="text-neutral-200 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+
+                <div class="relative flex-1 flex items-center justify-center px-3 sm:px-6 pb-4 overflow-hidden">
+                    <button type="button" onclick="changeGalleryImage(-1)" class="absolute right-2 sm:right-3 size-12 rounded-full flex items-center justify-center bg-white/10 hover:bg-white/20 text-white backdrop-blur-md z-50">
+                        <span class="material-symbols-outlined">chevron_right</span>
+                    </button>
+
+                    <img id="gallery-main-img" src="" class="max-h-[78vh] max-w-full object-contain shadow-2xl rounded-xl bg-black/40 select-none touch-none cursor-zoom-in" alt="Gallery View">
+
+                    <button type="button" onclick="changeGalleryImage(1)" class="absolute left-2 sm:left-3 size-12 rounded-full flex items-center justify-center bg-white/10 hover:bg-white/20 text-white backdrop-blur-md z-50">
+                        <span class="material-symbols-outlined">chevron_left</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="confirm-modal" class="site-modal-overlay fixed inset-0 bg-black/50 hidden flex items-center justify-center opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-sm mx-4 shadow-2xl transform scale-95 transition-transform duration-300" id="confirm-modal-content">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span class="material-symbols-outlined text-3xl">shopping_bag</span>
+                </div>
+                <h3 class="text-xl font-bold text-neutral-900 mb-2">تأیید خرید</h3>
+                <p class="text-neutral-600 mb-6 text-sm">آیا از خرید این اثر مطمئن هستید؟</p>
+                <div class="flex gap-3">
+                    <button onclick="closeConfirmModal()" class="flex-1 py-3 text-neutral-600 font-bold hover:bg-neutral-50 rounded-xl transition-colors">
+                        انصراف
+                    </button>
+                    <button onclick="submitTelegramRequest()" id="btn-confirm-send" class="flex-1 py-3 bg-primary hover:bg-primary-dark text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2">
+                        <span>تأیید خرید</span>
+                        <div id="loading-spinner" class="hidden w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="video-modal" class="site-modal-overlay fixed inset-0 bg-black/70 hidden flex items-center justify-center opacity-0 transition-opacity duration-300">
+        <div class="bg-white/15 dark:bg-black/30 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-2xl p-4 sm:p-5 w-full max-w-2xl mx-4 shadow-2xl transform scale-95 transition-transform duration-300" id="video-modal-content">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2 text-white font-bold">
+                    <span class="material-symbols-outlined text-[20px]">smart_display</span>
+                    <span>ویدئو</span>
+                </div>
+                <button type="button" onclick="closeVideoModal()" class="text-neutral-200 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="space-y-3">
+                <video id="product-video-player" class="w-full max-h-[70vh] rounded-xl bg-black" playsinline></video>
+                <input id="product-video-seek" dir="ltr" type="range" min="0" max="0" step="0.05" value="0" class="w-full accent-white/90 cursor-pointer">
+                <div dir="ltr" class="flex items-center justify-between gap-3 flex-wrap">
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="videoTogglePlayPause()" class="h-10 px-3 rounded-xl bg-white/10 hover:bg-white/15 text-white transition-colors flex items-center gap-1.5">
+                            <span id="product-video-playpause-icon" class="material-symbols-outlined text-[20px]">play_arrow</span>
+                            <span dir="rtl" class="text-xs font-bold">پخش</span>
+                        </button>
+                        <button type="button" onclick="videoSeekBy(-10)" class="h-10 px-3 rounded-xl bg-white/10 hover:bg-white/15 text-white transition-colors flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-[20px]">replay_10</span>
+                            <span dir="rtl" class="text-xs font-bold">-۱۰</span>
+                        </button>
+                        <button type="button" onclick="videoSeekBy(10)" class="h-10 px-3 rounded-xl bg-white/10 hover:bg-white/15 text-white transition-colors flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-[20px]">forward_10</span>
+                            <span dir="rtl" class="text-xs font-bold">+۱۰</span>
+                        </button>
+                        <div class="text-xs font-bold text-white/90 dir-ltr">
+                            <span id="product-video-current">۰۰:۰۰</span>
+                            <span class="text-white/60">/</span>
+                            <span id="product-video-duration">۰۰:۰۰</span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <select id="product-video-rate" onchange="videoSetPlaybackRate(this.value)" class="h-10 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold px-3 outline-none">
+                            <option value="0.5">۰.۵×</option>
+                            <option value="0.75">۰.۷۵×</option>
+                            <option value="1" selected>۱×</option>
+                            <option value="1.25">۱.۲۵×</option>
+                            <option value="1.5">۱.۵×</option>
+                            <option value="2">۲×</option>
+                        </select>
+                        <!-- <a id="product-video-download" href="#" download class="h-10 px-3 rounded-xl bg-white/10 hover:bg-white/15 text-white transition-colors flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-[20px]">download</span>
+                            <span dir="rtl" class="text-xs font-bold">دانلود</span>
+                        </a> -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="global-login-required-modal" class="site-modal-overlay fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center opacity-0 transition-opacity duration-300" onclick="if(event.target === this) closeLoginRequiredModal()">
+        <div id="global-login-required-modal-content" class="bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl w-full max-w-sm mx-4 p-8 border border-gray-200 dark:border-zinc-700 transform scale-95 transition-transform duration-300 relative text-center">
+            <button type="button" onclick="closeLoginRequiredModal()" class="absolute top-4 left-4 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-zinc-800 text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors z-10">
+                <span class="material-symbols-outlined text-[20px]">close</span>
+            </button>
+            <div class="w-20 h-20 mx-auto bg-blue-50 dark:bg-blue-900/20 text-blue-500 rounded-full flex items-center justify-center mb-6 border border-blue-100 dark:border-blue-900/30">
+                <span class="material-symbols-outlined text-4xl">login</span>
+            </div>
+            <h3 class="font-bold text-xl text-text-main dark:text-white mb-3">نیاز به ورود به حساب</h3>
+            <p id="global-login-required-modal-message" class="text-gray-500 dark:text-gray-400 text-sm leading-relaxed mb-8">
+                برای ادامه این بخش، لطفاً ابتدا وارد حساب کاربری خود شوید.
+            </p>
+            <div class="space-y-3">
+                <a href="{% url 'login' %}" id="global-login-required-modal-link" class="w-full flex items-center justify-center gap-2 bg-[#AB8C58] hover:bg-[#967949] text-white py-3.5 px-6 rounded-xl font-bold text-sm transition-all shadow-md shadow-[#AB8C58]/30">
+                    <span class="material-symbols-outlined text-lg">arrow_forward</span>
+                    ورود به حساب کاربری
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Wrapper اصلی محتوا -->
+    <div class="relative flex flex-col min-h-screen w-full overflow-hidden">
+
+        <!-- هدر سایت -->
+        {% block header %}
+            {% if request.resolver_match.url_name != 'login' and request.resolver_match.url_name != 'signup' and request.resolver_match.url_name != 'profile' %}
+                {% include 'partials/header.html' %}
+            {% endif %}
+        {% endblock %}
+
+
+        <!-- محتوای اصلی -->
+        {% block main_container %}
+        <main class="flex-grow w-full max-w-[1440px] mx-auto px-4 md:px-6 space-y-16 pt-24 pb-8">
+            {% block content %}{% endblock %}
+        </main>
+        {% endblock %}
+
+        <!-- فوتر سایت (اضافه شدن شرط برای مخفی شدن در صفحات لاگین و ثبت‌نام) -->
+        {% block footer %}
+            {% if request.resolver_match.url_name != 'login' and request.resolver_match.url_name != 'signup' and request.resolver_match.url_name != 'profile' %}
+                {% include 'partials/footer.html' %}
+            {% endif %}
+        {% endblock %}
+
+    </div>
+
+    <!-- ============================================ -->
+    <!--  2. پنل کشویی جستجو (سمت چپ)                 -->
+    <!-- ============================================ -->
+    <div id="search-overlay" onclick="toggleSearchSidebar()"
+         class="fixed inset-0 z-[100000] bg-black/60 backdrop-blur-sm hidden transition-opacity duration-300 opacity-0">
+    </div>
+
+    <aside id="search-sidebar"
+           class="fixed top-0 left-0 z-[100001] h-full w-72 max-w-[80vw] bg-white dark:bg-gray-900 shadow-2xl transform-gpu -translate-x-full transition-transform duration-300 ease-in-out flex flex-col border-r border-gray-100 dark:border-gray-800">
+
+        <!-- هدر پنل جستجو -->
+        <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50">
+            <span class="text-sm font-bold text-primary flex items-center gap-2">
+                <span class="material-symbols-outlined text-[20px]">search</span>
+                جستجو پیشرفته
+            </span>
+            <button onclick="toggleSearchSidebar()" class="p-1.5 text-text-secondary hover:text-red-500 transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
+                <span class="material-symbols-outlined text-[20px]">close</span>
+            </button>
+        </div>
+
+        <!-- فرم جستجو -->
+        <div class="p-4 flex-1 overflow-y-auto">
+            <form action="{% url 'store:artwork_list' %}" method="GET" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-text-secondary mb-1.5">عبارت جستجو</label>
+                    <div class="relative">
+                        <input type="text" name="q" id="mobile-search-input" value="{{ request.GET.q|default:'' }}"
+                               placeholder="نام اثر، هنرمند..."
+                               class="w-full h-10 pr-3 pl-9 rounded-lg bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-gray-700 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-xs">
+                        <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-[18px]">search</span>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-text-secondary mb-1.5">نوع اثر</label>
+                    <div class="relative">
+                        <select name="type"
+                                class="w-full h-10 pr-3 pl-8 rounded-lg bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-gray-700 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-xs appearance-none cursor-pointer">
+                            <option value="">همه آثار</option>
+                            {% if artwork_types %}
+                                {% for type in artwork_types %}
+                                    <option value="{{ type.id }}" {% if request.GET.type|stringformat:"s" == type.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ type.name }}
+                                    </option>
+                                {% endfor %}
+                            {% endif %}
+                        </select>
+                        <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-[18px] pointer-events-none">expand_more</span>
+                    </div>
+                </div>
+                <div class="pt-2">
+                    <button type="submit" class="w-full py-2.5 bg-primary text-white rounded-lg text-sm font-bold hover:bg-primary-dark transition-all shadow-md shadow-primary/20 flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-[18px]">filter_list</span>
+                         جستجو
+                    </button>
+                </div>
+            </form>
+        </div>
+    </aside>
+
+    <!-- ============================================ -->
+    <!--  3. پنل منوی اصلی (سمت راست - کد جدید شما)  -->
+    <!-- ============================================ -->
+
+    <!-- 1. لایه تاریک (Overlay) -->
+    <div id="mobile-menu-overlay"
+         class="fixed inset-0 z-[100000] bg-black/60 backdrop-blur-sm hidden transition-opacity duration-300 opacity-0">
+    </div>
+
+    <!-- 2. سایدبار (Sidebar) -->
+    <aside id="mobile-menu-sidebar"
+           class="fixed top-0 right-0 z-[100001] h-full w-72 max-w-[85vw] bg-white dark:bg-gray-900 shadow-2xl transform-gpu translate-x-full transition-transform duration-300 ease-in-out flex flex-col border-l border-gray-100 dark:border-gray-800">
+
+        <!-- هدر سایدبار -->
+        <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 shrink-0">
+            <span class="text-base font-bold text-primary font-display flex items-center gap-2">
+                <span class="material-symbols-outlined">menu_open</span>
+                دسترسی سریع
+            </span>
+            <button id="close-menu-btn" class="p-2 text-text-secondary hover:text-red-500 transition-colors rounded-full hover:bg-red-50 dark:hover:bg-red-900/10 cursor-pointer">
+                <span class="material-symbols-outlined text-[24px]">close</span>
+            </button>
+        </div>
+
+        <!-- لینک‌ها -->
+        <nav class="flex-1 flex flex-col gap-2 overflow-y-auto overflow-x-hidden p-3 custom-scrollbar">
+
+            <!-- 1. خانه -->
+            <a href="{% url 'home' %}" class="flex items-start gap-3 px-3 py-3 rounded-xl text-text-secondary hover:text-primary hover:bg-primary/5 transition-all group w-full">
+                <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform shrink-0">home</span>
+                <span class="font-medium text-base flex-1">خانه</span>
+            </a>
+
+            <!-- 2. فروشگاه -->
+            <a href="{% url 'store:artwork_list' %}" class="flex items-start gap-3 px-3 py-3 rounded-xl text-text-secondary hover:text-primary hover:bg-primary/5 transition-all group w-full">
+                <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform shrink-0">storefront</span>
+                <span class="font-medium text-base flex-1">فروشگاه آثار هنری</span>
+            </a>
+
+            <!-- 3. مزایده -->
+            <a href="{% url 'auction:auction' %}" class="flex items-start gap-3 px-3 py-3 rounded-xl text-text-secondary hover:text-primary hover:bg-primary/5 transition-all group w-full">
+                <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform shrink-0">gavel</span>
+                <span class="font-medium text-base flex-1">مزایده‌های آنلاین</span>
+            </a>
+
+            <!-- 4. شناسنامه -->
+            <a href="{% url 'about' %}" class="flex items-start gap-3 px-3 py-3 rounded-xl text-text-secondary hover:text-primary hover:bg-primary/5 transition-all group w-full">
+                <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform shrink-0">card_membership</span>
+                <span class="font-medium text-base flex-1">شناسنامه</span>
+            </a>
+
+            <!-- 5. درباره ما -->
+            <a href="{% url 'about' %}" class="flex items-start gap-3 px-3 py-3 rounded-xl text-text-secondary hover:text-primary hover:bg-primary/5 transition-all group w-full">
+                <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform shrink-0">info</span>
+                <span class="font-medium text-base flex-1">درباره ما</span>
+            </a>
+
+            <!-- خط جداکننده -->
+            <div class="border-t border-gray-100 dark:border-gray-800 my-2 mx-2"></div>
+
+            <!-- بخش کاربری (پایین لینک‌ها) -->
+            {% if request.user.is_authenticated %}
+                <div class="bg-primary/5 dark:bg-primary/10 rounded-xl p-4 border border-primary/10">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="size-10 rounded-full bg-primary text-white flex items-center justify-center shadow-md">
+                            <span class="material-symbols-outlined text-[24px]">person</span>
+                        </div>
+                        <div class="flex flex-col overflow-hidden">
+                            <span class="text-xs text-text-secondary">خوش آمدید،</span>
+                            <span class="font-bold text-text-main dark:text-white truncate">
+                                {{ request.user.full_name|default:request.user.username }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <a href="{% url 'profile' %}" class="flex items-center justify-center gap-1.5 py-2 px-3 bg-white dark:bg-gray-800 rounded-lg text-xs font-bold text-text-secondary hover:text-primary shadow-sm transition-colors border border-gray-100 dark:border-gray-700">
+                            <span class="material-symbols-outlined text-[18px]">account_circle</span>
+                            پروفایل
+                        </a>
+                        <form action="{% url 'logout' %}" method="post" class="contents">
+                            {% csrf_token %}
+                            <button type="submit" class="flex items-center justify-center gap-1.5 py-2 px-3 bg-white dark:bg-gray-800 rounded-lg text-xs font-bold text-text-secondary hover:text-red-500 shadow-sm transition-colors border border-gray-100 dark:border-gray-700 w-full cursor-pointer">
+                                <span class="material-symbols-outlined text-[18px]">logout</span>
+                                خروج
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            {% else %}
+                <div class="p-2">
+                    <p class="text-xs text-text-secondary mb-2 px-1">حساب کاربری</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <a href="{% url 'login' %}" class="flex items-center justify-center gap-2 py-2.5 px-3 bg-primary text-white rounded-lg text-sm font-bold shadow-md shadow-primary/20 hover:bg-primary-dark transition-colors">
+                            <span class="material-symbols-outlined text-[20px]">login</span>
+                            ورود
+                        </a>
+                        <a href="{% url 'signup' %}" class="flex items-center justify-center gap-2 py-2.5 px-3 bg-white dark:bg-gray-800 text-text-secondary border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-bold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                            <span class="material-symbols-outlined text-[20px]">person_add</span>
+                            ثبت نام
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+
+        </nav>
+
+        <!-- Social Icons (تلگرام و واتساپ) -->
+        <div class="p-4 bg-gray-50 dark:bg-black/20 border-t border-gray-100 dark:border-gray-800 shrink-0">
+             <div class="flex justify-center gap-4">
+                 <!-- تلگرام -->
+                 <a href="#" class="flex items-center justify-center w-10 h-10 rounded-full bg-white dark:bg-gray-800 text-text-secondary hover:text-[#229ED9] hover:bg-[#229ED9]/10 shadow-sm border border-gray-100 dark:border-gray-700 transition-all">
+                    <svg class="size-[20px]" fill="currentColor" viewBox="0 0 24 24"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"></path></svg>
+                 </a>
+
+                 <!-- واتساپ -->
+                 <a href="#" class="flex items-center justify-center w-10 h-10 rounded-full bg-white dark:bg-gray-800 text-text-secondary hover:text-[#25D366] hover:bg-[#25D366]/10 shadow-sm border border-gray-100 dark:border-gray-700 transition-all">
+                    <svg class="size-[20px]" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
+                 </a>
+             </div>
+        </div>
+    </aside>
+
+
+    <!-- JS Files -->
+    <script src="{% static 'js/app.js' %}"></script>
+
+    <!-- اسکریپت‌های کنترل پنل‌ها -->
+    <script>
+        // ---------------------------------------------
+        // 1. کنترل پنل جستجو (سمت چپ)
+        // ---------------------------------------------
+        function toggleSearchSidebar() {
+            const sidebar = document.getElementById('search-sidebar');
+            const overlay = document.getElementById('search-overlay');
+            const body = document.body;
+
+            if (!sidebar || !overlay) return;
+
+            const isClosed = sidebar.classList.contains('-translate-x-full');
+
+            if (isClosed) {
+                sidebar.classList.remove('-translate-x-full');
+                overlay.classList.remove('hidden');
+                setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+                body.style.overflow = 'hidden';
+                setTimeout(() => document.getElementById('mobile-search-input')?.focus(), 300);
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.add('opacity-0');
+                setTimeout(() => {
+                    overlay.classList.add('hidden');
+                    body.style.overflow = '';
+                }, 300);
+            }
+        }
+
+        // ---------------------------------------------
+        // 2. کنترل منوی موبایل (سمت راست)
+        // ---------------------------------------------
+        function toggleMobileMenu() {
+            const sidebar = document.getElementById('mobile-menu-sidebar');
+            const overlay = document.getElementById('mobile-menu-overlay');
+            const body = document.body;
+
+            if (!sidebar || !overlay) return;
+
+            const isClosed = sidebar.classList.contains('translate-x-full');
+
+            if (isClosed) {
+                sidebar.classList.remove('translate-x-full');
+                overlay.classList.remove('hidden');
+                setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+                body.style.overflow = 'hidden';
+            } else {
+                sidebar.classList.add('translate-x-full');
+                overlay.classList.add('opacity-0');
+                setTimeout(() => {
+                    overlay.classList.add('hidden');
+                    body.style.overflow = '';
+                }, 300);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const closeBtn = document.getElementById('close-menu-btn');
+            const overlay = document.getElementById('mobile-menu-overlay');
+
+            if (closeBtn) closeBtn.addEventListener('click', toggleMobileMenu);
+            if (overlay) overlay.addEventListener('click', toggleMobileMenu);
+        });
+
+        (function() {
+            window.syncGalleryDownload = function(imageUrl) {
+                const link = document.getElementById('gallery-download-btn');
+                if (!link) return;
+                if (!imageUrl) {
+                    link.href = '#';
+                    return;
+                }
+                link.href = imageUrl;
+                try {
+                    const filename = String(imageUrl).split('?')[0].split('#')[0].split('/').pop() || '';
+                    if (filename) link.setAttribute('download', filename);
+                } catch (_) {
+                }
+            };
+
+            const galleryState = {
+                scale: 1,
+                x: 0,
+                y: 0,
+                drag: false,
+                startX: 0,
+                startY: 0,
+                pointerId: null,
+                baseW: 0,
+                baseH: 0,
+            };
+
+            const getGalleryModal = () => document.getElementById('gallery-modal');
+            const getGalleryImg = () => document.getElementById('gallery-main-img');
+
+            const updateBaseSize = () => {
+                const img = getGalleryImg();
+                if (!img) return;
+                const w = img.clientWidth;
+                const h = img.clientHeight;
+                if (w > 0 && h > 0) {
+                    galleryState.baseW = w;
+                    galleryState.baseH = h;
+                }
+            };
+
+            const clampPan = () => {
+                if (galleryState.scale <= 1) {
+                    galleryState.x = 0;
+                    galleryState.y = 0;
+                    return;
+                }
+                const w = galleryState.baseW || 0;
+                const h = galleryState.baseH || 0;
+                const maxX = w > 0 ? (w * (galleryState.scale - 1)) / 2 : 0;
+                const maxY = h > 0 ? (h * (galleryState.scale - 1)) / 2 : 0;
+                galleryState.x = Math.max(-maxX, Math.min(maxX, galleryState.x));
+                galleryState.y = Math.max(-maxY, Math.min(maxY, galleryState.y));
+            };
+
+            const applyGalleryTransform = () => {
+                const img = getGalleryImg();
+                if (!img) return;
+                img.style.transformOrigin = 'center center';
+                img.style.transform = `translate3d(${galleryState.x}px, ${galleryState.y}px, 0) scale(${galleryState.scale})`;
+                img.style.cursor = galleryState.scale > 1 ? (galleryState.drag ? 'grabbing' : 'grab') : 'zoom-in';
+            };
+
+            window.resetGalleryZoom = function() {
+                galleryState.scale = 1;
+                galleryState.x = 0;
+                galleryState.y = 0;
+                galleryState.drag = false;
+                galleryState.pointerId = null;
+                updateBaseSize();
+                applyGalleryTransform();
+            };
+
+            window.galleryResetZoom = function() {
+                window.resetGalleryZoom();
+            };
+
+            window.galleryZoomBy = function(factor) {
+                const f = Number(factor);
+                if (!Number.isFinite(f) || f <= 0) return;
+                updateBaseSize();
+                const next = Math.max(1, Math.min(4, galleryState.scale * f));
+                const ratio = next / galleryState.scale;
+                galleryState.scale = next;
+                galleryState.x *= ratio;
+                galleryState.y *= ratio;
+                clampPan();
+                applyGalleryTransform();
+            };
+
+            const bindGalleryZoom = () => {
+                const img = getGalleryImg();
+                if (!img || img.dataset.zoomBound === '1') return;
+                img.dataset.zoomBound = '1';
+
+                img.addEventListener('load', () => {
+                    window.resetGalleryZoom();
+                });
+
+                img.addEventListener('dblclick', (e) => {
+                    e.preventDefault();
+                    if (galleryState.scale <= 1) {
+                        window.galleryZoomBy(2);
+                    } else {
+                        window.resetGalleryZoom();
+                    }
+                });
+
+                img.addEventListener('wheel', (e) => {
+                    const modal = getGalleryModal();
+                    if (!modal || modal.classList.contains('hidden')) return;
+                    e.preventDefault();
+                    const direction = e.deltaY > 0 ? 1 / 1.15 : 1.15;
+                    window.galleryZoomBy(direction);
+                }, { passive: false });
+
+                img.addEventListener('pointerdown', (e) => {
+                    if (galleryState.scale <= 1) return;
+                    galleryState.drag = true;
+                    galleryState.pointerId = e.pointerId;
+                    galleryState.startX = e.clientX - galleryState.x;
+                    galleryState.startY = e.clientY - galleryState.y;
+                    try {
+                        img.setPointerCapture(e.pointerId);
+                    } catch (_) {
+                    }
+                    applyGalleryTransform();
+                });
+
+                img.addEventListener('pointermove', (e) => {
+                    if (!galleryState.drag) return;
+                    if (galleryState.pointerId !== null && e.pointerId !== galleryState.pointerId) return;
+                    galleryState.x = e.clientX - galleryState.startX;
+                    galleryState.y = e.clientY - galleryState.startY;
+                    clampPan();
+                    applyGalleryTransform();
+                });
+
+                const endDrag = () => {
+                    galleryState.drag = false;
+                    galleryState.pointerId = null;
+                    applyGalleryTransform();
+                };
+
+                img.addEventListener('pointerup', endDrag);
+                img.addEventListener('pointercancel', endDrag);
+                img.addEventListener('pointerleave', endDrag);
+            };
+
+            bindGalleryZoom();
+            document.addEventListener('DOMContentLoaded', bindGalleryZoom);
+
+            const getVideo = () => document.getElementById('product-video-player');
+            const getSeek = () => document.getElementById('product-video-seek');
+            const getCurrent = () => document.getElementById('product-video-current');
+            const getDuration = () => document.getElementById('product-video-duration');
+            const getPlayIcon = () => document.getElementById('product-video-playpause-icon');
+            const getRate = () => document.getElementById('product-video-rate');
+            const getDownload = () => document.getElementById('product-video-download');
+
+                const formatTime = (seconds) => {
+                    const toFaDigits = (value) => String(value).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[d]);
+                    if (!Number.isFinite(seconds) || seconds < 0) return '۰۰:۰۰';
+                const total = Math.floor(seconds);
+                const m = Math.floor(total / 60);
+                const s = total % 60;
+                    return toFaDigits(`${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`);
+            };
+
+            const syncVideoUI = () => {
+                const video = getVideo();
+                const seek = getSeek();
+                const cur = getCurrent();
+                const dur = getDuration();
+                const icon = getPlayIcon();
+
+                if (!video) return;
+                if (seek) {
+                    const duration = Number.isFinite(video.duration) ? video.duration : null;
+                    const seekableEnd = (video.seekable && video.seekable.length) ? video.seekable.end(video.seekable.length - 1) : null;
+                    const maxValue = Number.isFinite(duration) ? duration : (Number.isFinite(seekableEnd) ? seekableEnd : 0);
+                    seek.max = String(maxValue);
+                    seek.value = Number.isFinite(video.currentTime) ? String(video.currentTime) : '0';
+                }
+                if (cur) cur.textContent = formatTime(video.currentTime);
+                if (dur) dur.textContent = formatTime(video.duration);
+                if (icon) icon.textContent = video.paused ? 'play_arrow' : 'pause';
+            };
+
+            const seekTo = (targetSeconds) => {
+                const video = getVideo();
+                if (!video) return;
+                const target = Number(targetSeconds);
+                if (!Number.isFinite(target)) return;
+
+                const applySeek = (value) => {
+                    const t = Number(value);
+                    if (!Number.isFinite(t)) return;
+                    try {
+                        if (typeof video.fastSeek === 'function') {
+                            video.fastSeek(t);
+                        } else {
+                            video.currentTime = t;
+                        }
+                    } catch (_) {
+                    }
+                    syncVideoUI();
+                };
+
+                if (video.readyState >= 1) {
+                    applySeek(target);
+                    return;
+                }
+
+                video.dataset.pendingSeek = String(target);
+                const once = () => {
+                    const pending = Number(video.dataset.pendingSeek);
+                    if (Number.isFinite(pending)) applySeek(pending);
+                    delete video.dataset.pendingSeek;
+                };
+                video.addEventListener('loadedmetadata', once, { once: true });
+            };
+
+            window.videoTogglePlayPause = function() {
+                const video = getVideo();
+                if (!video) return;
+                if (video.paused) {
+                    video.play().catch(() => {});
+                } else {
+                    video.pause();
+                }
+                syncVideoUI();
+            };
+
+            window.videoSeekBy = function(deltaSeconds) {
+                const video = getVideo();
+                if (!video) return;
+                const delta = Number(deltaSeconds);
+                if (!Number.isFinite(delta)) return;
+                const duration = Number.isFinite(video.duration) ? video.duration : null;
+                const unclamped = (Number.isFinite(video.currentTime) ? video.currentTime : 0) + delta;
+                const next = Number.isFinite(duration) ? Math.max(0, Math.min(duration, unclamped)) : Math.max(0, unclamped);
+                seekTo(next);
+            };
+
+            window.videoSetPlaybackRate = function(rate) {
+                const video = getVideo();
+                const value = Number(rate);
+                if (!video || !Number.isFinite(value) || value <= 0) return;
+                video.playbackRate = value;
+                const rateEl = getRate();
+                if (rateEl) rateEl.value = String(value);
+            };
+
+            window.prepareVideoModal = function(videoUrl) {
+                const video = getVideo();
+                if (!video || !videoUrl) return;
+
+                const download = getDownload();
+                if (download) download.href = videoUrl;
+
+                const rateEl = getRate();
+                const rate = rateEl ? Number(rateEl.value) : 1;
+
+                video.pause();
+                video.currentTime = 0;
+                video.muted = false;
+                video.playsInline = true;
+                video.playbackRate = Number.isFinite(rate) && rate > 0 ? rate : 1;
+                video.src = videoUrl;
+                video.load();
+                video.play().catch(() => {});
+                syncVideoUI();
+            };
+
+            window.resetVideoModalUI = function() {
+                const seek = getSeek();
+                const cur = getCurrent();
+                const dur = getDuration();
+                const icon = getPlayIcon();
+                const download = getDownload();
+
+                if (seek) {
+                    seek.value = '0';
+                    seek.max = '0';
+                }
+                if (cur) cur.textContent = '۰۰:۰۰';
+                if (dur) dur.textContent = '۰۰:۰۰';
+                if (icon) icon.textContent = 'play_arrow';
+                if (download) download.href = '#';
+            };
+
+            const bindVideoModalControls = () => {
+                const video = getVideo();
+                const seek = getSeek();
+                const rateEl = getRate();
+
+                if (seek) {
+                    if (seek.dataset.bound !== '1') {
+                        seek.dataset.bound = '1';
+                        seek.addEventListener('input', () => {
+                            const v = getVideo();
+                            if (!v) return;
+                            const next = Number(seek.value);
+                            if (!Number.isFinite(next)) return;
+                            seekTo(next);
+                        });
+                    }
+                }
+
+                if (rateEl) {
+                    if (rateEl.dataset.bound !== '1') {
+                        rateEl.dataset.bound = '1';
+                        rateEl.addEventListener('change', () => window.videoSetPlaybackRate(rateEl.value));
+                    }
+                }
+
+                if (video) {
+                    if (video.dataset.bound !== '1') {
+                        video.dataset.bound = '1';
+                        video.addEventListener('loadedmetadata', syncVideoUI);
+                        video.addEventListener('durationchange', syncVideoUI);
+                        video.addEventListener('timeupdate', syncVideoUI);
+                        video.addEventListener('play', syncVideoUI);
+                        video.addEventListener('pause', syncVideoUI);
+                        video.addEventListener('ended', syncVideoUI);
+                    }
+                }
+            };
+
+            bindVideoModalControls();
+            document.addEventListener('DOMContentLoaded', bindVideoModalControls);
+        })();
+    </script>
+
+    <script>
+        (function() {
+            const loginRequiredModal = document.getElementById('global-login-required-modal');
+            const loginRequiredModalContent = document.getElementById('global-login-required-modal-content');
+            const loginRequiredModalLink = document.getElementById('global-login-required-modal-link');
+            const loginRequiredModalMessage = document.getElementById('global-login-required-modal-message');
+            const loginPageUrl = "{% url 'login' %}";
+
+            function buildLoginHref(targetUrl) {
+                const nextUrl = targetUrl || (window.location.pathname + window.location.search + window.location.hash);
+                return `${loginPageUrl}?next=${encodeURIComponent(nextUrl)}`;
+            }
+
+            window.openLoginRequiredModal = function(targetUrl, message) {
+                if (!loginRequiredModal || !loginRequiredModalContent || !loginRequiredModalLink) {
+                    window.location.href = buildLoginHref(targetUrl);
+                    return;
+                }
+
+                loginRequiredModalLink.href = buildLoginHref(targetUrl);
+                if (loginRequiredModalMessage && message) {
+                    loginRequiredModalMessage.textContent = message;
+                }
+
+                loginRequiredModal.classList.remove('hidden');
+                requestAnimationFrame(() => {
+                    loginRequiredModal.classList.remove('opacity-0');
+                    loginRequiredModal.classList.add('opacity-100');
+                    loginRequiredModalContent.classList.remove('scale-95');
+                    loginRequiredModalContent.classList.add('scale-100');
+                });
+                document.body.style.overflow = 'hidden';
+            };
+
+            window.closeLoginRequiredModal = function() {
+                if (!loginRequiredModal || !loginRequiredModalContent) return;
+
+                loginRequiredModal.classList.remove('opacity-100');
+                loginRequiredModal.classList.add('opacity-0');
+                loginRequiredModalContent.classList.remove('scale-100');
+                loginRequiredModalContent.classList.add('scale-95');
+                document.body.style.overflow = '';
+
+                setTimeout(() => {
+                    loginRequiredModal.classList.add('hidden');
+                    if (loginRequiredModalMessage) {
+                        loginRequiredModalMessage.textContent = 'برای ادامه این بخش، لطفاً ابتدا وارد حساب کاربری خود شوید.';
+                    }
+                }, 300);
+            };
+
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape' && loginRequiredModal && !loginRequiredModal.classList.contains('hidden')) {
+                    window.closeLoginRequiredModal();
+                }
+            });
+
+            const pageHistoryKey = `page-dirty:${window.location.pathname}${window.location.search}`;
+            const backReloadKey = `back-forward-refresh:${window.location.pathname}${window.location.search}`;
+
+            window.markPageDirty = function() {
+                sessionStorage.setItem(pageHistoryKey, '1');
+            };
+
+            window.clearPageDirty = function() {
+                sessionStorage.removeItem(pageHistoryKey);
+            };
+
+            document.addEventListener('submit', function() {
+                window.markPageDirty();
+            }, true);
+
+            document.addEventListener('change', function(event) {
+                const field = event.target;
+                if (field && field.matches('input:not([type="hidden"]), select, textarea')) {
+                    window.markPageDirty();
+                }
+            }, true);
+
+            document.addEventListener('click', function(event) {
+                const trigger = event.target.closest('[data-mark-page-dirty], button, [role="button"], summary, a[href^="#"]');
+                if (trigger) {
+                    window.markPageDirty();
+                }
+            }, true);
+
+            window.addEventListener('pageshow', function(event) {
+                const navigationEntry = performance.getEntriesByType('navigation')[0];
+                const isBackForward = event.persisted || (navigationEntry && navigationEntry.type === 'back_forward');
+
+                if (!isBackForward) {
+                    sessionStorage.removeItem(pageHistoryKey);
+                    sessionStorage.removeItem(backReloadKey);
+                    return;
+                }
+
+                if (sessionStorage.getItem(pageHistoryKey) === '1') {
+                    sessionStorage.removeItem(pageHistoryKey);
+                    sessionStorage.removeItem(backReloadKey);
+                    requestAnimationFrame(() => {
+                        if (window.history.length > 1) {
+                            window.history.back();
+                        }
+                    });
+                    return;
+                }
+
+                if (sessionStorage.getItem(backReloadKey) === '1') {
+                    sessionStorage.removeItem(backReloadKey);
+                    return;
+                }
+
+                sessionStorage.setItem(backReloadKey, '1');
+                window.location.reload();
+            });
+
+            const trackVisitUrl = "{% url 'track_public_visit' %}";
+
+            function sendVisit(kind, objectId) {
+                const payload = JSON.stringify({
+                    kind: kind,
+                    object_id: Number(objectId),
+                });
+
+                if (navigator.sendBeacon) {
+                    const blob = new Blob([payload], { type: 'application/json' });
+                    const sent = navigator.sendBeacon(trackVisitUrl, blob);
+                    return sent ? Promise.resolve() : Promise.reject(new Error('sendBeacon failed'));
+                }
+
+                return fetch(trackVisitUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: payload,
+                    keepalive: true,
+                    credentials: 'same-origin',
+                }).then(() => undefined);
+            }
+
+            function shouldHandleTrackedLink(event, link) {
+                if (!link || event.defaultPrevented) return false;
+                if (event.button !== 0) return false;
+                if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return false;
+                if ((link.getAttribute('target') || '').toLowerCase() === '_blank') return false;
+                if (link.dataset.trackGuard === 'auction-access' && typeof window.canTrackAuctionVisit === 'function') {
+                    return !!window.canTrackAuctionVisit(link);
+                }
+                return true;
+            }
+
+            document.addEventListener('click', function(event) {
+                const link = event.target.closest('a[data-track-visit="1"]');
+                if (!shouldHandleTrackedLink(event, link)) return;
+
+                const kind = link.dataset.trackKind;
+                const objectId = link.dataset.trackId;
+                const href = link.getAttribute('href');
+
+                if (!kind || !objectId || !href) return;
+
+                event.preventDefault();
+
+                if (link.dataset.trackingLocked === '1') {
+                    window.location.href = href;
+                    return;
+                }
+
+                link.dataset.trackingLocked = '1';
+
+                Promise.race([
+                    sendVisit(kind, objectId),
+                    new Promise((resolve) => setTimeout(resolve, 180)),
+                ]).finally(() => {
+                    window.location.href = href;
+                });
+            }, true);
+
+            window.addEventListener('pageshow', function() {
+                document.querySelectorAll('a[data-track-visit="1"][data-tracking-locked="1"]').forEach(function(link) {
+                    delete link.dataset.trackingLocked;
+                });
+            });
+        })();
+    </script>
+
+    {% block extra_js %}{% endblock %}
+
+</body>
+</html>

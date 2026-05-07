@@ -1,0 +1,386 @@
+{% extends 'admin_panel/base.html' %}
+
+{% block title %}گزارشات محصولات{% endblock %}
+{% block page_title %}گزارشات محصولات{% endblock %}
+
+{% block content %}
+<div class="flex flex-col gap-6" id="product-reports-app">
+    <div class="bg-admin-surface-light dark:bg-admin-surface-dark rounded-2xl p-5 md:p-6 shadow-sm border border-gray-100 dark:border-white/5">
+        <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+            <div>
+                <h3 class="text-lg font-black text-text-main dark:text-white">مرکز گزارشات بازدید محصولات</h3>
+                <p class="text-xs font-bold text-text-muted mt-1">بازدید محصولات فروشگاه، بازدید مزایده‌ها و بازدید محصولات مزایده را از این بخش یکجا بررسی کنید.</p>
+            </div>
+
+            <div class="flex items-center gap-2 overflow-x-auto custom-scrollbar bg-admin-bg-light dark:bg-admin-bg-dark p-1 rounded-2xl">
+                <button type="button" class="report-tab px-4 py-2 rounded-xl text-xs font-black whitespace-nowrap transition-all duration-300" data-tab="store">
+                    بازدید محصولات فروشگاه
+                </button>
+                <button type="button" class="report-tab px-4 py-2 rounded-xl text-xs font-black whitespace-nowrap transition-all duration-300" data-tab="auction">
+                    بازدید مزایده
+                </button>
+               <button type="button" class="report-tab px-4 py-2 rounded-xl text-xs font-black whitespace-nowrap transition-all duration-300" data-tab="auction_product">
+                   بازدید محصولات مزایده
+               </button>
+                <button type="button" class="report-tab px-4 py-2 rounded-xl text-xs font-black whitespace-nowrap transition-all duration-300" data-tab="bids">
+                    پیشنهادات مزایده
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-admin-surface-light dark:bg-admin-surface-dark rounded-2xl p-5 border border-gray-100 dark:border-white/5 shadow-sm">
+            <p class="text-xs font-bold text-text-muted">تعداد رکوردها</p>
+            <p id="metric-total" class="mt-3 text-3xl font-black text-text-main dark:text-white">۰</p>
+        </div>
+        <div class="bg-admin-surface-light dark:bg-admin-surface-dark rounded-2xl p-5 border border-gray-100 dark:border-white/5 shadow-sm">
+            <p class="text-xs font-bold text-text-muted">صفحه فعلی</p>
+            <p id="metric-page" class="mt-3 text-3xl font-black text-primary">۱</p>
+        </div>
+        <div class="bg-admin-surface-light dark:bg-admin-surface-dark rounded-2xl p-5 border border-gray-100 dark:border-white/5 shadow-sm">
+            <p class="text-xs font-bold text-text-muted">بخش فعال</p>
+            <p id="metric-tab" class="mt-3 text-lg font-black text-text-main dark:text-white">بازدید محصولات فروشگاه</p>
+        </div>
+    </div>
+
+    <div class="bg-admin-surface-light dark:bg-admin-surface-dark rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 overflow-hidden">
+        <div class="p-4 border-b border-gray-100 dark:border-white/5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+            <div class="relative w-full lg:max-w-sm">
+                <input id="searchInput" type="text" placeholder="جستجو بر اساس عنوان، شناسه، کاربر یا IP..." class="w-full bg-admin-bg-light dark:bg-admin-bg-dark border border-gray-200 dark:border-white/10 rounded-xl pl-4 pr-10 py-2.5 text-sm font-bold text-text-main dark:text-white focus:outline-none focus:border-primary transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+            </div>
+
+        </div>
+        <div id="activeFilterBar" class="hidden px-4 py-3 border-b border-gray-100 dark:border-white/5 bg-gray-50/70 dark:bg-white/[0.03] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <p id="activeFilterText" class="text-xs font-bold text-text-muted"></p>
+            <button id="clearFilterBtn" type="button" class="w-full sm:w-auto px-4 py-2 rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white text-xs font-black transition-all">
+                حذف فیلتر
+            </button>
+        </div>
+
+        <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-right border-collapse">
+                <thead id="reports-head" class="bg-admin-bg-light dark:bg-admin-bg-dark border-b border-gray-100 dark:border-white/5 text-[11px] font-black text-text-muted"></thead>
+                <tbody id="reports-body" class="text-xs font-bold text-text-main dark:text-gray-300 divide-y divide-gray-100 dark:divide-white/5">
+                    <tr>
+                        <td colspan="7" class="p-8 text-center text-text-muted">در حال بارگذاری اطلاعات...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="p-4 border-t border-gray-100 dark:border-white/5 flex items-center justify-between gap-3">
+            <p id="pageInfo" class="text-xs font-bold text-text-muted">در حال بارگذاری...</p>
+            <div class="flex items-center gap-2">
+                <button id="prevBtn" type="button" class="px-4 py-2 rounded-xl border border-gray-200 dark:border-white/10 text-xs font-black text-text-main dark:text-white disabled:opacity-50">
+                    قبلی
+                </button>
+                <button id="nextBtn" type="button" class="px-4 py-2 rounded-xl border border-gray-200 dark:border-white/10 text-xs font-black text-text-main dark:text-white disabled:opacity-50">
+                    بعدی
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const params = new URLSearchParams(window.location.search);
+    const headEl = document.getElementById('reports-head');
+    const bodyEl = document.getElementById('reports-body');
+    const searchInput = document.getElementById('searchInput');
+    const totalEl = document.getElementById('metric-total');
+    const pageEl = document.getElementById('metric-page');
+    const tabEl = document.getElementById('metric-tab');
+    const pageInfoEl = document.getElementById('pageInfo');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const activeFilterBar = document.getElementById('activeFilterBar');
+    const activeFilterText = document.getElementById('activeFilterText');
+    const clearFilterBtn = document.getElementById('clearFilterBtn');
+    const endpoint = "{% url 'admin_panel:products-visit-reports' %}";
+    const bidsEndpoint = "{% url 'admin_panel:products-bid-reports' %}";
+
+    const titles = {
+        store: 'بازدید محصولات فروشگاه',
+        auction: 'بازدید مزایده',
+        auction_product: 'بازدید محصولات مزایده',
+        bids: 'پیشنهادات مزایده',
+    };
+
+    const state = {
+        activeTab: ['store', 'auction', 'auction_product', 'bids'].includes(params.get('type')) ? params.get('type') : 'store',
+        currentPage: Number(params.get('page') || 1),
+        totalPages: 1,
+        totalItems: 0,
+        auctionId: params.get('auction_id') || '',
+        productId: params.get('product_id') || '',
+    };
+
+    function toPersianDigits(value) {
+        return String(value).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[d]);
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#39;');
+    }
+
+    function formatDate(value) {
+        if (!value) return '-';
+        return new Intl.DateTimeFormat('fa-IR', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+        }).format(new Date(value));
+    }
+
+    function syncUrl() {
+        const url = new URL(window.location.href);
+        url.searchParams.set('type', state.activeTab);
+        url.searchParams.set('page', state.currentPage);
+        if (searchInput.value.trim()) {
+            url.searchParams.set('search', searchInput.value.trim());
+        } else {
+            url.searchParams.delete('search');
+        }
+
+        if (state.activeTab === 'store') {
+            if (state.productId) url.searchParams.set('product_id', state.productId);
+            else url.searchParams.delete('product_id');
+            url.searchParams.delete('auction_id');
+        } else if (state.activeTab === 'auction') {
+            if (state.auctionId) url.searchParams.set('auction_id', state.auctionId);
+            else url.searchParams.delete('auction_id');
+            url.searchParams.delete('product_id');
+        } else {
+            if (state.auctionId) url.searchParams.set('auction_id', state.auctionId);
+            else url.searchParams.delete('auction_id');
+            if (state.productId) url.searchParams.set('product_id', state.productId);
+            else url.searchParams.delete('product_id');
+        }
+
+        window.history.replaceState({}, '', url.toString());
+    }
+
+    function setActiveTabStyles() {
+        document.querySelectorAll('.report-tab').forEach((button) => {
+            if (button.dataset.tab === state.activeTab) {
+                button.className = 'report-tab px-4 py-2 rounded-xl text-xs font-black whitespace-nowrap transition-all duration-300 bg-primary text-white shadow-md shadow-primary/30';
+            } else {
+                button.className = 'report-tab px-4 py-2 rounded-xl text-xs font-black whitespace-nowrap transition-all duration-300 text-text-muted hover:bg-white dark:hover:bg-white/5';
+            }
+        });
+        tabEl.textContent = titles[state.activeTab];
+    }
+
+    function updateActiveFilterBar() {
+        const parts = [];
+
+        if (state.activeTab === 'store' && state.productId) {
+            parts.push(`فیلتر محصول فروشگاه: #${toPersianDigits(state.productId)}`);
+        }
+        if (state.activeTab === 'auction' && state.auctionId) {
+            parts.push(`فیلتر مزایده: #${toPersianDigits(state.auctionId)}`);
+        }
+        if (state.activeTab === 'auction_product') {
+            if (state.auctionId) {
+                parts.push(`مزایده: #${toPersianDigits(state.auctionId)}`);
+            }
+            if (state.productId) {
+                parts.push(`محصول مزایده: #${toPersianDigits(state.productId)}`);
+            }
+        }
+        if (state.activeTab === 'bids') {
+            if (state.auctionId) {
+                parts.push(`فیلتر پیشنهادات مزایده: #${toPersianDigits(state.auctionId)}`);
+            }
+            if (state.productId) {
+                parts.push(`فیلتر پیشنهادات محصول: #${toPersianDigits(state.productId)}`);
+            }
+        }
+
+        if (!parts.length) {
+            activeFilterBar.classList.add('hidden');
+            activeFilterText.textContent = '';
+            return;
+        }
+
+        activeFilterText.textContent = parts.join(' | ');
+        activeFilterBar.classList.remove('hidden');
+    }
+
+    function renderHead() {
+        if (state.activeTab === 'bids') {
+            headEl.innerHTML = `
+                <tr>
+                    <th class="p-4">شناسه</th>
+                    <th class="p-4">محصول</th>
+                    <th class="p-4">مزایده</th>
+                    <th class="p-4">کاربر</th>
+                    <th class="p-4">مبلغ (تومان)</th>
+                    <th class="p-4">زمان</th>
+                </tr>
+            `;
+        } else {
+            headEl.innerHTML = `
+                <tr>
+                    <th class="p-4">شناسه رکورد</th>
+                    <th class="p-4">بخش</th>
+                    <th class="p-4">شناسه هدف</th>
+                    <th class="p-4">عنوان</th>
+                    <th class="p-4">مرجع</th>
+                    <th class="p-4">کاربر / مهمان</th>
+                    <th class="p-4">User ID</th>
+                    <th class="p-4">IP</th>
+                    <th class="p-4">زمان</th>
+                </tr>
+            `;
+        }
+    }
+
+    function renderBody(items) {
+        if (!items.length) {
+            const cols = state.activeTab === 'bids' ? 6 : 9;
+            bodyEl.innerHTML = `<tr><td colspan="${cols}" class="p-8 text-center text-text-muted">رکوردی برای نمایش پیدا نشد.</td></tr>`;
+            return;
+        }
+
+        if (state.activeTab === 'bids') {
+            bodyEl.innerHTML = items.map((item) => `
+                <tr class="hover:bg-admin-bg-light/50 dark:hover:bg-white/[0.02] transition-colors">
+                    <td class="p-4 text-text-muted">#${toPersianDigits(item.id)}</td>
+                   <td class="p-4">${escapeHtml(item.product_title || '-')}</td>
+                    <td class="p-4">${escapeHtml(item.auction_name || '-')}</td>
+                    <td class="p-4">${escapeHtml(item.user_fullname || '-')}</td>
+                    <td class="p-4 font-mono" dir="ltr">${toPersianDigits(Number(item.bid_amount || 0).toLocaleString())}</td>
+                    <td class="p-4 text-text-muted">${escapeHtml(formatDate(item.created_at))}</td>
+                </tr>
+            `).join('');
+        } else {
+            bodyEl.innerHTML = items.map((item) => `
+                <tr class="hover:bg-admin-bg-light/50 dark:hover:bg-white/[0.02] transition-colors">
+                    <td class="p-4 text-text-muted">#${toPersianDigits(item.id)}</td>
+                    <td class="p-4">
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-glow">
+                            ${escapeHtml(item.section)}
+                        </span>
+                    </td>
+                    <td class="p-4 text-text-muted">${escapeHtml(item.target_id || '-')}</td>
+                    <td class="p-4">${escapeHtml(item.target_title || '-')}</td>
+                    <td class="p-4">${escapeHtml(item.parent_title || '-')}</td>
+                    <td class="p-4">${escapeHtml(item.visitor_name || 'کاربر مهمان')}</td>
+                    <td class="p-4 text-text-muted">${escapeHtml(item.user_id || '-')}</td>
+                    <td class="p-4 font-mono text-[11px]" dir="ltr">${escapeHtml(item.ip_address || '-')}</td>
+                    <td class="p-4 text-text-muted">${escapeHtml(formatDate(item.timestamp))}</td>
+                </tr>
+            `).join('');
+        }
+    }
+
+    async function loadData() {
+        const cols = state.activeTab === 'bids' ? 6 : 9;
+        bodyEl.innerHTML = `<tr><td colspan="${cols}" class="p-8 text-center text-text-muted">در حال بارگذاری اطلاعات...</td></tr>`;
+        renderHead();
+        setActiveTabStyles();
+        updateActiveFilterBar();
+        syncUrl();
+
+        let url;
+        if (state.activeTab === 'bids') {
+            url = new URL(bidsEndpoint, window.location.origin);
+            url.searchParams.set('page', state.currentPage);
+            if (searchInput.value.trim()) url.searchParams.set('search', searchInput.value.trim());
+            if (state.productId) url.searchParams.set('product_id', state.productId);
+            if (state.auctionId) url.searchParams.set('auction_id', state.auctionId);
+        } else {
+            url = new URL(endpoint, window.location.origin);
+            url.searchParams.set('type', state.activeTab);
+            url.searchParams.set('page', state.currentPage);
+            if (searchInput.value.trim()) {
+                url.searchParams.set('search', searchInput.value.trim());
+            }
+            if (state.activeTab === 'store' && state.productId) {
+                url.searchParams.set('product_id', state.productId);
+            }
+            if (state.activeTab === 'auction' && state.auctionId) {
+                url.searchParams.set('auction_id', state.auctionId);
+            }
+            if (state.activeTab === 'auction_product') {
+                if (state.auctionId) url.searchParams.set('auction_id', state.auctionId);
+                if (state.productId) url.searchParams.set('product_id', state.productId);
+            }
+        }
+
+        try {
+            const response = await fetch(url, { credentials: 'include' });
+            if (!response.ok) throw new Error('load failed');
+
+            const payload = await response.json();
+            state.totalPages = payload.pages || 1;
+            state.totalItems = payload.total || 0;
+
+            totalEl.textContent = toPersianDigits(state.totalItems);
+            pageEl.textContent = toPersianDigits(payload.current_page || 1);
+            pageInfoEl.textContent = `صفحه ${toPersianDigits(payload.current_page || 1)} از ${toPersianDigits(state.totalPages)} | مجموع ${toPersianDigits(state.totalItems)} رکورد`;
+            prevBtn.disabled = (state.currentPage <= 1);
+            nextBtn.disabled = (state.currentPage >= state.totalPages);
+
+            renderBody(payload.results || []);
+        } catch (error) {
+            bodyEl.innerHTML = '<tr><td colspan="9" class="p-8 text-center text-red-500">دریافت گزارشات با خطا مواجه شد.</td></tr>';
+        }
+    }
+
+    document.querySelectorAll('.report-tab').forEach((button) => {
+        button.addEventListener('click', () => {
+            state.activeTab = button.dataset.tab;
+            state.currentPage = 1;
+            state.auctionId = '';
+            state.productId = '';
+            loadData();
+        });
+    });
+
+    clearFilterBtn.addEventListener('click', () => {
+        state.currentPage = 1;
+        state.auctionId = '';
+        state.productId = '';
+        loadData();
+    });
+
+    searchInput.value = params.get('search') || '';
+    searchInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            state.currentPage = 1;
+            loadData();
+        }
+    });
+
+    prevBtn.addEventListener('click', () => {
+        if (state.currentPage > 1) {
+            state.currentPage -= 1;
+            loadData();
+        }
+    });
+
+    nextBtn.addEventListener('click', () => {
+        if (state.currentPage < state.totalPages) {
+            state.currentPage += 1;
+            loadData();
+        }
+    });
+
+    loadData();
+});
+</script>
+{% endblock %}

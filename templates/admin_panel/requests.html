@@ -1,0 +1,803 @@
+{% extends 'admin_panel/base.html' %}
+{% load static %}
+
+{% block title %}مدیریت درخواست‌ها | آرت‌پنل{% endblock %}
+{% block page_title %}مدیریت درخواست‌ها{% endblock %}
+
+{% block extra_head %}
+<style>
+    .rotate-180 {
+        transform: rotate(180deg);
+    }
+    .sortable {
+        user-select: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="flex flex-col gap-6">
+    
+    <!-- هدر و تب‌های مدیریت درخواست -->
+    <div class="bg-admin-surface-light dark:bg-admin-surface-dark rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100 dark:border-white/5">
+        <div class="flex items-start">
+            <div class="flex items-center gap-2 overflow-x-auto custom-scrollbar w-full md:w-auto pb-2 md:pb-0">
+                <button onclick="changeType('purchase', true)" id="tab-purchase" class="tab-btn px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-all duration-300 bg-primary text-white shadow-md shadow-primary/30">
+                    درخواست‌های خرید
+                </button>
+                <button onclick="changeType('verification', true)" id="tab-verification" class="tab-btn px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-all duration-300 text-text-muted hover:bg-gray-100 dark:hover:bg-white/5">
+                    درخواست‌های مزایده / احراز
+                </button>
+                <button onclick="changeType('credit', true)" id="tab-credit" class="tab-btn px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-all duration-300 text-text-muted hover:bg-gray-100 dark:hover:bg-white/5">
+                    افزایش اعتبار
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- جدول نمایش داده‌ها -->
+    <div class="bg-admin-surface-light dark:bg-admin-surface-dark rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 overflow-hidden">
+        <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full min-w-[1050px] text-right border-collapse">
+                <thead>
+                    <tr class="bg-gray-50 dark:bg-white/5 border-b border-gray-100 dark:border-white/10 text-xs font-black text-text-muted">
+                        <th class="p-4">شناسه</th>
+                        <th class="p-4 sortable" data-sort="user">
+                            <div class="flex items-center gap-1 cursor-pointer hover:text-primary transition-colors">
+                                <span>کاربر</span>
+                                <svg class="size-3 sort-icon opacity-0 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                                <span class="sort-order-badge hidden text-[10px] font-black bg-primary text-white rounded-full size-4 flex items-center justify-center"></span>
+                            </div>
+                        </th>
+                        <th id="th-product-details" class="p-4">محصول / جزئیات</th>
+                        <th class="p-4 text-center">تاریخ ثبت</th>
+                        <th class="p-4 text-center sortable" data-sort="status">
+                            <div class="flex items-center justify-center gap-1 cursor-pointer hover:text-primary transition-colors">
+                                <span>وضعیت</span>
+                                <svg class="size-3 sort-icon opacity-0 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                                <span class="sort-order-badge hidden text-[10px] font-black bg-primary text-white rounded-full size-4 flex items-center justify-center"></span>
+                            </div>
+                        </th>
+                        <th class="p-4 text-center">عملیات</th>
+                    </tr>
+                </thead>
+                <tbody id="requests-tbody" class="text-sm font-bold divide-y divide-gray-100 dark:divide-white/5">
+                    <tr>
+                        <td colspan="6" class="p-8 text-center text-text-muted">در حال بارگذاری اطلاعات...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- صفحه‌بندی -->
+        <div class="p-4 border-t border-gray-100 dark:border-white/5 flex items-center justify-between">
+            <span id="pagination-info" class="text-xs text-text-muted font-bold">نمایش برگه ۱</span>
+            <div class="flex items-center gap-1" id="pagination-controls"></div>
+        </div>
+    </div>
+
+</div>
+
+<!-- مدال نمایش جزئیات درخواست -->
+<div id="detail-modal" data-admin-modal-root class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[120] hidden opacity-0 transition-opacity duration-300 flex items-center justify-center p-4">
+    <div class="bg-admin-surface-light dark:bg-admin-surface-dark rounded-2xl w-full max-w-lg shadow-2xl scale-95 transition-transform duration-300 flex flex-col max-h-[90vh]">
+        <div class="p-5 border-b border-gray-100 dark:border-white/10 flex items-center justify-between">
+            <h3 class="font-black text-lg text-text-main dark:text-white">جزئیات درخواست</h3>
+            <button onclick="closeModal()" class="text-text-muted hover:text-red-500 transition-colors p-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+        <div class="p-5 overflow-y-auto custom-scrollbar flex-1">
+            <div id="modal-content" class="space-y-4">
+                <div class="text-center text-text-muted py-4">در حال دریافت اطلاعات...</div>
+            </div>
+        </div>
+        <div class="p-5 border-t border-gray-100 dark:border-white/10 flex items-center justify-end gap-3 bg-gray-50/50 dark:bg-white/5 rounded-b-2xl" id="modal-actions">
+            {% comment %} <button onclick="closeModal()" class="px-4 py-2 rounded-xl text-sm font-bold text-text-muted hover:bg-gray-200 dark:hover:bg-white/10 transition-colors">بستن</button> {% endcomment %}
+            <button id="btn-modal-approve" onclick="updateRequestStatus('approve')" class="px-4 py-2 rounded-xl text-sm font-bold bg-green-500 text-white hover:bg-green-600 transition-colors shadow-lg shadow-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed">تایید درخواست</button>
+            <button id="btn-modal-reject" onclick="updateRequestStatus('reject')" class="px-4 py-2 rounded-xl text-sm font-bold bg-red-500 text-white hover:bg-red-600 transition-colors shadow-lg shadow-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed">رد درخواست</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let currentType = 'purchase';
+    let currentPage = 1;
+    let currentDetailId = null;
+    let pendingAutoOpenRequestId = null;
+    let sortState = {};
+    let sortOrder = [];
+    let requestsLoadInFlight = false;
+    let queuedRequestsReload = null;
+    let realtimeReloadTimer = null;
+
+    const dateTimeFormatter = new Intl.DateTimeFormat('fa-IR', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+        calendar: 'persian'
+    });
+
+    // دیکشنری ترجمه کلیدهای بک‌اند به فارسی روان
+    const fieldTranslations = {
+        'user': 'نام کاربری',
+        'full_name': 'نام و نام خانوادگی',
+        'national_code': 'کد ملی',
+        'phone': 'شماره تماس',
+        'phone_number': 'شماره تماس',
+        'email': 'پست الکترونیک',
+        'amount': 'مبلغ',
+        'price': 'قیمت',
+        'status': 'وضعیت درخواست',
+        'created_at': 'تاریخ ثبت',
+        'updated_at': 'آخرین بروزرسانی',
+        'product': 'نام محصول',
+        'product_name': 'نام محصول',
+        'description': 'توضیحات تکمیلی',
+        'address': 'آدرس پستی',
+        'postal_code': 'کد پستی',
+        'is_verified': 'وضعیت احراز هویت',
+        'card_number': 'شماره کارت بانکی',
+        'shaba_number': 'شماره شبا',
+        'account_number': 'شماره حساب',
+        'tracking_code': 'کد پیگیری',
+        'payment_method': 'روش پرداخت',
+        'username': 'نام کاربری',
+        'current_credit': 'اعتبار فعلی کاربر',
+        'requested_credit': 'مبلغ درخواستی',
+        'total_credit': 'اعتبار کل کاربر',
+        'granted_credit': 'اعتبار تخصیص‌یافته',
+        'telegram_chat_id': 'شناسه چت تلگرام'
+    };
+
+    // لیست کلیدهایی که نمی‌خواهیم در مودال نمایش داده شوند
+    const hiddenFields = ['id', 'request_type', 'user_id', 'product_id', 'artwork_id'];
+
+    function shouldHideField(key) {
+        if (hiddenFields.includes(key)) return true;
+
+        const hiddenForAllTypes = ['username', 'first_name', 'last_name', 'email', 'preferred_contact_methods', 'telegram_id'];
+        if (hiddenForAllTypes.includes(key)) return true;
+
+        if (currentType === 'verification' && ['current_credit', 'granted_credit', 'is_verified'].includes(key)) return true;
+        if (currentType === 'purchase' && ['is_verified', 'current_credit', 'total_credit', 'telegram_chat_id', 'contact_ways'].includes(key)) return true;
+        if (currentType === 'credit' && key === 'is_verified') return true;
+
+        return false;
+    }
+
+    function initializeSortState(sortParam) {
+        sortState = {};
+        for (const item of (sortParam || '').split(',')) {
+            const token = item.trim();
+            if (!token) continue;
+
+            const field = token.replace(/^-/, '');
+            if (!['user', 'status'].includes(field) || sortState[field]) continue;
+            sortState[field] = token.startsWith('-') ? 'desc' : 'asc';
+        }
+        updateSortOrder();
+    }
+
+    function updateSortOrder() {
+        sortOrder = [];
+        for (const [field, state] of Object.entries(sortState)) {
+            if (state === 'desc') {
+                sortOrder.push(`-${field}`);
+            } else if (state === 'asc') {
+                sortOrder.push(field);
+            }
+        }
+    }
+
+    function updateSortIcons() {
+        document.querySelectorAll('.sortable').forEach(header => {
+            const field = header.dataset.sort;
+            const icon = header.querySelector('.sort-icon');
+            const state = sortState[field];
+
+            if (!icon) return;
+
+            if (!state) {
+                icon.classList.add('opacity-0');
+                icon.classList.remove('rotate-180');
+            } else if (state === 'desc') {
+                icon.classList.remove('opacity-0', 'rotate-180');
+            } else {
+                icon.classList.remove('opacity-0');
+                icon.classList.add('rotate-180');
+            }
+        });
+    }
+
+    function updateSortOrderBadges() {
+        document.querySelectorAll('.sort-order-badge').forEach(badge => {
+            badge.classList.add('hidden');
+            badge.textContent = '';
+        });
+
+        let orderIndex = 1;
+        for (const [field, state] of Object.entries(sortState)) {
+            if (!state) continue;
+            const header = document.querySelector(`.sortable[data-sort="${field}"]`);
+            const badge = header ? header.querySelector('.sort-order-badge') : null;
+            if (!badge) continue;
+            badge.textContent = orderIndex++;
+            badge.classList.remove('hidden');
+        }
+    }
+
+    function handleSort(field) {
+        const currentState = sortState[field] || null;
+        let nextState = null;
+
+        if (currentState === null) {
+            nextState = 'desc';
+        } else if (currentState === 'desc') {
+            nextState = 'asc';
+        }
+
+        if (nextState) {
+            sortState[field] = nextState;
+        } else {
+            delete sortState[field];
+        }
+
+        updateSortOrder();
+        updateSortIcons();
+        updateSortOrderBadges();
+        currentPage = 1;
+        updatePageQuery();
+        loadRequests();
+    }
+
+    function formatDateTime(value) {
+        if (!value) return '---';
+        const dateObj = new Date(value);
+        if (Number.isNaN(dateObj.getTime())) return '---';
+        return dateTimeFormatter.format(dateObj);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlType = (urlParams.get('type') || '').toLowerCase();
+        const urlPage = Number.parseInt(urlParams.get('page') || '1', 10);
+        const urlRequestId = Number.parseInt(urlParams.get('request_id') || '', 10);
+        const urlSort = urlParams.get('sort') || '';
+        const allowedTypes = ['purchase', 'verification', 'credit'];
+        let initialType = allowedTypes.includes(urlType)
+            ? urlType
+            : (localStorage.getItem('admin_requests_current_tab') || 'purchase');
+        currentPage = Number.isFinite(urlPage) && urlPage > 0 ? urlPage : 1;
+        pendingAutoOpenRequestId = Number.isFinite(urlRequestId) && urlRequestId > 0 ? urlRequestId : null;
+        initializeSortState(urlSort);
+        updateSortIcons();
+        updateSortOrderBadges();
+
+        document.querySelectorAll('.sortable').forEach(header => {
+            header.addEventListener('click', () => handleSort(header.dataset.sort));
+        });
+
+        if (window.adminPanelLive && typeof window.adminPanelLive.registerPage === 'function') {
+            window.adminPanelLive.registerPage({
+                key: 'admin-requests',
+                refresh: ({ reason = 'manual', meta = {} } = {}) => refreshRequestsData({
+                    showLoading: false,
+                    syncDetail: Boolean(currentDetailId),
+                    reason,
+                    meta,
+                }),
+            });
+        }
+
+        if (window.wsClient && typeof window.wsClient.on === 'function') {
+            ['purchase_request', 'verification_request', 'credit_request'].forEach((eventType) => {
+                window.wsClient.on(eventType, (payload) => {
+                    handleRealtimeRequestEvent(eventType, payload);
+                });
+            });
+        }
+
+        // تغییر تب به صورت اتوماتیک و بارگذاری داده‌ها
+        changeType(initialType);
+    });
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    function changeType(type, resetPage = false) {
+        currentType = type;
+        if (resetPage) {
+            currentPage = 1;
+            currentDetailId = null;
+            pendingAutoOpenRequestId = null;
+        }
+
+        // ذخیره‌سازی نام تب فعلی در حافظه مرورگر برای باقی ماندن در صورت رفرش
+        localStorage.setItem('admin_requests_current_tab', type);
+        const nextUrl = new URL(window.location.href);
+        nextUrl.searchParams.set('type', type);
+        nextUrl.searchParams.set('page', String(currentPage));
+        if (sortOrder.length > 0) {
+            nextUrl.searchParams.set('sort', sortOrder.join(','));
+        } else {
+            nextUrl.searchParams.delete('sort');
+        }
+        if (resetPage) {
+            nextUrl.searchParams.delete('request_id');
+        }
+        window.history.replaceState({}, '', nextUrl.toString());
+        
+        // استایل تب‌ها
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.className = 'tab-btn px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-all duration-300 text-text-muted hover:bg-gray-100 dark:hover:bg-white/5';
+        });
+        const activeTab = document.getElementById(`tab-${type}`);
+        activeTab.className = 'tab-btn px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-all duration-300 bg-primary text-white shadow-md shadow-primary/30';
+        
+        // تغییر عنوان ستون جدول بسته به تب انتخابی
+        const productHeader = document.getElementById('th-product-details');
+        if (type === 'credit') {
+            productHeader.innerText = 'اعتبار فعلی / اعتبار کل';
+        } else if (type === 'verification') {
+            productHeader.innerText = 'جزئیات';
+        } else {
+            productHeader.innerText = 'محصول / جزئیات';
+        }
+        loadRequests();
+    }
+
+    function updatePageQuery() {
+        const nextUrl = new URL(window.location.href);
+        nextUrl.searchParams.set('type', currentType);
+        nextUrl.searchParams.set('page', String(currentPage));
+        if (sortOrder.length > 0) {
+            nextUrl.searchParams.set('sort', sortOrder.join(','));
+        } else {
+            nextUrl.searchParams.delete('sort');
+        }
+        if (currentDetailId) {
+            nextUrl.searchParams.set('request_id', String(currentDetailId));
+        } else {
+            nextUrl.searchParams.delete('request_id');
+        }
+        window.history.replaceState({}, '', nextUrl.toString());
+    }
+
+    function getRequestTypeFromRealtimeEvent(eventType, payload = {}) {
+        if (payload?.data?.request_type) {
+            return String(payload.data.request_type).toLowerCase();
+        }
+        const eventMap = {
+            purchase_request: 'purchase',
+            verification_request: 'verification',
+            credit_request: 'credit',
+        };
+        return eventMap[eventType] || currentType;
+    }
+
+    function scheduleRealtimeRequestsReload(options = {}) {
+        if (realtimeReloadTimer) {
+            window.clearTimeout(realtimeReloadTimer);
+        }
+        realtimeReloadTimer = window.setTimeout(() => {
+            realtimeReloadTimer = null;
+            refreshRequestsData(options);
+        }, 180);
+    }
+
+    function handleRealtimeRequestEvent(eventType, payload = {}) {
+        const eventRequestType = getRequestTypeFromRealtimeEvent(eventType, payload);
+        if (eventRequestType !== currentType) {
+            return;
+        }
+
+        scheduleRealtimeRequestsReload({
+            showLoading: false,
+            syncDetail: Boolean(currentDetailId),
+            reason: 'request-websocket',
+            meta: {
+                eventType,
+                requestId: payload?.data?.id || null,
+            },
+        });
+    }
+
+    async function refreshRequestsData(options = {}) {
+        return loadRequests(options);
+    }
+
+    async function loadRequests(options = {}) {
+        const {
+            showLoading = true,
+            syncDetail = false,
+        } = options;
+        const tbody = document.getElementById('requests-tbody');
+        if (requestsLoadInFlight) {
+            queuedRequestsReload = {
+                showLoading: false,
+                syncDetail: syncDetail || Boolean(currentDetailId),
+            };
+            return;
+        }
+
+        requestsLoadInFlight = true;
+
+        if (showLoading) {
+            tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-text-muted">در حال بارگذاری اطلاعات از دیتابیس...</td></tr>`;
+        }
+
+        try {
+            const url = new URL(`{% url 'admin_panel:requests-list' %}`, window.location.origin);
+            url.searchParams.set('type', currentType);
+            url.searchParams.set('page', currentPage);
+            url.searchParams.set('_ts', String(Date.now()));
+            if (sortOrder.length > 0) {
+                url.searchParams.set('sort', sortOrder.join(','));
+            }
+
+            const response = await fetch(url, {
+                cache: 'no-store',
+                headers: {
+                    'X-Admin-Bypass-Cache': '1',
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache',
+                },
+            });
+            const data = await response.json();
+            
+            if (data.requests && data.requests.length > 0) {
+                tbody.innerHTML = '';
+                data.requests.forEach(req => {
+                    let statusBadge = getStatusBadge(req.status);
+                    let detailsCell = req.product || '---';
+                    if (currentType === 'credit') {
+                        detailsCell = `
+                            <div class="flex flex-col gap-1">
+                                <span class="font-black text-text-main dark:text-white">${req.current_credit || '---'}</span>
+                                <span class="text-xs text-text-muted">اعتبار کل: ${req.total_credit || '---'}</span>
+                            </div>
+                        `;
+                    }
+                    
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors group border-b border-gray-100 dark:border-white/5';
+                    tr.innerHTML = `
+                        <td class="p-4 text-text-muted">#${req.id}</td>
+                        <td class="p-4 text-text-main dark:text-white">${req.user}</td>
+                        <td class="p-4 text-text-muted max-w-[220px]">${detailsCell}</td>
+                        <td class="p-4 text-center text-text-muted whitespace-nowrap">${formatDateTime(req.created_at)}</td>
+                        <td class="p-4 text-center">${statusBadge}</td>
+                        <td class="p-4 text-center">
+                            <button onclick="openDetailModal(${req.id})" class="p-2 text-text-muted hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" title="مشاهده جزئیات">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                
+                renderPagination(data.pages);
+                if (pendingAutoOpenRequestId) {
+                    const requestIdToOpen = pendingAutoOpenRequestId;
+                    pendingAutoOpenRequestId = null;
+                    openDetailModal(requestIdToOpen, false);
+                }
+                if (syncDetail && currentDetailId) {
+                    await refreshCurrentDetail({ showLoading: false });
+                }
+            } else {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-text-muted">هیچ درخواستی یافت نشد.</td></tr>`;
+                document.getElementById('pagination-controls').innerHTML = '';
+                document.getElementById('pagination-info').innerText = '';
+                if (syncDetail && currentDetailId) {
+                    await refreshCurrentDetail({ showLoading: false });
+                }
+            }
+        } catch (error) {
+            tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-red-500">خطا در ارتباط با سرور.</td></tr>`;
+        } finally {
+            requestsLoadInFlight = false;
+            if (queuedRequestsReload) {
+                const nextReload = queuedRequestsReload;
+                queuedRequestsReload = null;
+                loadRequests(nextReload);
+            }
+        }
+    }
+
+    function getStatusBadge(status) {
+        if(!status) return `<span class="text-gray-400 font-normal">نامشخص</span>`;
+        const normalizedStatus = status.toString().toLowerCase();
+        
+        if(['confirmed', 'approved', 'processed', 'completed', 'read', 'true', 'contacted'].includes(normalizedStatus)) {
+            return `<span class="bg-green-500/10 text-green-600 dark:text-green-400 text-xs px-2 py-1 rounded-md font-black">تایید شده</span>`;
+        } else if(['rejected', 'failed', 'canceled', 'false'].includes(normalizedStatus)) {
+            return `<span class="bg-red-500/10 text-red-600 dark:text-red-400 text-xs px-2 py-1 rounded-md font-black">رد شده</span>`;
+        } else {
+            return `<span class="bg-orange-500/10 text-orange-600 dark:text-orange-400 text-xs px-2 py-1 rounded-md font-black">در انتظار بررسی</span>`;
+        }
+    }
+
+    function renderPagination(totalPages) {
+        document.getElementById('pagination-info').innerText = `نمایش برگه ${currentPage} از ${totalPages}`;
+        const container = document.getElementById('pagination-controls');
+        container.innerHTML = '';
+        
+        if (totalPages <= 1) return;
+
+        for(let i = 1; i <= totalPages; i++) {
+            const btn = document.createElement('button');
+            btn.innerText = i;
+            btn.className = `w-8 h-8 flex items-center justify-center rounded-lg text-sm font-bold transition-colors ${i === currentPage ? 'bg-primary text-white shadow-md shadow-primary/30' : 'text-text-muted hover:bg-gray-100 dark:hover:bg-white/10'}`;
+            btn.onclick = () => { currentPage = i; updatePageQuery(); loadRequests(); };
+            container.appendChild(btn);
+        }
+    }
+
+    async function loadDetailContent(id, { showLoading = true } = {}) {
+        const modal = document.getElementById('detail-modal');
+        const content = document.getElementById('modal-content');
+
+        if (showLoading) {
+            content.innerHTML = `<div class="text-center text-text-muted py-4">در حال دریافت اطلاعات...</div>`;
+        }
+
+        try {
+            let baseUrl = "{% url 'admin_panel:requests-detail' request_type='__TYPE__' pk=0 %}";
+            let url = baseUrl.replace('__TYPE__', currentType).replace('/0/', `/${id}/`);
+            const detailUrl = new URL(url, window.location.origin);
+            detailUrl.searchParams.set('_ts', String(Date.now()));
+                      
+            const response = await fetch(detailUrl, {
+                cache: 'no-store',
+                headers: {
+                    'X-Admin-Bypass-Cache': '1',
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache',
+                },
+            });
+            const data = await response.json();
+            
+            if(data.error) throw new Error(data.error);
+
+            let html = `<div class="grid grid-cols-1 gap-3">`;
+            
+            // حلقه روی مقادیر دریافتی برای شخصی‌سازی و ساخت ساختار HTML
+            for (const [key, value] of Object.entries(data)) {
+                if (shouldHideField(key)) continue;
+
+                // پیدا کردن ترجمه کلید یا استفاده از فرمت تمیز شده انگلیسی در صورت نبود در دیکشنری
+                let persianLabel = fieldTranslations[key] || key.replace(/_/g, ' ');
+                let displayValue = value;
+                let textDirClass = 'dir-rtl'; // جهت پیش‌فرض متن
+                let extraIdAndData = ''; // اضافه کردن آیدی برای دسترسی‌های بعدی
+
+                // فرمت‌بندی مقادیر بر اساس نوع داده یا نام کلید
+                if (value === null || value === '') {
+                    displayValue = '<span class="text-gray-400">ثبت نشده</span>';
+                } else if (Array.isArray(value)) {
+                    displayValue = value.length ? value.join(' - ') : '<span class="text-gray-400">ثبت نشده</span>';
+                } else if (typeof value === 'boolean') {
+                    displayValue = value ? '<span class="text-green-500">بله</span>' : '<span class="text-red-500">خیر</span>';
+                } else if (key === 'status') {
+                    extraIdAndData = 'id="modal-status"';
+                    displayValue = getStatusBadge(value);
+                } else if (['total_credit', 'current_credit', 'requested_credit', 'granted_credit', 'amount', 'price'].includes(key) && !isNaN(value)) {
+                    // آیدی دادن به فیلد current_credit برای آپدیت زنده در جاوااسکریپت
+                    if (key === 'current_credit') {
+                        extraIdAndData = `id="modal-current-credit" data-value="${value}"`;
+                    }
+                    const amountClass = ['amount', 'price', 'requested_credit', 'granted_credit'].includes(key)
+                        ? 'text-green-600 dark:text-green-400'
+                        : 'text-primary dark:text-blue-400';
+                    displayValue = `<span class="${amountClass} font-black" dir="ltr">$${Number(value).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>`;
+                } else if (key === 'contact_ways') {
+                    textDirClass = 'dir-rtl';
+                } else if (['created_at', 'updated_at'].includes(key)) {
+                    displayValue = formatDateTime(value);
+                } else if (['phone', 'phone_number', 'national_code', 'card_number', 'shaba_number', 'account_number', 'email'].includes(key)) {
+                    textDirClass = 'dir-ltr'; // چپ‌چین کردن فیلدهای خاص برای خوانایی بهتر
+                }
+
+                if (currentType === 'credit' && key === 'total_credit') {
+                    persianLabel = 'اعتبار کل کاربر';
+                }
+
+                html += `
+                    <div class="bg-gray-50 dark:bg-white/5 p-3 rounded-xl border border-gray-100 dark:border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-2">
+                        <span class="text-xs text-text-muted capitalize font-bold">${persianLabel}:</span>
+                        <span ${extraIdAndData} class="text-sm font-bold text-text-main dark:text-white text-right break-all ${textDirClass}">${displayValue}</span>
+                    </div>
+                `;
+            }
+            html += `</div>`;
+
+            // اضافه کردن فیلد مبلغ برای درخواست‌های اعتبار و احراز هویت (در صورت تایید نشدن)
+            const shouldShowAmountInput = (
+                (currentType === 'credit' && data.status !== 'approved')
+                || (currentType === 'verification' && data.status !== 'approved' && data.is_verified !== true)
+            );
+
+            if (shouldShowAmountInput) {
+                let defaultAmount = currentType === 'credit'
+                    ? (data.requested_credit || '')
+                    : (data.granted_credit || data.amount || '');
+                let labelText = currentType === 'credit' ? 'تعیین مبلغ افزایش اعتبار (دلار):' : 'تعیین مبلغ اعتبار (دلار) - اختیاری برای احراز:';
+                
+                html += `
+                    <div id="amount-input-container" class="mt-5 pt-5 border-t border-gray-200 dark:border-white/10">
+                        <label class="block text-sm font-black text-text-main dark:text-white mb-2">${labelText}</label>
+                        <input type="number" step="0.01" id="amount-input" value="${defaultAmount}" class="w-full bg-white dark:bg-admin-surface-dark border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 text-base font-bold focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all dir-ltr" placeholder="مثال: 50.00" min="0">
+                        <p id="amount-help-text" class="text-xs text-gray-500 mt-2">در صورت وارد کردن این فیلد، مبلغ مستقیماً به موجودی کاربر اضافه خواهد شد.</p>
+                    </div>
+                `;
+            }
+
+            content.innerHTML = html;
+
+            // مخفی کردن دکمه‌ها اگر قبلا تایید یا رد شده
+            const btnApprove = document.getElementById('btn-modal-approve');
+            const btnReject = document.getElementById('btn-modal-reject');
+            const shouldHideActionButtons = (
+                data.status === 'approved'
+                || data.status === 'confirmed'
+                || data.status === 'rejected'
+                || (currentType === 'verification' && data.is_verified === true)
+            );
+
+            if (shouldHideActionButtons) {
+                btnApprove.style.display = 'none';
+                btnReject.style.display = 'none';
+            } else {
+                btnApprove.style.display = 'block';
+                btnReject.style.display = 'block';
+            }
+
+            return data;
+        } catch (error) {
+            content.innerHTML = `<div class="text-center text-red-500 py-4 font-bold">خطا در دریافت جزئیات: ${error.message}</div>`;
+            return null;
+        }
+    }
+
+    async function openDetailModal(id, syncUrl = true) {
+        currentDetailId = id;
+        if (syncUrl) {
+            updatePageQuery();
+        }
+        const modal = document.getElementById('detail-modal');
+        const modalInner = modal.querySelector('div');
+
+        if (modal.classList.contains('hidden')) {
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modalInner.classList.remove('scale-95');
+            }, 10);
+        }
+
+        await loadDetailContent(id, { showLoading: true });
+    }
+
+    async function refreshCurrentDetail(options = {}) {
+        if (!currentDetailId) {
+            return null;
+        }
+        return loadDetailContent(currentDetailId, options);
+    }
+
+    function closeModal() {
+        const modal = document.getElementById('detail-modal');
+        const modalInner = modal.querySelector('div');
+        
+        modal.classList.add('opacity-0');
+        modalInner.classList.add('scale-95');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            currentDetailId = null;
+            updatePageQuery();
+        }, 300);
+    }
+
+    async function updateRequestStatus(action) {
+        if(!currentDetailId) return;
+
+        let payload = { action: action };
+        let inputAmountValue = 0;
+
+        // دریافت مبلغ وارد شده برای درخواست‌های اعتبار و مزایده/احراز
+        if ((currentType === 'credit' || currentType === 'verification') && action === 'approve') {
+            const amountInput = document.getElementById('amount-input');
+            if (amountInput) {
+                const amountValue = amountInput.value.trim();
+                inputAmountValue = parseFloat(amountValue);
+                
+                if (currentType === 'credit' && (!amountValue || isNaN(inputAmountValue) || inputAmountValue <= 0)) {
+                    alert('لطفاً یک مبلغ صحیح و بیشتر از صفر وارد کنید.');
+                    amountInput.focus();
+                    return;
+                }
+                
+                if (amountValue && !isNaN(inputAmountValue) && inputAmountValue > 0) {
+                    payload.amount = inputAmountValue;
+                }
+            }
+        }
+
+        const btnApprove = document.getElementById('btn-modal-approve');
+        const btnReject = document.getElementById('btn-modal-reject');
+        btnApprove.disabled = true;
+        btnReject.disabled = true;
+        
+        const csrfToken = getCookie('csrftoken');
+        let baseUrl = "{% url 'admin_panel:requests-detail' request_type='__TYPE__' pk=0 %}";
+        let url = baseUrl.replace('__TYPE__', currentType).replace('/0/', `/${currentDetailId}/`);
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                    'X-Admin-Skip-Refresh': '1'
+                },
+                body: JSON.stringify(payload)
+            });
+            
+            if (!response.ok) {
+                try {
+                    const errData = await response.json();
+                    alert('خطا: ' + errData.error);
+                } catch(e) {
+                    alert('خطای ارتباط با سرور.');
+                }
+                return;
+            }
+
+            const result = await response.json();
+            
+            if(result.success || result.updated || result.deleted) {
+                await refreshRequestsData({
+                    showLoading: false,
+                    syncDetail: true,
+                    reason: 'local-update',
+                    meta: {
+                        action,
+                        requestType: currentType,
+                        requestId: currentDetailId,
+                    },
+                });
+            } else {
+                alert('خطا در عملیات: ' + (result.error || 'دلیل نامشخص'));
+            }
+        } catch (error) {
+            alert('اشکال در ارتباط با سرور.');
+            console.error(error);
+        } finally {
+            // دکمه ها در صورت خطا دوباره فعال می‌شوند، در غیر اینصورت مخفی می‌مانند
+            if (btnApprove.style.display !== 'none') {
+                btnApprove.disabled = false;
+                btnReject.disabled = false;
+            }
+        }
+    }
+</script>
+{% endblock %}

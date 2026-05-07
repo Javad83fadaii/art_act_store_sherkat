@@ -1,0 +1,379 @@
+{% extends 'admin_panel/base.html' %}
+{% load static %}
+
+{% block title %}ویرایش محصول مزایده | آرت‌پنل{% endblock %}
+{% block page_title %}جزئیات محصول مزایده{% endblock %}
+
+{% block content %}
+<div class="flex flex-col gap-6 w-full">
+    <div class="bg-white dark:bg-admin-surface-dark rounded-2xl p-5 border border-gray-100 dark:border-white/5 shadow-sm flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+        <div class="flex flex-col gap-1">
+            <div class="text-lg font-black text-text-main dark:text-white" id="product-title">در حال بارگذاری...</div>
+            <div class="text-xs font-bold text-text-muted" id="product-meta"></div>
+        </div>
+        <div class="flex items-center gap-2 w-full lg:w-auto">
+            <a id="public-link" href="#" target="_blank" class="w-full lg:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary-glow text-sm font-black hover:bg-primary hover:text-white transition-colors">
+                مشاهده در سایت
+            </a>
+            <a id="report-link" href="#" class="w-full lg:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-white/10 dark:hover:bg-white/20 text-gray-700 dark:text-gray-200 text-sm font-black transition-colors">
+                گزارش بازدید
+            </a>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="bg-white dark:bg-admin-surface-dark rounded-2xl p-5 border border-gray-100 dark:border-white/5 shadow-sm lg:col-span-2">
+            <div class="flex items-center justify-between gap-3 mb-5">
+                <div class="text-sm font-black text-text-main dark:text-white">اطلاعات محصول</div>
+                <button id="saveBtn" onclick="saveChanges()" class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-primary text-white text-sm font-black hover:bg-primary-glow transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    ذخیره تغییرات
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-black text-text-muted mb-2">عنوان</label>
+                    <input id="titleInput" type="text" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">product_id</label>
+                    <input id="productIdInput" type="text" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">مزایده</label>
+                    <select id="auctionSelect" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white"></select>
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">قیمت پایه</label>
+                    <input id="reserveInput" type="number" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">ابعاد</label>
+                    <input id="dimensionsInput" type="text" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">سال خلق</label>
+                    <input id="yearInput" type="number" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-black text-text-muted mb-2">توضیحات</label>
+                    <textarea id="descInput" rows="5" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white"></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">اصالت</label>
+                    <select id="authSelect" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
+                        <option value="0">اصالت تایید شده</option>
+                        <option value="1">اصالت تایید نشده</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">هنرمند</label>
+                    <select id="artistSelect" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white"></select>
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">نوع اثر</label>
+                    <select id="typeSelect" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white"></select>
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">current_price</label>
+                    <input id="currentPriceInput" type="number" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">bid_criteria</label>
+                    <select id="bidCriteriaSelect" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
+                        <option value="0">percentage-based</option>
+                        <option value="1">fixed-amount</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">bid_value</label>
+                    <input id="bidValueInput" type="number" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">suggested_price</label>
+                    <input id="suggestedPriceInput" type="number" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">winner_id</label>
+                    <input id="winnerIdInput" type="number" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
+                </div>
+            </div>
+
+            <div id="messageBox" class="mt-4 hidden px-4 py-3 rounded-xl text-sm font-black"></div>
+        </div>
+
+        <div class="bg-white dark:bg-admin-surface-dark rounded-2xl p-5 border border-gray-100 dark:border-white/5 shadow-sm">
+            <div class="text-sm font-black text-text-main dark:text-white mb-4">آمار</div>
+            <div class="flex flex-col gap-3">
+                <div class="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10">
+                    <span class="text-xs font-black text-text-muted">بازدید</span>
+                    <span class="text-sm font-black text-text-main dark:text-white" id="viewsBox">0</span>
+                </div>
+                <div class="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10">
+                    <span class="text-xs font-black text-text-muted">هنرمند</span>
+                    <span class="text-sm font-black text-text-main dark:text-white" id="artistBox">-</span>
+                </div>
+                <div class="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10">
+                    <span class="text-xs font-black text-text-muted">مزایده</span>
+                    <a id="auctionLink" href="#" target="_blank" class="text-sm font-black text-primary hover:underline">-</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- بخش بیدها -->
+    <div class="bg-white dark:bg-admin-surface-dark rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm overflow-hidden">
+        <div class="px-5 pt-5 pb-4 flex items-center justify-between">
+            <div class="text-sm font-black text-text-main dark:text-white">لیست بیدها</div>
+            <span class="text-xs font-bold text-text-muted" id="bids-count-label"></span>
+        </div>
+        <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-right min-w-[900px]">
+                <thead>
+                    <tr class="border-y border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/5">
+                        <th class="py-3 px-4 text-xs font-bold text-text-muted w-10 text-center">#</th>
+                        <th class="py-3 px-4 text-xs font-bold text-text-muted min-w-[150px]">نام کاربر</th>
+                        <th class="py-3 px-4 text-xs font-bold text-text-muted w-32">موبایل</th>
+                        <th class="py-3 px-4 text-xs font-bold text-text-muted w-36">مبلغ بید</th>
+                        <th class="py-3 px-4 text-xs font-bold text-text-muted w-40">تاریخ</th>
+                    </tr>
+                </thead>
+                <tbody id="bids-tbody">
+                    <tr><td colspan="5" class="py-8 text-center text-text-muted text-sm">در حال بارگذاری...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div id="bids-pagination" class="px-5 py-3 border-t border-gray-100 dark:border-white/5 flex items-center justify-center gap-2 hidden"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const PRODUCT_PK = {{ product_pk|default:"null" }};
+    const API_DETAIL_URL = "{% url 'admin_panel:products-auction-detail' 0 %}".replace('/0/', `/${PRODUCT_PK}/`);
+    const API_BIDS_URL = "{% url 'admin_panel:products-auction-bids' 0 %}".replace('/0/', `/${PRODUCT_PK}/`);
+    const PUBLIC_PRODUCT_URL = "{% url 'auction:auction_product_detail' 0 %}".replace('/0/', `/${PRODUCT_PK}/`);
+    const REPORTS_PAGE_URL = "{% url 'admin_panel_pages:products-reports' %}";
+    const PUBLIC_AUCTION_URL_TEMPLATE = "{% url 'auction:auction_detail' 0 %}";
+    const OPTIONS_URL = "{% url 'admin_panel:products-options' %}";
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        document.getElementById('public-link').href = PUBLIC_PRODUCT_URL;
+        await loadOptions();
+        await loadDetails();
+        loadBids(1);
+    });
+
+    function buildUrlFromTemplate(template, pk) {
+        return template.replace('/0/', `/${pk}/`);
+    }
+
+    function showMessage(text, type) {
+        const box = document.getElementById('messageBox');
+        box.classList.remove('hidden');
+        box.innerText = text;
+        if (type === 'success') {
+            box.className = 'mt-4 px-4 py-3 rounded-xl text-sm font-black bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-400';
+        } else {
+            box.className = 'mt-4 px-4 py-3 rounded-xl text-sm font-black bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400';
+        }
+    }
+
+    async function loadOptions() {
+        try {
+            const res = await fetch(OPTIONS_URL);
+            if (!res.ok) return;
+            const data = await res.json();
+            const auctionSel = document.getElementById('auctionSelect');
+            const artistSel = document.getElementById('artistSelect');
+            const typeSel = document.getElementById('typeSelect');
+            auctionSel.innerHTML = '';
+            data.auctions.forEach(a => {
+                const opt = document.createElement('option');
+                opt.value = a.id;
+                opt.textContent = a.title || `مزایده ${a.id}`;
+                auctionSel.appendChild(opt);
+            });
+            artistSel.innerHTML = '';
+            data.artists.forEach(a => {
+                const opt = document.createElement('option');
+                opt.value = a.id;
+                opt.textContent = a.name;
+                artistSel.appendChild(opt);
+            });
+            typeSel.innerHTML = '';
+            data.artwork_types.forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t.id;
+                opt.textContent = t.name;
+                typeSel.appendChild(opt);
+            });
+        } catch {}
+    }
+
+    async function loadDetails() {
+        try {
+            const response = await fetch(API_DETAIL_URL);
+            if (!response.ok) throw new Error('Failed');
+            const data = await response.json();
+
+            document.getElementById('product-title').innerText = data.artwork_title || `محصول مزایده #${data.id}`;
+            document.getElementById('product-meta').innerText = `شناسه داخلی: #${data.id} | product_id: ${data.product_id || '-'} | auction_id: ${data.auction_id || '-'}`;
+
+            document.getElementById('productIdInput').value = data.product_id || '';
+            document.getElementById('auctionSelect').value = data.auction_id || '';
+            document.getElementById('titleInput').value = data.artwork_title || '';
+            document.getElementById('reserveInput').value = data.reserve_price || '';
+            document.getElementById('dimensionsInput').value = data.dimensions || '';
+            document.getElementById('yearInput').value = data.creation_year || '';
+            document.getElementById('descInput').value = data.description || '';
+            document.getElementById('authSelect').value = String(data.authenticity_status ?? '0');
+            document.getElementById('artistSelect').value = data.artist_id || '';
+            document.getElementById('typeSelect').value = data.artwork_type_id || '';
+            document.getElementById('currentPriceInput').value = data.current_price || '';
+            document.getElementById('bidCriteriaSelect').value = data.bid_criteria ?? 0;
+            document.getElementById('bidValueInput').value = data.bid_value || '';
+            document.getElementById('suggestedPriceInput').value = data.suggested_price || '';
+            document.getElementById('winnerIdInput').value = data.winner_id || '';
+
+            document.getElementById('viewsBox').innerText = Number(data.views || 0).toLocaleString('fa-IR');
+            document.getElementById('artistBox').innerText = data.artist || '-';
+
+            const reportUrl = `${REPORTS_PAGE_URL}?type=auction_product&auction_id=${data.auction_id || ''}&product_id=${data.id}`;
+            document.getElementById('report-link').href = reportUrl;
+
+            if (data.auction_id) {
+                const auctionUrl = buildUrlFromTemplate(PUBLIC_AUCTION_URL_TEMPLATE, data.auction_id);
+                document.getElementById('auctionLink').href = auctionUrl;
+                document.getElementById('auctionLink').innerText = data.auction || `مزایده #${data.auction_id}`;
+            } else {
+                document.getElementById('auctionLink').href = '#';
+                document.getElementById('auctionLink').innerText = data.auction || '-';
+            }
+        } catch (e) {
+            showMessage('خطا در دریافت اطلاعات محصول.', 'error');
+        }
+    }
+
+    async function saveChanges() {
+        const btn = document.getElementById('saveBtn');
+        btn.disabled = true;
+        try {
+            const payload = {
+                product_id: document.getElementById('productIdInput').value.trim(),
+                auction_id: document.getElementById('auctionSelect').value ? Number(document.getElementById('auctionSelect').value) : null,
+                artwork_title: document.getElementById('titleInput').value.trim(),
+                reserve_price: document.getElementById('reserveInput').value,
+                dimensions: document.getElementById('dimensionsInput').value.trim(),
+                creation_year: document.getElementById('yearInput').value ? Number(document.getElementById('yearInput').value) : null,
+                description: document.getElementById('descInput').value,
+                authenticity_status: Number(document.getElementById('authSelect').value),
+                artist_id: document.getElementById('artistSelect').value ? Number(document.getElementById('artistSelect').value) : null,
+                artwork_type_id: document.getElementById('typeSelect').value ? Number(document.getElementById('typeSelect').value) : null,
+                current_price: document.getElementById('currentPriceInput').value !== '' ? Number(document.getElementById('currentPriceInput').value) : null,
+                bid_criteria: Number(document.getElementById('bidCriteriaSelect').value),
+                bid_value: document.getElementById('bidValueInput').value ? Number(document.getElementById('bidValueInput').value) : 0,
+                suggested_price: document.getElementById('suggestedPriceInput').value !== '' ? Number(document.getElementById('suggestedPriceInput').value) : null,
+                winner_id: document.getElementById('winnerIdInput').value ? Number(document.getElementById('winnerIdInput').value) : null,
+            };
+
+            const response = await fetch(API_DETAIL_URL, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+                body: JSON.stringify(payload),
+            });
+
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                showMessage(data.error || 'خطا در ذخیره تغییرات.', 'error');
+                return;
+            }
+            showMessage('تغییرات با موفقیت ذخیره شد.', 'success');
+            await loadDetails();
+        } catch (e) {
+            showMessage('خطا در ذخیره تغییرات.', 'error');
+        } finally {
+            btn.disabled = false;
+        }
+    }
+    const bidsDateFormatter = new Intl.DateTimeFormat('fa-IR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+
+    async function loadBids(page) {
+        try {
+            const response = await fetch(`${API_BIDS_URL}?page=${page}`);
+            if (!response.ok) throw new Error('Failed');
+            const data = await response.json();
+
+            const tbody = document.getElementById('bids-tbody');
+            tbody.innerHTML = '';
+
+            document.getElementById('bids-count-label').innerText = `${Number(data.total).toLocaleString('fa-IR')} بید`;
+
+            if (!data.results || data.results.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-text-muted text-sm">هیچ بیدی ثبت نشده است.</td></tr>`;
+                document.getElementById('bids-pagination').classList.add('hidden');
+                return;
+            }
+
+            function getMedalEmoji(rank) {
+                if (rank === 1) return '🥇';
+                if (rank === 2) return '🥈';
+                if (rank === 3) return '🥉';
+                return '';
+            }
+            
+            data.results.forEach((bid, idx) => {
+                const dateStr = bid.created_at ? bidsDateFormatter.format(new Date(bid.created_at)) : '-';
+                const rowNum = (data.current_page - 1) * 20 + idx + 1;
+                const medal = bid.rank ? getMedalEmoji(bid.rank) : '';
+                const row = `
+                    <tr class="border-b border-gray-50 dark:border-white/5 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors">
+                        <td class="py-3 px-4 text-xs text-text-muted font-bold text-center">${rowNum}</td>
+                        <td class="py-3 px-4 text-xs font-bold text-text-main dark:text-white line-clamp-1 flex items-center gap-2">
+                            ${medal ? `<span class="text-lg">${medal}</span>` : ''}
+                            ${bid.user_fullname}
+                        </td>
+                        <td class="py-3 px-4 text-xs text-text-muted dir-ltr text-right font-mono whitespace-nowrap">${bid.user_mobile}</td>
+                        <td class="py-3 px-4 text-xs font-black text-primary dark:text-primary-glow whitespace-nowrap">$${Number(bid.bid_amount).toLocaleString('en-US', { maximumFractionDigits: 2, minimumFractionDigits: 0 })}</td>
+                        <td class="py-3 px-4 text-xs text-text-muted dir-ltr text-right whitespace-nowrap">${dateStr}</td>
+                    </tr>
+                `;
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+
+            // Pagination
+            const paginationEl = document.getElementById('bids-pagination');
+            if (data.pages > 1) {
+                paginationEl.classList.remove('hidden');
+                paginationEl.innerHTML = '';
+                for (let i = 1; i <= data.pages; i++) {
+                    const active = i === data.current_page;
+                    const btn = `<button onclick="loadBids(${i})" class="size-8 rounded-lg text-xs font-bold transition-colors flex items-center justify-center ${active ? 'bg-primary text-white shadow-md' : 'bg-white dark:bg-white/10 text-text-main dark:text-white hover:bg-gray-50 dark:hover:bg-white/20'}">${i.toLocaleString('fa-IR')}</button>`;
+                    paginationEl.insertAdjacentHTML('beforeend', btn);
+                }
+            } else {
+                paginationEl.classList.add('hidden');
+            }
+        } catch (e) {
+            document.getElementById('bids-tbody').innerHTML = `<tr><td colspan="5" class="py-8 text-center text-red-500 text-sm">خطا در دریافت بیدها.</td></tr>`;
+        }
+    }
+</script>
+{% endblock %}

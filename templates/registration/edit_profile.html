@@ -1,0 +1,391 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}ویرایش پروفایل{% endblock %}
+
+{% block content %}
+<div class="relative w-full flex items-center justify-center min-h-[calc(100vh-80px)] py-10 font-sans">
+    <div class="fixed inset-0 z-[-1]">
+        <div class="h-full w-full bg-cover bg-center blur-[4px] scale-105"
+             style='background-image: url("../../static/images/backgerand_login.png");'>
+        </div>
+        <div class="absolute inset-0 bg-white/30 dark:bg-gray-900/60"></div>
+    </div>
+
+    <div class="relative z-10 w-full max-w-2xl rounded-2xl bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border border-white/40 dark:border-gray-700 shadow-2xl p-8 mx-4">
+        <div class="mb-8 flex flex-col items-center justify-center text-center">
+            <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-white shadow-lg shadow-primary/30">
+                <span class="material-symbols-outlined text-[32px] font-bold">account_circle</span>
+            </div>
+            <h2 class="mb-1 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">ویرایش اطلاعات</h2>
+            <p class="text-sm font-light text-gray-600 dark:text-gray-300">
+                <a href="{% url 'profile' %}" class="font-bold text-primary hover:text-primary-dark hover:underline transition-colors">
+                    بازگشت به پروفایل
+                </a>
+            </p>
+        </div>
+
+        <form class="space-y-6" method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ next|default:'' }}"/>
+
+            {% if form.non_field_errors %}
+                <div class="p-4 text-sm text-red-700 bg-red-100 rounded-xl dark:bg-red-900/30 dark:text-red-300 text-right border border-red-200 dark:border-red-800 shadow-sm" role="alert">
+                    <div class="flex flex-col gap-1">
+                        <strong class="font-bold">خطا:</strong>
+                        {% for error in form.non_field_errors %}
+                            <span>{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+
+            <div class="flex flex-col gap-5">
+                <div class="flex flex-col gap-2">
+                    <label for="{{ form.full_name.id_for_label }}" class="text-sm font-medium leading-normal text-gray-900 dark:text-gray-200 text-right">
+                        {{ form.full_name.label }}
+                        <span id="full-name-required-indicator" class="text-red-500 hidden">*</span>
+                    </label>
+                    <div class="relative">
+                        {{ form.full_name }}
+                    </div>
+                    <div id="full-name-live-message" class="hidden text-xs text-red-600 dark:text-red-400 text-right font-medium"></div>
+                    {% if form.full_name.errors %}
+                        <p class="text-xs text-red-600 dark:text-red-400 text-right font-medium">{{ form.full_name.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="flex flex-col gap-2">
+                    <label for="{{ form.phone_number.id_for_label }}" class="text-sm font-medium leading-normal text-gray-900 dark:text-gray-200 text-right">
+                        {{ form.phone_number.label }}
+                        <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative">
+                        {{ form.phone_number }}
+                    </div>
+                    <div id="phone-live-message" class="hidden text-xs text-red-600 dark:text-red-400 text-right font-medium"></div>
+                    {% if form.phone_number.errors %}
+                        <p class="text-xs text-red-600 dark:text-red-400 text-right font-medium">{{ form.phone_number.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="flex flex-col gap-2">
+                    <label for="{{ form.address_street.id_for_label }}" class="text-sm font-medium leading-normal text-gray-900 dark:text-gray-200 text-right">
+                        {{ form.address_street.label }}
+                    </label>
+                    <div class="relative">
+                        {{ form.address_street }}
+                    </div>
+                    {% if form.address_street.errors %}
+                        <p class="text-xs text-red-600 dark:text-red-400 text-right font-medium">{{ form.address_street.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="flex flex-col gap-2">
+                    <label for="{{ form.email.id_for_label }}" class="text-sm font-medium leading-normal text-gray-900 dark:text-gray-200 text-right">
+                        {{ form.email.label }}
+                        <span id="email-required-indicator" class="text-red-500 hidden">*</span>
+                    </label>
+                    <div class="relative">
+                        {{ form.email }}
+                    </div>
+                    <div id="email-live-message" class="hidden text-xs text-red-600 dark:text-red-400 text-right font-medium"></div>
+                    {% if form.email.errors %}
+                        <p class="text-xs text-red-600 dark:text-red-400 text-right font-medium">{{ form.email.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="flex flex-col gap-2">
+                    <label class="text-sm font-medium leading-normal text-gray-900 dark:text-gray-200 text-right">
+                        {{ form.preferred_contact_methods.label }}
+                    </label>
+                    <div id="contact-methods" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {% for checkbox in form.preferred_contact_methods %}
+                            <label class="flex items-center justify-between rounded-xl border border-gray-300 bg-white/50 px-4 py-3 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800/50 dark:text-white cursor-pointer select-none">
+                                <span class="text-right">{{ checkbox.choice_label }}</span>
+                                <span class="flex items-center">
+                                    {{ checkbox.tag }}
+                                </span>
+                            </label>
+                        {% endfor %}
+                    </div>
+                    {% if form.preferred_contact_methods.errors %}
+                        <p class="text-xs text-red-600 dark:text-red-400 text-right font-medium">{{ form.preferred_contact_methods.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div id="telegram-id-wrapper" class="flex flex-col gap-2 hidden">
+                    <label for="{{ form.telegram_id.id_for_label }}" class="text-sm font-medium leading-normal text-gray-900 dark:text-gray-200 text-right">
+                        {{ form.telegram_id.label }}
+                    </label>
+                    <div class="relative">
+                        {{ form.telegram_id }}
+                    </div>
+                    {% if form.telegram_id.errors %}
+                        <p class="text-xs text-red-600 dark:text-red-400 text-right font-medium">{{ form.telegram_id.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="flex flex-col gap-2">
+                    <label class="text-sm font-medium leading-normal text-gray-900 dark:text-gray-200 text-right">
+                        {{ form.participate_in_auction.label }}
+                    </label>
+                    <div class="flex items-center gap-4">
+                        {% for radio in form.participate_in_auction %}
+                            <label class="inline-flex items-center gap-2 text-sm text-gray-900 dark:text-gray-100">
+                                {{ radio.tag }}
+                                <span>{{ radio.choice_label }}</span>
+                            </label>
+                        {% endfor %}
+                    </div>
+                    {% if form.participate_in_auction.errors %}
+                        <p class="text-xs text-red-600 dark:text-red-400 text-right font-medium">{{ form.participate_in_auction.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="flex flex-col gap-2">
+                    <label for="{{ form.profile_picture.id_for_label }}" class="text-sm font-medium leading-normal text-gray-900 dark:text-gray-200 text-right">
+                        {{ form.profile_picture.label }}
+                    </label>
+                    <div class="relative">
+                        {{ form.profile_picture }}
+                    </div>
+                    {% if form.profile_picture.errors %}
+                        <p class="text-xs text-red-600 dark:text-red-400 text-right font-medium">{{ form.profile_picture.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="flex flex-col gap-2">
+                    <label for="{{ form.password1.id_for_label }}" class="text-sm font-medium leading-normal text-gray-900 dark:text-gray-200 text-right">
+                        {{ form.password1.label }}
+                    </label>
+                    <div class="relative">
+                        {{ form.password1 }}
+                    </div>
+                    <div id="password-live-message" class="hidden text-xs text-red-600 dark:text-red-400 text-right font-medium"></div>
+                    {% if form.password1.errors %}
+                        <p class="text-xs text-red-600 dark:text-red-400 text-right font-medium">{{ form.password1.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="flex flex-col gap-2">
+                    <label for="{{ form.password2.id_for_label }}" class="text-sm font-medium leading-normal text-gray-900 dark:text-gray-200 text-right">
+                        {{ form.password2.label }}
+                    </label>
+                    <div class="relative">
+                        {{ form.password2 }}
+                    </div>
+                    <div id="password-match-message" class="hidden text-xs text-red-600 dark:text-red-400 text-right font-medium"></div>
+                    {% if form.password2.errors %}
+                        <p class="text-xs text-red-600 dark:text-red-400 text-right font-medium">{{ form.password2.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="pt-2">
+                <button 
+                    type="submit" 
+                    class="w-full flex items-center justify-center bg-primary hover:bg-primary-dark text-white py-3 rounded-xl font-bold transition-colors font-body shadow-lg shadow-[#000000]/20">
+                    ذخیره تغییرات
+                </button>
+            </div>
+        </form>
+
+        <script>
+            (function () {
+                const phoneInput = document.getElementById("{{ form.phone_number.id_for_label }}");
+                const fullNameInput = document.getElementById("{{ form.full_name.id_for_label }}");
+                const emailInput = document.getElementById("{{ form.email.id_for_label }}");
+                const emailIndicator = document.getElementById("email-required-indicator");
+                const telegramWrapper = document.getElementById("telegram-id-wrapper");
+                const fullNameIndicator = document.getElementById("full-name-required-indicator");
+
+                const phoneLiveMessage = document.getElementById("phone-live-message");
+                const emailLiveMessage = document.getElementById("email-live-message");
+                const fullNameLiveMessage = document.getElementById("full-name-live-message");
+
+                function getSelectedContactMethods() {
+                    const container = document.getElementById("contact-methods");
+                    if (!container) return [];
+                    const inputs = container.querySelectorAll('input[type="checkbox"]');
+                    return Array.from(inputs).filter(i => i.checked).map(i => i.value);
+                }
+
+                function syncConditionalFields() {
+                    const selected = getSelectedContactMethods();
+
+                    const emailSelected = selected.includes("email");
+                    if (emailInput) {
+                        if (emailSelected) {
+                            emailInput.setAttribute("required", "required");
+                            emailIndicator?.classList.remove("hidden");
+                        } else {
+                            emailInput.removeAttribute("required");
+                            emailIndicator?.classList.add("hidden");
+                        }
+                    }
+
+                    const telegramSelected = selected.includes("telegram");
+                    if (telegramWrapper) {
+                        if (telegramSelected) {
+                            telegramWrapper.classList.remove("hidden");
+                        } else {
+                            telegramWrapper.classList.add("hidden");
+                        }
+                    }
+
+                    syncPhoneAndEmail();
+                }
+
+                const contactContainer = document.getElementById("contact-methods");
+                if (contactContainer) {
+                    contactContainer.addEventListener("change", syncConditionalFields);
+                }
+                syncConditionalFields();
+                syncAuctionRequirements();
+
+                function normalizeDigits(input) {
+                    const map = { "۰":"0","۱":"1","۲":"2","۳":"3","۴":"4","۵":"5","۶":"6","۷":"7","۸":"8","۹":"9" };
+                    return (input || "")
+                        .split("")
+                        .map(ch => map[ch] ?? ch)
+                        .join("")
+                        .replace(/[^\d]/g, "");
+                }
+
+                function getPhoneWarning(phoneDigits) {
+                    if (phoneDigits.length === 0) return null;
+                    if (!phoneDigits.startsWith("0")) return "شماره موبایل باید با ۰ شروع شود.";
+                    if (phoneDigits.length < 11) return `شماره موبایل باید دقیقاً ۱۱ رقم باشد (فعلاً ${phoneDigits.length} رقم).`;
+                    if (phoneDigits.length > 11) return "شماره موبایل نباید بیشتر از ۱۱ رقم باشد.";
+                    return null;
+                }
+
+                function isEmailValid(email) {
+                    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+                }
+
+                function syncPhoneAndEmail() {
+                    const phoneDigits = normalizeDigits(phoneInput?.value || "");
+                    const phoneWarning = getPhoneWarning(phoneDigits);
+                    setMessage(phoneLiveMessage, phoneWarning || "", phoneWarning ? "error" : null);
+
+                    const selected = getSelectedContactMethods();
+                    const emailSelected = selected.includes("email");
+                    const emailValue = (emailInput?.value || "").trim();
+                    if (!emailSelected) {
+                        setMessage(emailLiveMessage, "", null);
+                        return;
+                    }
+                    if (!emailValue) {
+                        setMessage(emailLiveMessage, "در صورت انتخاب «ایمیل»، وارد کردن آدرس ایمیل الزامی است.", "error");
+                        return;
+                    }
+                    if (!isEmailValid(emailValue)) {
+                        setMessage(emailLiveMessage, "فرمت ایمیل صحیح نیست.", "error");
+                        return;
+                    }
+                    setMessage(emailLiveMessage, "", null);
+                }
+
+                if (phoneInput) phoneInput.addEventListener("input", syncPhoneAndEmail);
+                if (emailInput) emailInput.addEventListener("input", syncPhoneAndEmail);
+
+                function getParticipateInAuction() {
+                    const checked = document.querySelector('input[name="participate_in_auction"]:checked');
+                    return checked ? checked.value : "no";
+                }
+
+                function syncAuctionRequirements() {
+                    const participate = getParticipateInAuction();
+                    if (!fullNameInput) return;
+
+                    if (participate === "yes") {
+                        fullNameInput.setAttribute("required", "required");
+                        fullNameIndicator?.classList.remove("hidden");
+
+                        const v = (fullNameInput.value || "").trim();
+                        if (!v) {
+                            setMessage(fullNameLiveMessage, "در صورت شرکت در مزایده، وارد کردن نام و نام خانوادگی الزامی است.", "error");
+                        } else {
+                            setMessage(fullNameLiveMessage, "", null);
+                        }
+                    } else {
+                        fullNameInput.removeAttribute("required");
+                        fullNameIndicator?.classList.add("hidden");
+                        setMessage(fullNameLiveMessage, "", null);
+                    }
+                }
+
+                document.querySelectorAll('input[name="participate_in_auction"]').forEach((el) => {
+                    el.addEventListener('change', syncAuctionRequirements);
+                });
+
+                function setMessage(el, text, kind) {
+                    if (!el) return;
+
+                    if (!text) {
+                        el.textContent = "";
+                        el.classList.add("hidden");
+                        el.classList.remove("text-red-600", "dark:text-red-400", "text-green-700", "dark:text-green-400");
+                        return;
+                    }
+
+                    el.textContent = text;
+                    el.classList.remove("hidden");
+
+                    el.classList.remove("text-red-600", "dark:text-red-400", "text-green-700", "dark:text-green-400");
+                    if (kind === "ok") {
+                        el.classList.add("text-green-700", "dark:text-green-400");
+                    } else {
+                        el.classList.add("text-red-600", "dark:text-red-400");
+                    }
+                }
+
+                const password1Input = document.getElementById("{{ form.password1.id_for_label }}");
+                const password2Input = document.getElementById("{{ form.password2.id_for_label }}");
+                const passwordLiveMessage = document.getElementById("password-live-message");
+                const passwordMatchMessage = document.getElementById("password-match-message");
+
+                function hasUpper(s) { return /[A-Z]/.test(s); }
+                function hasLower(s) { return /[a-z]/.test(s); }
+                function hasSpecial(s) { return /[^a-zA-Z0-9\\s]/.test(s); }
+
+                function getNextPasswordWarning(password) {
+                    if (password.length === 0) return null;
+                    if (password.length < 8) return "رمز عبور باید حداقل ۸ کاراکتر باشد.";
+                    if (!hasSpecial(password)) return "حداقل یک کاراکتر ویژه مثل @ یا # لازم است.";
+                    if (!hasUpper(password)) return "حداقل یک حرف بزرگ انگلیسی (A-Z) لازم است.";
+                    if (!hasLower(password)) return "حداقل یک حرف کوچک انگلیسی (a-z) لازم است.";
+                    return null;
+                }
+
+                function syncPasswordRules() {
+                    const p1 = password1Input?.value || "";
+                    const p2 = password2Input?.value || "";
+
+                    if (p1.length === 0) {
+                        setMessage(passwordLiveMessage, "", null);
+                    } else {
+                        const warning = getNextPasswordWarning(p1);
+                        if (warning) setMessage(passwordLiveMessage, warning, "error");
+                        else setMessage(passwordLiveMessage, "رمز عبور از نظر ساختار مناسب است.", "ok");
+                    }
+
+                    if (p2.length === 0 || p1.length === 0) {
+                        setMessage(passwordMatchMessage, "", null);
+                        return;
+                    }
+
+                    if (p1 !== p2) setMessage(passwordMatchMessage, "رمز عبور و تکرار آن یکسان نیستند.", "error");
+                    else setMessage(passwordMatchMessage, "رمز عبور و تکرار آن یکسان است.", "ok");
+                }
+
+                if (password1Input) password1Input.addEventListener("input", syncPasswordRules);
+                if (password2Input) password2Input.addEventListener("input", syncPasswordRules);
+                syncPasswordRules();
+            })();
+        </script>
+    </div>
+</div>
+{% endblock %}

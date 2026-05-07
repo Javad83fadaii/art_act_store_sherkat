@@ -1,0 +1,86 @@
+{% load humanize fa_digits auction_tags %}
+<div class="border-t border-white/30 dark:border-gray-600/30 pt-4 mt-2">
+    <details class="group bg-white/20 dark:bg-gray-800/20 backdrop-blur-md rounded-2xl border border-white/40 dark:border-gray-600/30 [&_summary::-webkit-details-marker]:hidden transition-all duration-300 open:border-white/70 dark:open:border-gray-500/50 shadow-[0_4px_30px_rgba(0,0,0,0.05)]">
+        <summary class="flex items-center justify-between p-4 cursor-pointer list-none focus:outline-none">
+            <div class="flex items-center gap-3">
+                <span class="p-2 bg-white/40 dark:bg-gray-800/40 backdrop-blur-sm border border-white/50 dark:border-gray-600/40 rounded-lg text-primary dark:text-blue-300">
+                    <span class="material-symbols-outlined text-[18px]">history</span>
+                </span>
+                <span class="text-xs font-bold text-gray-900 dark:text-white drop-shadow-sm">
+                    تاریخچه بیدهای شما
+                </span>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <span id="my-bids-count-badge" class="px-3 py-1 bg-white/40 dark:bg-gray-800/50 backdrop-blur-md border border-white/60 dark:border-gray-600/50 text-primary dark:text-white text-[10px] font-bold rounded-full shadow-sm">
+                    {{ my_bids_count|default:"0"|fa_digits }} بید
+                </span>
+
+                <div class="w-5 h-5 flex items-center justify-center bg-white/40 dark:bg-gray-900/50 backdrop-blur-sm border border-white/50 rounded-full shadow-sm group-open:rotate-180 transition-transform duration-300">
+                    <span class="material-symbols-outlined text-[16px] text-primary dark:text-white">expand_more</span>
+                </div>
+            </div>
+        </summary>
+
+        <div class="px-4 pb-4 pt-2 border-t border-white/30 dark:border-gray-600/30 mx-4 mb-2">
+            {% if my_bids %}
+                <div class="space-y-3 max-h-52 overflow-y-auto pr-1 custom-glass-scroll">
+                    {% for bid in my_bids %}
+                        <div class="
+                            flex items-center justify-between p-3 rounded-xl border shadow-sm backdrop-blur-sm
+                            {% if forloop.first %}
+                                bg-white/50 dark:bg-gray-900/50 border-white/70 dark:border-gray-500/60 ring-1 ring-primary/40
+                            {% else %}
+                                bg-white/30 dark:bg-gray-900/40 border-white/50 dark:border-gray-600/40
+                            {% endif %}
+                        ">
+                            <div class="flex items-center gap-2">
+                                {% with rank=bid|get_bid_rank %}
+                                    {% if rank == 1 %}
+                                        <!-- مدال طلا -->
+                                        <div class="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-600 shadow-lg border border-yellow-200/50 shrink-0">
+                                            <span class="text-white text-xs font-black drop-shadow-sm">۱</span>
+                                        </div>
+                                    {% elif rank == 2 %}
+                                        <!-- مدال نقره -->
+                                        <div class="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-gray-200 via-gray-400 to-gray-500 shadow-lg border border-gray-100/50 shrink-0">
+                                            <span class="text-white text-xs font-black drop-shadow-sm">۲</span>
+                                        </div>
+                                    {% elif rank == 3 %}
+                                        <!-- مدال برنز -->
+                                        <div class="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-orange-300 via-orange-500 to-orange-700 shadow-lg border border-orange-200/50 shrink-0">
+                                            <span class="text-white text-xs font-black drop-shadow-sm">۳</span>
+                                        </div>
+                                    {% else %}
+                                        <div class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_5px_currentColor]"></div>
+                                    {% endif %}
+                                {% endwith %}
+
+                                <span class="text-sm font-extrabold text-gray-900 dark:text-white drop-shadow-sm">
+                                    {{ bid.bid_amount|floatformat:"0"|intcomma|fa_digits }} دلار
+                                </span>
+
+                                {% if bid.is_user_highest %}
+                                    <span class="px-2 py-0.5 text-[9px] font-bold text-green-700 dark:text-green-300 bg-green-100/60 dark:bg-green-800/30 border border-green-200/60 dark:border-green-700/40 rounded-full">
+                                        برنده فعلی
+                                    </span>
+                                {% endif %}
+                            </div>
+
+                            <span class="text-[10px] font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1">
+                                {{ bid.created_at|date:"Y/m/d H:i"|fa_digits }}
+                                <span class="material-symbols-outlined text-[12px]">schedule</span>
+                            </span>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="py-6 text-center border-2 border-dashed border-white/50 dark:border-gray-600/30 rounded-2xl bg-white/10 dark:bg-gray-800/10 backdrop-blur-sm">
+                    <p class="text-xs text-gray-700 dark:text-gray-300">
+                        هنوز پیشنهادی ثبت نکرده‌اید.
+                    </p>
+                </div>
+            {% endif %}
+        </div>
+    </details>
+</div>
