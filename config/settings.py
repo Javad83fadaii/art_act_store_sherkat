@@ -84,7 +84,7 @@ if importlib.util.find_spec('channels') is not None:
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'db1',  # نام دیتابیس شما در MySQL
+        'NAME': 'sherkat',  # نام دیتابیس شما در MySQL
         'USER': 'root',  # نام کاربری MySQL (اگر از لاراگون استفاده می‌کنید، معمولاً 'root' است)
         'PASSWORD': '',  # رمز عبور (اگر رمز عبور ندارید، آن را خالی بگذارید)
         'HOST': '127.0.0.1',  # آدرس میزبان دیتابیس (در لاراگون 'localhost' است)

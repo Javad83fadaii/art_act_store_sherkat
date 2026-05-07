@@ -15,7 +15,7 @@
             <!-- هدر با دکمه ویرایش -->
             <div class="flex justify-between items-start mb-6">
                 <h2 class="text-xl font-black text-gray-900 dark:text-white">اطلاعات کاربر</h2>
-                <button type="button" id="open-edit-user-modal"
+                <button type="button" id="" {# open-edit-user-modal #}
                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-bold text-white bg-primary hover:bg-primary/90 rounded-xl transition-all duration-300 shadow-sm">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
@@ -163,7 +163,7 @@
         <div class="bg-white dark:bg-admin-surface-dark rounded-2xl p-5 border border-gray-100 dark:border-white/5 shadow-sm flex items-center justify-between group hover:shadow-md transition-shadow">
             <div class="flex flex-col gap-1">
                 <span class="text-sm font-bold text-text-muted">نشست‌های سایت</span>
-                <span class="text-xl font-black text-text-main dark:text-white" id="total-visits-count">0</span>
+                {% comment %} <span class="text-xl font-black text-text-main dark:text-white" id="total-visits-count">0</span> {% endcomment %}
             </div>
             <div class="size-12 rounded-xl bg-green-50 dark:bg-green-500/10 text-green-500 flex items-center justify-center group-hover:scale-110 transition-transform">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
@@ -172,7 +172,7 @@
         <div class="bg-white dark:bg-admin-surface-dark rounded-2xl p-5 border border-gray-100 dark:border-white/5 shadow-sm flex items-center justify-between group hover:shadow-md transition-shadow">
             <div class="flex flex-col gap-1">
                 <span class="text-sm font-bold text-text-muted">جمع بازدید‌ها</span>
-                <span class="text-xl font-black text-purple-600 dark:text-purple-400" id="total-product-visits-count">0</span>
+                {% comment %} <span class="text-xl font-black text-purple-600 dark:text-purple-400" id="total-product-visits-count">0</span> {% endcomment %}
             </div>
             <div class="size-12 rounded-xl bg-purple-50 dark:bg-purple-500/10 text-purple-500 flex items-center justify-center group-hover:scale-110 transition-transform">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -181,7 +181,7 @@
         <div class="bg-white dark:bg-admin-surface-dark rounded-2xl p-5 border border-gray-100 dark:border-white/5 shadow-sm flex items-center justify-between group hover:shadow-md transition-shadow">
             <div class="flex flex-col gap-1">
                 <span class="text-sm font-bold text-text-muted">خریداری شده</span>
-                <span class="text-xl font-black text-blue-600 dark:text-blue-400" id="total-purchased-count">0</span>
+                {% comment %} <span class="text-xl font-black text-blue-600 dark:text-blue-400" id="total-purchased-count">0</span> {% endcomment %}
             </div>
             <div class="size-12 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-500 flex items-center justify-center group-hover:scale-110 transition-transform">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
@@ -190,7 +190,7 @@
         <div class="bg-white dark:bg-admin-surface-dark rounded-2xl p-5 border border-gray-100 dark:border-white/5 shadow-sm flex items-center justify-between group hover:shadow-md transition-shadow">
             <div class="flex flex-col gap-1">
                 <span class="text-sm font-bold text-text-muted">رزرو شده</span>
-                <span class="text-xl font-black text-amber-600 dark:text-amber-400" id="total-reserved-count">0</span>
+                {% comment %} <span class="text-xl font-black text-amber-600 dark:text-amber-400" id="total-reserved-count">0</span> {% endcomment %}
             </div>
             <div class="size-12 rounded-xl bg-amber-50 dark:bg-amber-500/10 text-amber-500 flex items-center justify-center group-hover:scale-110 transition-transform">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
@@ -227,12 +227,12 @@
                 <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-5">
                     <div>
                         <h3 class="text-lg font-black text-gray-900 dark:text-white">تاریخچه یکپارچه حضور و ورود</h3>
-                        <p class="text-sm text-text-muted mt-1">همه نشست‌های سایت و رویدادهای ورود و خروج این کاربر در یک نمای واحد نمایش داده می‌شود.</p>
+                        <p class="text-sm text-text-muted mt-1">همه نشست‌های سایت و رویدادهای ورود و خروج این کاربر</p>
                     </div>
                     <span class="text-sm text-text-muted" id="activity-info-text">در حال بارگذاری...</span>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-5">
-                    <div class="rounded-2xl border border-emerald-100 dark:border-emerald-500/20 bg-emerald-50/70 dark:bg-emerald-500/10 p-4">
+                    {% comment %} <div class="rounded-2xl border border-emerald-100 dark:border-emerald-500/20 bg-emerald-50/70 dark:bg-emerald-500/10 p-4">
                         <div class="text-xs font-bold text-emerald-700 dark:text-emerald-300 mb-1">نشست‌های ثبت‌شده</div>
                         <div id="activity-summary-site-visits" class="text-2xl font-black text-emerald-700 dark:text-emerald-200">0</div>
                     </div>
@@ -247,7 +247,7 @@
                     <div class="rounded-2xl border border-rose-100 dark:border-rose-500/20 bg-rose-50/70 dark:bg-rose-500/10 p-4">
                         <div class="text-xs font-bold text-rose-700 dark:text-rose-300 mb-1">ورود ناموفق</div>
                         <div id="activity-summary-failed" class="text-2xl font-black text-rose-700 dark:text-rose-200">0</div>
-                    </div>
+                    </div> {% endcomment %}
                 </div>
                 <div id="activity-timeline-list" class="space-y-3"></div>
                 <div id="activity-pagination" class="mt-4 flex justify-center gap-2"></div>
@@ -265,7 +265,7 @@
                     <h3 class="text-lg font-black text-gray-900 dark:text-white">بازدید از محصولات</h3>
                     <span class="text-sm text-text-muted" id="product-visits-info-text">در حال بارگذاری...</span>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
+                {% comment %} <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
                     <div class="rounded-2xl border border-violet-100 dark:border-violet-500/20 bg-violet-50/70 dark:bg-violet-500/10 p-4">
                         <div class="text-xs font-bold text-violet-700 dark:text-violet-300 mb-1">محصولات فروشگاه</div>
                         <div class="flex items-end justify-between gap-3">
@@ -296,12 +296,12 @@
                             <div class="text-xs text-sky-700 dark:text-sky-300" id="visit-summary-auction-items">0 مزایده</div>
                         </div>
                     </div>
-                </div>
-                <div class="flex flex-wrap gap-2 mb-5">
+                </div> {% endcomment %}
+                {% comment %} <div class="flex flex-wrap gap-2 mb-5">
                     <button type="button" id="visit-subtab-store_products" onclick="switchProductVisitType('store_products')" class="visit-subtab-btn px-4 py-2 rounded-xl text-sm font-black bg-violet-600 text-white shadow-sm">بازدید محصولات فروشگاه</button>
                     <button type="button" id="visit-subtab-auction_products" onclick="switchProductVisitType('auction_products')" class="visit-subtab-btn px-4 py-2 rounded-xl text-sm font-bold bg-gray-100 dark:bg-white/10 text-text-main dark:text-white">بازدید محصولات مزایده</button>
                     <button type="button" id="visit-subtab-auctions" onclick="switchProductVisitType('auctions')" class="visit-subtab-btn px-4 py-2 rounded-xl text-sm font-bold bg-gray-100 dark:bg-white/10 text-text-main dark:text-white">بازدید مزایده</button>
-                </div>
+                </div> {% endcomment %}
                 <div id="product-visits-list" class="space-y-3"></div>
                 <div id="product-visits-pagination" class="mt-4 flex justify-center gap-2"></div>
             </div>
