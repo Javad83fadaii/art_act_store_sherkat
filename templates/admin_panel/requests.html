@@ -116,6 +116,7 @@
     let requestsLoadInFlight = false;
     let queuedRequestsReload = null;
     let realtimeReloadTimer = null;
+    const userHistoryPageUrlTemplate = "{% url 'admin_panel_pages:user-history' pk='00000000-0000-0000-0000-000000000000' %}";
 
     const dateTimeFormatter = new Intl.DateTimeFormat('fa-IR', {
         dateStyle: 'medium',
@@ -261,6 +262,11 @@
         const dateObj = new Date(value);
         if (Number.isNaN(dateObj.getTime())) return '---';
         return dateTimeFormatter.format(dateObj);
+    }
+
+    function buildUserHistoryUrl(userId) {
+        if (!userId) return '';
+        return userHistoryPageUrlTemplate.replace('00000000-0000-0000-0000-000000000000', encodeURIComponent(userId));
     }
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -468,6 +474,9 @@
                 data.requests.forEach(req => {
                     let statusBadge = getStatusBadge(req.status);
                     let detailsCell = req.product || '---';
+                    const userDisplay = req.user_id
+                        ? `<a href="${buildUserHistoryUrl(req.user_id)}" class="text-primary hover:text-primary/80 hover:underline transition-colors">${req.user}</a>`
+                        : `${req.user}`;
                     if (currentType === 'credit') {
                         detailsCell = `
                             <div class="flex flex-col gap-1">
@@ -481,7 +490,7 @@
                     tr.className = 'hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors group border-b border-gray-100 dark:border-white/5';
                     tr.innerHTML = `
                         <td class="p-4 text-text-muted">#${req.id}</td>
-                        <td class="p-4 text-text-main dark:text-white">${req.user}</td>
+                        <td class="p-4 text-text-main dark:text-white">${userDisplay}</td>
                         <td class="p-4 text-text-muted max-w-[220px]">${detailsCell}</td>
                         <td class="p-4 text-center text-text-muted whitespace-nowrap">${formatDateTime(req.created_at)}</td>
                         <td class="p-4 text-center">${statusBadge}</td>

@@ -202,6 +202,7 @@ def _serialize_request_list_item(request_type, item):
     if request_type == 'purchase':
         return {
             'id': item.id,
+            'user_id': str(item.user_id) if getattr(item, 'user_id', None) else None,
             'user': _request_user_label(item.user),
             'product': item.artwork.title if item.artwork else 'نامشخص',
             'created_at': item.created_at.isoformat() if getattr(item, 'created_at', None) else None,
@@ -211,6 +212,7 @@ def _serialize_request_list_item(request_type, item):
     if request_type == 'verification':
         return {
             'id': item.id,
+            'user_id': str(item.user_id) if getattr(item, 'user_id', None) else None,
             'user': _request_user_label(
                 item.user,
                 fallback_full_name=getattr(item, 'full_name', ''),
@@ -223,6 +225,7 @@ def _serialize_request_list_item(request_type, item):
 
     return {
         'id': item.id,
+        'user_id': str(item.user_id) if getattr(item, 'user_id', None) else None,
         'user': _request_user_label(item.user),
         'product': _format_currency(getattr(item.user, 'current_credit', None)) if item.user_id else 'نامشخص',
         'current_credit': _format_currency(getattr(item.user, 'current_credit', None)) if item.user_id else 'نامشخص',

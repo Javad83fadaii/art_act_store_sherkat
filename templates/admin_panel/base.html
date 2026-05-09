@@ -10,10 +10,10 @@
 
     <!-- مدیریت دارک‌مود قبل از لود صفحه -->
     <script>
-        if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
+        if (localStorage.getItem('color-theme') === 'white' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: white)').matches)) {
+            document.documentElement.classList.add('white');
         } else {
-            document.documentElement.classList.remove('dark');
+            document.documentElement.classList.remove('white');
         }
     </script>
 
@@ -361,7 +361,7 @@
                             <path class="hidden dark:block" d="m6.34 17.66-1.41 1.41"></path>
                             <path class="hidden dark:block" d="m19.07 4.93-1.41 1.41"></path>
                         </svg>
-                    </button> {% endcomment %}
+                    </button>  {% endcomment %}
                     
                     <!-- خط جداکننده -->
                     <div class="hidden sm:block w-[1px] h-5 bg-gray-200 dark:bg-white/10 mx-1"></div>
