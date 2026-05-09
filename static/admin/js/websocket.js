@@ -69,12 +69,6 @@ class AdminWebSocket {
         this.renderList();
         this.renderBadge();
 
-        if ('Notification' in window && Notification.permission === 'granted') {
-            try {
-                new Notification(data.title || 'اعلان جدید', { body: data.message || '' });
-            } catch (e) {}
-        }
-
         if (this.callbacks[data.type]) {
             this.callbacks[data.type].forEach((callback) => callback(data));
         }
