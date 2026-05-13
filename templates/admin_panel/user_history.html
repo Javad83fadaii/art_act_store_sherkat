@@ -181,7 +181,7 @@
         <div class="bg-white dark:bg-admin-surface-dark rounded-2xl p-5 border border-gray-100 dark:border-white/5 shadow-sm flex items-center justify-between group hover:shadow-md transition-shadow">
             <div class="flex flex-col gap-1">
                 <span class="text-sm font-bold text-text-muted">خریداری شده</span>
-                {% comment %} <span class="text-xl font-black text-blue-600 dark:text-blue-400" id="total-purchased-count">0</span> {% endcomment %}
+                <span class="text-xl font-black text-blue-600 dark:text-blue-400" id="total-purchased-count">0</span>
             </div>
             <div class="size-12 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-500 flex items-center justify-center group-hover:scale-110 transition-transform">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
@@ -579,7 +579,7 @@ function syncCreditPreview(user = lastLoadedUserDetail) {
         } else if (!isVerified) {
             previewHint.textContent = 'تا زمانی که کاربر تایید نشده باشد، هنگام ذخیره هر دو مقدار اعتبار صفر می‌شود.';
         } else if (reservedCredit > 0) {
-            previewHint.textContent = 'تا وقتی مبلغی در مزایده رزرو شده باشد فقط افزایش اعتبار مجاز است؛ کاهش اعتبار یا لغو دسترسی مزایده ممکن نیست.';
+            previewHint.textContent = 'تا وقتی مبلغی در مزایده رزرو شده باشد، می‌توان اعتبار را فقط تا جایی کم کرد که اعتبار فعلی منفی نشود؛ حداقل اعتبار کل برابر مبلغ رزروشده است و لغو دسترسی مزایده هم ممکن نیست.';
         } else {
             previewHint.textContent = 'این کاربر رزرو فعالی در مزایده ندارد؛ می‌توان اعتبار را کم کرد یا دسترسی مزایده را برداشت و اعتبار فعلی بعد از ذخیره برابر اعتبار کل خواهد بود.';
         }
@@ -1167,15 +1167,22 @@ document.addEventListener('DOMContentLoaded', function() {
         const formData = new FormData(event.currentTarget);
         const requestedIsVerified = String(formData.get('is_verified') || '0') === '1';
         const requestedCredit = normalizeNumericValue(formData.get('credit'));
-        const originalCredit = normalizeNumericValue(lastLoadedUserDetail?.credit);
-        const hasReservedAuctionCredit = !canRelaxAuctionAccess(lastLoadedUserDetail);
+        const reservedAuctionCredit = deriveReservedCredit(lastLoadedUserDetail);
+        const hasReservedAuctionCredit = reservedAuctionCredit > 0;
 
         submitBtn.disabled = true;
         submitBtn.textContent = 'در حال ذخیره...';
         showEditErrors([]);
 
-        if (hasReservedAuctionCredit && (!requestedIsVerified || requestedCredit < originalCredit)) {
-            showEditErrors(['تا وقتی بخشی از اعتبار کاربر در مزایده رزرو شده است، فقط افزایش اعتبار مجاز است و نمی‌توان دسترسی مزایده را حذف کرد.']);
+        if (hasReservedAuctionCredit && !requestedIsVerified) {
+            showEditErrors(['تا وقتی بخشی از اعتبار کاربر در مزایده رزرو شده است، نمی‌توان دسترسی مزایده را از کاربر گرفت.']);
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'ذخیره تغییرات';
+            return;
+        }
+
+        if (hasReservedAuctionCredit && requestedCredit < reservedAuctionCredit) {
+            showEditErrors(['تا وقتی بخشی از اعتبار کاربر در مزایده رزرو شده است، اعتبار کل نمی‌تواند از مبلغ رزروشده کمتر شود.']);
             submitBtn.disabled = false;
             submitBtn.textContent = 'ذخیره تغییرات';
             return;

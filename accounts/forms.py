@@ -659,10 +659,10 @@ class AdminUserEditForm(forms.ModelForm):
             and reserved_auction_credit > Decimal("0")
         )
 
-        if has_reserved_auction_credit and requested_credit < existing_total_credit:
+        if has_reserved_auction_credit and requested_credit < reserved_auction_credit:
             self.add_error(
                 "credit",
-                "تا وقتی بخشی از اعتبار کاربر در مزایده رزرو شده است، کاهش اعتبار کل مجاز نیست.",
+                "تا وقتی بخشی از اعتبار کاربر در مزایده رزرو شده است، اعتبار کل نمی‌تواند از مبلغ رزروشده کمتر شود.",
             )
 
         if has_reserved_auction_credit and requested_is_verified == 0:
