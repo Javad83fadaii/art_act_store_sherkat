@@ -205,16 +205,12 @@
                             <div class="flex justify-between items-baseline mb-2">
                                 <span class="text-sm text-secondary-text font-medium">قیمت اثر</span>
                             </div>
-                            {% if request.user.is_authenticated %}
+                            
                                 <div class="text-4xl font-bold text-neutral-900 tracking-tight">
                                     <span id="product-price">{{ artwork.price|intcomma|fa_digits }} $</span> <span
                                         class="text-lg font-bold text-neutral-500 align-top mr-1">دلار</span>
                                 </div>
-                            {% else %}
-                                <button type="button" class="text-lg font-bold text-primary hover:text-primary-dark transition-colors" onclick="window.openLoginRequiredModal(window.location.pathname + window.location.search, 'برای مشاهده قیمت این اثر، لطفاً ابتدا وارد حساب کاربری خود شوید.')">
-                                    ورود برای مشاهده قیمت
-                                </button>
-                            {% endif %}
+                            
                         </div>
                         <div class="border-t border-neutral-100 my-4"></div>
 
