@@ -53,11 +53,34 @@
         .site-modal-overlay {
             z-index: 100002 !important;
         }
+        .mobile-warning-overlay {
+            z-index: 100003 !important;
+        }
     </style>
 
     {% block extra_css %}{% endblock %}
 </head>
 <body class="bg-[#FDFBF8] dark:bg-[#0F0F0F] text-text-main dark:text-white font-body overflow-x-hidden w-full relative">
+
+    <div id="mobile-warning-modal" class="mobile-warning-overlay fixed inset-0 bg-black/65 hidden items-center justify-center opacity-0 transition-opacity duration-300 px-4">
+        <div id="mobile-warning-modal-content" class="w-full max-w-md rounded-3xl bg-white dark:bg-[#171717] text-text-main dark:text-white shadow-2xl p-6 sm:p-7 transform scale-95 transition-transform duration-300 border border-black/5 dark:border-white/10">
+            <div class="flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary mx-auto mb-4">
+                <span class="material-symbols-outlined text-[34px]">devices</span>
+            </div>
+            <div class="text-center space-y-3">
+                <h2 class="text-2xl font-bold">نمایش موبایل در حال بهبود است</h2>
+                <p class="text-sm leading-7 text-text-secondary dark:text-gray-300">
+                    این پروژه هنوز در حال توسعه است و نسخه موبایل فعلا به صورت کامل بهینه و ریسپانسیو نشده است.
+                </p>
+                <p class="text-sm leading-7 text-text-secondary dark:text-gray-300">
+                    برای تجربه بهتر، پیشنهاد می‌کنیم سایت را با سیستم یا لپ‌تاپ باز کنید.
+                </p>
+            </div>
+            <button type="button" id="mobile-warning-close-btn" class="mt-6 w-full py-3 rounded-2xl bg-primary hover:bg-primary-dark text-white font-bold transition-colors">
+                ادامه
+            </button>
+        </div>
+    </div>
 
     <div id="gallery-modal" class="fixed inset-0 z-[9999] bg-black/70 hidden flex flex-col opacity-0 transition-opacity duration-300">
         <div class="flex-1 flex items-center justify-center p-4 sm:p-8 w-full h-full">
@@ -790,6 +813,57 @@
 
     <script>
         (function() {
+            const mobileWarningSessionKey = 'mobile-warning-dismissed';
+
+            function isMobileViewport() {
+                return window.matchMedia('(max-width: 767px)').matches;
+            }
+
+            function closeMobileWarningModal() {
+                const modal = document.getElementById('mobile-warning-modal');
+                const content = document.getElementById('mobile-warning-modal-content');
+                if (!modal || !content) return;
+
+                modal.classList.add('opacity-0');
+                content.classList.add('scale-95');
+                content.classList.remove('scale-100');
+
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                    document.body.style.overflow = '';
+                }, 300);
+            }
+
+            function openMobileWarningModal() {
+                const modal = document.getElementById('mobile-warning-modal');
+                const content = document.getElementById('mobile-warning-modal-content');
+                if (!modal || !content) return;
+                if (!isMobileViewport()) return;
+                if (sessionStorage.getItem(mobileWarningSessionKey) === '1') return;
+
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                document.body.style.overflow = 'hidden';
+
+                requestAnimationFrame(() => {
+                    modal.classList.remove('opacity-0');
+                    content.classList.remove('scale-95');
+                    content.classList.add('scale-100');
+                });
+            }
+
+            window.closeMobileWarningModal = function() {
+                sessionStorage.setItem(mobileWarningSessionKey, '1');
+                closeMobileWarningModal();
+            };
+
+            document.addEventListener('DOMContentLoaded', () => {
+                const closeBtn = document.getElementById('mobile-warning-close-btn');
+                if (closeBtn) closeBtn.addEventListener('click', window.closeMobileWarningModal);
+                openMobileWarningModal();
+            });
+
             const loginPageUrl = "{% url 'login' %}";
 
             function buildLoginHref(targetUrl) {

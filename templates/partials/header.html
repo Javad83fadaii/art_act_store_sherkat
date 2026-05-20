@@ -141,7 +141,7 @@
                             </a>
                             
                             <!-- بررسی وضعیت استاف برای نمایش دکمه مدیریت -->
-                            {% if request.user.is_staff %}
+                            {% if request.user.is_staff or request.user.is_superuser %}
                                 <a class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-[#4B5563] hover:text-primary hover:bg-primary/5 dark:hover:bg-gray-800 rounded-xl transition-colors font-body"
                                     href="/admin-panel/dashboard/">
                                     <span class="material-symbols-outlined text-[20px]">dashboard</span>مدیریت

@@ -36,6 +36,35 @@ class AdminRequestManagementTests(TestCase):
         )
         self.client.force_login(self.admin_user)
 
+    def test_superuser_without_staff_can_access_admin_panel_and_django_admin(self):
+        superuser = CustomUser.objects.create_user(
+            phone_number="09120000009",
+            password="Super@1234",
+            full_name="سوپریوزر تست",
+            is_staff=False,
+            is_superuser=True,
+        )
+        self.client.force_login(superuser)
+
+        panel_response = self.client.get(reverse('admin_panel:dashboard-stats'))
+        django_admin_response = self.client.get(reverse('admin:index'))
+
+        self.assertEqual(panel_response.status_code, 200)
+        self.assertEqual(django_admin_response.status_code, 200)
+
+        self.client.logout()
+        login_response = self.client.post(
+            reverse('admin:login'),
+            {
+                'username': superuser.phone_number,
+                'password': 'Super@1234',
+                'next': reverse('admin:index'),
+            },
+        )
+
+        self.assertEqual(login_response.status_code, 302)
+        self.assertEqual(login_response.headers['Location'], reverse('admin:index'))
+
     def test_verification_request_can_be_approved_from_admin_panel(self):
         request_obj = VerificationRequest.objects.create(
             user=self.normal_user,
