@@ -50,7 +50,7 @@
                             </a>
                             
                             <div class="absolute inset-0 overflow-hidden">
-                                <img src="{% static 'images/b11.webp' %}" 
+                                <img src="{% static 'images/112.png' %}" 
                                     class="hero-banner-image absolute inset-0 w-full h-full object-cover"
                                     alt="background 1">
                                 <div class="absolute inset-0 bg-black/40 backdrop-blur-[2px]"></div>
@@ -86,7 +86,7 @@
                             </a>
 
                             <div class="absolute inset-0 overflow-hidden">
-                                <img src="{% static 'images/b12.webp' %}" 
+                                <img src="{% static 'images/backgerand1.png' %}" 
                                     class="hero-banner-image hero-banner-image-delayed absolute inset-0 w-full h-full object-cover"
                                     alt="background 2">
                                 <div class="absolute inset-0 bg-black/50 backdrop-blur-[2px] transition-colors duration-500 group-hover/hero:bg-black/40"></div>
@@ -115,7 +115,7 @@
                             </a>
 
                             <div class="absolute inset-0 overflow-hidden">
-                                <img src="{% static 'images/b13.webp' %}" 
+                                <img src="{% static 'images/backgerand2.png' %}" 
                                     class="hero-banner-image hero-banner-image-slow absolute inset-0 w-full h-full object-cover"
                                     alt="background 3">
                                 <div class="absolute inset-0 bg-black/60 backdrop-blur-[2px] transition-colors duration-500 group-hover/hero:bg-black/50"></div>
@@ -391,14 +391,14 @@
                                             <div class="text-right">
                                                 <p class="text-[10px] md:text-xs text-text-secondary mb-1 font-body">
                                                     قیمت اثر</p>
-                                                {% if request.user.is_authenticated %}
+                                                {% comment %} {% if request.user.is_authenticated %} {% endcomment %}
                                                     <p class="text-sm md:text-lg font-bold text-primary-dark dark:text-primary font-body">{{ artwork.price|intcomma }}
-                                                        دلار</p>
-                                                {% else %}
+                                                        تومان</p>
+                                                {% comment %} {% else %}
                                                     <button type="button" class="text-xs md:text-sm font-bold text-primary-dark dark:text-primary font-body hover:text-primary transition-colors" onclick="window.openLoginRequiredModal('{% url 'store:artwork_detail' artwork.pk %}', 'برای مشاهده قیمت آثار فروشگاه، لطفاً ابتدا وارد حساب کاربری خود شوید.')">
                                                         ورود برای مشاهده قیمت
                                                     </button>
-                                                {% endif %}
+                                                {% endif %} {% endcomment %}
                                             </div>
                                             <div class="text-left">
                                                 <p class="text-[10px] md:text-xs text-text-secondary mb-1 font-body">
