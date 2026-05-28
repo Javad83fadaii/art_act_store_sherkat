@@ -173,7 +173,7 @@
         </div>
     </div>
 
-    <div id="global-login-required-modal" class="site-modal-overlay fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center opacity-0 transition-opacity duration-300" onclick="if(event.target === this) closeLoginRequiredModal()">
+    {% comment %} <div id="global-login-required-modal" class="site-modal-overlay fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center opacity-0 transition-opacity duration-300" onclick="if(event.target === this) closeLoginRequiredModal()">
         <div id="global-login-required-modal-content" class="bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl w-full max-w-sm mx-4 p-8 border border-gray-200 dark:border-zinc-700 transform scale-95 transition-transform duration-300 relative text-center">
             <button type="button" onclick="closeLoginRequiredModal()" class="absolute top-4 left-4 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-zinc-800 text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors z-10">
                 <span class="material-symbols-outlined text-[20px]">close</span>
@@ -192,7 +192,7 @@
                 </a>
             </div>
         </div>
-    </div>
+    </div> {% endcomment %}
 
     <!-- Wrapper اصلی محتوا -->
     <div class="relative flex flex-col min-h-screen w-full overflow-hidden">
