@@ -59,6 +59,24 @@
                 </select>
             </div>
             <div>
+                <label class="block text-xs font-black text-text-muted mb-2">موضوع (اختیاری)</label>
+                <select id="sSubjectId" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
+                    <option value="">در حال بارگذاری...</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-black text-text-muted mb-2">کاربرد (اختیاری)</label>
+                <select id="sUsageId" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
+                    <option value="">در حال بارگذاری...</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-black text-text-muted mb-2">متریال (اختیاری)</label>
+                <select id="sMaterialId" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
+                    <option value="">در حال بارگذاری...</option>
+                </select>
+            </div>
+            <div>
                 <label class="block text-xs font-black text-text-muted mb-2">وضعیت فروش</label>
                 <select id="sSold" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
                     <option value="0">موجود</option>
@@ -141,6 +159,24 @@
                 </select>
             </div>
             <div>
+                <label class="block text-xs font-black text-text-muted mb-2">موضوع (اختیاری)</label>
+                <select id="apSubjectId" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
+                    <option value="">در حال بارگذاری...</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-black text-text-muted mb-2">کاربرد (اختیاری)</label>
+                <select id="apUsageId" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
+                    <option value="">در حال بارگذاری...</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-black text-text-muted mb-2">متریال (اختیاری)</label>
+                <select id="apMaterialId" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
+                    <option value="">در حال بارگذاری...</option>
+                </select>
+            </div>
+            <div>
                 <label class="block text-xs font-black text-text-muted mb-2">ابعاد</label>
                 <input id="apDim" type="text" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
             </div>
@@ -161,19 +197,8 @@
                 <input id="apCurrentPrice" type="number" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
             </div>
             <div>
-                <label class="block text-xs font-black text-text-muted mb-2">bid_criteria</label>
-                <select id="apBidCriteria" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
-                    <option value="0">percentage-based</option>
-                    <option value="1">fixed-amount</option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-xs font-black text-text-muted mb-2">bid_value</label>
-                <input id="apBidValue" type="number" value="0" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
-            </div>
-            <div>
-                <label class="block text-xs font-black text-text-muted mb-2">suggested_price (اختیاری)</label>
-                <input id="apSuggestedPrice" type="number" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
+                <label class="block text-xs font-black text-text-muted mb-2">درصد افزایش بید</label>
+                <input id="apBidValue" type="number" value="0" min="0" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
             </div>
             <div>
                 <label class="block text-xs font-black text-text-muted mb-2">winner_id (اختیاری)</label>
@@ -282,6 +307,24 @@
                     </select>
                 </div>
                 <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">موضوع (اختیاری)</label>
+                    <select id="mSubjectId" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
+                        <option value="">در حال بارگذاری...</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">کاربرد (اختیاری)</label>
+                    <select id="mUsageId" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
+                        <option value="">در حال بارگذاری...</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">متریال (اختیاری)</label>
+                    <select id="mMaterialId" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
+                        <option value="">در حال بارگذاری...</option>
+                    </select>
+                </div>
+                <div>
                     <label class="block text-xs font-black text-text-muted mb-2">اصالت</label>
                     <select id="mAuth" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
                         <option value="0">اصالت تایید شده</option>
@@ -309,19 +352,8 @@
                     <input id="mCurrentPrice" type="number" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
                 </div>
                 <div>
-                    <label class="block text-xs font-black text-text-muted mb-2">bid_criteria</label>
-                    <select id="mBidCriteria" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
-                        <option value="0">percentage-based</option>
-                        <option value="1">fixed-amount</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-black text-text-muted mb-2">bid_value</label>
-                    <input id="mBidValue" type="number" value="0" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
-                </div>
-                <div>
-                    <label class="block text-xs font-black text-text-muted mb-2">suggested_price (اختیاری)</label>
-                    <input id="mSuggestedPrice" type="number" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
+                    <label class="block text-xs font-black text-text-muted mb-2">درصد افزایش بید</label>
+                    <input id="mBidValue" type="number" value="0" min="0" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
                 </div>
                 <div>
                     <label class="block text-xs font-black text-text-muted mb-2">winner_id (اختیاری)</label>
@@ -368,7 +400,7 @@
 
     let currentTab = 'store';
     let productRows = []; // حالا به جای ردیف‌های DOM، مستقیما آبجکت محصولات را ذخیره می‌کند
-    let optionsData = { artists: [], artwork_types: [], auctions: [] };
+    let optionsData = { artists: [], artwork_types: [], subjects: [], usages: [], materials: [], auctions: [] };
 
     document.addEventListener('DOMContentLoaded', () => {
         switchTab('store');
@@ -429,15 +461,24 @@
             // Store Product Dropdowns
             hydrateSelect('sArtistId', optionsData.artists, true, 'انتخاب کنید');
             hydrateSelect('sArtworkTypeId', optionsData.artwork_types, false, 'بدون انتخاب');
+            hydrateSelect('sSubjectId', optionsData.subjects, false, 'بدون انتخاب');
+            hydrateSelect('sUsageId', optionsData.usages, false, 'بدون انتخاب');
+            hydrateSelect('sMaterialId', optionsData.materials, false, 'بدون انتخاب');
 
             // Add Single Auction Product Dropdowns
             hydrateSelect('apAuctionId', optionsData.auctions, true, 'انتخاب کنید', 'title');
             hydrateSelect('apArtistId', optionsData.artists, true, 'انتخاب کنید');
-            hydrateSelect('apArtworkTypeId', optionsData.artwork_types, true, 'انتخاب کنید');
+            hydrateSelect('apArtworkTypeId', optionsData.artwork_types, false, 'بدون انتخاب');
+            hydrateSelect('apSubjectId', optionsData.subjects, false, 'بدون انتخاب');
+            hydrateSelect('apUsageId', optionsData.usages, false, 'بدون انتخاب');
+            hydrateSelect('apMaterialId', optionsData.materials, false, 'بدون انتخاب');
 
             // Modal Dropdowns
             hydrateSelect('mArtistId', optionsData.artists, true, 'انتخاب کنید');
             hydrateSelect('mArtworkTypeId', optionsData.artwork_types, false, 'بدون انتخاب');
+            hydrateSelect('mSubjectId', optionsData.subjects, false, 'بدون انتخاب');
+            hydrateSelect('mUsageId', optionsData.usages, false, 'بدون انتخاب');
+            hydrateSelect('mMaterialId', optionsData.materials, false, 'بدون انتخاب');
 
         } catch (e) {
             console.error("Error loading options:", e);
@@ -481,15 +522,16 @@
         document.getElementById('mProductId').value = '';
         document.getElementById('mArtistId').value = '';
         document.getElementById('mArtworkTypeId').value = '';
+        document.getElementById('mSubjectId').value = '';
+        document.getElementById('mUsageId').value = '';
+        document.getElementById('mMaterialId').value = '';
         document.getElementById('mAuth').value = '0';
         document.getElementById('mDim').value = '';
         document.getElementById('mYear').value = '';
         document.getElementById('mDesc').value = '';
         document.getElementById('mReserve').value = '0';
         document.getElementById('mCurrentPrice').value = '';
-        document.getElementById('mBidCriteria').value = '0';
         document.getElementById('mBidValue').value = '0';
-        document.getElementById('mSuggestedPrice').value = '';
         document.getElementById('mWinnerId').value = '';
     }
 
@@ -508,15 +550,16 @@
             product_id: document.getElementById('mProductId').value.trim(),
             artist_id: document.getElementById('mArtistId').value,
             artwork_type_id: document.getElementById('mArtworkTypeId').value,
+            subject_id: document.getElementById('mSubjectId').value,
+            usage_id: document.getElementById('mUsageId').value,
+            material_id: document.getElementById('mMaterialId').value,
             authenticity_status: document.getElementById('mAuth').value,
             dimensions: document.getElementById('mDim').value.trim(),
             creation_year: document.getElementById('mYear').value,
             description: document.getElementById('mDesc').value,
             reserve_price: document.getElementById('mReserve').value,
             current_price: document.getElementById('mCurrentPrice').value,
-            bid_criteria: document.getElementById('mBidCriteria').value,
             bid_value: document.getElementById('mBidValue').value,
-            suggested_price: document.getElementById('mSuggestedPrice').value,
             winner_id: document.getElementById('mWinnerId').value
         };
 
@@ -581,6 +624,9 @@
                 is_sold: Number(document.getElementById('sSold').value),
                 authenticity_status: Number(document.getElementById('sAuth').value),
                 artwork_type_id: document.getElementById('sArtworkTypeId').value ? Number(document.getElementById('sArtworkTypeId').value) : null,
+                subject_id: document.getElementById('sSubjectId').value ? Number(document.getElementById('sSubjectId').value) : null,
+                usage_id: document.getElementById('sUsageId').value ? Number(document.getElementById('sUsageId').value) : null,
+                material_id: document.getElementById('sMaterialId').value ? Number(document.getElementById('sMaterialId').value) : null,
             };
 
             const response = await fetch(API_STORE_CREATE, {
@@ -639,14 +685,15 @@
                     authenticity_status: r.authenticity_status !== undefined && r.authenticity_status !== '' ? Number(r.authenticity_status) : 0,
                     artist_id: r.artist_id ? Number(r.artist_id) : null,
                     artwork_type_id: r.artwork_type_id ? Number(r.artwork_type_id) : null,
+                    subject_id: r.subject_id ? Number(r.subject_id) : null,
+                    usage_id: r.usage_id ? Number(r.usage_id) : null,
+                    material_id: r.material_id ? Number(r.material_id) : null,
                     description: r.description || '',
                     dimensions: (r.dimensions || '').trim(),
                     creation_year: r.creation_year ? Number(r.creation_year) : null,
                     reserve_price: r.reserve_price ? Number(r.reserve_price) : 0,
                     current_price: r.current_price ? Number(r.current_price) : null,
-                    bid_criteria: r.bid_criteria !== undefined && r.bid_criteria !== '' ? Number(r.bid_criteria) : 0,
                     bid_value: r.bid_value ? Number(r.bid_value) : 0,
-                    suggested_price: r.suggested_price ? Number(r.suggested_price) : null,
                     winner_id: r.winner_id ? Number(r.winner_id) : null,
                 };
 
@@ -687,14 +734,15 @@
                 authenticity_status: Number(document.getElementById('apAuth').value),
                 artist_id: document.getElementById('apArtistId').value ? Number(document.getElementById('apArtistId').value) : null,
                 artwork_type_id: document.getElementById('apArtworkTypeId').value ? Number(document.getElementById('apArtworkTypeId').value) : null,
+                subject_id: document.getElementById('apSubjectId').value ? Number(document.getElementById('apSubjectId').value) : null,
+                usage_id: document.getElementById('apUsageId').value ? Number(document.getElementById('apUsageId').value) : null,
+                material_id: document.getElementById('apMaterialId').value ? Number(document.getElementById('apMaterialId').value) : null,
                 dimensions: document.getElementById('apDim').value.trim(),
                 creation_year: document.getElementById('apYear').value ? Number(document.getElementById('apYear').value) : null,
                 description: document.getElementById('apDesc').value,
                 reserve_price: document.getElementById('apReserve').value ? Number(document.getElementById('apReserve').value) : 0,
                 current_price: document.getElementById('apCurrentPrice').value ? Number(document.getElementById('apCurrentPrice').value) : null,
-                bid_criteria: Number(document.getElementById('apBidCriteria').value),
                 bid_value: document.getElementById('apBidValue').value ? Number(document.getElementById('apBidValue').value) : 0,
-                suggested_price: document.getElementById('apSuggestedPrice').value ? Number(document.getElementById('apSuggestedPrice').value) : null,
                 winner_id: document.getElementById('apWinnerId').value ? Number(document.getElementById('apWinnerId').value) : null,
             };
 

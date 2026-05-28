@@ -110,7 +110,7 @@
             <p class="text-sm text-slate-500 dark:text-slate-400 font-medium">نمای کلی از عملکرد پلتفرم و آمارهای لحظه‌ای</p>
         </div>
         <div class="flex items-center gap-3">
-            <a href="#" class="group relative inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:-translate-y-0.5 transition-all duration-300 text-sm font-bold gap-2 overflow-hidden">
+            <a href="{% url 'admin_panel_pages:products-create' %}" class="group relative inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:-translate-y-0.5 transition-all duration-300 text-sm font-bold gap-2 overflow-hidden">
                 <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-in-out"></div>
                 <svg class="w-4 h-4 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
                 <span class="relative z-10">محصول جدید</span>
@@ -258,7 +258,7 @@
                     <h2 class="text-lg font-black text-slate-800 dark:text-white">آخرین درخواست‌ها</h2>
                     <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">لیست تراکنش‌ها و تیکت‌های اخیر سیستم</p>
                 </div>
-                <a href="#" class="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 px-4 py-2 rounded-xl transition-colors">مشاهده همه</a>
+                <a href="{% url 'admin_panel_pages:requests' %}" class="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 px-4 py-2 rounded-xl transition-colors">مشاهده همه</a>
             </div>
 
             <div class="overflow-x-auto rounded-xl border border-slate-100 dark:border-slate-700/50">
@@ -272,7 +272,7 @@
                         </tr>
                     </thead>
                     <tbody id="orders-body" class="divide-y divide-slate-100 dark:divide-slate-700/50">
-                        <!-- Skeleton will be replaced by test data -->
+                        <!-- Skeleton -->
                         <tr>
                             <td class="py-4 px-4"><div class="h-4 w-24 bg-slate-200 dark:bg-slate-700 rounded animate-pulse"></div></td>
                             <td class="py-4 px-4"><div class="h-4 w-40 bg-slate-200 dark:bg-slate-700 rounded animate-pulse"></div></td>
@@ -297,7 +297,7 @@
                     </div>
                 </div>
                 <div class="flex flex-col gap-3 max-h-[220px] overflow-y-auto pr-1 custom-scroll" id="ending-auctions">
-                    <!-- Skeleton will be replaced by test data -->
+                    <!-- Skeleton -->
                     <div class="flex items-center gap-3 p-2">
                         <div class="w-12 h-12 rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse"></div>
                         <div class="flex-1 space-y-2">
@@ -312,10 +312,10 @@
             <div class="glass-card rounded-3xl bg-white/80 dark:bg-slate-800/80 border border-white/40 dark:border-white/5 p-6 flex flex-col gap-4">
                 <div class="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-700/50">
                     <h2 class="text-base font-black text-slate-800 dark:text-white">اعضای جدید</h2>
-                    <a href="#" class="text-[11px] font-bold text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">مشاهده لیست</a>
+                    <a href="{% url 'admin_panel_pages:users' %}" class="text-[11px] font-bold text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">مشاهده لیست</a>
                 </div>
                 <div class="flex flex-col gap-3 max-h-[220px] overflow-y-auto pr-1 custom-scroll" id="new-users-list">
-                    <!-- Skeleton will be replaced by test data -->
+                    <!-- Skeleton -->
                     <div class="flex items-center gap-3 p-2">
                         <div class="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 animate-pulse"></div>
                         <div class="flex-1 space-y-2">
@@ -334,78 +334,27 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
 
+    const URLS = {
+        stats:      "{% url 'admin_panel:dashboard-stats' %}",
+        charts:     "{% url 'admin_panel:dashboard-charts' %}?days=30",
+        orders:     "{% url 'admin_panel:dashboard-orders' %}",
+        auctions:   "{% url 'admin_panel:dashboard-ending-auctions' %}",
+        newUsers:   "{% url 'admin_panel:dashboard-new-users' %}"
+    };
+
     const isDark = () => document.documentElement.classList.contains('dark');
+
+    const fetchJson = async (url) => {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+    };
 
     let usersChartInstance = null;
     let visitsChartInstance = null;
-
-    // --- Static Test Data ---
-    // تابع کمکی برای تولید تاریخ‌های گذشته
-    const getPastDates = (days) => {
-        const dates = [];
-        for (let i = days - 1; i >= 0; i--) {
-            const d = new Date();
-            d.setDate(d.getDate() - i);
-            dates.push(d.toISOString().slice(0, 10)); // YYYY-MM-DD
-        }
-        return dates;
-    };
-
-    const dates30 = getPastDates(30);
-
-    // داده‌های آزمایشی برای پر کردن داشبورد
-    const TEST_DATA = {
-        stats: {
-            total_users: 12345, // کل کاربران
-            auction_products: 42, // محصولات مزایده‌ای
-            shop_products: 187, // محصولات فروشگاه
-            pending_requests: 12, // درخواست‌های معلق
-            active_users_week: 256 // کاربران فعال در ۷ روز اخیر
-        },
-        charts: {
-            registrations: {
-                labels: dates30,
-                data: dates30.map(() => Math.floor(Math.random() * 50) + 10) // 10-60 کاربر جدید در روز
-            },
-            visits: {
-                labels: dates30,
-                store_products: dates30.map(() => Math.floor(Math.random() * 200) + 50), // 50-250 بازدید فروشگاه
-                auction_products: dates30.map(() => Math.floor(Math.random() * 100) + 20) // 20-120 بازدید مزایده
-            }
-        },
-        orders: {
-            requests: [
-                { user: 'علی احمدی', title: 'درخواست برداشت وجه', status: 'pending', date: '2026-05-12T10:30:00Z', href: '#' },
-                { user: 'سارا کریمی', title: 'مشکل در پرداخت سفارش #12345', status: 'approved', date: '2026-05-11T14:15:00Z', href: '#' },
-                { user: 'رضا حسینی', title: 'درخواست تایید اطلاعات حساب', status: 'rejected', date: '2026-05-10T09:00:00Z', href: '#' },
-                { user: 'مریم نوری', title: 'سوال درباره شرایط مزایده', status: 'pending', date: '2026-05-09T17:45:00Z', href: '#' },
-                { user: 'حسین محمدی', title: 'پیگیری ارسال محصول', status: 'approved', date: '2026-05-08T11:20:00Z', href: '#' },
-                { user: 'زینب قاسمی', title: 'گزارش تخلف کاربر', status: 'pending', date: '2026-05-07T16:00:00Z', href: '#' },
-            ]
-        },
-        auctions: {
-            auctions: [
-                { title: 'تابلو نقاشی انتزاعی', image: '', remaining: '۲ ساعت', current_price: 1200, url: '#' },
-                { title: 'کاسه سرامیکی دست‌ساز', image: '', remaining: '۵ ساعت', current_price: 350, url: '#' },
-                { title: 'ساعت دیواری چوبی', image: '', remaining: '۱ روز', current_price: 780, url: '#' },
-                { title: 'مجسمه برنزی کوچک', image: '', remaining: '۳ روز', current_price: 2100, url: '#' },
-            ]
-        },
-        newUsers: {
-            users: [
-                { name: 'فاطمه رضایی', avatar: '', email: 'fateme.r@example.com', phone: null, joined: '2026-05-12T08:10:00Z', url: '#' },
-                { name: 'احمد کریمی', avatar: '', email: null, phone: '+989123456789', joined: '2026-05-11T19:30:00Z', url: '#' },
-                { name: 'لیلا حسنی', avatar: '', email: 'leila.h@example.com', phone: null, joined: '2026-05-10T11:40:00Z', url: '#' },
-                { name: 'محسن نادری', avatar: null, email: 'mohsen.n@example.com', phone: null, joined: '2026-05-09T14:05:00Z', url: '#' },
-                { name: 'زهرا یوسفی', avatar: '', email: 'zahra.y@example.com', phone: null, joined: '2026-05-08T09:55:00Z', url: '#' },
-            ]
-        }
-    };
-    // --- End Static Test Data ---
 
     // پیکربندی پیشرفته چارت‌ها
     const chartDefaults = () => ({
@@ -490,37 +439,34 @@ document.addEventListener('DOMContentLoaded', () => {
     const animateValue = (el, target) => {
         let current = 0;
         const duration = 1000;
-        // Use a fixed step count to avoid division by zero if target is 0 or very small
-        const steps = 30; 
-        const stepTime = duration / steps;
-        const increment = target / steps;
-
+        const stepTime = Math.abs(Math.floor(duration / (target || 1)));
         const timer = setInterval(() => {
-            current += increment;
+            current += Math.ceil(target / 20);
             if (current >= target) {
                 el.textContent = formatNumber(target);
                 clearInterval(timer);
             } else {
-                el.textContent = formatNumber(Math.floor(current));
+                el.textContent = formatNumber(current);
             }
-        }, stepTime);
+        }, stepTime > 0 ? stepTime : 10);
     };
 
-    const loadStats = () => {
-        const data = TEST_DATA.stats;
-        animateValue(document.getElementById('stat-users'), data.total_users || 0);
-        animateValue(document.getElementById('stat-auctions'), data.auction_products || 0);
-        animateValue(document.getElementById('stat-products'), data.shop_products || 0);
-        animateValue(document.getElementById('stat-requests'), data.pending_requests || 0);
+    const loadStats = async () => {
+        try {
+            const data = await fetchJson(URLS.stats);
+            animateValue(document.getElementById('stat-users'), data.total_users || 0);
+            animateValue(document.getElementById('stat-auctions'), data.auction_products || 0);
+            animateValue(document.getElementById('stat-products'), data.shop_products || 0);
+            animateValue(document.getElementById('stat-requests'), data.pending_requests || 0);
 
-        if (data.active_users_week !== undefined) {
-            const activeUsersEl = document.getElementById('stat-active-users');
-            activeUsersEl.innerHTML = `
-                <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 status-dot"></div>
-                ${formatNumber(data.active_users_week)}
-            `;
-            // Remove pulse from initial skeleton dot, add to new one
-            activeUsersEl.querySelector('.status-dot').classList.remove('animate-pulse');
+            if (data.active_users_week !== undefined) {
+                document.getElementById('stat-active-users').innerHTML = `
+                    <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                    ${formatNumber(data.active_users_week)}
+                `;
+            }
+        } catch (err) {
+            console.error(err);
         }
     };
 
@@ -602,104 +548,120 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => document.getElementById('visitsChartLoading').style.display = 'none', 300);
     };
 
-    const loadCharts = () => {
-        const data = TEST_DATA.charts;
-        if (data.registrations) {
-            buildUsersChart(mapChartLabelsToJalali(data.registrations.labels), data.registrations.data);
-        }
-        if (data.visits) {
-            buildVisitsChart(
-                mapChartLabelsToJalali(data.visits.labels),
-                data.visits.store_products || [],
-                data.visits.auction_products || []
-            );
+    const loadCharts = async () => {
+        try {
+            const data = await fetchJson(URLS.charts);
+            if (data.registrations) {
+                buildUsersChart(mapChartLabelsToJalali(data.registrations.labels), data.registrations.data);
+            }
+            if (data.visits) {
+                buildVisitsChart(
+                    mapChartLabelsToJalali(data.visits.labels),
+                    data.visits.store_products || [],
+                    data.visits.auction_products || []
+                );
+            }
+        } catch (err) {
+            console.error(err);
         }
     };
 
-    const loadOrders = () => {
-        const data = TEST_DATA.orders;
-        const tbody = document.getElementById('orders-body');
-        
-        if (!data.requests || !data.requests.length) {
-            tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-sm text-slate-400">موردی یافت نشد.</td></tr>`;
-            return;
-        }
+    const loadOrders = async () => {
+        try {
+            const data = await fetchJson(URLS.orders);
+            const tbody = document.getElementById('orders-body');
+            
+            if (!data.requests || !data.requests.length) {
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-sm text-slate-400">موردی یافت نشد.</td></tr>`;
+                return;
+            }
 
-        const stMap = {
-            'pending': { l: 'در انتظار', c: 'text-amber-700 bg-amber-50 border-amber-200 dark:text-amber-400 dark:bg-amber-500/10 dark:border-amber-500/20' },
-            'approved': { l: 'تایید شده', c: 'text-emerald-700 bg-emerald-50 border-emerald-200 dark:text-emerald-400 dark:bg-emerald-500/10 dark:border-emerald-500/20' },
-            'rejected': { l: 'رد شده', c: 'text-rose-700 bg-rose-50 border-rose-200 dark:text-rose-400 dark:bg-rose-500/10 dark:border-rose-500/20' }
-        };
+            const stMap = {
+                'pending': { l: 'در انتظار', c: 'text-amber-700 bg-amber-50 border-amber-200 dark:text-amber-400 dark:bg-amber-500/10 dark:border-amber-500/20' },
+                'approved': { l: 'تایید شده', c: 'text-emerald-700 bg-emerald-50 border-emerald-200 dark:text-emerald-400 dark:bg-emerald-500/10 dark:border-emerald-500/20' },
+                'rejected': { l: 'رد شده', c: 'text-rose-700 bg-rose-50 border-rose-200 dark:text-rose-400 dark:bg-rose-500/10 dark:border-rose-500/20' }
+            };
 
-        tbody.innerHTML = data.requests.map((req, i) => {
-            const st = stMap[req.status] || { l: req.status || '—', c: 'text-slate-600 bg-slate-100 border-slate-200 dark:text-slate-400 dark:bg-slate-800 dark:border-slate-700' };
-            return `
-                <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors group">
-                    <td class="py-4 px-4 text-sm font-bold text-slate-800 dark:text-slate-200">${req.user || '—'}</td>
-                    <td class="py-4 px-4 text-sm font-medium text-slate-600 dark:text-slate-400 truncate max-w-[200px]">
-                        <a href="${req.href || '#'}" class="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors hover:text-blue-600 dark:hover:text-blue-400">
-                            ${req.title || '—'}
-                        </a>
-                    </td>
-                    <td class="py-4 px-4">
-                        <span class="inline-flex px-2.5 py-1 rounded-lg border text-[11px] font-bold ${st.c}">${st.l}</span>
-                    </td>
-                    <td class="py-4 px-4 text-xs font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">${formatJalaliDate(req.date, true)}</td>
-                </tr>`;
-        }).join('');
+            tbody.innerHTML = data.requests.map((req, i) => {
+                const st = stMap[req.status] || { l: req.status || '—', c: 'text-slate-600 bg-slate-100 border-slate-200 dark:text-slate-400 dark:bg-slate-800 dark:border-slate-700' };
+                return `
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors group">
+                        <td class="py-4 px-4 text-sm font-bold text-slate-800 dark:text-slate-200">${req.user || '—'}</td>
+                        <td class="py-4 px-4 text-sm font-medium text-slate-600 dark:text-slate-400 truncate max-w-[200px]">
+                            <a href="${req.href || '#'}" class="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors hover:text-blue-600 dark:hover:text-blue-400">
+                                ${req.title || '—'}
+                            </a>
+                        </td>
+                        <td class="py-4 px-4">
+                            <span class="inline-flex px-2.5 py-1 rounded-lg border text-[11px] font-bold ${st.c}">${st.l}</span>
+                        </td>
+                        <td class="py-4 px-4 text-xs font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">${formatJalaliDate(req.date, true)}</td>
+                    </tr>`;
+            }).join('');
+        } catch (err) { console.error(err); }
     };
 
-    const loadEndingAuctions = () => {
-        const data = TEST_DATA.auctions;
-        const container = document.getElementById('ending-auctions');
-        if (!data.auctions || !data.auctions.length) {
-            container.innerHTML = '<p class="text-center text-xs text-slate-400 py-4">مزایده‌ای در حال اتمام نیست</p>';
-            return;
-        }
-        container.innerHTML = data.auctions.map(item => `
-            <a href="${item.url || '#'}" class="group flex items-center gap-4 p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/50 border border-transparent hover:border-slate-100 dark:hover:border-slate-700/50 transition-all">
-                <div class="w-14 h-14 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 flex-shrink-0 shadow-sm">
-                    ${item.image ? `<img src="${item.image}" alt="${item.title}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">` : ''}
-                </div>
-                <div class="flex-1 min-w-0">
-                    <p class="text-sm font-bold text-slate-800 dark:text-slate-200 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">${item.title}</p>
-                    <div class="flex items-center gap-2 mt-1.5">
-                        <span class="text-[11px] font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 px-2 py-0.5 rounded-md">${item.remaining}</span>
-                        <span class="text-[11px] font-medium text-slate-500">${formatPrice(item.current_price)}</span>
+    const loadEndingAuctions = async () => {
+        try {
+            const data = await fetchJson(URLS.auctions);
+            const container = document.getElementById('ending-auctions');
+            if (!data.auctions || !data.auctions.length) {
+                container.innerHTML = '<p class="text-center text-xs text-slate-400 py-4">مزایده‌ای در حال اتمام نیست</p>';
+                return;
+            }
+            container.innerHTML = data.auctions.map(item => `
+                <a href="${item.url || '#'}" class="group flex items-center gap-4 p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/50 border border-transparent hover:border-slate-100 dark:hover:border-slate-700/50 transition-all">
+                    <div class="w-14 h-14 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 flex-shrink-0 shadow-sm">
+                        ${item.image ? `<img src="${item.image}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">` : ''}
                     </div>
-                </div>
-            </a>
-        `).join('');
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-bold text-slate-800 dark:text-slate-200 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">${item.title}</p>
+                        <div class="flex items-center gap-2 mt-1.5">
+                            <span class="text-[11px] font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 px-2 py-0.5 rounded-md">${item.remaining}</span>
+                            <span class="text-[11px] font-medium text-slate-500">${formatPrice(item.current_price)}</span>
+                        </div>
+                    </div>
+                </a>
+            `).join('');
+        } catch (err) { console.error(err); }
     };
 
-    const loadNewUsers = () => {
-        const data = TEST_DATA.newUsers;
-        const container = document.getElementById('new-users-list');
-        if (!data.users || !data.users.length) {
-            container.innerHTML = '<p class="text-center text-xs text-slate-400 py-4">کاربر جدیدی یافت نشد</p>';
-            return;
-        }
-        container.innerHTML = data.users.map(user => `
-            <a href="${user.url || '#'}" class="group flex items-center gap-3 p-2.5 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/50 border border-transparent hover:border-slate-100 dark:hover:border-slate-700/50 transition-all">
-                <div class="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm shadow-md shadow-indigo-500/20">
-                    ${user.avatar ? `<img src="${user.avatar}" alt="${user.name}" class="w-full h-full object-cover">` : user.name.charAt(0)}
-                </div>
-                <div class="flex-1 min-w-0">
-                    <p class="text-sm font-bold text-slate-800 dark:text-slate-200 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">${user.name}</p>
-                    <p class="text-[11px] font-medium text-slate-500 truncate">${user.email || user.phone || 'بدون اطلاعات تماس'}</p>
-                </div>
-                <span class="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md">${formatJalaliDate(user.joined)}</span>
-            </a>
-        `).join('');
+    const loadNewUsers = async () => {
+        try {
+            const data = await fetchJson(URLS.newUsers);
+            const container = document.getElementById('new-users-list');
+            if (!data.users || !data.users.length) {
+                container.innerHTML = '<p class="text-center text-xs text-slate-400 py-4">کاربر جدیدی یافت نشد</p>';
+                return;
+            }
+            container.innerHTML = data.users.map(user => `
+                <a href="${user.url || '#'}" class="group flex items-center gap-3 p-2.5 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/50 border border-transparent hover:border-slate-100 dark:hover:border-slate-700/50 transition-all">
+                    <div class="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm shadow-md shadow-indigo-500/20">
+                        ${user.avatar ? `<img src="${user.avatar}" class="w-full h-full object-cover">` : user.name.charAt(0)}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-bold text-slate-800 dark:text-slate-200 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">${user.name}</p>
+                        <p class="text-[11px] font-medium text-slate-500 truncate">${user.email || user.phone}</p>
+                    </div>
+                    <span class="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md">${formatJalaliDate(user.joined)}</span>
+                </a>
+            `).join('');
+        } catch (err) { console.error(err); }
     };
 
-    // پشتیبانی از دارک مد برای چارت‌ها
-    new MutationObserver(() => { 
-        if (usersChartInstance) usersChartInstance.options = chartDefaults(); usersChartInstance.update();
-        if (visitsChartInstance) visitsChartInstance.options = chartDefaults(); visitsChartInstance.update();
-    }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    // پشتیبانی از دارک مد
+    new MutationObserver(() => { if (usersChartInstance) loadCharts(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
 
-    // بارگذاری اولیه تمام بخش‌ها با داده‌های آزمایشی
+    if (window.wsClient && typeof window.wsClient.on === 'function') {
+        window.wsClient.on('admin_panel_refresh', () => {
+            loadStats();
+            loadCharts();
+            loadOrders();
+            loadEndingAuctions();
+            loadNewUsers();
+        });
+    }
+
     loadStats();
     loadCharts();
     loadOrders();

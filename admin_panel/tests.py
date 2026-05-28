@@ -36,35 +36,6 @@ class AdminRequestManagementTests(TestCase):
         )
         self.client.force_login(self.admin_user)
 
-    def test_superuser_without_staff_can_access_admin_panel_and_django_admin(self):
-        superuser = CustomUser.objects.create_user(
-            phone_number="09120000009",
-            password="Super@1234",
-            full_name="سوپریوزر تست",
-            is_staff=False,
-            is_superuser=True,
-        )
-        self.client.force_login(superuser)
-
-        panel_response = self.client.get(reverse('admin_panel:dashboard-stats'))
-        django_admin_response = self.client.get(reverse('admin:index'))
-
-        self.assertEqual(panel_response.status_code, 200)
-        self.assertEqual(django_admin_response.status_code, 200)
-
-        self.client.logout()
-        login_response = self.client.post(
-            reverse('admin:login'),
-            {
-                'username': superuser.phone_number,
-                'password': 'Super@1234',
-                'next': reverse('admin:index'),
-            },
-        )
-
-        self.assertEqual(login_response.status_code, 302)
-        self.assertEqual(login_response.headers['Location'], reverse('admin:index'))
-
     def test_verification_request_can_be_approved_from_admin_panel(self):
         request_obj = VerificationRequest.objects.create(
             user=self.normal_user,
@@ -487,7 +458,6 @@ class AdminRequestManagementTests(TestCase):
             artist=artist,
             artwork_type=artwork_type,
             base_price=Decimal('100'),
-            bid_criteria=AuctionProduct.BidCriteria.FIXED_AMOUNT,
             bid_value=Decimal('10'),
         )
         product.place_bid(self.normal_user, '200')
@@ -516,6 +486,50 @@ class AdminRequestManagementTests(TestCase):
 
         self.assertEqual(self.normal_user.credit, Decimal('750'))
         self.assertEqual(self.normal_user.current_credit, Decimal('550'))
+
+    def test_admin_can_reduce_credit_until_current_credit_reaches_zero_when_credit_is_reserved(self):
+        self.normal_user.is_verified = 1
+        self.normal_user.credit = Decimal('500')
+        self.normal_user.save()
+
+        artist = Artist.objects.create(id=14, name="هنرمند کاهش تا صفر")
+        artwork_type = ArtworkType.objects.create(name="مجسمه")
+        auction = Auction.objects.create(
+            name="مزایده کاهش تا صفر",
+            start_date=timezone.now() - timedelta(hours=1),
+            end_date=timezone.now() + timedelta(hours=1),
+            products_count=1,
+        )
+        product = AuctionProduct.objects.create(
+            auction=auction,
+            product_id='ADMIN-2501',
+            title='محصول کاهش تا صفر',
+            artist=artist,
+            artwork_type=artwork_type,
+            base_price=Decimal('100'),
+            bid_value=Decimal('10'),
+        )
+        product.place_bid(self.normal_user, '200')
+
+        url = reverse('admin_panel:users-detail', args=[self.normal_user.pk])
+        response = self.client.post(
+            url,
+            {
+                'username': self.normal_user.username,
+                'full_name': self.normal_user.full_name,
+                'phone_number': self.normal_user.phone_number,
+                'email': '',
+                'telegram_id': '',
+                'is_active': 'on',
+                'is_verified': '1',
+                'credit': '200',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.normal_user.refresh_from_db()
+        self.assertEqual(self.normal_user.credit, Decimal('200'))
+        self.assertEqual(self.normal_user.current_credit, Decimal('0'))
 
     def test_admin_can_reduce_credit_when_no_auction_credit_is_reserved(self):
         self.normal_user.is_verified = 1
@@ -570,7 +584,7 @@ class AdminRequestManagementTests(TestCase):
         self.assertEqual(self.normal_user.credit, Decimal('0'))
         self.assertEqual(self.normal_user.current_credit, Decimal('0'))
 
-    def test_admin_cannot_reduce_credit_or_remove_auction_access_when_credit_is_reserved(self):
+    def test_admin_cannot_reduce_credit_below_reserved_amount_or_remove_auction_access_when_credit_is_reserved(self):
         self.normal_user.is_verified = 1
         self.normal_user.credit = Decimal('500')
         self.normal_user.save()
@@ -590,7 +604,6 @@ class AdminRequestManagementTests(TestCase):
             artist=artist,
             artwork_type=artwork_type,
             base_price=Decimal('100'),
-            bid_criteria=AuctionProduct.BidCriteria.FIXED_AMOUNT,
             bid_value=Decimal('10'),
         )
         product.place_bid(self.normal_user, '200')
@@ -606,7 +619,7 @@ class AdminRequestManagementTests(TestCase):
                 'telegram_id': '',
                 'is_active': 'on',
                 'is_verified': '0',
-                'credit': '300',
+                'credit': '150',
             },
         )
 
@@ -635,7 +648,6 @@ class AdminRequestManagementTests(TestCase):
             artist=artist,
             artwork_type=artwork_type,
             base_price=Decimal('100'),
-            bid_criteria=AuctionProduct.BidCriteria.FIXED_AMOUNT,
             bid_value=Decimal('10'),
         )
         product.place_bid(self.normal_user, '200')

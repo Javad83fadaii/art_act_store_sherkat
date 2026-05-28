@@ -75,23 +75,24 @@
                     <select id="typeSelect" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white"></select>
                 </div>
                 <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">موضوع</label>
+                    <select id="subjectSelect" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white"></select>
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">کاربرد</label>
+                    <select id="usageSelect" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white"></select>
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">متریال</label>
+                    <select id="materialSelect" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white"></select>
+                </div>
+                <div>
                     <label class="block text-xs font-black text-text-muted mb-2">current_price</label>
                     <input id="currentPriceInput" type="number" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
                 </div>
                 <div>
-                    <label class="block text-xs font-black text-text-muted mb-2">bid_criteria</label>
-                    <select id="bidCriteriaSelect" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
-                        <option value="0">percentage-based</option>
-                        <option value="1">fixed-amount</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-black text-text-muted mb-2">bid_value</label>
-                    <input id="bidValueInput" type="number" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
-                </div>
-                <div>
-                    <label class="block text-xs font-black text-text-muted mb-2">suggested_price</label>
-                    <input id="suggestedPriceInput" type="number" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
+                    <label class="block text-xs font-black text-text-muted mb-2">درصد افزایش بید</label>
+                    <input id="bidValueInput" type="number" min="0" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
                 </div>
                 <div>
                     <label class="block text-xs font-black text-text-muted mb-2">winner_id</label>
@@ -132,6 +133,7 @@
                 <thead>
                     <tr class="border-y border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/5">
                         <th class="py-3 px-4 text-xs font-bold text-text-muted w-10 text-center">#</th>
+                        <th class="py-3 px-4 text-xs font-bold text-text-muted w-28 text-center">رتبه</th>
                         <th class="py-3 px-4 text-xs font-bold text-text-muted min-w-[150px]">نام کاربر</th>
                         <th class="py-3 px-4 text-xs font-bold text-text-muted w-32">موبایل</th>
                         <th class="py-3 px-4 text-xs font-bold text-text-muted w-36">مبلغ بید</th>
@@ -139,7 +141,7 @@
                     </tr>
                 </thead>
                 <tbody id="bids-tbody">
-                    <tr><td colspan="5" class="py-8 text-center text-text-muted text-sm">در حال بارگذاری...</td></tr>
+                    <tr><td colspan="6" class="py-8 text-center text-text-muted text-sm">در حال بارگذاری...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -204,6 +206,9 @@
             const auctionSel = document.getElementById('auctionSelect');
             const artistSel = document.getElementById('artistSelect');
             const typeSel = document.getElementById('typeSelect');
+            const subjectSel = document.getElementById('subjectSelect');
+            const usageSel = document.getElementById('usageSelect');
+            const materialSel = document.getElementById('materialSelect');
             auctionSel.innerHTML = '';
             data.auctions.forEach(a => {
                 const opt = document.createElement('option');
@@ -224,6 +229,27 @@
                 opt.value = t.id;
                 opt.textContent = t.name;
                 typeSel.appendChild(opt);
+            });
+            subjectSel.innerHTML = '<option value="">انتخاب موضوع</option>';
+            (data.subjects || []).forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item.id;
+                opt.textContent = item.name;
+                subjectSel.appendChild(opt);
+            });
+            usageSel.innerHTML = '<option value="">انتخاب کاربرد</option>';
+            (data.usages || []).forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item.id;
+                opt.textContent = item.name;
+                usageSel.appendChild(opt);
+            });
+            materialSel.innerHTML = '<option value="">انتخاب متریال</option>';
+            (data.materials || []).forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item.id;
+                opt.textContent = item.name;
+                materialSel.appendChild(opt);
             });
         } catch {}
     }
@@ -247,10 +273,11 @@
             document.getElementById('authSelect').value = String(data.authenticity_status ?? '0');
             document.getElementById('artistSelect').value = data.artist_id || '';
             document.getElementById('typeSelect').value = data.artwork_type_id || '';
+            document.getElementById('subjectSelect').value = data.subject_id || '';
+            document.getElementById('usageSelect').value = data.usage_id || '';
+            document.getElementById('materialSelect').value = data.material_id || '';
             document.getElementById('currentPriceInput').value = data.current_price || '';
-            document.getElementById('bidCriteriaSelect').value = data.bid_criteria ?? 0;
             document.getElementById('bidValueInput').value = data.bid_value || '';
-            document.getElementById('suggestedPriceInput').value = data.suggested_price || '';
             document.getElementById('winnerIdInput').value = data.winner_id || '';
 
             document.getElementById('viewsBox').innerText = Number(data.views || 0).toLocaleString('fa-IR');
@@ -287,10 +314,11 @@
                 authenticity_status: Number(document.getElementById('authSelect').value),
                 artist_id: document.getElementById('artistSelect').value ? Number(document.getElementById('artistSelect').value) : null,
                 artwork_type_id: document.getElementById('typeSelect').value ? Number(document.getElementById('typeSelect').value) : null,
+                subject_id: document.getElementById('subjectSelect').value ? Number(document.getElementById('subjectSelect').value) : null,
+                usage_id: document.getElementById('usageSelect').value ? Number(document.getElementById('usageSelect').value) : null,
+                material_id: document.getElementById('materialSelect').value ? Number(document.getElementById('materialSelect').value) : null,
                 current_price: document.getElementById('currentPriceInput').value !== '' ? Number(document.getElementById('currentPriceInput').value) : null,
-                bid_criteria: Number(document.getElementById('bidCriteriaSelect').value),
                 bid_value: document.getElementById('bidValueInput').value ? Number(document.getElementById('bidValueInput').value) : 0,
-                suggested_price: document.getElementById('suggestedPriceInput').value !== '' ? Number(document.getElementById('suggestedPriceInput').value) : null,
                 winner_id: document.getElementById('winnerIdInput').value ? Number(document.getElementById('winnerIdInput').value) : null,
             };
 
@@ -327,7 +355,7 @@
             document.getElementById('bids-count-label').innerText = `${Number(data.total).toLocaleString('fa-IR')} بید`;
 
             if (!data.results || data.results.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-text-muted text-sm">هیچ بیدی ثبت نشده است.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-text-muted text-sm">هیچ بیدی ثبت نشده است.</td></tr>`;
                 document.getElementById('bids-pagination').classList.add('hidden');
                 return;
             }
@@ -338,16 +366,28 @@
                 if (rank === 3) return '🥉';
                 return '';
             }
+
+            function getRankBadge(rank) {
+                if (!rank) {
+                    return '<span class="inline-flex items-center justify-center rounded-lg bg-gray-100 dark:bg-white/10 px-2 py-1 text-xs font-bold text-text-muted">-</span>';
+                }
+
+                const medal = getMedalEmoji(rank);
+                if (medal) {
+                    return `<span class="inline-flex items-center justify-center gap-1 rounded-lg px-2.5 py-1 text-xs font-black bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">${medal}<span>رتبه ${Number(rank).toLocaleString('fa-IR')}</span></span>`;
+                }
+
+                return `<span class="inline-flex items-center justify-center rounded-lg bg-primary/10 dark:bg-primary/20 px-2.5 py-1 text-xs font-black text-primary dark:text-primary-glow">رتبه ${Number(rank).toLocaleString('fa-IR')}</span>`;
+            }
             
             data.results.forEach((bid, idx) => {
                 const dateStr = bid.created_at ? bidsDateFormatter.format(new Date(bid.created_at)) : '-';
                 const rowNum = (data.current_page - 1) * 20 + idx + 1;
-                const medal = bid.rank ? getMedalEmoji(bid.rank) : '';
                 const row = `
                     <tr class="border-b border-gray-50 dark:border-white/5 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors">
                         <td class="py-3 px-4 text-xs text-text-muted font-bold text-center">${rowNum}</td>
-                        <td class="py-3 px-4 text-xs font-bold text-text-main dark:text-white line-clamp-1 flex items-center gap-2">
-                            ${medal ? `<span class="text-lg">${medal}</span>` : ''}
+                        <td class="py-3 px-4 text-center whitespace-nowrap">${getRankBadge(bid.rank)}</td>
+                        <td class="py-3 px-4 text-xs font-bold text-text-main dark:text-white line-clamp-1">
                             ${bid.user_fullname}
                         </td>
                         <td class="py-3 px-4 text-xs text-text-muted dir-ltr text-right font-mono whitespace-nowrap">${bid.user_mobile}</td>
@@ -372,7 +412,7 @@
                 paginationEl.classList.add('hidden');
             }
         } catch (e) {
-            document.getElementById('bids-tbody').innerHTML = `<tr><td colspan="5" class="py-8 text-center text-red-500 text-sm">خطا در دریافت بیدها.</td></tr>`;
+            document.getElementById('bids-tbody').innerHTML = `<tr><td colspan="6" class="py-8 text-center text-red-500 text-sm">خطا در دریافت بیدها.</td></tr>`;
         }
     }
 </script>

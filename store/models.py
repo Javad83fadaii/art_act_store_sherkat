@@ -28,6 +28,45 @@ class ArtworkType(models.Model):
     def __str__(self):
         return self.name
 
+
+class Subject(models.Model):
+    name = models.CharField(max_length=100, verbose_name='نام موضوع')
+    description = models.TextField(blank=True, verbose_name='توضیحات', default="")
+
+    class Meta:
+        db_table = 'store_subject'
+        verbose_name = 'موضوع'
+        verbose_name_plural = 'موضوعات'
+
+    def __str__(self):
+        return self.name
+
+
+class Usage(models.Model):
+    name = models.CharField(max_length=100, verbose_name='نام کاربرد')
+    description = models.TextField(blank=True, verbose_name='توضیحات', default="")
+
+    class Meta:
+        db_table = 'store_usage'
+        verbose_name = 'کاربرد'
+        verbose_name_plural = 'کاربردها'
+
+    def __str__(self):
+        return self.name
+
+
+class Material(models.Model):
+    name = models.CharField(max_length=100, verbose_name='نام متریال')
+    description = models.TextField(blank=True, verbose_name='توضیحات', default="")
+
+    class Meta:
+        db_table = 'store_material'
+        verbose_name = 'متریال'
+        verbose_name_plural = 'متریال‌ها'
+
+    def __str__(self):
+        return self.name
+
 class Artwork(models.Model):
     class AuthenticityStatus(models.IntegerChoices):
         CONFIRMED = 0, 'اصالت تایید شده'
@@ -49,9 +88,34 @@ class Artwork(models.Model):
         related_name='artworks',
         verbose_name='نوع اثر هنری'
     )
+    subject = models.ForeignKey(
+        Subject,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='artworks',
+        verbose_name='موضوع'
+    )
+    usage = models.ForeignKey(
+        Usage,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='artworks',
+        verbose_name='کاربرد'
+    )
+    material = models.ForeignKey(
+        Material,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='artworks',
+        verbose_name='متریال'
+    )
 
     description = models.TextField(verbose_name='توضیحات')
     price = models.DecimalField(max_digits=12, decimal_places=0, verbose_name='قیمت')
+    price_description = models.CharField(max_length=255, blank=True, null=True, verbose_name='توضیحات قیمت')
     
     class IsSoldStatus(models.IntegerChoices):
         AVAILABLE = 0, 'موجود'

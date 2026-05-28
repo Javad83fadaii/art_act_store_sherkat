@@ -1,7 +1,5 @@
 import json
 
-from .decorators import has_admin_access
-
 try:
     from channels.generic.websocket import AsyncWebsocketConsumer
 except ImportError:
@@ -13,7 +11,7 @@ except ImportError:
 class AdminNotificationConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         user = self.scope.get('user')
-        if not has_admin_access(user):
+        if not getattr(user, 'is_staff', False):
             await self.close()
             return
 

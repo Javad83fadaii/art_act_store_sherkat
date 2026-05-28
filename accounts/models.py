@@ -15,6 +15,11 @@ class CustomUserManager(BaseUserManager):
     def _create_user(self, phone_number, password, **extra_fields):
         if not phone_number:
             raise ValueError("phone_number must be set")
+            
+        # بررسی و اجباری بودن نام و نام خانوادگی (full_name)
+        full_name = extra_fields.get("full_name")
+        if not full_name or not str(full_name).strip():
+            raise ValueError("full_name must be set")
 
         phone_number = str(phone_number).strip()
 
@@ -55,13 +60,16 @@ class CustomUserManager(BaseUserManager):
 
 
 class CustomUser(AbstractUser):
-    # این دو فیلد بازنویسی شدند تا خطای دیتابیس 1364 برطرف شود
-    first_name = models.CharField(max_length=150, blank=True, null=True, default="")
-    last_name = models.CharField(max_length=150, blank=True, null=True, default="")
+    # حذف کامل فیلدهای پیش‌فرض نام و نام خانوادگی از AbstractUser
+    first_name = None
+    last_name = None
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     phone_number = models.CharField(max_length=20, unique=True)
-    full_name = models.CharField(max_length=150, blank=True, default="")
+    
+    # فیلد نام کامل (اجباری)
+    full_name = models.CharField(max_length=150)
+    
     preferred_contact_methods = models.JSONField(default=list, blank=True)
     telegram_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
     email = models.EmailField(unique=True, null=True, blank=True)
@@ -80,17 +88,18 @@ class CustomUser(AbstractUser):
     objects = CustomUserManager()
 
     USERNAME_FIELD = 'phone_number'
-    REQUIRED_FIELDS = []
+    # اضافه شدن full_name به فیلدهای الزامی برای دستور createsuperuser
+    REQUIRED_FIELDS = ['full_name']
 
     def __str__(self):
-        name = (self.full_name or "").strip()
+        name = str(self.full_name).strip() if self.full_name else ""
         return name or self.phone_number
 
     def get_full_name(self):
-        return (self.full_name or "").strip()
+        return str(self.full_name).strip() if self.full_name else ""
 
     def get_short_name(self):
-        return (self.full_name or "").strip() or self.phone_number
+        return str(self.full_name).strip() if self.full_name else self.phone_number
 
     @property
     def has_pending_auction_request(self):

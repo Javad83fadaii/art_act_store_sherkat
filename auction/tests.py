@@ -30,7 +30,6 @@ class AuctionBidCreditFlowTests(TestCase):
             artist=self.artist,
             artwork_type=self.artwork_type,
             base_price=Decimal('100'),
-            bid_criteria=AuctionProduct.BidCriteria.FIXED_AMOUNT,
             bid_value=Decimal('10'),
         )
         self.user_one = self._create_verified_user('09120000001', 'کاربر اول', Decimal('1000'))
@@ -119,6 +118,14 @@ class AuctionBidCreditFlowTests(TestCase):
         self.assertEqual(AuctionCartItem.objects.count(), 1)
         self.assertEqual(self.product.bids.filter(user=self.user_one).count(), 2)
 
+    def test_min_next_bid_uses_current_price_as_percentage_base(self):
+        self.assertEqual(self.product.get_min_next_bid(), 110)
+
+        self.product.place_bid(self.user_one, '200')
+        self.product.refresh_from_db()
+
+        self.assertEqual(self.product.get_min_next_bid(), 220)
+
     def test_updating_total_credit_recalculates_current_credit_from_active_cart(self):
         self.product.place_bid(self.user_one, '200')
 
@@ -178,7 +185,7 @@ class AuctionBidCreditFlowTests(TestCase):
         self.assertTrue(payload['success'])
         self.assertEqual(payload['current_price'], 200)
         self.assertEqual(payload['bid_count'], 1)
-        self.assertEqual(payload['min_next_bid'], 210)
+        self.assertEqual(payload['min_next_bid'], 220)
         self.assertEqual(payload['my_bids_count'], 1)
         self.assertIn('200', payload['my_bids_html'])
 
@@ -223,14 +230,14 @@ class AuctionBidCreditFlowTests(TestCase):
 
     def test_profile_moves_bid_history_into_auction_cart(self):
         self.product.place_bid(self.user_one, '200')
-        self.product.place_bid(self.user_one, '210')
+        self.product.place_bid(self.user_one, '220')
         self.client.force_login(self.user_one)
 
         response = self.client.get(reverse('profile'))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'تاریخچه بیدهای این محصول')
-        self.assertContains(response, '۲۱۰')
+        self.assertContains(response, '۲۲۰')
         self.assertNotContains(response, 'بیدهای ثبت شده')
 
     def test_finished_auction_moves_won_product_to_auction_purchases(self):
@@ -301,7 +308,6 @@ class AuctionVisitTrackingTests(TestCase):
             artist=self.artist,
             artwork_type=self.artwork_type,
             base_price=Decimal('100'),
-            bid_criteria=AuctionProduct.BidCriteria.FIXED_AMOUNT,
             bid_value=Decimal('10'),
         )
 
@@ -329,6 +335,8 @@ class AuctionVisitTrackingTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         html = response.content.decode()
+        self.assertIn(reverse('auction:auction_products', kwargs={'pk': self.auction.pk}), html)
+        self.assertNotIn('href="javascript:void(0);"', html)
         self.assertIn('data-track-visit="1"', html)
         self.assertIn('data-track-guard="auction-access"', html)
 
@@ -344,6 +352,9 @@ class AuctionVisitTrackingTests(TestCase):
         self.assertEqual(response.status_code, 200)
         html = response.content.decode()
         self.assertIn(reverse('auction:auction_product_detail', kwargs={'pk': self.product.pk}), html)
+        self.assertIn('data-auction-product-link="1"', html)
+        self.assertIn('data-auction-quick-bid="1"', html)
+        self.assertIn('data-login-message="برای مشاهده جزئیات محصول مزایده، لطفاً ابتدا وارد حساب کاربری خود شوید."', html)
         self.assertIn('data-track-kind="auction_product"', html)
         self.assertIn('data-track-guard="auction-access"', html)
 

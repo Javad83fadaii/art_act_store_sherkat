@@ -8,17 +8,10 @@ from .models import AdminActivityLog
 from .utils import broadcast_admin_panel_refresh
 
 
-def has_admin_access(user):
-    return (
-        getattr(user, "is_authenticated", False)
-        and (getattr(user, "is_staff", False) or getattr(user, "is_superuser", False))
-    )
-
-
 def staff_required(view_func):
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
-        if not has_admin_access(request.user):
+        if not request.user.is_authenticated or not request.user.is_staff:
             return JsonResponse({'error': 'Unauthorized'}, status=403)
         return view_func(request, *args, **kwargs)
 
@@ -32,8 +25,8 @@ def log_admin_action(action_type):
             response = view_func(request, *args, **kwargs)
 
             is_success = getattr(response, 'status_code', 500) < 400
-            is_admin_user = has_admin_access(request.user)
-            if is_success and is_admin_user:
+            is_staff_user = request.user.is_authenticated and request.user.is_staff
+            if is_success and is_staff_user:
                 raw_object_id = kwargs.get('pk', 0)
                 object_id = raw_object_id if isinstance(raw_object_id, int) else 0
 

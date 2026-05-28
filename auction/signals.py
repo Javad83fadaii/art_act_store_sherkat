@@ -2,7 +2,7 @@ from django.db.models.signals import post_save, post_delete
 from django.db import transaction
 from django.dispatch import receiver
 
-from .models import AuctionProduct, Bid, SuggestedPrice, AuctionCartItem
+from .models import AuctionProduct, Bid, AuctionCartItem
 from .realtime import broadcast_product_bid_update
 from accounts.realtime import broadcast_profile_update
 
@@ -53,17 +53,4 @@ def on_cart_item_save(sender, instance, **kwargs):
 def on_cart_item_delete(sender, instance, **kwargs):
     # بروزرسانی پروفایل کاربر در صورت حذف از سبد خرید
     transaction.on_commit(lambda: broadcast_profile_update(instance.user_id))
-
-
-@receiver(post_save, sender=SuggestedPrice)
-def update_auction_product_suggested_price_on_suggested_price_save(sender, instance: SuggestedPrice, **kwargs):
-    latest = (
-        SuggestedPrice.objects.filter(product_id=instance.product_id)
-        .order_by('-created_at', '-pk')
-        .values_list('price', flat=True)
-        .first()
-    )
-    if latest is None:
-        return
-    AuctionProduct.objects.filter(product_id=instance.product_id).update(suggested_price=latest)
 

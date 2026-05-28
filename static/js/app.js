@@ -1,11 +1,165 @@
 /**
  * Application Core JavaScript
- * Handles global functionality like timers, gallery, and shared UI helpers.
+ * Handles global functionality like Toasts, Dark Mode, Gallery, etc.
  */
 
-// Notification UI has been disabled globally, but the API remains to avoid
-// breaking existing callers across templates.
-window.showToast = function() {};
+// Toast Notification System
+const Toast = (function() {
+    const queue = {
+        'top-right': [],
+        'top-left': [],
+        'bottom-right': [],
+        'bottom-left': []
+    };
+
+    const containers = {};
+
+    function createContainer(position) {
+        if (containers[position]) return containers[position];
+
+        const container = document.createElement('div');
+        container.className = `toast-container toast-${position}`;
+        // Basic styles are in components.css, but we ensure positioning here if missing
+        container.style.position = 'fixed';
+        container.style.zIndex = '9999';
+        container.style.display = 'flex';
+        container.style.flexDirection = 'column';
+        container.style.gap = '10px';
+        container.style.pointerEvents = 'none';
+
+        if (position === 'top-right') { container.style.top = '20px'; container.style.right = '20px'; }
+        if (position === 'top-left') { container.style.top = '20px'; container.style.left = '20px'; }
+        if (position === 'bottom-right') { container.style.bottom = '20px'; container.style.right = '20px'; }
+        if (position === 'bottom-left') { container.style.bottom = '20px'; container.style.left = '20px'; }
+
+        document.body.appendChild(container);
+        containers[position] = container;
+        return container;
+    }
+
+    function show(message, type = 'success', position = 'bottom-right', durationOrOptions = 5000, maybeOptions = null) {
+        const container = createContainer(position);
+        const duration = 5000;
+        let options = {};
+        if (durationOrOptions && typeof durationOrOptions === 'object') {
+            options = durationOrOptions;
+        } else if (maybeOptions && typeof maybeOptions === 'object') {
+            options = maybeOptions;
+        }
+        
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type} transform transition-all duration-300 translate-y-2 opacity-0`;
+        toast.style.position = 'relative';
+        toast.style.overflow = 'hidden';
+        
+        // Styles should be in components.css, but adding inline for robustness
+        toast.style.padding = '12px 24px';
+        toast.style.borderRadius = '8px';
+        toast.style.color = '#fff';
+        toast.style.fontWeight = '500';
+        toast.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+        toast.style.pointerEvents = 'auto';
+        toast.style.minWidth = '300px';
+        toast.style.display = 'flex';
+        toast.style.alignItems = 'center';
+        toast.style.gap = '8px';
+        
+        // Colors based on type
+        if (type === 'success') toast.style.backgroundColor = '#28a745'; // Green
+        else if (type === 'error') toast.style.backgroundColor = '#EF4444'; // Red
+        else if (type === 'info') toast.style.backgroundColor = '#3B82F6'; // Blue
+        else if (type === 'warning') toast.style.backgroundColor = '#F59E0B'; // Amber
+        else toast.style.backgroundColor = '#333';
+
+        // Icon
+        let icon = '';
+        if (type === 'success') icon = 'check';
+        else if (type === 'error') icon = 'error';
+        else if (type === 'info') icon = 'info';
+        else if (type === 'warning') icon = 'warning';
+
+        const iconEl = document.createElement('span');
+        iconEl.className = 'material-symbols-outlined text-[20px]';
+        iconEl.textContent = icon;
+
+        const messageEl = document.createElement('span');
+        messageEl.style.flex = '1';
+        messageEl.textContent = String(message ?? '');
+
+        toast.appendChild(iconEl);
+        toast.appendChild(messageEl);
+
+        const actionLabel = options.actionLabel ? String(options.actionLabel) : '';
+        const actionHref = options.actionHref ? String(options.actionHref) : '';
+        const onAction = typeof options.onAction === 'function' ? options.onAction : null;
+
+        if (actionLabel) {
+            const actionEl = document.createElement(actionHref ? 'a' : 'button');
+            actionEl.textContent = actionLabel;
+            actionEl.style.marginRight = '12px';
+            actionEl.style.marginLeft = 'auto';
+            actionEl.style.padding = '6px 10px';
+            actionEl.style.borderRadius = '8px';
+            actionEl.style.fontSize = '12px';
+            actionEl.style.fontWeight = '700';
+            actionEl.style.background = 'rgba(255, 255, 255, 0.18)';
+            actionEl.style.border = '1px solid rgba(255, 255, 255, 0.28)';
+            actionEl.style.color = '#fff';
+            actionEl.style.cursor = 'pointer';
+            actionEl.style.pointerEvents = 'auto';
+            actionEl.style.textDecoration = 'none';
+
+            if (actionHref) {
+                actionEl.href = actionHref;
+            } else {
+                actionEl.type = 'button';
+            }
+
+            actionEl.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (onAction) onAction();
+            });
+
+            toast.appendChild(actionEl);
+        }
+
+        const progress = document.createElement('div');
+        progress.style.position = 'absolute';
+        progress.style.left = '0';
+        progress.style.right = '0';
+        progress.style.bottom = '0';
+        progress.style.height = '3px';
+        progress.style.background = 'rgba(255, 255, 255, 0.35)';
+        progress.style.transformOrigin = 'right center';
+        progress.style.transform = 'scaleX(1)';
+        progress.style.transition = `transform ${duration}ms linear`;
+        toast.appendChild(progress);
+
+        // Add to container
+        container.appendChild(toast);
+
+        // Animate in
+        requestAnimationFrame(() => {
+            toast.classList.remove('translate-y-2', 'opacity-0');
+            requestAnimationFrame(() => {
+                progress.style.transform = 'scaleX(0)';
+            });
+        });
+
+        // Auto remove
+        setTimeout(() => {
+            toast.classList.add('opacity-0', 'translate-y-2'); // Fade out
+            toast.addEventListener('transitionend', () => {
+                toast.remove();
+            });
+        }, duration);
+    }
+
+    return { show };
+})();
+
+// Expose to window
+window.showToast = Toast.show;
 
 document.addEventListener('DOMContentLoaded', () => {
     try {

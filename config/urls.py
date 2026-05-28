@@ -1,11 +1,9 @@
-from django.contrib import admin
 from django.urls import path, include, re_path
 from core import views
 from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
     path('accounts/', include('accounts.urls')), 
     path('accounts/', include('django.contrib.auth.urls')),
     path('track-visit/', views.track_public_visit, name='track_public_visit'),

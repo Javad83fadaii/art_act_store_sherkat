@@ -6,6 +6,93 @@ from decimal import Decimal, InvalidOperation
 # ایمپورت CreditIncreaseRequest حذف شد چون دیگر در این فایل استفاده نمی‌شود
 from .models import CustomUser, VerificationRequest
 
+
+PERSIAN_REQUIRED_MESSAGE = "لطفا این فیلد را کامل کنید"
+PERSIAN_EMAIL_REQUIRED_MESSAGE = "لطفا آدرس ایمیل را کامل کنید"
+PERSIAN_EMAIL_INVALID_MESSAGE = "لطفا یک آدرس ایمیل معتبر وارد کنید"
+PERSIAN_FULL_NAME_REQUIRED_MESSAGE = "لطفا نام و نام خانوادگی را کامل کنید"
+PERSIAN_PASSWORD_REQUIRED_MESSAGE = "لطفا رمز عبور را کامل کنید"
+PERSIAN_PASSWORD_CONFIRM_REQUIRED_MESSAGE = "لطفا تکرار رمز عبور را کامل کنید"
+PERSIAN_PASSWORD_MIN_LENGTH_MESSAGE = "رمز عبور باید حداقل ۸ کاراکتر باشد."
+PERSIAN_PASSWORD_PATTERN_MESSAGE = (
+    "رمز عبور باید حداقل ۸ کاراکتر و شامل حرف بزرگ، حرف کوچک و کاراکتر ویژه باشد."
+)
+
+
+def _escape_js_string(value):
+    return str(value).replace("\\", "\\\\").replace("'", "\\'")
+
+
+def _get_required_browser_message(field):
+    label = str(getattr(field, "label", "") or "").strip()
+    if "تکرار رمز عبور" in label:
+        return PERSIAN_PASSWORD_CONFIRM_REQUIRED_MESSAGE
+    if "رمز عبور" in label:
+        return PERSIAN_PASSWORD_REQUIRED_MESSAGE
+    if "نام و نام خانوادگی" in label:
+        return PERSIAN_FULL_NAME_REQUIRED_MESSAGE
+    if "ایمیل" in label:
+        return PERSIAN_EMAIL_REQUIRED_MESSAGE
+    return PERSIAN_REQUIRED_MESSAGE
+
+
+def _apply_password_browser_validation_attrs(field):
+    field.widget.attrs["minlength"] = "8"
+    field.widget.attrs["pattern"] = r"(?=.*[A-Z])(?=.*[a-z])(?=.*[^A-Za-z0-9\s]).{8,}"
+
+
+def _apply_persian_browser_validation(field):
+    if isinstance(
+        field.widget,
+        (forms.CheckboxInput, forms.CheckboxSelectMultiple, forms.RadioSelect, forms.Select, forms.SelectMultiple),
+    ):
+        return
+
+    required_message = _escape_js_string(_get_required_browser_message(field))
+    rules = ["if (this.validity.valueMissing) {" f"this.setCustomValidity('{required_message}');" "}"]
+
+    if isinstance(field, forms.EmailField):
+        rules.append(
+            f"else if (this.validity.typeMismatch) {{this.setCustomValidity('{_escape_js_string(PERSIAN_EMAIL_INVALID_MESSAGE)}');}}"
+        )
+
+    if isinstance(field.widget, forms.PasswordInput):
+        rules.append(
+            f"else if (this.validity.tooShort) {{this.setCustomValidity('{_escape_js_string(PERSIAN_PASSWORD_MIN_LENGTH_MESSAGE)}');}}"
+        )
+        rules.append(
+            f"else if (this.validity.patternMismatch) {{this.setCustomValidity('{_escape_js_string(PERSIAN_PASSWORD_PATTERN_MESSAGE)}');}}"
+        )
+
+    rules.append("else {this.setCustomValidity('');}")
+    field.widget.attrs["oninvalid"] = "".join(rules)
+    field.widget.attrs["oninput"] = "this.setCustomValidity('')"
+
+
+def _apply_persian_error_messages(form):
+    default_english_messages = {
+        "required": "This field is required.",
+    }
+
+    for field in form.fields.values():
+        if field.error_messages.get("required") in (None, "", default_english_messages["required"]):
+            field.error_messages["required"] = "وارد کردن این فیلد الزامی است."
+        _apply_persian_browser_validation(field)
+        field.error_messages.setdefault("invalid", "مقدار وارد شده معتبر نیست.")
+        field.error_messages.setdefault("invalid_choice", "گزینه انتخاب‌شده معتبر نیست.")
+        field.error_messages.setdefault("invalid_list", "مقادیر انتخاب‌شده معتبر نیستند.")
+        field.error_messages.setdefault(
+            "max_length",
+            "تعداد کاراکترهای واردشده نباید بیشتر از %(limit_value)s باشد.",
+        )
+        field.error_messages.setdefault(
+            "min_length",
+            "تعداد کاراکترهای واردشده باید حداقل %(limit_value)s باشد.",
+        )
+
+        if isinstance(field, forms.EmailField):
+            field.error_messages["invalid"] = "آدرس ایمیل معتبر نیست."
+
 # ==========================================
 # فرم شخصی‌سازی شده برای ورود (تغییر ارور انگلیسی به فارسی)
 # ==========================================
@@ -19,6 +106,10 @@ class CustomLoginForm(AuthenticationForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        _apply_persian_error_messages(self)
+        # AuthenticationForm به صورت پیش‌فرض پیام required انگلیسی دارد؛ اینجا قطعی فارسی می‌کنیم.
+        self.fields["username"].error_messages["required"] = "وارد کردن این فیلد الزامی است."
+        self.fields["password"].error_messages["required"] = "وارد کردن این فیلد الزامی است."
 
         input_style = (
             'w-full h-12 px-4 rounded-xl border border-gray-300 bg-white/50 text-gray-900 '
@@ -51,6 +142,9 @@ class CustomUserCreationForm(UserCreationForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        _apply_persian_error_messages(self)
+        _apply_password_browser_validation_attrs(self.fields["password1"])
+        _apply_password_browser_validation_attrs(self.fields["password2"])
 
         input_style = (
             'w-full h-12 px-4 rounded-xl border border-gray-300 bg-white/50 text-gray-900 '
@@ -76,6 +170,7 @@ class CustomUserChangeForm(UserChangeForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        _apply_persian_error_messages(self)
 
         input_style = (
             'w-full h-12 px-4 rounded-xl border border-gray-300 bg-white/50 text-gray-900 '
@@ -130,6 +225,9 @@ class PublicSignupForm(forms.ModelForm):
  
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        _apply_persian_error_messages(self)
+        _apply_password_browser_validation_attrs(self.fields["password1"])
+        _apply_password_browser_validation_attrs(self.fields["password2"])
 
         input_style = (
             "w-full h-12 px-4 rounded-xl border border-gray-300 bg-white/50 text-gray-900 "
@@ -322,6 +420,9 @@ class PublicProfileUpdateForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         has_auction_opt_in = bool(kwargs.pop("has_auction_opt_in", False))
         super().__init__(*args, **kwargs)
+        _apply_persian_error_messages(self)
+        _apply_password_browser_validation_attrs(self.fields["password1"])
+        _apply_password_browser_validation_attrs(self.fields["password2"])
 
         input_style = (
             "w-full h-12 px-4 rounded-xl border border-gray-300 bg-white/50 text-gray-900 "
@@ -532,7 +633,9 @@ class AdminUserEditForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        _apply_persian_error_messages(self)
         self.fields["username"].required = False
+        _apply_password_browser_validation_attrs(self.fields["new_password"])
 
     def clean_username(self):
         username = (self.cleaned_data.get("username") or "").strip()
@@ -646,7 +749,6 @@ class AdminUserEditForm(forms.ModelForm):
         requested_is_verified = int(cleaned_data.get("is_verified") or 0)
         requested_credit = Decimal(str(cleaned_data.get("credit") or 0))
         snapshot = self._get_existing_credit_snapshot()
-        existing_total_credit = snapshot["credit"]
         existing_is_verified = snapshot["is_verified"]
         reserved_auction_credit = (
             self.instance.get_reserved_auction_credit()

@@ -43,10 +43,6 @@ class AuctionProduct(models.Model):
         CONFIRMED = 0, 'اصالت تایید شده'
         NOT_CONFIRMED = 1, 'اصالت تایید نشده'
 
-    class BidCriteria(models.IntegerChoices):
-        PERCENTAGE_BASED = 0, 'percentage-based'
-        FIXED_AMOUNT = 1, 'fixed-amount'
-
     auction = models.ForeignKey(Auction, on_delete=models.CASCADE, related_name='products')
     product_id = models.CharField(max_length=64, unique=True)
     title = models.CharField(max_length=255)
@@ -66,14 +62,36 @@ class AuctionProduct(models.Model):
         on_delete=models.PROTECT,
         related_name='auction_products',
     )
-    base_price = models.DecimalField(max_digits=15, decimal_places=2)
-    current_price = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
-    bid_criteria = models.SmallIntegerField(
-        choices=BidCriteria.choices,
-        default=BidCriteria.PERCENTAGE_BASED,
+    subject = models.ForeignKey(
+        'store.Subject',
+        on_delete=models.PROTECT,
+        related_name='auction_products',
+        null=True,
+        blank=True,
     )
-    bid_value = models.DecimalField(max_digits=15, decimal_places=2)
-    suggested_price = models.DecimalField(max_digits=15, decimal_places=2, null=True)
+    usage = models.ForeignKey(
+        'store.Usage',
+        on_delete=models.PROTECT,
+        related_name='auction_products',
+        null=True,
+        blank=True,
+    )
+    material = models.ForeignKey(
+        'store.Material',
+        on_delete=models.PROTECT,
+        related_name='auction_products',
+        null=True,
+        blank=True,
+    )
+    
+    # فیلدهای قیمت به تومان (بدون اعشار)
+    base_price = models.DecimalField(max_digits=15, decimal_places=0)
+    current_price = models.DecimalField(max_digits=15, decimal_places=0, blank=True, null=True)
+    price_description = models.CharField(max_length=255, blank=True, null=True, verbose_name='توضیحات قیمت')
+
+    # درصد افزایش بید برای هر محصول
+    bid_value = models.DecimalField(max_digits=15, decimal_places=0)
+    
     winner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -212,7 +230,7 @@ class AuctionProduct(models.Model):
 
     @property
     def medium(self):
-        return getattr(self.artwork_type, 'name', '') or ''
+        return getattr(self.material, 'name', '') or getattr(self.artwork_type, 'name', '') or ''
 
     def _get_linked_artwork(self):
         if hasattr(self, '_linked_artwork_cache'):
@@ -240,18 +258,8 @@ class AuctionProduct(models.Model):
             current = Decimal(str(current))
         except (InvalidOperation, TypeError, ValueError):
             current = Decimal('0')
-
-        if self.bid_criteria == self.BidCriteria.FIXED_AMOUNT:
-            increase = Decimal(str(self.bid_value or 0))
-            min_next = current + increase
-        else:
-            base = self.base_price or Decimal('0')
-            try:
-                base = Decimal(str(base))
-            except (InvalidOperation, TypeError, ValueError):
-                base = Decimal('0')
-            percent = Decimal(str(self.bid_value or 0))
-            min_next = current + (base * (percent / Decimal('100')))
+        percent = Decimal(str(self.bid_value or 0))
+        min_next = current + (current * (percent / Decimal('100')))
 
         return int(min_next.to_integral_value(rounding=ROUND_CEILING))
 
@@ -280,7 +288,8 @@ class AuctionProduct(models.Model):
 
             min_next = Decimal(str(product.get_min_next_bid()))
             if bid_amount < min_next:
-                raise ValidationError(f'حداقل پیشنهاد بعدی {int(min_next):,} دلار است.')
+                # تغییر متن ارور از دلار به تومان
+                raise ValidationError(f'حداقل پیشنهاد بعدی {int(min_next):,} تومان است.')
 
             bidder = user_model.objects.select_for_update().get(pk=user.pk)
             bidder.refresh_current_credit()
@@ -396,7 +405,8 @@ class AuctionCartItem(models.Model):
         on_delete=models.CASCADE,
         related_name='cart_item',
     )
-    reserved_amount = models.DecimalField(max_digits=15, decimal_places=2)
+    # مبلغ رزرو شده به تومان بدون اعشار
+    reserved_amount = models.DecimalField(max_digits=15, decimal_places=0)
     is_active = models.BooleanField(default=True)
     outbid_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -458,28 +468,6 @@ class AuctionVisitHistory(models.Model):
         return f'{visitor} - {target}'
 
 
-class SuggestedPrice(models.Model):
-    auction = models.ForeignKey(Auction, on_delete=models.CASCADE, related_name='suggested_prices')
-    product = models.ForeignKey(
-        AuctionProduct,
-        on_delete=models.CASCADE,
-        related_name='suggested_prices',
-        to_field='product_id',
-    )
-    price = models.DecimalField(max_digits=15, decimal_places=2)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='suggested_prices')
-    user_fullname = models.CharField(max_length=255)
-    user_mobile = models.CharField(max_length=50)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        db_table = 'auction_suggested_price'
-        ordering = ['-created_at']
-
-    def __str__(self) -> str:
-        return f'{self.product_id} - {self.price}'
-
-
 class Bid(models.Model):
     auction = models.ForeignKey(Auction, on_delete=models.CASCADE, related_name='bids')
     product = models.ForeignKey(
@@ -488,7 +476,8 @@ class Bid(models.Model):
         related_name='bids',
         to_field='product_id',
     )
-    bid_amount = models.DecimalField(max_digits=15, decimal_places=2)
+    # مبلغ پیشنهاد به تومان بدون اعشار
+    bid_amount = models.DecimalField(max_digits=15, decimal_places=0)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='auction_bids')
     user_fullname = models.CharField(max_length=255)
     user_mobile = models.CharField(max_length=50)

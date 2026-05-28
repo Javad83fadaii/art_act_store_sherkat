@@ -154,24 +154,6 @@ def _handle_purchase_request_side_effects_async(
 
 @receiver(post_save, sender=TelegramPurchaseRequest)
 def notify_purchase_request(sender, instance, created=False, **kwargs):
-    if not created:
-        return
-
-    user = instance.user
-    user_label = (
-        (getattr(user, 'get_full_name', lambda: '')() or '').strip()
-        or getattr(user, 'phone_number', '')
-    )
-    product_title = instance.artwork.title if instance.artwork else 'نامشخص'
-    product_id = instance.artwork.product_id if instance.artwork else '—'
-    created_at = _jalali_datetime_str(instance.created_at or timezone.now())
-    transaction.on_commit(
-        lambda: _handle_purchase_request_side_effects_async(
-            request_id=instance.pk,
-            user_id=instance.user_id,
-            user_label=user_label,
-            product_title=product_title,
-            product_id=product_id,
-            created_at=created_at,
-        )
-    )
+    # پیام خرید از مسیر `store.views.reserve_artwork()` ارسال می‌شود.
+    # این receiver فقط باعث ارسال پیام تکراری می‌شد.
+    return

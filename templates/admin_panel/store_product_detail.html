@@ -87,6 +87,24 @@
                         <option value="">در حال بارگذاری...</option>
                     </select>
                 </div>
+                <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">موضوع</label>
+                    <select id="subjectSelect" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
+                        <option value="">در حال بارگذاری...</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">کاربرد</label>
+                    <select id="usageSelect" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
+                        <option value="">در حال بارگذاری...</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">متریال</label>
+                    <select id="materialSelect" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
+                        <option value="">در حال بارگذاری...</option>
+                    </select>
+                </div>
 
                 <!-- Sale Status -->
                 <div>
@@ -255,6 +273,9 @@
             const data = await res.json();
             const artistSel = document.getElementById('artistSelect');
             const typeSel = document.getElementById('typeSelect');
+            const subjectSel = document.getElementById('subjectSelect');
+            const usageSel = document.getElementById('usageSelect');
+            const materialSel = document.getElementById('materialSelect');
 
             artistSel.innerHTML = '<option value="">انتخاب هنرمند</option>';
             (data.artists || []).forEach(a => {
@@ -270,6 +291,30 @@
                 opt.value = t.id;
                 opt.textContent = t.name;
                 typeSel.appendChild(opt);
+            });
+
+            subjectSel.innerHTML = '<option value="">انتخاب موضوع</option>';
+            (data.subjects || []).forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item.id;
+                opt.textContent = item.name;
+                subjectSel.appendChild(opt);
+            });
+
+            usageSel.innerHTML = '<option value="">انتخاب کاربرد</option>';
+            (data.usages || []).forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item.id;
+                opt.textContent = item.name;
+                usageSel.appendChild(opt);
+            });
+
+            materialSel.innerHTML = '<option value="">انتخاب متریال</option>';
+            (data.materials || []).forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item.id;
+                opt.textContent = item.name;
+                materialSel.appendChild(opt);
             });
         } catch (e) {
             console.error('Error loading options:', e);
@@ -301,6 +346,9 @@
             document.getElementById('authInput').value = String(data.authenticity_status ?? '0');
             document.getElementById('artistSelect').value = data.artist_id || '';
             document.getElementById('typeSelect').value = data.artwork_type_id || '';
+            document.getElementById('subjectSelect').value = data.subject_id || '';
+            document.getElementById('usageSelect').value = data.usage_id || '';
+            document.getElementById('materialSelect').value = data.material_id || '';
             document.getElementById('dimensionsInput').value = data.dimensions || '';
             document.getElementById('yearInput').value = data.creation_year || '';
             document.getElementById('descInput').value = data.description || '';
@@ -341,6 +389,9 @@
                 product_id: document.getElementById('productIdInput').value.trim(),
                 artist_id: document.getElementById('artistSelect').value ? Number(document.getElementById('artistSelect').value) : null,
                 artwork_type_id: document.getElementById('typeSelect').value ? Number(document.getElementById('typeSelect').value) : null,
+                subject_id: document.getElementById('subjectSelect').value ? Number(document.getElementById('subjectSelect').value) : null,
+                usage_id: document.getElementById('usageSelect').value ? Number(document.getElementById('usageSelect').value) : null,
+                material_id: document.getElementById('materialSelect').value ? Number(document.getElementById('materialSelect').value) : null,
                 price: document.getElementById('priceInput').value,
                 is_sold: Number(document.getElementById('soldInput').value),
                 authenticity_status: Number(document.getElementById('authInput').value),

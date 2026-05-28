@@ -2,7 +2,9 @@ from django.test import TestCase
 from django.urls import reverse
 from unittest.mock import patch
 
+from accounts.forms import CustomLoginForm, PublicSignupForm
 from accounts.models import CreditIncreaseRequest, CustomUser, VerificationRequest
+from store.models import SiteVisitLog
 
 
 class VerificationRequestModelTests(TestCase):
@@ -105,6 +107,113 @@ class VerificationRequestModelTests(TestCase):
             )
         self.assertTrue(pending_qs.exists())
         self.assertEqual(pending_qs.count(), 1)
+
+    def test_signup_duplicate_phone_shows_validation_feedback(self):
+        response = self.client.post(
+            reverse("signup"),
+            {
+                "full_name": "کاربر تکراری",
+                "phone_number": "09120000000",
+                "address_street": "خیابان تست",
+                "email": "",
+                "preferred_contact_methods": [],
+                "telegram_id": "",
+                "password1": "Signup@123",
+                "password2": "Signup@123",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "این شماره موبایل قبلاً در سیستم ثبت شده است.")
+        self.assertContains(response, "شماره موبایل(نام کاربری): این شماره موبایل قبلاً در سیستم ثبت شده است.")
+
+    def test_signup_required_field_errors_are_localized_to_persian(self):
+        response = self.client.post(reverse("signup"), {})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "وارد کردن این فیلد الزامی است.")
+        self.assertNotContains(response, "This field is required.")
+
+    def test_login_required_field_errors_are_localized_to_persian(self):
+        response = self.client.post(reverse("login"), {})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "وارد کردن این فیلد الزامی است.")
+        self.assertNotContains(response, "This field is required.")
+
+    def test_login_merges_guest_site_visit_into_authenticated_session(self):
+        self.client.get(reverse("login"))
+        guest_session_key = self.client.session.session_key
+
+        guest_log = SiteVisitLog.objects.get(session_key=guest_session_key, is_closed=False)
+        self.assertIsNone(guest_log.user)
+
+        response = self.client.post(
+            reverse("login"),
+            {
+                "username": self.user.phone_number,
+                "password": "Test@1234",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        authenticated_session_key = self.client.session.session_key
+        self.assertNotEqual(guest_session_key, authenticated_session_key)
+
+        self.client.get(reverse("profile"))
+
+        self.assertEqual(SiteVisitLog.objects.count(), 1)
+        merged_log = SiteVisitLog.objects.get()
+        self.assertEqual(merged_log.user, self.user)
+        self.assertEqual(merged_log.session_key, authenticated_session_key)
+
+    def test_required_fields_use_persian_browser_validation_message(self):
+        login_form = CustomLoginForm()
+        signup_form = PublicSignupForm()
+
+        for field_name in ("username", "password"):
+            self.assertIn("لطفا این فیلد را کامل کنید", login_form.fields[field_name].widget.attrs.get("oninvalid", ""))
+            self.assertEqual(
+                login_form.fields[field_name].widget.attrs.get("oninput"),
+                "this.setCustomValidity('')",
+            )
+
+        self.assertIn("لطفا این فیلد را کامل کنید", signup_form.fields["phone_number"].widget.attrs.get("oninvalid", ""))
+        for field_name, expected_message in (
+            ("password1", "لطفا رمز عبور را کامل کنید"),
+            ("password2", "لطفا تکرار رمز عبور را کامل کنید"),
+        ):
+            self.assertIn(expected_message, signup_form.fields[field_name].widget.attrs.get("oninvalid", ""))
+            self.assertEqual(
+                signup_form.fields[field_name].widget.attrs.get("oninput"),
+                "this.setCustomValidity('')",
+            )
+
+    def test_signup_email_name_and_password_have_full_persian_browser_messages(self):
+        signup_form = PublicSignupForm()
+
+        self.assertIn(
+            "لطفا آدرس ایمیل را کامل کنید",
+            signup_form.fields["email"].widget.attrs.get("oninvalid", ""),
+        )
+        self.assertIn(
+            "لطفا یک آدرس ایمیل معتبر وارد کنید",
+            signup_form.fields["email"].widget.attrs.get("oninvalid", ""),
+        )
+        self.assertIn(
+            "لطفا نام و نام خانوادگی را کامل کنید",
+            signup_form.fields["full_name"].widget.attrs.get("oninvalid", ""),
+        )
+        self.assertEqual(signup_form.fields["password1"].widget.attrs.get("minlength"), "8")
+        self.assertIn("patternMismatch", signup_form.fields["password1"].widget.attrs.get("oninvalid", ""))
+        self.assertIn(
+            "رمز عبور باید حداقل ۸ کاراکتر باشد.",
+            signup_form.fields["password1"].widget.attrs.get("oninvalid", ""),
+        )
+        self.assertIn(
+            "رمز عبور باید حداقل ۸ کاراکتر و شامل حرف بزرگ، حرف کوچک و کاراکتر ویژه باشد.",
+            signup_form.fields["password1"].widget.attrs.get("oninvalid", ""),
+        )
 
     def test_profile_edit_with_auction_opt_in_creates_pending_verification_request(self):
         self.client.force_login(self.user)

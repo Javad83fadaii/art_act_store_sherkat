@@ -3,24 +3,91 @@ import importlib.util
 import os
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-_rdcpwi^ldwayj1z_&%n$cnm-(n0!hwlgvkfkmn&j=k9*kkgd='
 
-DEBUG = True
+def _load_env_file_values(env_path: Path) -> dict[str, str]:
+    values: dict[str, str] = {}
+    if not env_path.exists():
+        return values
 
-ALLOWED_HOSTS = [
-    'localhost',
-    '127.0.0.1',
-    'testserver',
-    'mah.test',
-    '192.168.50.242',
-    '192.168.50.219',
-    '192.168.1.110'
-]
+    for raw_line in env_path.read_text(encoding='utf-8').splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith('#') or '=' not in line:
+            continue
+
+        key, value = line.split('=', 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key:
+            values[key] = value
+
+    return values
+
+
+ENV_FILE_VALUES = _load_env_file_values(BASE_DIR / '.env')
+
+
+def _get_setting(name: str, default=None):
+    if name in ENV_FILE_VALUES:
+        return ENV_FILE_VALUES[name]
+    return os.environ.get(name, default)
+
+
+def _get_first_setting(*names: str, default=None):
+    for name in names:
+        if name in ENV_FILE_VALUES and ENV_FILE_VALUES[name]:
+            return ENV_FILE_VALUES[name]
+    for name in names:
+        value = os.environ.get(name)
+        if value:
+            return value
+    return default
+
+
+def _as_bool(value, *, default: bool = False) -> bool:
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    text = str(value).strip().lower()
+    if text in {"1", "true", "yes", "y", "on"}:
+        return True
+    if text in {"0", "false", "no", "n", "off"}:
+        return False
+    return default
+
+
+def _as_csv_list(value) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, (list, tuple)):
+        return [str(x).strip() for x in value if str(x).strip()]
+    text = str(value).strip()
+    if not text:
+        return []
+    return [part.strip() for part in text.split(",") if part.strip()]
+
+SECRET_KEY = _get_first_setting("DJANGO_SECRET_KEY", "SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError("DJANGO_SECRET_KEY is not set")
+
+DEBUG = _as_bool(_get_first_setting("DJANGO_DEBUG", "DEBUG"), default=True)
+
+_allowed_hosts_from_env = _as_csv_list(_get_first_setting("DJANGO_ALLOWED_HOSTS", "ALLOWED_HOSTS"))
+ALLOWED_HOSTS = (
+    _allowed_hosts_from_env
+    or [
+        "localhost",
+        "127.0.0.1",
+        "testserver",
+        "mah.test",
+        "192.168.50.242",
+        "192.168.50.219",
+    ]
+)
 
 
 # Application definition
 INSTALLED_APPS = [
-    'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -85,11 +152,11 @@ if importlib.util.find_spec('channels') is not None:
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'sherkat',  # نام دیتابیس شما در MySQL
-        'USER': 'root',  # نام کاربری MySQL (اگر از لاراگون استفاده می‌کنید، معمولاً 'root' است)
-        'PASSWORD': '',  # رمز عبور (اگر رمز عبور ندارید، آن را خالی بگذارید)
-        'HOST': '127.0.0.1',  # آدرس میزبان دیتابیس (در لاراگون 'localhost' است)
-        'PORT': '3306',  # پورت MySQL (پورت پیش‌فرض 3306 است)
+        'NAME': _get_first_setting('DB_NAME') or 'art_shop',
+        'USER': _get_first_setting('DB_USER') or 'root',
+        'PASSWORD': _get_setting('DB_PASSWORD', ''),
+        'HOST': _get_first_setting('DB_HOST') or '127.0.0.1',
+        'PORT': _get_first_setting('DB_PORT') or '3306',
     }
 }
 
@@ -118,16 +185,18 @@ TIME_ZONE = 'Asia/Tehran'
 AUTH_USER_MODEL = 'accounts.CustomUser'
 
 SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SECURE = False
+SESSION_COOKIE_SECURE = _as_bool(_get_first_setting("SESSION_COOKIE_SECURE"), default=False)
 SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 SESSION_COOKIE_AGE = 86400
+
+CSRF_TRUSTED_ORIGINS = _as_csv_list(_get_first_setting("DJANGO_CSRF_TRUSTED_ORIGINS", "CSRF_TRUSTED_ORIGINS"))
 
 if importlib.util.find_spec('django_redis') is not None:
     CACHES = {
         'default': {
             'BACKEND': 'django_redis.cache.RedisCache',
-            'LOCATION': os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/1'),
+            'LOCATION': _get_first_setting('REDIS_URL') or 'redis://127.0.0.1:6379/1',
             'OPTIONS': {
                 'CLIENT_CLASS': 'django_redis.client.DefaultClient',
             },
@@ -160,13 +229,13 @@ MEDIA_ROOT = BASE_DIR / 'media'
 ARTWORK_IMAGE_BASE = 'artworks'
 ARTWORK_GALLERY_BASE = 'artworks/gallery'
 
-TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN') or os.environ.get('BOT_TOKEN')
+TELEGRAM_BOT_TOKEN = _get_first_setting('TELEGRAM_BOT_TOKEN', 'BOT_TOKEN')
 ADMIN_GROUP_CHAT_ID = (
-    os.environ.get('ADMIN_GROUP_CHAT_ID')
-    or os.environ.get('TELEGRAM_CHAT_ID')
-    or os.environ.get('CHAT_ID')
+    _get_first_setting('ADMIN_GROUP_CHAT_ID', 'TELEGRAM_CHAT_ID', 'CHAT_ID')
     or '-1003817296586'
 )
+TELEGRAM_WEBHOOK_SECRET_TOKEN = _get_first_setting('TELEGRAM_WEBHOOK_SECRET_TOKEN')
+TELEGRAM_WEBHOOK_BASE_URL = _get_first_setting('TELEGRAM_WEBHOOK_BASE_URL')
 
 TELEGRAM_STORE_MESSAGE_THREAD_ID = 9
 TELEGRAM_AUCTION_MESSAGE_THREAD_ID = 11

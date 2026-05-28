@@ -150,7 +150,7 @@
         'payment_method': 'روش پرداخت',
         'username': 'نام کاربری',
         'current_credit': 'اعتبار فعلی کاربر',
-        'requested_credit':'اعتبار تخصیص یافته',
+        'requested_credit': 'اعتبار تخصیص یافته',
         'total_credit': 'اعتبار کل کاربر',
         'granted_credit': 'اعتبار تخصیص‌یافته',
         'telegram_chat_id': 'شناسه چت تلگرام'
@@ -678,6 +678,8 @@
             } else {
                 btnApprove.style.display = 'block';
                 btnReject.style.display = 'block';
+                btnApprove.disabled = false;
+                btnReject.disabled = false;
             }
 
             return data;

@@ -18,25 +18,48 @@ def ensure_auction_product_winner(product: AuctionProduct) -> AuctionProduct:
     )
 
     expected_winner_id = latest_bid.user_id if latest_bid is not None else None
-    expected_price = (
-        latest_bid.bid_amount
-        if latest_bid is not None
-        else (product.current_price or product.base_price)
-    )
+    
+    # قیمت نهایی شامل ۱۰ درصد مالیات و ارزش افزوده برای برنده
+    if latest_bid is not None:
+        raw_price = latest_bid.bid_amount
+        # اضافه کردن ۱۰ درصد به قیمت
+        from decimal import Decimal, ROUND_CEILING
+        expected_price = (raw_price * Decimal('1.1')).to_integral_value(rounding=ROUND_CEILING)
+        price_desc = "مبلغ آخرین پیشنهاد به علاوه ۱۰ درصد مالیات و ارزش افزوده"
+    else:
+        expected_price = product.current_price or product.base_price
+        price_desc = None
 
-    if product.winner_id == expected_winner_id and product.current_price == expected_price:
+    if (product.winner_id == expected_winner_id and 
+        product.current_price == expected_price and 
+        product.price_description == price_desc):
         return product
 
     previous_winner_id = product.winner_id
     AuctionProduct.objects.filter(pk=product.pk).update(
         winner_id=expected_winner_id,
         current_price=expected_price,
+        price_description=price_desc,
         updated_at=timezone.now(),
     )
 
     product.winner_id = expected_winner_id
     product.current_price = expected_price
+    product.price_description = price_desc
     product.winner = latest_bid.user if latest_bid is not None else None
+
+    # بروزرسانی Artwork مرتبط در صورت وجود
+    if expected_winner_id:
+        try:
+            from store.models import Artwork
+            Artwork.objects.filter(product_id=product.product_id).update(
+                price=expected_price,
+                price_description=price_desc,
+                is_sold=1, # SOLD status
+                updated_at=timezone.now(),
+            )
+        except ImportError:
+            pass
 
     from accounts.realtime import broadcast_profile_update
     from .realtime import broadcast_product_bid_update

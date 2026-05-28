@@ -19,7 +19,7 @@
                 <!-- تغییرات اعمال شده: سایز دایره در موبایل به 10 و در دسکتاپ به 12 تغییر یافت -->
                 <div class="logo-bg-reveal size-10 lg:size-12 rounded-full bg-primary text-white flex items-center justify-center shrink-0">
                     <!-- تغییرات اعمال شده: سایز گیف در موبایل به 12 و در دسکتاپ به 14 تغییر یافت و دراپ‌شدو اضافه شد -->
-                    <img id="header-logo-anim" src="{% static 'images/122.png' %}" alt="gavel"
+                    <img id="header-logo-anim" src="{% static 'images/122.gif' %}" alt="gavel"
                         class="size-28 lg:size-32 object-contain drop-shadow-[0_4px_8px_#AB8C58]">
                 </div> 
 
@@ -49,13 +49,13 @@
         <!-- منوی دسکتاپ -->
         <nav class="hidden lg:flex items-center gap-8 mx-auto pl-10">
             <a class="text-sm font-medium text-[#4B5563] dark:text-gray-300 hover:text-primary transition-colors font-body relative group py-2"
-                href="{% url 'store:artwork_list' %}">
-                فروشگاه
+                href="{% url 'auction:auction' %}">
+                مزایده
                 <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
             </a>
             <a class="text-sm font-medium text-[#4B5563] dark:text-gray-300 hover:text-primary transition-colors font-body relative group py-2"
-                href="{% url 'auction:auction' %}">
-                مزایده
+                href="{% url 'store:artwork_list' %}">
+                فروشگاه
                 <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
             </a>
             <a class="text-sm font-medium text-[#4B5563] dark:text-gray-300 hover:text-primary transition-colors font-body relative group py-2"
@@ -141,7 +141,7 @@
                             </a>
                             
                             <!-- بررسی وضعیت استاف برای نمایش دکمه مدیریت -->
-                            {% if request.user.is_staff or request.user.is_superuser %}
+                            {% if request.user.is_staff %}
                                 <a class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-[#4B5563] hover:text-primary hover:bg-primary/5 dark:hover:bg-gray-800 rounded-xl transition-colors font-body"
                                     href="/admin-panel/dashboard/">
                                     <span class="material-symbols-outlined text-[20px]">dashboard</span>مدیریت

@@ -121,7 +121,7 @@ def _build_site_visit_entry(log):
         'event_label': 'نشست کاربر در سایت',
         'status': 'closed' if is_closed else 'active',
         'status_label': 'پایان یافته' if is_closed else 'فعال',
-        'details': f"IP: {log.ip_address or 'نامشخص'} | مدت: {duration_min} دقیقه",
+        'details': f"IP: {log.ip_address or 'نامشخص'}",
         'occurred_at': _safe_iso(log.last_activity),
         '_sort_at': log.last_activity,
         'ip': log.ip_address or 'نامشخص',
@@ -298,6 +298,16 @@ def login_history_api_view(request):
     auth_queryset = ActivityLog.objects.select_related('user').order_by('-timestamp')
     visit_queryset = SiteVisitLog.objects.select_related('user').order_by('-last_activity')
 
+    user_id = request.GET.get('user_id', '').strip()
+    if user_id:
+        auth_queryset = auth_queryset.filter(user_id=user_id)
+        visit_queryset = visit_queryset.filter(user_id=user_id)
+
+    guest_ip = request.GET.get('guest_ip', '').strip()
+    if guest_ip:
+        auth_queryset = auth_queryset.none()
+        visit_queryset = visit_queryset.filter(user__isnull=True, ip_address__iexact=guest_ip)
+
     search = request.GET.get('search', '').strip()
     if search:
         auth_queryset = auth_queryset.filter(
@@ -378,7 +388,7 @@ def login_history_api_view(request):
     combined_payload = [*auth_payload, *visit_payload]
     combined_payload.sort(key=lambda item: item.get('_sort_at') or datetime.min, reverse=True)
 
-    paginator = Paginator(combined_payload, 20)
+    paginator = Paginator(combined_payload, 100)
     page_obj = paginator.get_page(request.GET.get('page', 1))
 
     payload = []
@@ -396,6 +406,8 @@ def login_history_api_view(request):
             'source': source,
             'auth_total': len(auth_payload),
             'visit_total': len(visit_payload),
+            'active_user_id': user_id or None,
+            'active_guest_ip': guest_ip or None,
         }
     )
 

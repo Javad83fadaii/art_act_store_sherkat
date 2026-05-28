@@ -11,6 +11,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserChangeForm
 from django.contrib import messages 
+from store.models import SiteVisitLog
 
 from auction.models import AuctionCartItem, Bid
 from .realtime import build_profile_live_context, build_profile_live_payload
@@ -30,6 +31,32 @@ class CustomLoginView(LoginView):
     template_name = 'registration/login.html'
     form_class = CustomLoginForm  
     redirect_authenticated_user = True  
+
+    def form_valid(self, form):
+        previous_session_key = self.request.session.session_key
+        response = super().form_valid(form)
+        current_session_key = self.request.session.session_key
+        logged_in_user = form.get_user()
+
+        if previous_session_key:
+            guest_visit_log = (
+                SiteVisitLog.objects
+                .filter(
+                    session_key=previous_session_key,
+                    is_closed=False,
+                    user__isnull=True,
+                )
+                .order_by('-last_activity')
+                .first()
+            )
+
+            if guest_visit_log:
+                guest_visit_log.user = logged_in_user
+                if current_session_key:
+                    guest_visit_log.session_key = current_session_key
+                guest_visit_log.save(update_fields=['user', 'session_key'])
+
+        return response
 
 
 class EditProfileView(LoginRequiredMixin, View):
@@ -190,18 +217,10 @@ class SignupView(View):
     def post(self, request):
         form = PublicSignupForm(request.POST)
         if form.is_valid():
-            new_user = form.save()
+            form.save()
             messages.success(request, "ثبت نام با موفقیت انجام شد.")
             return redirect('login')  
-        
-        print("\n" + "="*40)
-        print("رد شدن فرم ثبت نام! دلایل:")
-        for field, errors in form.errors.items():
-            print(f"- فیلد '{field}': {errors}")
-            for error in errors:
-                messages.error(request, f"خطا در {field}: {error}")
-        print("="*40 + "\n")
-        
+
         return render(request, 'registration/signup.html', {'form': form})
 
 

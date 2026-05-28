@@ -37,19 +37,20 @@
                             <div class="flex items-center gap-2">
                                 {% with rank=bid|get_bid_rank %}
                                     {% if rank == 1 %}
-                                        <!-- مدال طلا -->
-                                        <div class="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-600 shadow-lg border border-yellow-200/50 shrink-0">
+                                        <div class="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-600 shadow-lg border border-yellow-200/50 shrink-0" title="رتبه اول">
                                             <span class="text-white text-xs font-black drop-shadow-sm">۱</span>
                                         </div>
                                     {% elif rank == 2 %}
-                                        <!-- مدال نقره -->
-                                        <div class="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-gray-200 via-gray-400 to-gray-500 shadow-lg border border-gray-100/50 shrink-0">
+                                        <div class="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-gray-200 via-gray-400 to-gray-500 shadow-lg border border-gray-100/50 shrink-0" title="رتبه دوم">
                                             <span class="text-white text-xs font-black drop-shadow-sm">۲</span>
                                         </div>
                                     {% elif rank == 3 %}
-                                        <!-- مدال برنز -->
-                                        <div class="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-orange-300 via-orange-500 to-orange-700 shadow-lg border border-orange-200/50 shrink-0">
+                                        <div class="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-orange-300 via-orange-500 to-orange-700 shadow-lg border border-orange-200/50 shrink-0" title="رتبه سوم">
                                             <span class="text-white text-xs font-black drop-shadow-sm">۳</span>
+                                        </div>
+                                    {% elif rank %}
+                                        <div class="flex items-center justify-center min-w-7 h-7 px-2 rounded-full bg-primary/10 border border-primary/20 text-primary dark:text-blue-300 shrink-0" title="رتبه {{ rank|fa_digits }}">
+                                            <span class="text-[11px] font-black">{{ rank|fa_digits }}</span>
                                         </div>
                                     {% else %}
                                         <div class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_5px_currentColor]"></div>

@@ -145,7 +145,7 @@ def orders_view(request):
             'title': f'درخواست خرید: {product_title}',
             'status': status,
             'date': timezone.localtime(created_at).strftime('%Y-%m-%d %H:%M'),
-            'href': reverse('admin_panel:requests-detail', args=['purchase', obj.pk]),
+            'href': reverse('admin_panel_pages:requests') + f'?type=purchase&request_id={obj.pk}',
         }))
 
     for obj in VerificationRequest.objects.select_related('user').order_by('-created_at')[:10]:
@@ -160,7 +160,7 @@ def orders_view(request):
             'title': 'درخواست تایید شرکت در مزایده',
             'status': status,
             'date': timezone.localtime(created_at).strftime('%Y-%m-%d %H:%M'),
-            'href': reverse('admin_panel:requests-detail', args=['verification', obj.pk]),
+            'href': reverse('admin_panel_pages:requests') + f'?type=verification&request_id={obj.pk}',
         }))
 
     for obj in CreditIncreaseRequest.objects.select_related('user').order_by('-created_at')[:10]:
@@ -178,7 +178,7 @@ def orders_view(request):
             'title': f'درخواست افزایش اعتبار: {amount_label}',
             'status': status,
             'date': timezone.localtime(created_at).strftime('%Y-%m-%d %H:%M'),
-            'href': reverse('admin_panel:requests-detail', args=['credit', obj.pk]),
+            'href': reverse('admin_panel_pages:requests') + f'?type=credit&request_id={obj.pk}',
         }))
 
     items.sort(key=lambda x: x[0], reverse=True)

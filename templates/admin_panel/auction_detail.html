@@ -103,6 +103,18 @@
                     <input id="pTypeId" type="number" class="w-full bg-white dark:bg-admin-surface-dark border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
                 </div>
                 <div>
+                    <label class="block text-[11px] font-black text-text-muted mb-2">subject_id</label>
+                    <input id="pSubjectId" type="number" class="w-full bg-white dark:bg-admin-surface-dark border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-black text-text-muted mb-2">usage_id</label>
+                    <input id="pUsageId" type="number" class="w-full bg-white dark:bg-admin-surface-dark border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-black text-text-muted mb-2">material_id</label>
+                    <input id="pMaterialId" type="number" class="w-full bg-white dark:bg-admin-surface-dark border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
+                </div>
+                <div>
                     <label class="block text-[11px] font-black text-text-muted mb-2">قیمت پایه</label>
                     <input id="pReserve" type="number" class="w-full bg-white dark:bg-admin-surface-dark border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
                 </div>
@@ -331,6 +343,9 @@
                 title: document.getElementById('pTitle').value.trim(),
                 artist_id: document.getElementById('pArtistId').value ? Number(document.getElementById('pArtistId').value) : null,
                 artwork_type_id: document.getElementById('pTypeId').value ? Number(document.getElementById('pTypeId').value) : null,
+                subject_id: document.getElementById('pSubjectId').value ? Number(document.getElementById('pSubjectId').value) : null,
+                usage_id: document.getElementById('pUsageId').value ? Number(document.getElementById('pUsageId').value) : null,
+                material_id: document.getElementById('pMaterialId').value ? Number(document.getElementById('pMaterialId').value) : null,
                 reserve_price: document.getElementById('pReserve').value ? Number(document.getElementById('pReserve').value) : 0,
                 bid_value: document.getElementById('pBidValue').value ? Number(document.getElementById('pBidValue').value) : 0,
             };
@@ -350,6 +365,9 @@
             document.getElementById('pProductId').value = '';
             document.getElementById('pArtistId').value = '';
             document.getElementById('pTypeId').value = '';
+            document.getElementById('pSubjectId').value = '';
+            document.getElementById('pUsageId').value = '';
+            document.getElementById('pMaterialId').value = '';
             document.getElementById('pReserve').value = '';
             await loadProducts();
             await loadAuction();

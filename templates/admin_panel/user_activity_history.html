@@ -54,6 +54,14 @@
                 </select>
             </div>
         </div>
+        <div id="active-filter-bar" class="hidden px-4 py-3 border-b border-gray-100 dark:border-white/5 bg-primary/5 dark:bg-primary/10">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <p id="active-filter-text" class="text-xs font-black text-primary"></p>
+                <button id="clearFilterBtn" type="button" class="inline-flex items-center justify-center px-3 py-2 rounded-xl bg-white dark:bg-white/10 border border-primary/20 text-xs font-black text-primary hover:bg-primary hover:text-white transition-colors">
+                    حذف فیلتر
+                </button>
+            </div>
+        </div>
 
         <div class="overflow-x-auto custom-scrollbar">
             <table class="w-full text-right border-collapse">
@@ -80,6 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const endpoints = {
         login: "{% url 'admin_panel:users-login-history-api' %}",
     };
+    const initialSource = "{{ initial_source|default:'all' }}";
 
     const state = {
         currentPage: 1,
@@ -88,6 +97,9 @@ document.addEventListener('DOMContentLoaded', () => {
         authTotal: 0,
         visitTotal: 0,
         results: [],
+        activeUserFilter: null,
+        activeUserLabel: '',
+        activeGuestIp: '',
     };
 
     const headEl = document.getElementById('history-head');
@@ -101,6 +113,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const usersEl = document.getElementById('metric-users');
     const authEl = document.getElementById('metric-auth');
     const visitsEl = document.getElementById('metric-visits');
+    const activeFilterBar = document.getElementById('active-filter-bar');
+    const activeFilterText = document.getElementById('active-filter-text');
+    const clearFilterBtn = document.getElementById('clearFilterBtn');
 
     function toPersianDigits(value) {
         return String(value).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[d]);
@@ -121,6 +136,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }).format(date);
     }
 
+    function formatDuration(value) {
+        if (value === null || value === undefined || value === '') {
+            return '';
+        }
+        return `${toPersianDigits(value)} دقیقه`;
+    }
+
     function escapeHtml(value) {
         return String(value ?? '')
             .replaceAll('&', '&amp;')
@@ -130,12 +152,103 @@ document.addEventListener('DOMContentLoaded', () => {
             .replaceAll("'", '&#39;');
     }
 
+    function renderActiveFilter() {
+        if (state.activeUserFilter) {
+            activeFilterBar.classList.remove('hidden');
+            activeFilterText.textContent = `فیلتر فعال: فقط فعالیت‌های کاربر ${state.activeUserLabel || '-'} نمایش داده می‌شود.`;
+            return;
+        }
+        if (state.activeGuestIp) {
+            activeFilterBar.classList.remove('hidden');
+            activeFilterText.textContent = `فیلتر فعال: فقط فعالیت‌های مهمان با آی‌پی ${state.activeGuestIp} نمایش داده می‌شود.`;
+            return;
+        }
+        activeFilterBar.classList.add('hidden');
+        activeFilterText.textContent = '';
+    }
+
+    function setUserFilter(userId, userLabel) {
+        state.activeUserFilter = userId || null;
+        state.activeUserLabel = userLabel || '';
+        state.activeGuestIp = '';
+        renderActiveFilter();
+        loadData(1);
+    }
+
+    function setGuestIpFilter(ipAddress) {
+        state.activeUserFilter = null;
+        state.activeUserLabel = '';
+        state.activeGuestIp = ipAddress || '';
+        sourceFilter.value = 'visit';
+        syncSourceFilterState();
+        renderActiveFilter();
+        loadData(1);
+    }
+
+    function clearActiveFilter() {
+        state.activeUserFilter = null;
+        state.activeUserLabel = '';
+        state.activeGuestIp = '';
+        sourceFilter.value = initialSource;
+        syncSourceFilterState();
+        renderActiveFilter();
+        loadData(1);
+    }
+
+    function renderUserCell(item) {
+        if (item.user_id) {
+            return `
+                <button
+                    type="button"
+                    class="text-primary hover:underline transition-colors"
+                    data-filter-user-id="${escapeHtml(item.user_id)}"
+                    data-filter-user-label="${escapeHtml(item.user_name)}"
+                >
+                    ${escapeHtml(item.user_name)}
+                </button>
+            `;
+        }
+
+        if (item.ip_address) {
+            return `
+                <div class="flex flex-col gap-1">
+                    <span>${escapeHtml(item.user_name)}</span>
+                    <button
+                        type="button"
+                        class="w-fit text-sky-600 dark:text-sky-300 hover:underline transition-colors"
+                        data-filter-guest-ip="${escapeHtml(item.ip_address)}"
+                    >
+                        ${escapeHtml(item.ip_address)}
+                    </button>
+                </div>
+            `;
+        }
+
+        return `<span>${escapeHtml(item.user_name)}</span>`;
+    }
+
+    function renderDurationCell(item) {
+        const durationLabel = formatDuration(item.duration_min);
+        if (!durationLabel) {
+            return `<span class="text-text-muted/60">-</span>`;
+        }
+
+        return `
+            <span class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-l from-sky-50 to-cyan-50 text-sky-700 dark:from-sky-500/10 dark:to-cyan-500/10 dark:text-sky-200 border border-sky-100 dark:border-sky-400/20 shadow-sm">
+                <span class="flex size-7 items-center justify-center rounded-lg bg-white/80 dark:bg-white/10 text-sky-600 dark:text-sky-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 3"></path></svg>
+                </span>
+                <span class="text-xs font-black">${escapeHtml(durationLabel)}</span>
+            </span>
+        `;
+    }
+
     function renderHead() {
         headEl.innerHTML = `
             <tr>
                 <th class="p-4">شناسه</th>
                 <th class="p-4">کاربر</th>
-                <th class="p-4">منبع</th>
+                <th class="p-4">تایم حضور در سایت</th>
                 <th class="p-4">رویداد</th>
                 <th class="p-4">جزئیات</th>
                 <th class="p-4">وضعیت</th>
@@ -161,11 +274,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         bodyEl.innerHTML = state.results.map((item) => {
-            const isVisit = item.source === 'visit';
-            const sourceBadge = isVisit
-                ? '<span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-black bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-300">حضور در سایت</span>'
-                : '<span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-black bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300">ورود و خروج</span>';
-
             const statusClassMap = {
                 success: 'bg-green-50 text-green-600 dark:bg-green-500/10 dark:text-green-400',
                 warning: 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400',
@@ -176,15 +284,11 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             const badgeClass = statusClassMap[item.status] || statusClassMap.neutral;
 
-            const userLink = item.user_id
-                ? `<a href="/admin-panel/users/${item.user_id}/history/" class="text-primary hover:underline">${escapeHtml(item.user_name)}</a>`
-                : `<span>${escapeHtml(item.user_name)}</span>`;
-
             return `
                 <tr class="hover:bg-admin-bg-light/50 dark:hover:bg-white/[0.02] transition-colors">
                     <td class="p-4 text-text-muted">#${toPersianDigits(item.id)}</td>
-                    <td class="p-4">${userLink}</td>
-                    <td class="p-4">${sourceBadge}</td>
+                    <td class="p-4">${renderUserCell(item)}</td>
+                    <td class="p-4">${renderDurationCell(item)}</td>
                     <td class="p-4"><span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-black ${badgeClass}">${escapeHtml(item.event_label || item.action || '-')}</span></td>
                     <td class="p-4 max-w-[320px] truncate" title="${escapeHtml(item.details)}">${escapeHtml(item.details || '-')}</td>
                     <td class="p-4"><span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-black ${badgeClass}">${escapeHtml(item.status_label || 'نامشخص')}</span></td>
@@ -238,6 +342,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const url = new URL(endpoints.login, window.location.origin);
             url.searchParams.set('page', page);
             url.searchParams.set('source', sourceFilter.value || 'all');
+            if (state.activeUserFilter) {
+                url.searchParams.set('user_id', state.activeUserFilter);
+            }
+            if (state.activeGuestIp) {
+                url.searchParams.set('guest_ip', state.activeGuestIp);
+            }
             if (searchInput.value.trim()) {
                 url.searchParams.set('search', searchInput.value.trim());
             }
@@ -282,10 +392,25 @@ document.addEventListener('DOMContentLoaded', () => {
         actionFilter.classList.toggle('cursor-not-allowed', visitsOnly);
     }
 
+    bodyEl.addEventListener('click', (event) => {
+        const userButton = event.target.closest('[data-filter-user-id]');
+        if (userButton) {
+            setUserFilter(userButton.dataset.filterUserId, userButton.dataset.filterUserLabel);
+            return;
+        }
+
+        const guestIpButton = event.target.closest('[data-filter-guest-ip]');
+        if (guestIpButton) {
+            setGuestIpFilter(guestIpButton.dataset.filterGuestIp);
+        }
+    });
+
     searchInput.addEventListener('input', () => loadData(1));
     actionFilter.addEventListener('change', () => loadData(1));
-    sourceFilter.value = "{{ initial_source|default:'all' }}";
+    clearFilterBtn.addEventListener('click', clearActiveFilter);
+    sourceFilter.value = initialSource;
     syncSourceFilterState();
+    renderActiveFilter();
     sourceFilter.addEventListener('change', () => {
         syncSourceFilterState();
         loadData(1);

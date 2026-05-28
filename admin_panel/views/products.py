@@ -15,7 +15,7 @@ from auction.models import Bid as AuctionBid
 from auction.ranking import get_product_rankings, get_top_unique_bid_amounts
 from core.decorators import log_admin_action, staff_required
 from core.utils import cache_response, invalidate_cache
-from store.models import Artwork, ArtworkType, Artist, VisitHistory
+from store.models import Artwork, ArtworkType, Artist, Material, Subject, Usage, VisitHistory
 
 
 def _request_payload(request):
@@ -65,6 +65,9 @@ def create_page_view(request):
 def product_options(request):
     artists = list(Artist.objects.all().order_by('name').values('id', 'name'))
     artwork_types = list(ArtworkType.objects.all().order_by('name').values('id', 'name'))
+    subjects = list(Subject.objects.all().order_by('name').values('id', 'name'))
+    usages = list(Usage.objects.all().order_by('name').values('id', 'name'))
+    materials = list(Material.objects.all().order_by('name').values('id', 'name'))
     auctions_qs = Auction.objects.all().order_by('-start_date')
 
     auctions = [
@@ -82,6 +85,9 @@ def product_options(request):
         {
             'artists': artists,
             'artwork_types': artwork_types,
+            'subjects': subjects,
+            'usages': usages,
+            'materials': materials,
             'auctions': auctions,
         }
     )
@@ -237,6 +243,9 @@ def store_list(request):
                 authenticity_status=data.get('authenticity_status', Artwork.AuthenticityStatus.CONFIRMED),
                 artist_id=artist_id,
                 artwork_type_id=data.get('artwork_type_id') or None,
+                subject_id=data.get('subject_id') or None,
+                usage_id=data.get('usage_id') or None,
+                material_id=data.get('material_id') or None,
             )
             invalidate_cache('admin_dashboard*')
             invalidate_cache('admin_store_products*')
@@ -309,7 +318,7 @@ def store_detail(request, pk):
         editable_fields = {
             'title', 'description', 'price', 'dimensions',
             'creation_year', 'provenance', 'is_sold', 'authenticity_status',
-            'product_id', 'artist_id', 'artwork_type_id'
+            'product_id', 'artist_id', 'artwork_type_id', 'subject_id', 'usage_id', 'material_id'
         }
         for key, value in data.items():
             if key in editable_fields:
@@ -319,6 +328,12 @@ def store_detail(request, pk):
                     product.artist_id = value or product.artist_id
                 elif key == 'artwork_type_id':
                     product.artwork_type_id = value or None
+                elif key == 'subject_id':
+                    product.subject_id = value or None
+                elif key == 'usage_id':
+                    product.usage_id = value or None
+                elif key == 'material_id':
+                    product.material_id = value or None
                 elif hasattr(product, key):
                     setattr(product, key, value)
         product.save()
@@ -345,6 +360,9 @@ def store_detail(request, pk):
         'seller': product.artist.name if product.artist else 'نامشخص',
         'artist_id': product.artist_id,
         'artwork_type_id': getattr(product, 'artwork_type_id', None),
+        'subject_id': getattr(product, 'subject_id', None),
+        'usage_id': getattr(product, 'usage_id', None),
+        'material_id': getattr(product, 'material_id', None),
         'description': product.description,
         'dimensions': product.dimensions,
         'creation_year': product.creation_year,
@@ -554,16 +572,11 @@ def auction_list(request):
             if current_price in ('', None):
                 current_price = None
 
-            suggested_price = data.get('suggested_price')
-            if suggested_price in ('', None):
-                suggested_price = None
-
             winner_id = data.get('winner_id')
             if winner_id in ('', None):
                 winner_id = None
 
             authenticity_status = data.get('authenticity_status', AuctionProduct.AuthenticityStatus.CONFIRMED)
-            bid_criteria = data.get('bid_criteria', AuctionProduct.BidCriteria.PERCENTAGE_BASED)
 
             ap = AuctionProduct.objects.create(
                 auction_id=auction_id,
@@ -575,11 +588,12 @@ def auction_list(request):
                 creation_year=data.get('creation_year'),
                 artist_id=artist_id,
                 artwork_type_id=artwork_type_id,
+                subject_id=data.get('subject_id') or None,
+                usage_id=data.get('usage_id') or None,
+                material_id=data.get('material_id') or None,
                 base_price=base_price or 0,
                 current_price=current_price,
-                bid_criteria=bid_criteria,
                 bid_value=data.get('bid_value', 0),
-                suggested_price=suggested_price,
                 winner_id=winner_id,
             )
             invalidate_cache('admin_auction_products*')
@@ -672,16 +686,18 @@ def auction_detail(request, pk):
             ap.artist_id = data.get('artist_id') or ap.artist_id
         if 'artwork_type_id' in data:
             ap.artwork_type_id = data.get('artwork_type_id') or ap.artwork_type_id
+        if 'subject_id' in data:
+            ap.subject_id = data.get('subject_id') or None
+        if 'usage_id' in data:
+            ap.usage_id = data.get('usage_id') or None
+        if 'material_id' in data:
+            ap.material_id = data.get('material_id') or None
         if 'authenticity_status' in data:
             ap.authenticity_status = data.get('authenticity_status')
         if 'current_price' in data:
             ap.current_price = data.get('current_price') if data.get('current_price') not in ('', None) else None
-        if 'bid_criteria' in data:
-            ap.bid_criteria = data.get('bid_criteria')
         if 'bid_value' in data:
             ap.bid_value = data.get('bid_value')
-        if 'suggested_price' in data:
-            ap.suggested_price = data.get('suggested_price') if data.get('suggested_price') not in ('', None) else None
         if 'winner_id' in data:
             ap.winner_id = data.get('winner_id') if data.get('winner_id') not in ('', None) else None
         editable_fields = ['title', 'base_price', 'description', 'dimensions', 'creation_year']
@@ -712,12 +728,13 @@ def auction_detail(request, pk):
         'artist': ap.artist.name if ap.artist else 'نامشخص',
         'artist_id': ap.artist_id,
         'artwork_type_id': ap.artwork_type_id,
+        'subject_id': ap.subject_id,
+        'usage_id': ap.usage_id,
+        'material_id': ap.material_id,
         'authenticity_status': ap.authenticity_status,
         'reserve_price': str(ap.base_price),
         'current_price': str(ap.current_price) if ap.current_price is not None else None,
-        'bid_criteria': ap.bid_criteria,
         'bid_value': str(ap.bid_value),
-        'suggested_price': str(ap.suggested_price) if ap.suggested_price is not None else None,
         'winner_id': ap.winner_id,
         'status': status_fa.get(ap.auction.status, 'نامشخص') if ap.auction else 'نامشخص',
         'auction_start': ap.auction.start_date.isoformat() if ap.auction and ap.auction.start_date else None,
@@ -836,7 +853,7 @@ def bid_reports(request):
 def product_bids(request, pk):
     product = get_object_or_404(AuctionProduct, pk=pk)
     queryset = Bid.objects.filter(product=product).select_related('user').order_by('-created_at')
-    top_amounts = get_top_unique_bid_amounts(product.product_id)
+    top_amounts = get_top_unique_bid_amounts(product.product_id, limit=10)
 
     paginator = Paginator(queryset, 20)
     page_obj = paginator.get_page(request.GET.get('page', 1))
