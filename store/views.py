@@ -359,7 +359,7 @@ class ArtworkListView(ListView):
     model = Artwork
     template_name = 'store/store.html'
     context_object_name = 'artworks'
-    paginate_by = 10
+    paginate_by = 100
 
     def get_queryset(self):
         queryset = Artwork.objects.select_related('artist', 'artwork_type').exclude(is_sold=1).order_by('-created_at')
@@ -506,7 +506,7 @@ def search_artworks(request):
         artworks_list = artworks_list.filter(artwork_type__id=type_id)
         selected_type = int(type_id)
 
-    paginator = Paginator(artworks_list, 12)
+    paginator = Paginator(artworks_list, 100)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
