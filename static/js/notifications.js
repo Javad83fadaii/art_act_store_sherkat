@@ -79,7 +79,7 @@
         else if (type === 'warning') toast.style.background = '#D97706';
         else toast.style.background = '#2563EB';
 
-        container.appendChild(toast);
+        // container.appendChild(toast);
         requestAnimationFrame(function() {
             toast.style.opacity = '1';
             toast.style.transform = 'translateY(0)';
