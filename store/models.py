@@ -19,7 +19,7 @@ class Artist(models.Model):
 
 class ArtworkType(models.Model):
     name = models.CharField(max_length=100, verbose_name='نام نوع اثر هنری')
-    description = models.TextField(blank=True, verbose_name='توضیحات', default="")
+    description = models.TextField(blank=True, verbose_name='توضیحات', default="", null=True)
 
     class Meta:
         verbose_name = 'نوع اثر هنری'
@@ -31,7 +31,7 @@ class ArtworkType(models.Model):
 
 class Subject(models.Model):
     name = models.CharField(max_length=100, verbose_name='نام موضوع')
-    description = models.TextField(blank=True, verbose_name='توضیحات', default="")
+    description = models.TextField(blank=True, verbose_name='توضیحات', default="", null=True)
 
     class Meta:
         db_table = 'store_subject'
@@ -44,7 +44,7 @@ class Subject(models.Model):
 
 class Usage(models.Model):
     name = models.CharField(max_length=100, verbose_name='نام کاربرد')
-    description = models.TextField(blank=True, verbose_name='توضیحات', default="")
+    description = models.TextField(blank=True, verbose_name='توضیحات', default="", null=True)
 
     class Meta:
         db_table = 'store_usage'
@@ -57,7 +57,7 @@ class Usage(models.Model):
 
 class Material(models.Model):
     name = models.CharField(max_length=100, verbose_name='نام متریال')
-    description = models.TextField(blank=True, verbose_name='توضیحات', default="")
+    description = models.TextField(blank=True, verbose_name='توضیحات', default="", null=True)
 
     class Meta:
         db_table = 'store_material'
