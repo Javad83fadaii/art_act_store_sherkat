@@ -405,14 +405,29 @@
     </aside>
 
 
+    {{ notification_messages|json_script:"app-notification-messages" }}
+    <script>
+        (function() {
+            const messagesEl = document.getElementById('app-notification-messages');
+            if (!messagesEl) {
+                window.APP_NOTIFICATIONS = {};
+                return;
+            }
+            try {
+                window.APP_NOTIFICATIONS = JSON.parse(messagesEl.textContent || '{}');
+            } catch (error) {
+                window.APP_NOTIFICATIONS = {};
+            }
+        })();
+    </script>
+
     <!-- JS Files -->
+    <script src="{% static 'js/notifications.js' %}"></script>
     <script src="{% static 'js/app.js' %}"></script>
 
     {% if messages %}
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            if (!window.showToast) return;
-
             const toastTypeMap = {
                 debug: 'info',
                 info: 'info',
@@ -438,7 +453,12 @@
                 const toastType = toastTypeMap[matchedTag] || 'info';
 
                 window.setTimeout(function () {
-                    window.showToast(item.text, toastType, 'bottom-left');
+                    if (window.showNotificationText) {
+                        window.showNotificationText(item.text, {
+                            type: toastType,
+                            position: 'bottom-left'
+                        });
+                    }
                 }, index * 180);
             });
         });

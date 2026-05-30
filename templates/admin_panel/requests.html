@@ -521,7 +521,7 @@
                 }
             }
         } catch (error) {
-            tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-red-500">خطا در ارتباط با سرور.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-red-500">${window.getNotificationMessage('admin.requests.load_error')}</td></tr>`;
         } finally {
             requestsLoadInFlight = false;
             if (queuedRequestsReload) {
@@ -742,7 +742,7 @@
                 inputAmountValue = parseFloat(amountValue);
                 
                 if (currentType === 'credit' && (!amountValue || isNaN(inputAmountValue) || inputAmountValue <= 0)) {
-                    alert('لطفاً یک مبلغ صحیح و بیشتر از صفر وارد کنید.');
+                    alert(window.getNotificationMessage('admin.requests.invalid_positive_amount'));
                     amountInput.focus();
                     return;
                 }
@@ -776,9 +776,9 @@
             if (!response.ok) {
                 try {
                     const errData = await response.json();
-                    alert('خطا: ' + errData.error);
+                    alert(window.getNotificationMessage('admin.requests.error_prefix', { error: errData.error }));
                 } catch(e) {
-                    alert('خطای ارتباط با سرور.');
+                    alert(window.getNotificationMessage('admin.requests.load_error'));
                 }
                 return;
             }
@@ -797,10 +797,12 @@
                     },
                 });
             } else {
-                alert('خطا در عملیات: ' + (result.error || 'دلیل نامشخص'));
+                alert(window.getNotificationMessage('admin.requests.operation_error', {
+                    error: result.error || window.getNotificationMessage('admin.requests.unknown_reason')
+                }));
             }
         } catch (error) {
-            alert('اشکال در ارتباط با سرور.');
+            alert(window.getNotificationMessage('admin.requests.load_error'));
             console.error(error);
         } finally {
             // دکمه ها در صورت خطا دوباره فعال می‌شوند، در غیر اینصورت مخفی می‌مانند

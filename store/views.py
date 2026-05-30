@@ -17,6 +17,7 @@ from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from django.utils import timezone
+from core.notification_messages import get_notification
 from core.utils import send_admin_notification, invalidate_cache
 from .models import Artwork, ArtworkType, ProductLike, TelegramPurchaseRequest, PurchaseHistory, SiteVisitLog
 
@@ -527,7 +528,7 @@ def reserve_artwork(request, pk):
     if not request.user.is_authenticated:
         return JsonResponse({
             'success': False,
-            'message': 'ابتدا وارد حساب کاربری خود شوید'
+            'message': get_notification('store.reserve.login_required')
         }, status=401)
 
     user = request.user
@@ -544,7 +545,7 @@ def reserve_artwork(request, pk):
             if artwork.is_sold != Artwork.IsSoldStatus.AVAILABLE:
                 return JsonResponse({
                     'success': False,
-                    'message': 'این اثر قبلاً رزرو یا فروخته شده است.'
+                    'message': get_notification('store.reserve.already_reserved_or_sold')
                 }, status=400)
 
             artwork.is_sold = Artwork.IsSoldStatus.RESERVED
@@ -591,10 +592,10 @@ def reserve_artwork(request, pk):
     except Artwork.DoesNotExist:
         return JsonResponse({
             'success': False,
-            'message': 'اثر مورد نظر یافت نشد.'
+            'message': get_notification('store.reserve.not_found')
         }, status=404)
 
     return JsonResponse({
         'success': True,
-        'message': 'درخواست شما با موفقیت ثبت شد. همکاران ما به زودی با شما تماس خواهند گرفت.'
+        'message': get_notification('store.reserve.success')
     })

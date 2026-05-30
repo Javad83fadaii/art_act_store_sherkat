@@ -395,6 +395,16 @@
         const auctionStatus = "{{ auction.status|default:'' }}";
         const loginUrl = "{% url 'login' %}?next=" + encodeURIComponent(window.location.pathname + window.location.search);
         const editUrl = "{% url 'profile' %}?next=" + encodeURIComponent(window.location.pathname + window.location.search);
+        const auctionNotifications = {
+            inactive: window.getNotificationMessage('auction.inactive'),
+            detailLoginRequired: window.getNotificationMessage('auction.list_detail_login_required'),
+            bidLoginRequired: window.getNotificationMessage('auction.list_bid_login_required'),
+            bidSuccess: window.getNotificationMessage('auction.bid_success_ajax'),
+            genericError: window.getNotificationMessage('auction.generic_error'),
+            requestSubmitError: window.getNotificationMessage('common.request_submit_error'),
+            serverCommunicationError: window.getNotificationMessage('common.server_communication_error'),
+            serverRetryError: window.getNotificationMessage('common.server_retry_error')
+        };
         let isPendingLocalStorage = false;
         if (userIsAuthenticated && !userIsVerified && currentUserId) {
             isPendingLocalStorage = (localStorage.getItem('auction_req_pending_' + currentUserId) === 'true');
@@ -433,8 +443,11 @@
         }
 
         function showInactiveAuctionToast() {
-            if (window.showToast) {
-                window.showToast('مزایده فعال نیست', 'warning', 'bottom-left');
+            if (window.showNotificationText) {
+                window.showNotificationText(auctionNotifications.inactive, {
+                    type: 'warning',
+                    position: 'bottom-left'
+                });
             }
         }
 
@@ -504,7 +517,7 @@
             if (!userIsAuthenticated) {
                 window.openLoginRequiredModal(
                     targetUrl || (window.location.pathname + window.location.search),
-                    loginMessage || 'برای مشاهده جزئیات و شرکت در مزایده، لطفاً ابتدا وارد حساب کاربری خود شوید.'
+                    loginMessage || auctionNotifications.detailLoginRequired
                 );
                 return false;
             }
@@ -521,7 +534,7 @@
                 a.addEventListener('click', e => {
                     if (!ensureAuctionAccess(
                         a.getAttribute('href'),
-                        a.getAttribute('data-login-message') || 'برای مشاهده جزئیات محصول مزایده، لطفاً ابتدا وارد حساب کاربری خود شوید.'
+                        a.getAttribute('data-login-message') || auctionNotifications.detailLoginRequired
                     )) {
                         e.preventDefault();
                     }
@@ -793,7 +806,7 @@
             }
             if (!ensureAuctionAccess(
                 window.location.pathname + window.location.search,
-                'برای ثبت پیشنهاد در مزایده، لطفاً ابتدا وارد حساب کاربری خود شوید.'
+                auctionNotifications.bidLoginRequired
             )) return;
             currentBidButton = btn; 
 
@@ -869,17 +882,30 @@
                 const data = await response.json();
                 if (data.success) {
                     closeQuickBidModal();
-                    if(window.showToast) window.showToast(data.message || 'پیشنهاد با موفقیت ثبت شد.', 'success', 'bottom-left');
+                    if (window.showNotificationText) {
+                        window.showNotificationText(data.message || auctionNotifications.bidSuccess, {
+                            type: 'success',
+                            position: 'bottom-left'
+                        });
+                    }
                     syncAuctionData(); 
                 } else {
                     if (data.needs_credit_increase) {
                         setQuickBidModalState(data.credit_request_state === 'pending' ? 'pending' : 'credit');
-                    } else if(window.showToast) {
-                        window.showToast(data.message || 'خطایی رخ داده است.', 'error', 'bottom-left');
+                    } else if (window.showNotificationText) {
+                        window.showNotificationText(data.message || auctionNotifications.genericError, {
+                            type: 'error',
+                            position: 'bottom-left'
+                        });
                     }
                 }
             } catch (error) {
-                if(window.showToast) window.showToast('خطا در ارتباط با سرور.', 'error', 'bottom-left');
+                if (window.showNotificationText) {
+                    window.showNotificationText(auctionNotifications.serverCommunicationError, {
+                        type: 'error',
+                        position: 'bottom-left'
+                    });
+                }
             } finally {
                 qbSubmitBtn.disabled = false;
                 qbSubmitBtn.querySelector('.btn-text').classList.remove('hidden');
@@ -958,10 +984,13 @@
                     .catch(error => {
                         this.disabled = false;
                         this.innerHTML = originalHtml;
-                        if (window.showToast) {
-                            window.showToast(error.message || 'خطا در ثبت درخواست', 'error', 'bottom-left');
+                        if (window.showNotificationText) {
+                            window.showNotificationText(error.message || auctionNotifications.requestSubmitError, {
+                                type: 'error',
+                                position: 'bottom-left'
+                            });
                         } else {
-                            alert(error.message || 'خطا در ثبت درخواست');
+                            alert(error.message || auctionNotifications.requestSubmitError);
                         }
                     });
                 });
@@ -1000,18 +1029,24 @@
                             if (btnProfileLink && data.profile_url) {
                                 btnProfileLink.href = data.profile_url;
                             }
-                        } else if (window.showToast) {
-                            window.showToast(data.message || 'خطا در ثبت درخواست.', 'error', 'bottom-left');
+                        } else if (window.showNotificationText) {
+                            window.showNotificationText(data.message || auctionNotifications.requestSubmitError, {
+                                type: 'error',
+                                position: 'bottom-left'
+                            });
                         } else {
-                            alert(data.message || 'خطا در ثبت درخواست.');
+                            alert(data.message || auctionNotifications.requestSubmitError);
                         }
                     } catch (error) {
                         btnSubmitCredit.innerHTML = originalText;
                         btnSubmitCredit.disabled = false;
-                        if (window.showToast) {
-                            window.showToast('خطا در ارتباط با سرور. لطفاً مجدداً تلاش کنید.', 'error', 'bottom-left');
+                        if (window.showNotificationText) {
+                            window.showNotificationText(auctionNotifications.serverRetryError, {
+                                type: 'error',
+                                position: 'bottom-left'
+                            });
                         } else {
-                            alert('خطا در ارتباط با سرور. لطفاً مجدداً تلاش کنید.');
+                            alert(auctionNotifications.serverRetryError);
                         }
                     }
                 });

@@ -742,6 +742,60 @@
         });
     </script>
 
+    {{ notification_messages|json_script:"app-notification-messages" }}
+    <script>
+        (function() {
+            const messagesEl = document.getElementById('app-notification-messages');
+            if (!messagesEl) {
+                window.APP_NOTIFICATIONS = {};
+                return;
+            }
+            try {
+                window.APP_NOTIFICATIONS = JSON.parse(messagesEl.textContent || '{}');
+            } catch (error) {
+                window.APP_NOTIFICATIONS = {};
+            }
+        })();
+    </script>
+
+    <script src="{% static 'js/notifications.js' %}"></script>
+
+    {% if messages %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const toastTypeMap = {
+                debug: 'info',
+                info: 'info',
+                success: 'success',
+                warning: 'warning',
+                error: 'error'
+            };
+
+            const djangoMessages = [
+                {% for message in messages %}
+                {
+                    text: "{{ message|striptags|escapejs }}",
+                    tags: "{{ message.tags|escapejs }}"
+                },
+                {% endfor %}
+            ];
+
+            djangoMessages.forEach(function(item, index) {
+                if (!item.text || !window.showNotificationText) return;
+                const matchedTag = String(item.tags || '')
+                    .split(' ')
+                    .find(function(tag) { return toastTypeMap[tag]; });
+                window.setTimeout(function() {
+                    window.showNotificationText(item.text, {
+                        type: toastTypeMap[matchedTag] || 'info',
+                        position: 'bottom-left'
+                    });
+                }, index * 180);
+            });
+        });
+    </script>
+    {% endif %}
+
     <!-- Admin JS Files -->
     <script src="{% static 'admin/js/config.js' %}"></script>
     <script src="{% static 'admin/js/api.js' %}"></script>

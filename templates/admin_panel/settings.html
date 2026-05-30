@@ -173,17 +173,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return String(value).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[d]);
     }
 
-    function showToast(message, type = 'success') {
-        const toast = document.createElement('div');
-        toast.className = `fixed top-4 left-1/2 -translate-x-1/2 px-6 py-3 rounded-xl text-white text-sm font-black shadow-lg z-50 transition-all ${
-            type === 'success' ? 'bg-green-500' : 'bg-red-500'
-        }`;
-        toast.textContent = message;
-        document.body.appendChild(toast);
-        setTimeout(() => {
-            toast.style.opacity = '0';
-            setTimeout(() => toast.remove(), 300);
-        }, 3000);
+    function notify(key, type = 'success', params = {}, fallback = '') {
+        const message = window.getNotificationMessage
+            ? window.getNotificationMessage(key, params, fallback)
+            : fallback;
+        if (!message || !window.showNotificationText) return;
+        window.showNotificationText(message, { type, position: 'bottom-left' });
     }
 
     function createInfoCard(label, value) {
@@ -223,7 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
             emailToggle.checked = Boolean(data.email);
             browserToggle.checked = Boolean(data.browser);
         } catch (error) {
-            showToast('دریافت تنظیمات اعلان‌ها با خطا مواجه شد', 'error');
+            notify('admin.settings.notifications_load_error', 'error');
         }
     }
 
@@ -249,9 +244,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) throw new Error('save notifications failed');
             
             await loadNotifications();
-            showToast('تنظیمات اعلان‌ها با موفقیت ذخیره شد');
+            notify('admin.settings.notifications_saved');
         } catch (error) {
-            showToast('ذخیره اعلان‌ها انجام نشد', 'error');
+            notify('admin.settings.notifications_save_error', 'error');
         } finally {
             saveNotificationBtn.textContent = originalText;
             saveNotificationBtn.disabled = false;
@@ -308,7 +303,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const isDefault = document.getElementById('filterIsDefault').checked;
 
         if (!name) {
-            showToast('نام فیلتر را وارد کنید', 'error');
+            notify('admin.settings.filter_name_required', 'error');
             return;
         }
 
@@ -317,7 +312,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 parsedFilters = JSON.parse(filterJson);
             } catch (error) {
-                showToast('فرمت JSON معتبر نیست', 'error');
+                notify('admin.settings.filter_invalid_json', 'error');
                 return;
             }
         }
@@ -347,9 +342,9 @@ document.addEventListener('DOMContentLoaded', () => {
             
             savedFilterForm.reset();
             await loadFilters();
-            showToast('فیلتر با موفقیت ذخیره شد');
+            notify('admin.settings.filter_saved');
         } catch (error) {
-            showToast('ذخیره فیلتر انجام نشد. نام فیلتر را یکتا انتخاب کنید', 'error');
+            notify('admin.settings.filter_save_error', 'error');
         } finally {
             submitBtn.textContent = originalText;
             submitBtn.disabled = false;
@@ -369,9 +364,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) throw new Error('default failed');
             
             await loadFilters();
-            showToast('فیلتر پیش‌فرض تنظیم شد');
+            notify('admin.settings.filter_default_saved');
         } catch (error) {
-            showToast('تعیین فیلتر پیش‌فرض انجام نشد', 'error');
+            notify('admin.settings.filter_default_save_error', 'error');
         }
     }
 
@@ -390,9 +385,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) throw new Error('delete failed');
             
             await loadFilters();
-            showToast('فیلتر با موفقیت حذف شد');
+            notify('admin.settings.filter_deleted');
         } catch (error) {
-            showToast('حذف فیلتر انجام نشد', 'error');
+            notify('admin.settings.filter_delete_error', 'error');
         }
     }
 

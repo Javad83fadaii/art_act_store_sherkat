@@ -328,7 +328,7 @@ document.addEventListener('DOMContentLoaded', () => {
             state.rawItems = normalizePayload(state.activeTab, payload);
             applySearch();
         } catch (error) {
-            bodyEl.innerHTML = `<tr><td colspan="${state.activeTab === 'errors' ? 8 : state.activeTab === 'admins' ? 7 : 4}" class="p-8 text-center text-red-500">دریافت اطلاعات این بخش با خطا مواجه شد.</td></tr>`;
+            bodyEl.innerHTML = `<tr><td colspan="${state.activeTab === 'errors' ? 8 : state.activeTab === 'admins' ? 7 : 4}" class="p-8 text-center text-red-500">${window.getNotificationMessage('admin.reports.load_error')}</td></tr>`;
         }
     }
 
@@ -346,7 +346,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             await loadData();
         } catch (error) {
-            window.alert('رفع خطا با مشکل مواجه شد.');
+            window.alert(window.getNotificationMessage('admin.reports.resolve_error'));
         }
     }
 

@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.urls import reverse
 from core.models import SavedFilter
+from core.notification_messages import get_notification
 import json
 
 @login_required
@@ -27,7 +28,7 @@ def create_view(request):
     is_default = request.POST.get('is_default') == 'true'
     
     if not name or not page:
-        messages.error(request, 'نام و صفحه الزامی است')
+        messages.error(request, get_notification('admin.saved_filters.name_page_required'))
         return redirect('admin_panel:saved_filters')
     
     # ساخت دیکشنری فیلترها
@@ -54,7 +55,7 @@ def create_view(request):
             filters['created_at__lte'] = request.POST.get('created_at__lte')
     
     if not filters:
-        messages.error(request, 'حداقل یک فیلتر باید انتخاب شود')
+        messages.error(request, get_notification('admin.saved_filters.at_least_one_filter'))
         return redirect('admin_panel:saved_filters')
     
     # اگر default باشه، بقیه رو غیرفعال کن
@@ -70,7 +71,7 @@ def create_view(request):
         is_default=is_default
     )
     
-    messages.success(request, f'فیلتر "{name}" با موفقیت ذخیره شد')
+    messages.success(request, get_notification('admin.saved_filters.created', name=name))
     return redirect('admin_panel:saved_filters')
 
 @login_required
@@ -83,7 +84,7 @@ def delete_view(request, filter_id):
     name = saved_filter.name
     saved_filter.delete()
     
-    messages.success(request, f'فیلتر "{name}" حذف شد')
+    messages.success(request, get_notification('admin.saved_filters.deleted', name=name))
     return redirect('admin_panel:saved_filters')
 
 @login_required
@@ -101,7 +102,7 @@ def set_default_view(request, filter_id):
     saved_filter.is_default = True
     saved_filter.save()
     
-    messages.success(request, f'فیلتر "{saved_filter.name}" به عنوان پیش‌فرض تنظیم شد')
+    messages.success(request, get_notification('admin.saved_filters.set_default', name=saved_filter.name))
     return redirect('admin_panel:saved_filters')
 
 @login_required
@@ -115,7 +116,7 @@ def apply_view(request, filter_id):
     elif saved_filter.page == 'orders':
         url = reverse('admin_panel:orders')
     else:
-        messages.error(request, 'صفحه نامعتبر')
+        messages.error(request, get_notification('admin.saved_filters.invalid_page'))
         return redirect('admin_panel:saved_filters')
     
     # اضافه کردن پارامترها به URL

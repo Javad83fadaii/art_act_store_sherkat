@@ -506,6 +506,10 @@
         }
     }
 
+    function getAdminNotification(key, params = {}, fallback = '') {
+        return window.getNotificationMessage ? window.getNotificationMessage(key, params, fallback) : fallback;
+    }
+
     // --- Modal Logic ---
     function openProductModal() {
         document.getElementById('product-modal').classList.remove('hidden');
@@ -540,7 +544,7 @@
         if (!title) {
             const msg = document.getElementById('modalMsg');
             msg.classList.remove('hidden');
-            msg.innerText = 'لطفا حداقل عنوان محصول را وارد کنید.';
+            msg.innerText = getAdminNotification('admin.product_create.title_required');
             return;
         }
 
@@ -636,13 +640,13 @@
             });
             const data = await response.json().catch(() => ({}));
             if (!response.ok) {
-                showBox('storeMsg', data.error || 'خطا در ایجاد محصول.', 'error');
+                showBox('storeMsg', data.error || getAdminNotification('admin.product_create.store_create_error'), 'error');
                 return;
             }
             const detailUrl = buildUrlFromTemplate(ADMIN_STORE_DETAIL_TEMPLATE, data.id);
-            showBox('storeMsg', `محصول با موفقیت ساخته شد. برای ویرایش وارد شوید: ${detailUrl}`, 'success');
+            showBox('storeMsg', getAdminNotification('admin.product_create.store_created', { url: detailUrl }), 'success');
         } catch (e) {
-            showBox('storeMsg', 'خطا در ایجاد محصول.', 'error');
+            showBox('storeMsg', getAdminNotification('admin.product_create.store_create_error'), 'error');
         } finally {
             btn.disabled = false;
         }
@@ -669,7 +673,7 @@
             });
             const auctionData = await auctionRes.json().catch(() => ({}));
             if (!auctionRes.ok) {
-                showBox('auctionMsg', auctionData.error || 'خطا در ایجاد مزایده.', 'error');
+                showBox('auctionMsg', auctionData.error || getAdminNotification('admin.product_create.auction_create_error'), 'error');
                 return;
             }
 
@@ -703,21 +707,35 @@
                     body: JSON.stringify(productPayload),
                 });
                 const prodData = await prodRes.json().catch(() => ({}));
-                if (!prodRes.ok) errors.push(prodData.error || `خطا در ساخت محصول: ${productPayload.title}`);
+                if (!prodRes.ok) {
+                    errors.push(
+                        prodData.error || getAdminNotification('admin.product_create.auction_product_build_error', {
+                            title: productPayload.title
+                        })
+                    );
+                }
             }
 
             const detailUrl = buildUrlFromTemplate(ADMIN_AUCTION_DETAIL_TEMPLATE, auctionId);
             if (errors.length) {
-                showBox('auctionMsg', `مزایده ساخته شد (شناسه: ${auctionId}). اما برخی محصولات خطا داشتند: ${errors.join(' | ')}. لینک ویرایش مزایده: ${detailUrl}`, 'error');
+                showBox(
+                    'auctionMsg',
+                    getAdminNotification('admin.product_create.auction_created_partial', {
+                        auction_id: auctionId,
+                        errors: errors.join(' | '),
+                        url: detailUrl
+                    }),
+                    'error'
+                );
                 return;
             }
-            showBox('auctionMsg', `مزایده و محصولات با موفقیت ساخته شد. لینک ویرایش مزایده: ${detailUrl}`, 'success');
+            showBox('auctionMsg', getAdminNotification('admin.product_create.auction_created', { url: detailUrl }), 'success');
             
             // پاکسازی جدول بعد از موفقیت
             productRows = [];
             renderAuctionProductRows();
         } catch (e) {
-            showBox('auctionMsg', 'خطا در ارتباط با سرور.', 'error');
+            showBox('auctionMsg', getAdminNotification('common.server_communication_error'), 'error');
         } finally {
             btn.disabled = false;
         }
@@ -753,12 +771,12 @@
             });
             const data = await response.json().catch(() => ({}));
             if (!response.ok) {
-                showBox('auctionProductMsg', data.error || 'خطا در ایجاد محصول مزایده.', 'error');
+                showBox('auctionProductMsg', data.error || getAdminNotification('admin.product_create.auction_product_create_error'), 'error');
                 return;
             }
-            showBox('auctionProductMsg', `محصول مزایده با موفقیت ساخته شد. شناسه: ${data.id}`, 'success');
+            showBox('auctionProductMsg', getAdminNotification('admin.product_create.auction_product_created', { id: data.id }), 'success');
         } catch (e) {
-            showBox('auctionProductMsg', 'خطا در ایجاد محصول مزایده.', 'error');
+            showBox('auctionProductMsg', getAdminNotification('admin.product_create.auction_product_create_error'), 'error');
         } finally {
             btn.disabled = false;
         }

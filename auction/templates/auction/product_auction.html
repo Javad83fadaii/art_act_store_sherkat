@@ -551,6 +551,11 @@
     // بخش ۲: فرم ثبت بید و منطق مودال افزایش اعتبار
     // ------------------------------------------------------------------
     document.addEventListener('DOMContentLoaded', function() {
+        const productAuctionNotifications = {
+            requestSubmitError: window.getNotificationMessage('common.request_submit_error'),
+            serverCommunicationError: window.getNotificationMessage('common.server_communication_error'),
+            genericBidError: window.getNotificationMessage('auction.generic_error')
+        };
         const bidForm = document.getElementById('bid-submit-form');
         const alertBox = document.getElementById('bid-alert');
         const alertMessage = document.getElementById('bid-alert-message');
@@ -802,14 +807,14 @@
                             btnProfileLink.href = data.profile_url;
                         }
                     } else {
-                        alert(data.message || 'خطا در ثبت درخواست.');
+                        alert(data.message || productAuctionNotifications.requestSubmitError);
                     }
                 })
                 .catch(err => {
                     console.error('Error submitting credit request:', err);
                     btnSubmitCredit.innerHTML = originalText;
                     btnSubmitCredit.disabled = false;
-                    alert('خطا در ارتباط با سرور. لطفاً مجدداً تلاش کنید.');
+                    alert(window.getNotificationMessage('common.server_retry_error'));
                 });
             });
         }
@@ -838,7 +843,7 @@
                     try {
                         data = await res.json();
                     } catch {
-                        data = { success: false, message: 'خطا در ارتباط با سرور.' };
+                        data = { success: false, message: productAuctionNotifications.serverCommunicationError };
                     }
 
                     if (btn) {
@@ -865,7 +870,7 @@
                         alertBox.classList.add('border-red-500/30', 'bg-red-500/10');
                         alertMessage.classList.remove('text-green-200');
                         alertMessage.classList.add('text-red-200');
-                        alertMessage.textContent = (data && data.message) ? data.message : 'خطا در ثبت پیشنهاد.';
+                        alertMessage.textContent = (data && data.message) ? data.message : productAuctionNotifications.genericBidError;
                     }
 
                     if (alertAction) {
@@ -890,7 +895,7 @@
                         alertBox.classList.remove('hidden');
                         alertBox.classList.add('border-red-500/30', 'bg-red-500/10');
                         alertMessage.classList.add('text-red-200');
-                        alertMessage.textContent = 'خطا در ارتباط با سرور.';
+                        alertMessage.textContent = productAuctionNotifications.serverCommunicationError;
                     }
                 });
             });

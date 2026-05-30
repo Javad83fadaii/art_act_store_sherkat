@@ -20,6 +20,7 @@ from .services import (
     build_winner_access_token,
 )
 from accounts.models import VerificationRequest, CreditIncreaseRequest  # CreditIncreaseRequest اضافه شد
+from core.notification_messages import get_notification
 from store.models import Artwork
 
 
@@ -42,7 +43,7 @@ def _split_seconds(total_seconds: int) -> tuple[int, int, int, int]:
 def _build_inactive_auction_redirect(product: AuctionProduct):
     list_url = reverse('auction:auction_products', kwargs={'pk': product.auction.pk})
     return redirect(
-        f'{list_url}?{urlencode({"toast_message": "مزایده فعال نیست.", "toast_type": "warning"})}'
+        f'{list_url}?{urlencode({"toast_message": get_notification("auction.inactive"), "toast_type": "warning"})}'
     )
 
 
@@ -143,7 +144,7 @@ def auction_product_detail(request, pk: int):
         login_url = f'{reverse("login")}?{urlencode({"next": request.path})}'
         list_url = reverse('auction:auction_products', kwargs={'pk': product.auction.pk})
         return redirect(
-            f'{list_url}?{urlencode({"toast_message": "برای مشاهده جزئیات مزایده لطفاً وارد شوید.", "toast_type": "warning", "toast_action_label": "ورود", "toast_action_href": login_url})}'
+            f'{list_url}?{urlencode({"toast_message": get_notification("auction.detail_login_required"), "toast_type": "warning", "toast_action_label": "ورود", "toast_action_href": login_url})}'
         )
 
     if int(getattr(request.user, 'is_verified', 0) or 0) != 1 and not has_winner_profile_access:
@@ -153,11 +154,11 @@ def auction_product_detail(request, pk: int):
         if not has_opt_in:
             edit_url = f'{reverse("edit_profile")}?{urlencode({"next": list_url})}'
             return redirect(
-                f'{list_url}?{urlencode({"toast_message": "برای شرکت در مزایده، گزینه «شرکت در مزایده» را فعال کنید.", "toast_type": "warning", "toast_action_label": "ویرایش", "toast_action_href": edit_url})}'
+                f'{list_url}?{urlencode({"toast_message": get_notification("auction.enable_participation"), "toast_type": "warning", "toast_action_label": "ویرایش", "toast_action_href": edit_url})}'
             )
 
         return redirect(
-            f'{list_url}?{urlencode({"toast_message": "درخواست شما ثبت شده و در انتظار تایید مدیران است.", "toast_type": "warning"})}'
+            f'{list_url}?{urlencode({"toast_message": get_notification("auction.pending_approval"), "toast_type": "warning"})}'
         )
 
     # ----------------------------------
@@ -252,7 +253,7 @@ def auction_product_live_state(request, pk: int):
     is_active_auction = product.auction.status == 'ongoing'
     has_winner_profile_access = _has_finished_winner_profile_access(request, product, access_token)
     if not is_active_auction and not has_winner_profile_access:
-        return JsonResponse({'success': False, 'message': 'مزایده فعال نیست.'}, status=403)
+        return JsonResponse({'success': False, 'message': get_notification('auction.inactive')}, status=403)
     return JsonResponse(
         {
             'success': True,
@@ -270,7 +271,7 @@ def place_bid(request, pk: int):
 
     if request.method != 'POST':
         if is_ajax:
-            return JsonResponse({'success': False, 'message': 'درخواست نامعتبر است.'}, status=400)
+            return JsonResponse({'success': False, 'message': get_notification('common.invalid_request')}, status=400)
         return redirect('auction:auction_product_detail', pk=auction.pk)
 
     next_url = request.POST.get('next') or reverse('auction:auction_product_detail', kwargs={'pk': auction.pk})
@@ -279,7 +280,7 @@ def place_bid(request, pk: int):
     if int(getattr(request.user, 'is_verified', 0) or 0) != 1:
         has_opt_in = request.user.has_pending_auction_request
         if not has_opt_in:
-            msg = "برای ثبت پیشنهاد، گزینه «شرکت در مزایده» را فعال کنید."
+            msg = get_notification('auction.enable_participation')
             if is_ajax:
                 return JsonResponse({'success': False, 'message': msg})
                 
@@ -288,7 +289,7 @@ def place_bid(request, pk: int):
                 f'{next_url}?{urlencode({"toast_message": msg, "toast_type": "warning", "toast_action_label": "ویرایش", "toast_action_href": edit_url})}'
             )
             
-        msg_pending = "درخواست شما ثبت شده و در انتظار تایید مدیران است."
+        msg_pending = get_notification('auction.pending_approval')
         if is_ajax:
             return JsonResponse({'success': False, 'message': msg_pending})
         return redirect(
@@ -323,9 +324,9 @@ def place_bid(request, pk: int):
             ).exists()
             credit_request_state = "pending" if pending_credit_request else "request"
             msg_credit = (
-                "درخواست افزایش اعتبار شما در انتظار تایید است."
+                get_notification('auction.credit_request_pending')
                 if pending_credit_request else
-                "اعتبار شما کافی نیست. برای افزایش سقف پیشنهادات باید درخواست افزایش اعتبار ثبت کنید."
+                get_notification('auction.credit_request_needed')
             )
             if is_ajax:
                 return JsonResponse(
@@ -362,13 +363,13 @@ def place_bid(request, pk: int):
         return JsonResponse(
             {
                 'success': True,
-                'message': 'پیشنهاد شما با موفقیت ثبت شد.',
+                'message': get_notification('auction.bid_success_ajax'),
                 **build_bid_live_payload(auction, request.user),
             }
         )
 
     return redirect(
-        f'{next_url}?{urlencode({"toast_message": "بید شما با موفقیت ثبت شد.", "toast_type": "success"})}'
+        f'{next_url}?{urlencode({"toast_message": get_notification("auction.bid_success_redirect"), "toast_type": "success"})}'
     )
 
 
@@ -479,7 +480,7 @@ def submit_credit_increase_ajax(request):
             return JsonResponse({
                 'success': True,
                 'already_pending': True,
-                'message': 'درخواست افزایش اعتبار شما قبلاً ثبت شده و در انتظار بررسی است.',
+                'message': get_notification('auction.credit_request_pending_exists'),
                 'profile_url': profile_url,
             })
 
@@ -492,8 +493,8 @@ def submit_credit_increase_ajax(request):
         
         return JsonResponse({
             'success': True,
-            'message': 'درخواست شما ثبت شده پس از تایید مدیران اعتبارتان زیاد می‌شود.',
+            'message': get_notification('auction.credit_request_created'),
             'profile_url': profile_url
         })
         
-    return JsonResponse({'success': False, 'message': 'درخواست نامعتبر است.'}, status=400)
+    return JsonResponse({'success': False, 'message': get_notification('common.invalid_request')}, status=400)

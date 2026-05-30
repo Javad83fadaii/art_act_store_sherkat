@@ -569,6 +569,10 @@
     // اطلاعات کاربر فعلی
     const userIsAuthenticated = ("{{ request.user.is_authenticated|yesno:'true,false' }}" === "true");
     const currentUserId = "{{ request.user.id|default:'' }}";
+    const indexNotifications = {
+        requestSuccess: window.getNotificationMessage('accounts.auction_verification.created'),
+        requestSubmitError: window.getNotificationMessage('common.request_submit_error')
+    };
     
     // بررسی تایید بودن اکانت
     const isVerifiedContext = ("{{ is_verified|yesno:'true,false' }}" === "true");
@@ -677,7 +681,7 @@
                     setModalState();
                     if (window.showToast) {
                         window.showToast(
-                            data.toast_message || 'درخواست شما با موفقیت ثبت شد',
+                            data.toast_message || indexNotifications.requestSuccess,
                             data.toast_type || 'success',
                             'bottom-left',
                             data.toast_action_label
@@ -693,9 +697,9 @@
                     this.disabled = false;
                     this.innerHTML = originalHtml;
                     if (window.showToast) {
-                        window.showToast(error.message || 'خطا در ثبت درخواست', 'error', 'bottom-left');
+                        window.showToast(error.message || indexNotifications.requestSubmitError, 'error', 'bottom-left');
                     } else {
-                        alert(error.message || 'خطا در ثبت درخواست');
+                        alert(error.message || indexNotifications.requestSubmitError);
                     }
                 });
             });

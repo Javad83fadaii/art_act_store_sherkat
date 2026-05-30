@@ -11,6 +11,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserChangeForm
 from django.contrib import messages 
+from core.notification_messages import get_notification
 from store.models import SiteVisitLog
 
 from auction.models import AuctionCartItem, Bid
@@ -89,19 +90,19 @@ class EditProfileView(LoginRequiredMixin, View):
 
             if current_password or new_password or confirm_password:
                 if not current_password:
-                    messages.error(request, 'برای تغییر رمز عبور، وارد کردن رمز عبور فعلی الزامی است.')
+                    messages.error(request, get_notification('accounts.profile.current_password_required'))
                     return redirect(next_url)
                 
                 if not user.check_password(current_password):
-                    messages.error(request, 'رمز عبور فعلی اشتباه است.')
+                    messages.error(request, get_notification('accounts.profile.current_password_incorrect'))
                     return redirect(next_url)
                 
                 if new_password != confirm_password:
-                    messages.error(request, 'رمز عبور جدید و تکرار آن با هم مطابقت ندارند.')
+                    messages.error(request, get_notification('accounts.profile.new_password_mismatch'))
                     return redirect(next_url)
                 
                 if len(new_password) < 8:
-                    messages.error(request, 'رمز عبور جدید باید حداقل ۸ کاراکتر باشد.')
+                    messages.error(request, get_notification('accounts.profile.new_password_min_length'))
                     return redirect(next_url)
 
                 user.set_password(new_password)
@@ -128,9 +129,9 @@ class EditProfileView(LoginRequiredMixin, View):
 
             if password_changed_successfully:
                 update_session_auth_hash(request, user)
-                messages.success(request, 'رمز عبور شما با موفقیت تغییر یافت.')
+                messages.success(request, get_notification('accounts.profile.password_changed'))
             else:
-                messages.success(request, 'اطلاعات پروفایل با موفقیت بروزرسانی شد.')
+                messages.success(request, get_notification('accounts.profile.updated'))
 
             return redirect(next_url)
             
@@ -189,7 +190,7 @@ class ProfileView(LoginRequiredMixin, TemplateView):
         # ذخیره نهایی کاربر
         user.save()
 
-        messages.success(request, 'اطلاعات پروفایل با موفقیت بروزرسانی شد.')
+        messages.success(request, get_notification('accounts.profile.updated'))
         return redirect('profile')
 
 
@@ -218,7 +219,7 @@ class SignupView(View):
         form = PublicSignupForm(request.POST)
         if form.is_valid():
             form.save()
-            messages.success(request, "ثبت نام با موفقیت انجام شد.")
+            messages.success(request, get_notification('accounts.signup.success'))
             return redirect('login')  
 
         return render(request, 'registration/signup.html', {'form': form})
@@ -254,16 +255,16 @@ def request_auction_verification(request):
         return redirect(f"{next_url}{joiner}{urlencode(params)}")
 
     if request.method not in ("GET", "POST"):
-        return respond("درخواست نامعتبر است.", "error")
+        return respond(get_notification('common.invalid_request'), "error")
 
     if int(getattr(request.user, "is_verified", 0) or 0) == 1:
-        return respond("حساب کاربری شما قبلاً تایید شده است.", "success", request_state="verified")
+        return respond(get_notification('accounts.auction_verification.already_verified'), "success", request_state="verified")
 
     full_name = (getattr(request.user, "full_name", "") or "").strip()
     if not full_name:
         edit_url = f'{reverse("update_profile")}?{urlencode({"next": next_url})}'
         return respond(
-            "برای ثبت درخواست مزایده، ابتدا نام و نام خانوادگی را تکمیل کنید.",
+            get_notification('accounts.auction_verification.full_name_required'),
             "warning",
             "ویرایش",
             edit_url,
@@ -275,7 +276,7 @@ def request_auction_verification(request):
         status=VerificationRequest.RequestStatus.PENDING,
     ).exists()
     if pending:
-        return respond("درخواست شما قبلاً ثبت شده و در انتظار تایید مدیران است.", "warning", request_state="pending")
+        return respond(get_notification('accounts.auction_verification.pending_exists'), "warning", request_state="pending")
 
     phone_val = getattr(request.user, 'phone_number', getattr(request.user, 'mobile', ''))
     VerificationRequest.objects.create(
@@ -287,7 +288,7 @@ def request_auction_verification(request):
     )
     
     return respond(
-        "درخواست شما برای شرکت در مزایده ثبت شد. پس از تایید مدیران می‌توانید در مزایده شرکت کنید.",
+        get_notification('accounts.auction_verification.created'),
         "success",
         request_state="pending",
     )
@@ -306,7 +307,7 @@ def credit_increase_requests(request):
         status=CreditIncreaseRequest.RequestStatus.PENDING,
     ).exists()
     if pending_request:
-        messages.warning(request, "درخواست اعتبار شما قبلاً ثبت شده و در انتظار بررسی است.")
+        messages.warning(request, get_notification('accounts.credit_increase.pending_exists'))
         next_url = request.META.get("HTTP_REFERER") or "/"
         return redirect(next_url)
 
@@ -317,7 +318,7 @@ def credit_increase_requests(request):
     )
     
     # نمایش پیام موفقیت به کاربر
-    messages.success(request, "درخواست بررسی اعتبار شما با موفقیت ثبت شد.")
+    messages.success(request, get_notification('accounts.credit_increase.created'))
     
     # بازگرداندن کاربر به همان صفحه‌ای که دکمه را در آن کلیک کرده است
     next_url = request.META.get("HTTP_REFERER") or "/"
