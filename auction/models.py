@@ -125,7 +125,7 @@ class AuctionProduct(models.Model):
         except AttributeError:
             static_root = Path(settings.BASE_DIR) / 'static'
 
-        file_name = f'{self.product_id}.webp'
+        file_name = f'{self.product_id}.jpg'
         full_path = static_root / 'images' / 'action' / self.product_id / file_name
         if full_path.exists():
             return f'{settings.STATIC_URL}images/action/{self.product_id}/{file_name}'
@@ -151,11 +151,11 @@ class AuctionProduct(models.Model):
         file_names = [
             file_path.name
             for file_path in full_dir_path.iterdir()
-            if file_path.is_file() and file_path.suffix.lower() == '.webp'
+            if file_path.is_file() and file_path.suffix.lower() == '.jpg'
         ]
         file_names.sort(key=lambda n: n.lower())
 
-        main_name = f'{self.product_id}.webp'
+        main_name = f'{self.product_id}.jpg'
         if main_name in file_names:
             file_names.remove(main_name)
             file_names.insert(0, main_name)

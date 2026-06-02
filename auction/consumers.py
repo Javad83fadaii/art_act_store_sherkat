@@ -14,32 +14,43 @@ class AuctionProductBidConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
 
-        payload = await database_sync_to_async(build_bid_live_payload)(
-            self.product_pk,
-            self.scope.get('user'),
-        )
-        await self.send(
-            text_data=json.dumps(
-                {
-                    'type': 'initial_state',
-                    'payload': payload,
-                }
+        try:
+            # دریافت داده‌ها ممکن است کمی زمان ببرد
+            payload = await database_sync_to_async(build_bid_live_payload)(
+                self.product_pk,
+                self.scope.get('user'),
             )
-        )
+            # تلاش برای ارسال داده به کلاینت
+            await self.send(
+                text_data=json.dumps(
+                    {
+                        'type': 'initial_state',
+                        'payload': payload,
+                    }
+                )
+            )
+        except Exception:
+            # اگر کلاینت قبل از رسیدن به این خط اتصال را قطع کرده باشد،
+            # به جای نمایش خطای Autobahn، اتصال به صورت امن بسته می‌شود
+            await self.close()
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(self.group_name, self.channel_name)
 
     async def auction_bid_update(self, event):
-        payload = await database_sync_to_async(build_bid_live_payload)(
-            self.product_pk,
-            self.scope.get('user'),
-        )
-        await self.send(
-            text_data=json.dumps(
-                {
-                    'type': 'bid_update',
-                    'payload': payload,
-                }
+        try:
+            payload = await database_sync_to_async(build_bid_live_payload)(
+                self.product_pk,
+                self.scope.get('user'),
             )
-        )
+            await self.send(
+                text_data=json.dumps(
+                    {
+                        'type': 'bid_update',
+                        'payload': payload,
+                    }
+                )
+            )
+        except Exception:
+            # مدیریت خطای مشابه در زمان آپدیت‌های گروهی (Broadcasting)
+            pass

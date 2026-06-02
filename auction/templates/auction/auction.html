@@ -111,7 +111,7 @@
                                 <img alt="{{ product.title }}"
                                      data-product-img="{{ product.pk }}"
                                      class="w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-110"
-                                     src="{% static 'images/action/' %}{{ product.product_id }}/{{ product.product_id }}.webp"/>
+                                     src="{% static 'images/action/' %}{{ product.product_id }}/{{ product.product_id }}.jpg"/>
                             </div>
                             
                             <div class="px-4 text-right flex-grow flex flex-col relative z-20">
@@ -211,7 +211,7 @@
                             <div class="relative w-full aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-neutral-100 dark:bg-zinc-800">
                                 <img alt="{{ auction.name|default:auction }}"
                                      class="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
-                                     src="{% static 'images/action/' %}{{ auction.pk }}.webp"/>
+                                     src="{% static 'images/action/' %}{{ auction.pk }}.jpg"/>
                             </div>
                             <div class="px-4 text-right">
                                 <h3 class="font-bold text-xl text-neutral-900 dark:text-white leading-tight mb-4 font-display tracking-tight">
