@@ -185,11 +185,31 @@ TIME_ZONE = 'Asia/Tehran'
 
 AUTH_USER_MODEL = 'accounts.CustomUser'
 
+# ==========================================
+# Security Settings (HTTPS & Cookie Configs)
+# ==========================================
+# مقدار این متغیر را در .env برابر با True قرار دهید تا تنظیمات SSL فعال شوند
+USE_HTTPS = _as_bool(_get_first_setting("USE_HTTPS", "SECURE_SSL_REDIRECT"), default=False)
+
 SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SECURE = _as_bool(_get_first_setting("SESSION_COOKIE_SECURE"), default=False)
 SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 SESSION_COOKIE_AGE = 86400
+
+if USE_HTTPS:
+    # این تنظیمات تنها در صورت استفاده از دامنه و گواهی SSL (HTTPS) فعال خواهند شد
+    SECURE_SSL_REDIRECT = True
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = True
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = 'DENY'
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+else:
+    SECURE_SSL_REDIRECT = False
+    CSRF_COOKIE_SECURE = False
+    SESSION_COOKIE_SECURE = _as_bool(_get_first_setting("SESSION_COOKIE_SECURE"), default=False)
+    X_FRAME_OPTIONS = 'SAMEORIGIN'
 
 CSRF_TRUSTED_ORIGINS = _as_csv_list(_get_first_setting("DJANGO_CSRF_TRUSTED_ORIGINS", "CSRF_TRUSTED_ORIGINS"))
 
