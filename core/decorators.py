@@ -8,11 +8,25 @@ from .models import AdminActivityLog
 from .utils import broadcast_admin_panel_refresh
 
 
+def _admin_forbidden_response(message='Unauthorized'):
+    return JsonResponse({'error': message}, status=403)
+
+
 def staff_required(view_func):
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
         if not request.user.is_authenticated or not request.user.is_staff:
-            return JsonResponse({'error': 'Unauthorized'}, status=403)
+            return _admin_forbidden_response()
+        return view_func(request, *args, **kwargs)
+
+    return wrapper
+
+
+def superuser_required(view_func):
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated or not request.user.is_superuser:
+            return _admin_forbidden_response('Forbidden')
         return view_func(request, *args, **kwargs)
 
     return wrapper

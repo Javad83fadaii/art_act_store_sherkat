@@ -1,13 +1,13 @@
 # admin_panel/views/saved_filters.py
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.urls import reverse
 from core.models import SavedFilter
 from core.notification_messages import get_notification
+from core.decorators import superuser_required
 import json
 
-@login_required
+@superuser_required
 def list_view(request):
     """نمایش لیست فیلترهای ذخیره شده"""
     saved_filters = SavedFilter.objects.filter(user=request.user)
@@ -17,7 +17,7 @@ def list_view(request):
     }
     return render(request, 'admin_panel/saved_filters.html', context)
 
-@login_required
+@superuser_required
 def create_view(request):
     """ایجاد فیلتر جدید"""
     if request.method != 'POST':
@@ -74,7 +74,7 @@ def create_view(request):
     messages.success(request, get_notification('admin.saved_filters.created', name=name))
     return redirect('admin_panel:saved_filters')
 
-@login_required
+@superuser_required
 def delete_view(request, filter_id):
     """حذف فیلتر"""
     if request.method != 'POST':
@@ -87,7 +87,7 @@ def delete_view(request, filter_id):
     messages.success(request, get_notification('admin.saved_filters.deleted', name=name))
     return redirect('admin_panel:saved_filters')
 
-@login_required
+@superuser_required
 def set_default_view(request, filter_id):
     """تنظیم فیلتر به عنوان پیش‌فرض"""
     if request.method != 'POST':
@@ -105,7 +105,7 @@ def set_default_view(request, filter_id):
     messages.success(request, get_notification('admin.saved_filters.set_default', name=saved_filter.name))
     return redirect('admin_panel:saved_filters')
 
-@login_required
+@superuser_required
 def apply_view(request, filter_id):
     """اعمال فیلتر و هدایت به صفحه مربوطه"""
     saved_filter = get_object_or_404(SavedFilter, id=filter_id, user=request.user)

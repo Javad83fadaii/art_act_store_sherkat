@@ -13,7 +13,7 @@ from django.views.decorators.http import require_http_methods
 from auction.models import AuctionProduct, Auction, AuctionVisitHistory, Bid
 from auction.models import Bid as AuctionBid
 from auction.ranking import get_product_rankings, get_top_unique_bid_amounts
-from core.decorators import log_admin_action, staff_required
+from core.decorators import log_admin_action, superuser_required
 from core.utils import cache_response, invalidate_cache
 from store.models import Artwork, ArtworkType, Artist, Material, Subject, Usage, VisitHistory
 
@@ -25,43 +25,43 @@ def _request_payload(request):
         return request.POST.dict()
 
 
-@staff_required
+@superuser_required
 def store_page_view(request):
     return render(request, 'admin_panel/store_products.html')
 
 
-@staff_required
+@superuser_required
 def store_detail_page_view(request, pk):
     return render(request, 'admin_panel/store_product_detail.html', {'product_pk': pk})
 
 
-@staff_required
+@superuser_required
 def auctions_page_view(request):
     return render(request, 'admin_panel/auctions.html')
 
 
-@staff_required
+@superuser_required
 def auction_detail_page_view(request, pk):
     return render(request, 'admin_panel/auction_detail.html', {'auction_pk': pk})
 
 
-@staff_required
+@superuser_required
 def auction_products_page_view(request):
     return render(request, 'admin_panel/auction_products.html')
 
 
-@staff_required
+@superuser_required
 def auction_product_detail_page_view(request, pk):
     return render(request, 'admin_panel/auction_product_detail.html', {'product_pk': pk})
 
 
-@staff_required
+@superuser_required
 def create_page_view(request):
     return render(request, 'admin_panel/product_create.html')
 
 
 @require_http_methods(['GET'])
-@staff_required
+@superuser_required
 def product_options(request):
     artists = list(Artist.objects.all().order_by('name').values('id', 'name'))
     artwork_types = list(ArtworkType.objects.all().order_by('name').values('id', 'name'))
@@ -93,13 +93,13 @@ def product_options(request):
     )
 
 
-@staff_required
+@superuser_required
 def reports_page_view(request):
     return render(request, 'admin_panel/product_reports.html')
 
 
 @require_http_methods(['GET'])
-@staff_required
+@superuser_required
 def visit_reports(request):
     report_type = request.GET.get('type', 'store')
     search = request.GET.get('search', '').strip()
@@ -223,7 +223,7 @@ def visit_reports(request):
 # ==========================================
 
 @require_http_methods(['GET', 'POST'])
-@staff_required
+@superuser_required
 def store_list(request):
     if request.method == 'POST':
         data = _request_payload(request)
@@ -308,7 +308,7 @@ def store_list(request):
 
 
 @require_http_methods(['GET', 'PUT', 'DELETE'])
-@staff_required
+@superuser_required
 @log_admin_action('update_store_product')
 def store_detail(request, pk):
     product = get_object_or_404(Artwork, pk=pk)
@@ -374,7 +374,7 @@ def store_detail(request, pk):
 
 
 @require_http_methods(['POST'])
-@staff_required
+@superuser_required
 @log_admin_action('bulk_store_action')
 def store_bulk(request):
     data = _request_payload(request)
@@ -401,7 +401,7 @@ def store_bulk(request):
 
 
 @require_http_methods(['GET'])
-@staff_required
+@superuser_required
 @cache_response(timeout=300, key_prefix='admin_store_stats')
 def store_stats(request):
     total_products = Artwork.objects.count()
@@ -435,7 +435,7 @@ def store_stats(request):
 # ==========================================
 
 @require_http_methods(['GET', 'POST'])
-@staff_required
+@superuser_required
 def auction_main_list(request):
     if request.method == 'POST':
         data = _request_payload(request)
@@ -503,7 +503,7 @@ def auction_main_list(request):
 
 
 @require_http_methods(['GET', 'PUT', 'DELETE'])
-@staff_required
+@superuser_required
 @log_admin_action('update_auction')
 def auction_main_detail(request, pk):
     auction = get_object_or_404(Auction, pk=pk)
@@ -547,7 +547,7 @@ def auction_main_detail(request, pk):
 # ==========================================
 
 @require_http_methods(['GET', 'POST'])
-@staff_required
+@superuser_required
 def auction_list(request):
     if request.method == 'POST':
         data = _request_payload(request)
@@ -667,7 +667,7 @@ def auction_list(request):
 
 
 @require_http_methods(['GET', 'PUT', 'DELETE'])
-@staff_required
+@superuser_required
 @log_admin_action('update_auction_product')
 def auction_detail(request, pk):
     ap = get_object_or_404(AuctionProduct, pk=pk)
@@ -746,7 +746,7 @@ def auction_detail(request, pk):
 
 
 @require_http_methods(['POST'])
-@staff_required
+@superuser_required
 @log_admin_action('bulk_auction_products')
 def auction_bulk(request):
     data = _request_payload(request)
@@ -770,7 +770,7 @@ def auction_bulk(request):
 
 
 @require_http_methods(['GET'])
-@staff_required
+@superuser_required
 @cache_response(timeout=300, key_prefix='admin_auction_stats')
 def auction_stats(request):
     total_auctions = Auction.objects.count()
@@ -798,7 +798,7 @@ def auction_stats(request):
 
 
 @require_http_methods(['GET'])
-@staff_required
+@superuser_required
 def bid_reports(request):
     search = request.GET.get('search', '').strip()
     auction_id = request.GET.get('auction_id')
@@ -849,7 +849,7 @@ def bid_reports(request):
 
 
 @require_http_methods(['GET'])
-@staff_required
+@superuser_required
 def product_bids(request, pk):
     product = get_object_or_404(AuctionProduct, pk=pk)
     queryset = Bid.objects.filter(product=product).select_related('user').order_by('-created_at')

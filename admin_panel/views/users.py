@@ -17,7 +17,7 @@ from accounts.models import VerificationRequest
 from accounts.models import CustomUser
 from core.models import SavedFilter
 from auction.models import AuctionCartItem, AuctionVisitHistory, Bid
-from core.decorators import log_admin_action, staff_required
+from core.decorators import log_admin_action, staff_required, superuser_required
 from core.models import ActivityLog
 from core.utils import cache_response, invalidate_cache
 from store.models import SiteVisitLog, VisitHistory, PurchaseHistory, TelegramPurchaseRequest
@@ -198,7 +198,7 @@ def history_page_view(request, pk):
     return render(request, 'admin_panel/user_history.html', context)
 
 
-@staff_required
+@superuser_required
 def login_history_page_view(request):
     return render(request, 'admin_panel/user_activity_history.html', {'initial_source': 'all'})
 
@@ -292,7 +292,7 @@ def history_api_view(request, pk):
     })
 
 
-@staff_required
+@superuser_required
 @require_http_methods(['GET'])
 def login_history_api_view(request):
     auth_queryset = ActivityLog.objects.select_related('user').order_by('-timestamp')
@@ -681,7 +681,7 @@ def auction_activity(request, pk):
 # ── بخش جدید: تاریخچه کل حضور در سایت (Global Site Visits) ───────────────────
 # ─────────────────────────────────────────────────────────────────────────────
 
-@staff_required
+@superuser_required
 @require_http_methods(['GET'])
 def global_site_visits_page_view(request):
     """
@@ -690,7 +690,7 @@ def global_site_visits_page_view(request):
     return render(request, 'admin_panel/user_activity_history.html', {'initial_source': 'visit'})
 
 
-@staff_required
+@superuser_required
 @require_http_methods(['GET'])
 def global_site_visits_api_view(request):
     """

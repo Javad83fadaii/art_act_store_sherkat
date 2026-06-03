@@ -34,7 +34,37 @@ class AdminRequestManagementTests(TestCase):
             email="another@example.com",
             telegram_id="another_telegram",
         )
+        self.super_user = CustomUser.objects.create_user(
+            phone_number="09120000004",
+            password="Super@1234",
+            full_name="سوپریوزر تست",
+            is_staff=True,
+            is_superuser=True,
+        )
         self.client.force_login(self.admin_user)
+
+    def test_non_superuser_staff_cannot_access_superuser_only_product_endpoints(self):
+        page_response = self.client.get(reverse('admin_panel_pages:products-create'))
+        api_response = self.client.get(reverse('admin_panel:products-store-list'))
+
+        self.assertEqual(page_response.status_code, 403)
+        self.assertEqual(api_response.status_code, 403)
+
+    def test_non_superuser_staff_cannot_access_superuser_only_history_endpoints(self):
+        page_response = self.client.get(reverse('admin_panel_pages:login-history'))
+        api_response = self.client.get(reverse('admin_panel:users-login-history-api'))
+
+        self.assertEqual(page_response.status_code, 403)
+        self.assertEqual(api_response.status_code, 403)
+
+    def test_superuser_can_access_superuser_only_endpoints(self):
+        self.client.force_login(self.super_user)
+
+        page_response = self.client.get(reverse('admin_panel_pages:products-create'))
+        api_response = self.client.get(reverse('admin_panel:users-login-history-api'))
+
+        self.assertEqual(page_response.status_code, 200)
+        self.assertEqual(api_response.status_code, 200)
 
     def test_verification_request_can_be_approved_from_admin_panel(self):
         request_obj = VerificationRequest.objects.create(

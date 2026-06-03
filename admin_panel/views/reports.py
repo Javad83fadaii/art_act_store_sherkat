@@ -7,17 +7,17 @@ from django.db.models import Q
 
 from accounts.models import CustomUser
 from auction.models import AuctionVisitHistory
-from core.decorators import log_admin_action, staff_required
+from core.decorators import log_admin_action, superuser_required
 from core.models import AdminActivityLog, ErrorLog
 from core.utils import cache_response
 
 
-@staff_required
+@superuser_required
 def page_view(request):
     return render(request, 'admin_panel/reports.html')
 
 
-@staff_required
+@superuser_required
 @cache_response(timeout=180, key_prefix='admin_report_activity_logs')
 def activity_logs(request):
     logs = AdminActivityLog.objects.select_related('admin_user').order_by('-timestamp')[:100]
@@ -32,7 +32,7 @@ def activity_logs(request):
     return JsonResponse({'logs': payload})
 
 
-@staff_required
+@superuser_required
 @cache_response(timeout=180, key_prefix='admin_report_error_logs')
 def error_logs(request):
     logs = list(
@@ -53,7 +53,7 @@ def error_logs(request):
 
 
 @require_http_methods(['POST'])
-@staff_required
+@superuser_required
 @log_admin_action('approve')
 def resolve_error(request, pk):
     error = get_object_or_404(ErrorLog, pk=pk)
@@ -62,7 +62,7 @@ def resolve_error(request, pk):
     return JsonResponse({'id': error.pk, 'resolved': error.resolved})
 
 
-@staff_required
+@superuser_required
 @cache_response(timeout=180, key_prefix='admin_report_admin_logs')
 def admin_logs(request):
     logs = list(
@@ -73,7 +73,7 @@ def admin_logs(request):
     return JsonResponse({'results': logs})
 
 
-@staff_required
+@superuser_required
 @cache_response(timeout=120, key_prefix='admin_report_auction_visit_logs')
 def auction_visit_logs(request):
     scope = request.GET.get('scope', 'all')
@@ -126,7 +126,7 @@ def auction_visit_logs(request):
     return JsonResponse({'results': payload})
 
 
-@staff_required
+@superuser_required
 @cache_response(timeout=60, key_prefix='admin_report_export')
 def export_data(request):
     response = HttpResponse(content_type='text/csv')

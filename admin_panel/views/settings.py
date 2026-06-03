@@ -6,7 +6,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_http_methods
 
-from core.decorators import log_admin_action, staff_required
+from core.decorators import log_admin_action, superuser_required
 from core.models import NotificationPreference, SavedFilter
 
 
@@ -17,12 +17,12 @@ def _request_payload(request):
         return request.POST.dict()
 
 
-@staff_required
+@superuser_required
 def page_view(request):
     return render(request, 'admin_panel/settings.html')
 
 
-@staff_required
+@superuser_required
 def get_settings(request):
     data = {
         'session_cookie_httponly': getattr(django_settings, 'SESSION_COOKIE_HTTPONLY', None),
@@ -35,7 +35,7 @@ def get_settings(request):
 
 
 @require_http_methods(['GET', 'POST'])
-@staff_required
+@superuser_required
 @log_admin_action('update')
 def notifications(request):
     preference, _ = NotificationPreference.objects.get_or_create(user=request.user)
@@ -79,7 +79,7 @@ def notifications(request):
 
 
 @require_http_methods(['GET', 'POST'])
-@staff_required
+@superuser_required
 @log_admin_action('create')
 def filters_list(request):
     if request.method == 'POST':
@@ -124,7 +124,7 @@ def filters_list(request):
 
 
 @require_http_methods(['GET', 'PUT', 'DELETE'])
-@staff_required
+@superuser_required
 def filter_detail(request, pk):
     saved_filter = get_object_or_404(SavedFilter, pk=pk, user=request.user)
 
@@ -152,7 +152,7 @@ def filter_detail(request, pk):
 
 
 @require_http_methods(['POST'])
-@staff_required
+@superuser_required
 @log_admin_action('update')
 def set_default_filter(request, pk):
     saved_filter = get_object_or_404(SavedFilter, pk=pk, user=request.user)
