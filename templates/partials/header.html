@@ -26,11 +26,12 @@
                 <div class="flex flex-col items-center lg:items-start">
                     <!-- جایگزینی متن نام مجموعه با تصویر -->
                     <h1 class="leading-none whitespace-nowrap">
-                        <img
+                        {% comment %} <img
                             src="{% static 'images/1.svg' %}"
                             alt="مزایده آثار هنری"
                             class="max-h-6 lg:max-h-7 w-auto object-contain dark:brightness-110"
-                            />
+                            /> {% endcomment %}
+                            مزایده آثار هنری
                     </h1>
                     <span class="text-xs text-primary font-medium tracking-wide mt-1 hidden lg:block uppercase">
                         Auction of works art
