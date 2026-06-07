@@ -121,16 +121,19 @@
                                 <div class="bg-neutral-50 dark:bg-zinc-800/50 rounded-xl p-4 mb-5 border border-neutral-100 dark:border-zinc-700 transition-colors duration-300">
                                     <div class="flex justify-between items-center mb-2">
                                         <span class="text-xs text-neutral-500 dark:text-neutral-400 font-medium">قیمت پایه</span>
-                                        <span class="font-en font-bold text-sm text-neutral-900 dark:text-white">
-                                            {{ product.base_price|intcomma|fa_digits }}
+                                        <span class="font-en font-bold text-sm text-neutral-900 dark:text-white flex items-center gap-1 dir-ltr">
+                                            <span class="text-xs">تومان</span>
+                                            <span>{{ product.base_price|intcomma|fa_digits }}</span>
                                         </span>
                                     </div>
                                     <div class="flex justify-between items-center mb-2">
                                         <span class="text-xs text-neutral-500 dark:text-neutral-400 font-medium">قیمت نهایی/فعلی</span>
-                                        <span class="font-en font-bold text-base text-primary" data-product-price-display>
-                                            {{ product.current_price|default:product.base_price|intcomma|fa_digits }}
+                                        <span class="font-en font-bold text-base text-primary flex items-center gap-1 dir-ltr" data-product-price-display>
+                                            <span class="text-xs">تومان</span>
+                                            <span>{{ product.current_price|default:product.base_price|intcomma|fa_digits }}</span>
                                         </span>
                                     </div>
+
                                     {% if product.price_description %}
                                         <div class="text-[9px] font-medium text-neutral-400 dark:text-neutral-500 text-left" data-product-price-description>
                                             {{ product.price_description|fa_digits }}

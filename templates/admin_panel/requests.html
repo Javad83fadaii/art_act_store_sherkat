@@ -107,6 +107,7 @@
 
 {% block scripts %}
 <script>
+    const MIN_ADMIN_CREDIT_AMOUNT = 500000000;
     let currentType = 'purchase';
     let currentPage = 1;
     let currentDetailId = null;
@@ -262,6 +263,37 @@
         const dateObj = new Date(value);
         if (Number.isNaN(dateObj.getTime())) return '---';
         return dateTimeFormatter.format(dateObj);
+    }
+
+    function formatAdminAmountWithDots(value) {
+        const digits = String(value || '').replace(/\D/g, '');
+        if (!digits) return '';
+        return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    }
+
+    function parseAdminAmountInput(value) {
+        const digits = String(value || '').replace(/\D/g, '');
+        if (!digits) return 0;
+        return Number.parseInt(digits, 10);
+    }
+
+    function getDefaultAdminAmount(rawValue) {
+        const parsedValue = parseAdminAmountInput(rawValue);
+        return Math.max(parsedValue || 0, MIN_ADMIN_CREDIT_AMOUNT);
+    }
+
+    function setupAmountInputFormatting() {
+        const amountInput = document.getElementById('amount-input');
+        if (!amountInput) return;
+
+        amountInput.value = formatAdminAmountWithDots(amountInput.value);
+        amountInput.addEventListener('input', () => {
+            const caretToEnd = amountInput.selectionStart === amountInput.value.length;
+            amountInput.value = formatAdminAmountWithDots(amountInput.value);
+            if (caretToEnd) {
+                amountInput.setSelectionRange(amountInput.value.length, amountInput.value.length);
+            }
+        });
     }
 
     function buildUserHistoryUrl(userId) {
@@ -646,21 +678,23 @@
             );
 
             if (shouldShowAmountInput) {
-                let defaultAmount = currentType === 'credit'
+                const rawDefaultAmount = currentType === 'credit'
                     ? (data.requested_credit || '')
                     : (data.granted_credit || data.amount || '');
+                const defaultAmount = formatAdminAmountWithDots(getDefaultAdminAmount(rawDefaultAmount));
                 let labelText = currentType === 'credit' ? 'تعیین مبلغ افزایش اعتبار (دلار):' : 'تعیین مبلغ اعتبار (دلار) - اختیاری برای احراز:';
                 
                 html += `
                     <div id="amount-input-container" class="mt-5 pt-5 border-t border-gray-200 dark:border-white/10">
                         <label class="block text-sm font-black text-text-main dark:text-white mb-2">${labelText}</label>
-                        <input type="number" step="0.01" id="amount-input" value="${defaultAmount}" class="w-full bg-white dark:bg-admin-surface-dark border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 text-base font-bold focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all dir-ltr" placeholder="مثال: 50.00" min="0">
-                        <p id="amount-help-text" class="text-xs text-gray-500 mt-2">در صورت وارد کردن این فیلد، مبلغ مستقیماً به موجودی کاربر اضافه خواهد شد.</p>
+                        <input type="text" inputmode="numeric" id="amount-input" value="${defaultAmount}" class="w-full bg-white dark:bg-admin-surface-dark border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 text-base font-bold focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all dir-ltr" placeholder="مثال: 500.000.000" autocomplete="off">
+                        <p id="amount-help-text" class="text-xs text-gray-500 mt-2">حداقل مبلغ قابل تخصیص ${formatAdminAmountWithDots(MIN_ADMIN_CREDIT_AMOUNT)} است.</p>
                     </div>
                 `;
             }
 
             content.innerHTML = html;
+            setupAmountInputFormatting();
 
             // مخفی کردن دکمه‌ها اگر قبلا تایید یا رد شده
             const btnApprove = document.getElementById('btn-modal-approve');
@@ -739,10 +773,16 @@
             const amountInput = document.getElementById('amount-input');
             if (amountInput) {
                 const amountValue = amountInput.value.trim();
-                inputAmountValue = parseFloat(amountValue);
+                inputAmountValue = parseAdminAmountInput(amountValue);
                 
                 if (currentType === 'credit' && (!amountValue || isNaN(inputAmountValue) || inputAmountValue <= 0)) {
                     alert(window.getNotificationMessage('admin.requests.invalid_positive_amount'));
+                    amountInput.focus();
+                    return;
+                }
+
+                if (amountValue && !isNaN(inputAmountValue) && inputAmountValue < MIN_ADMIN_CREDIT_AMOUNT) {
+                    alert(`حداقل مبلغ قابل تخصیص ${formatAdminAmountWithDots(MIN_ADMIN_CREDIT_AMOUNT)} است.`);
                     amountInput.focus();
                     return;
                 }

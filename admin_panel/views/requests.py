@@ -22,6 +22,7 @@ REQUEST_MODELS = {
 }
 
 REQUESTS_PAGE_SIZE = 100
+MIN_ADMIN_CREDIT_AMOUNT = Decimal('500000000')
 
 PURCHASE_STATUS_SORT_ORDER = {
     'pending': 0,
@@ -251,6 +252,33 @@ def _validation_error_response(exc):
     messages = getattr(exc, 'messages', None) or ['اعتبارسنجی درخواست با خطا مواجه شد.']
     return JsonResponse({'error': messages[0], 'errors': {'__all__': messages}}, status=400)
 
+
+def _format_admin_credit_amount(value):
+    return f'{int(value):,}'.replace(',', '.')
+
+
+def _parse_admin_credit_amount(amount, *, required):
+    if amount in (None, ''):
+        if required:
+            return None, JsonResponse(
+                {'error': f'مبلغ باید حداقل {_format_admin_credit_amount(MIN_ADMIN_CREDIT_AMOUNT)} باشد.'},
+                status=400,
+            )
+        return None, None
+
+    try:
+        amount_value = Decimal(str(amount))
+    except (TypeError, ValueError, InvalidOperation):
+        return None, JsonResponse({'error': 'مبلغ نامعتبر است. لطفاً عدد وارد کنید.'}, status=400)
+
+    if amount_value < MIN_ADMIN_CREDIT_AMOUNT:
+        return None, JsonResponse(
+            {'error': f'حداقل مبلغ قابل تخصیص {_format_admin_credit_amount(MIN_ADMIN_CREDIT_AMOUNT)} است.'},
+            status=400,
+        )
+
+    return amount_value, None
+
 @staff_required
 @cache_response(timeout=180, key_prefix='admin_requests')
 def list_view(request):
@@ -455,13 +483,10 @@ def detail_view(request, request_type, pk):
         elif request_type == 'verification':
             if action == 'approve':
                 amount = payload.get('amount')
-                if amount:
-                    try:
-                        amount_value = Decimal(str(amount))
-                    except (TypeError, ValueError, InvalidOperation):
-                        return JsonResponse({'error': 'مبلغ نامعتبر است. لطفاً عدد وارد کنید.'}, status=400)
-                    if amount_value < 0:
-                        return JsonResponse({'error': 'مبلغ نمی‌تواند منفی باشد.'}, status=400)
+                if amount not in (None, ''):
+                    amount_value, error_response = _parse_admin_credit_amount(amount, required=False)
+                    if error_response is not None:
+                        return error_response
                     obj.granted_credit = amount_value
 
                 obj.status = VerificationRequest.RequestStatus.APPROVED
@@ -480,12 +505,9 @@ def detail_view(request, request_type, pk):
         elif request_type == 'credit':
             if action == 'approve':
                 amount = payload.get('amount')
-                try:
-                    amount = Decimal(str(amount))
-                    if amount <= 0:
-                        return JsonResponse({'error': 'مبلغ باید بیشتر از صفر باشد.'}, status=400)
-                except (TypeError, ValueError, InvalidOperation):
-                    return JsonResponse({'error': 'مبلغ نامعتبر است. لطفاً عدد وارد کنید.'}, status=400)
+                amount, error_response = _parse_admin_credit_amount(amount, required=True)
+                if error_response is not None:
+                    return error_response
 
                 # بررسی وریفای بودن کاربر پیش از تایید درخواست طبق مدل
                 if int(obj.user.is_verified or 0) == 0:

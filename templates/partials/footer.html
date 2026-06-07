@@ -25,21 +25,21 @@
                     </p>
                 </div>
 
-                <!-- ستون ۲: دسترسی سریع -->
+                <!-- ستون ۲: دسترسی سریع (ویرایش شده طبق درخواست شما) -->
                 <div class="flex flex-col items-center md:items-start">
                     <h4 class="font-bold text-lg text-[#FFFFFF] mb-6 font-display whitespace-nowrap">دسترسی سریع</h4>
                     <ul class="space-y-4 text-sm text-[#A8A29E] font-body">
-                        <li><a class="hover:text-primary transition-colors flex items-center justify-center md:justify-start gap-2" href="{% url 'home' %}">
+                        <li><a class="hover:text-primary transition-colors flex items-center justify-center md:justify-start gap-2" href="{% url 'store:artwork_list' %}">
                             <span class="w-1.5 h-1.5 rounded-full bg-primary/40 hidden md:block"></span>
-                            گالری آثار
+                            فروشگاه
                         </a></li>
                         <li><a class="hover:text-primary transition-colors flex items-center justify-center md:justify-start gap-2" href="{% url 'auction:auction' %}">
                             <span class="w-1.5 h-1.5 rounded-full bg-primary/40 hidden md:block"></span>
-                            تقویم مزایده‌ها
+                            مزایده
                         </a></li>
-                        <li><a class="hover:text-primary transition-colors flex items-center justify-center md:justify-start gap-2" href="{% url 'store:artwork_list' %}">
+                        <li><a class="hover:text-primary transition-colors flex items-center justify-center md:justify-start gap-2" href="#">
                             <span class="w-1.5 h-1.5 rounded-full bg-primary/40 hidden md:block"></span>
-                            لیست محصولات
+                            صدور شناسنامه
                         </a></li>
                     </ul>
                 </div>
@@ -48,15 +48,15 @@
                 <div class="flex flex-col items-center md:items-start">
                     <h4 class="font-bold text-lg text-[#FFFFFF] mb-6 font-display whitespace-nowrap">خدمات مشتریان</h4>
                     <ul class="space-y-4 text-sm text-[#A8A29E] font-body">
-                        <li><a class="hover:text-primary transition-colors flex items-center justify-center md:justify-start gap-2" href="#">
+                        <li><a class="hover:text-primary transition-colors flex items-center justify-center md:justify-start gap-2" href="{% url 'home' %}">
                             <span class="w-1.5 h-1.5 rounded-full bg-primary/40 hidden md:block"></span>
-                            اصالت سنجی
+                            صفحه اصلی
                         </a></li>
                         <li><a class="hover:text-primary transition-colors flex items-center justify-center md:justify-start gap-2" href="{% url 'about' %}">
                             <span class="w-1.5 h-1.5 rounded-full bg-primary/40 hidden md:block"></span>
                             تماس با ما
                         </a></li>
-                        <li><a class="hover:text-primary transition-colors flex items-center justify-center md:justify-start gap-2" href="{% url 'site_rules' %}">
+                        <li><a class="hover:text-primary transition-colors flex items-center justify-center md:justify-start gap-2" href="#">
                             <span class="w-1.5 h-1.5 rounded-full bg-primary/40 hidden md:block"></span>
                               سیاست‌ها و مقررات
                         </a></li>
@@ -83,7 +83,7 @@
             <!-- نوار پایینی (کپی رایت) داخل بدنه اصلی فوتر -->
             <div class="mt-12 bg-[#292524] rounded-xl px-6 py-5 flex flex-col items-center justify-center text-center">
                 <p class="text-[#78716C] text-xs font-body">
-                    تمامی حقوق برای <span class="text-[#FFFFFF]">مزایده آثار هنری </span> محفوظ است © ۱۴۰۴
+                    تمامی حقوق برای <span class="text-[#FFFFFF]">مزایده آثار هنری </span> محفوظ است © ۱۴۰۵
                 </p>
             </div>
 

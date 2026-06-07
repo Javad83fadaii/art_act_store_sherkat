@@ -14,6 +14,8 @@ from store.models import Artist, Artwork, ArtworkType, SiteVisitLog, VisitHistor
 
 
 class AdminRequestManagementTests(TestCase):
+    MIN_ADMIN_CREDIT_AMOUNT = Decimal('500000000')
+
     def setUp(self):
         cache.clear()
         self.admin_user = CustomUser.objects.create_user(
@@ -76,7 +78,7 @@ class AdminRequestManagementTests(TestCase):
         url = reverse('admin_panel:requests-detail', args=['verification', request_obj.pk])
         response = self.client.post(
             url,
-            data=json.dumps({'action': 'approve', 'amount': 1200}),
+            data=json.dumps({'action': 'approve', 'amount': int(self.MIN_ADMIN_CREDIT_AMOUNT)}),
             content_type='application/json',
         )
 
@@ -86,8 +88,31 @@ class AdminRequestManagementTests(TestCase):
 
         self.assertEqual(request_obj.status, VerificationRequest.RequestStatus.APPROVED)
         self.assertEqual(self.normal_user.is_verified, 1)
-        self.assertEqual(self.normal_user.credit, 1200)
-        self.assertEqual(self.normal_user.current_credit, 1200)
+        self.assertEqual(request_obj.granted_credit, self.MIN_ADMIN_CREDIT_AMOUNT)
+        self.assertEqual(self.normal_user.credit, self.MIN_ADMIN_CREDIT_AMOUNT)
+        self.assertEqual(self.normal_user.current_credit, self.MIN_ADMIN_CREDIT_AMOUNT)
+
+    def test_verification_request_approval_rejects_amounts_below_minimum(self):
+        request_obj = VerificationRequest.objects.create(
+            user=self.normal_user,
+            full_name="کاربر تست",
+            phone_number="09120000002",
+        )
+
+        url = reverse('admin_panel:requests-detail', args=['verification', request_obj.pk])
+        response = self.client.post(
+            url,
+            data=json.dumps({'action': 'approve', 'amount': 499999999}),
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 400)
+        payload = response.json()
+        self.assertIn('500.000.000', payload['error'])
+        request_obj.refresh_from_db()
+        self.normal_user.refresh_from_db()
+        self.assertEqual(request_obj.status, VerificationRequest.RequestStatus.PENDING)
+        self.assertEqual(self.normal_user.is_verified, 0)
 
     def test_credit_request_list_returns_pending_status(self):
         self.normal_user.username = 'credit-user'
@@ -354,7 +379,7 @@ class AdminRequestManagementTests(TestCase):
         url = reverse('admin_panel:requests-detail', args=['credit', request_obj.pk])
         response = self.client.post(
             url,
-            data=json.dumps({'action': 'approve', 'amount': 600}),
+            data=json.dumps({'action': 'approve', 'amount': int(self.MIN_ADMIN_CREDIT_AMOUNT)}),
             content_type='application/json',
         )
 
@@ -363,8 +388,34 @@ class AdminRequestManagementTests(TestCase):
         self.normal_user.refresh_from_db()
 
         self.assertEqual(request_obj.status, CreditIncreaseRequest.RequestStatus.APPROVED)
-        self.assertEqual(self.normal_user.credit, 1100)
-        self.assertEqual(self.normal_user.current_credit, 1100)
+        self.assertEqual(request_obj.current_credit, self.MIN_ADMIN_CREDIT_AMOUNT)
+        self.assertEqual(self.normal_user.credit, Decimal('500') + self.MIN_ADMIN_CREDIT_AMOUNT)
+        self.assertEqual(self.normal_user.current_credit, Decimal('500') + self.MIN_ADMIN_CREDIT_AMOUNT)
+
+    def test_credit_request_approval_rejects_amounts_below_minimum(self):
+        self.normal_user.is_verified = 1
+        self.normal_user.credit = 500
+        self.normal_user.save()
+        request_obj = CreditIncreaseRequest.objects.create(
+            user=self.normal_user,
+            current_credit=200,
+            status=CreditIncreaseRequest.RequestStatus.PENDING,
+        )
+
+        url = reverse('admin_panel:requests-detail', args=['credit', request_obj.pk])
+        response = self.client.post(
+            url,
+            data=json.dumps({'action': 'approve', 'amount': 499999999}),
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 400)
+        payload = response.json()
+        self.assertIn('500.000.000', payload['error'])
+        request_obj.refresh_from_db()
+        self.normal_user.refresh_from_db()
+        self.assertEqual(request_obj.status, CreditIncreaseRequest.RequestStatus.PENDING)
+        self.assertEqual(self.normal_user.credit, Decimal('500'))
 
     def test_credit_request_approval_for_unverified_user_returns_validation_error(self):
         request_obj = CreditIncreaseRequest.objects.create(
@@ -376,7 +427,7 @@ class AdminRequestManagementTests(TestCase):
         url = reverse('admin_panel:requests-detail', args=['credit', request_obj.pk])
         response = self.client.post(
             url,
-            data=json.dumps({'action': 'approve', 'amount': 200}),
+            data=json.dumps({'action': 'approve', 'amount': int(self.MIN_ADMIN_CREDIT_AMOUNT)}),
             content_type='application/json',
         )
 
