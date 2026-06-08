@@ -361,9 +361,15 @@
                             <span class="material-symbols-outlined text-[18px]">account_circle</span>
                             پروفایل
                         </a>
+                        {% if request.user.is_staff %}
+                            <a href="{% url 'admin_panel_pages:dashboard' %}" class="flex items-center justify-center gap-1.5 py-2 px-3 bg-white dark:bg-gray-800 rounded-lg text-xs font-bold text-text-secondary hover:text-primary shadow-sm transition-colors border border-gray-100 dark:border-gray-700">
+                                <span class="material-symbols-outlined text-[18px]">dashboard</span>
+                               مدیریت
+                            </a>
+                        {% endif %}
                         <form action="{% url 'logout' %}" method="post" class="contents">
                             {% csrf_token %}
-                            <button type="submit" class="flex items-center justify-center gap-1.5 py-2 px-3 bg-white dark:bg-gray-800 rounded-lg text-xs font-bold text-text-secondary hover:text-red-500 shadow-sm transition-colors border border-gray-100 dark:border-gray-700 w-full cursor-pointer">
+                            <button type="submit" class="flex items-center justify-center gap-1.5 py-2 px-3 bg-white dark:bg-gray-800 rounded-lg text-xs font-bold text-text-secondary hover:text-red-500 shadow-sm transition-colors border border-gray-100 dark:border-gray-700 w-full cursor-pointer {% if request.user.is_staff %}col-span-2{% endif %}">
                                 <span class="material-symbols-outlined text-[18px]">logout</span>
                                 خروج
                             </button>
