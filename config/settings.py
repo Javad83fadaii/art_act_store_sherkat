@@ -1,6 +1,7 @@
 from pathlib import Path
 import importlib.util
 import os
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
@@ -82,6 +83,8 @@ ALLOWED_HOSTS = (
         "mah.test",
         "192.168.50.242",
         "192.168.50.219",
+        "mahauction.ir",          # اضافه شدن دامنه اصلی
+        "www.mahauction.ir",      # اضافه شدن زیردامنه
     ]
 )
 
@@ -188,8 +191,8 @@ AUTH_USER_MODEL = 'accounts.CustomUser'
 # ==========================================
 # Security Settings (HTTPS & Cookie Configs)
 # ==========================================
-# مقدار این متغیر را در .env برابر با True قرار دهید تا تنظیمات SSL فعال شوند
-USE_HTTPS = _as_bool(_get_first_setting("USE_HTTPS", "SECURE_SSL_REDIRECT"), default=False)
+# مقدار پیش‌فرض به True تغییر یافت تا تنظیمات امنیتی در سرور اعمال شوند
+USE_HTTPS = _as_bool(_get_first_setting("USE_HTTPS", "SECURE_SSL_REDIRECT"), default=True)
 
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
@@ -197,7 +200,7 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 SESSION_COOKIE_AGE = 86400
 
 if USE_HTTPS:
-    # این تنظیمات تنها در صورت استفاده از دامنه و گواهی SSL (HTTPS) فعال خواهند شد
+    # این تنظیمات برای استفاده از دامنه و گواهی SSL (HTTPS) فعال خواهند شد
     SECURE_SSL_REDIRECT = True
     CSRF_COOKIE_SECURE = True
     SESSION_COOKIE_SECURE = True
@@ -211,7 +214,14 @@ else:
     SESSION_COOKIE_SECURE = _as_bool(_get_first_setting("SESSION_COOKIE_SECURE"), default=False)
     X_FRAME_OPTIONS = 'SAMEORIGIN'
 
-CSRF_TRUSTED_ORIGINS = _as_csv_list(_get_first_setting("DJANGO_CSRF_TRUSTED_ORIGINS", "CSRF_TRUSTED_ORIGINS"))
+_csrf_trusted_origins_from_env = _as_csv_list(_get_first_setting("DJANGO_CSRF_TRUSTED_ORIGINS", "CSRF_TRUSTED_ORIGINS"))
+CSRF_TRUSTED_ORIGINS = (
+    _csrf_trusted_origins_from_env
+    or [
+        "https://mahauction.ir",       # تایید دامنه اصلی
+        "https://www.mahauction.ir",   # تایید زیردامنه
+    ]
+)
 
 if importlib.util.find_spec('django_redis') is not None:
     CACHES = {
@@ -262,6 +272,3 @@ TELEGRAM_STORE_MESSAGE_THREAD_ID = 9
 TELEGRAM_AUCTION_MESSAGE_THREAD_ID = 11
 TELEGRAM_CREDIT_MESSAGE_THREAD_ID = 29
 TELEGRAM_MESSAGE_THREAD_ID = TELEGRAM_STORE_MESSAGE_THREAD_ID
-
-
-# python -m waitress --port=8080 config.wsgi:application
