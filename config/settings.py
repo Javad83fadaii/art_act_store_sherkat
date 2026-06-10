@@ -73,20 +73,18 @@ if not SECRET_KEY:
 
 DEBUG = _as_bool(_get_first_setting("DJANGO_DEBUG", "DEBUG"), default=True)
 
+# ترکیب مقادیر .env با مقادیر پیش‌فرض برای اطمینان از کارکرد صحیح
 _allowed_hosts_from_env = _as_csv_list(_get_first_setting("DJANGO_ALLOWED_HOSTS", "ALLOWED_HOSTS"))
-ALLOWED_HOSTS = (
-    _allowed_hosts_from_env
-    or [
-        "localhost",
-        "127.0.0.1",
-        "testserver",
-        "mah.test",
-        "192.168.50.242",
-        "192.168.50.219",
-        "mahauction.ir",          # اضافه شدن دامنه اصلی
-        "www.mahauction.ir",      # اضافه شدن زیردامنه
-    ]
-)
+ALLOWED_HOSTS = list(set(_allowed_hosts_from_env + [
+    "localhost",
+    "127.0.0.1",
+    "testserver",
+    "mah.test",
+    "192.168.50.242",
+    "192.168.50.219",
+    "mahauction.ir",          
+    "www.mahauction.ir",      
+]))
 
 
 # Application definition
@@ -214,14 +212,24 @@ else:
     SESSION_COOKIE_SECURE = _as_bool(_get_first_setting("SESSION_COOKIE_SECURE"), default=False)
     X_FRAME_OPTIONS = 'SAMEORIGIN'
 
-_csrf_trusted_origins_from_env = _as_csv_list(_get_first_setting("DJANGO_CSRF_TRUSTED_ORIGINS", "CSRF_TRUSTED_ORIGINS"))
-CSRF_TRUSTED_ORIGINS = (
-    _csrf_trusted_origins_from_env
-    or [
-        "https://mahauction.ir",       # تایید دامنه اصلی
-        "https://www.mahauction.ir",   # تایید زیردامنه
-    ]
-)
+
+# بررسی خودکار دامنه‌های خوانده شده از .env و اضافه کردن https:// در صورت نیاز
+_raw_csrf_origins = _as_csv_list(_get_first_setting("DJANGO_CSRF_TRUSTED_ORIGINS", "CSRF_TRUSTED_ORIGINS"))
+_processed_csrf_origins = []
+for origin in _raw_csrf_origins:
+    if not origin.startswith("http://") and not origin.startswith("https://"):
+        _processed_csrf_origins.append(f"https://{origin}")
+    else:
+        _processed_csrf_origins.append(origin)
+
+# ترکیب مقادیر .env با پیش‌فرض‌ها
+CSRF_TRUSTED_ORIGINS = list(set(_processed_csrf_origins + [
+    "https://mahauction.ir",
+    "https://www.mahauction.ir",
+    "http://127.0.0.1",
+    "http://localhost",
+]))
+
 
 if importlib.util.find_spec('django_redis') is not None:
     CACHES = {
