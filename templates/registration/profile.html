@@ -42,7 +42,7 @@
                 </div>
                 
                 <!-- گروه دکمه‌های اکشن (طراحی شیشه‌ای - سمت چپ) -->
-                <div class="flex items-center gap-3">
+                {% comment %} <div class="flex items-center gap-3">
                     <!-- لینک تغییر رمز عبور -->
                     <a href="{% url 'password_change' %}" 
                        class="inline-flex items-center gap-2 px-4 py-2 text-sm font-bold text-gray-700 dark:text-gray-200 
@@ -54,9 +54,9 @@
                         </svg>
                         تغییر رمز
                     </a>
-
+                    {% endcomment %}
                     <!-- دکمه ویرایش پروفایل برای باز کردن مودال -->
-                {% comment %}     <button type="button" onclick="openProfileModal()" 
+                    <button type="button" onclick="openProfileModal()" 
                        class="inline-flex items-center gap-2 px-4 py-2 text-sm font-bold text-primary 
                               bg-white/30 dark:bg-gray-800/40 backdrop-blur-md border border-white/50 
                               dark:border-gray-600/50 hover:bg-white/50 dark:hover:bg-gray-700/50 
@@ -66,7 +66,7 @@
                         </svg>
                         ویرایش پروفایل
                     </button>
-                </div> {% endcomment %}
+                </div> 
             </div>
 
             <!-- User Info Section (شیشه‌ای) -->
