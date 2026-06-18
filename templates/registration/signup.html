@@ -261,7 +261,6 @@
         </div>
     </div>
 </div>
-
 {% if form.errors %}
 <script>
     document.addEventListener('DOMContentLoaded', function () {
@@ -305,13 +304,13 @@
     }
 
     (function () {
-        const REQUIRED_EMAIL_MESSAGE = window.getNotificationMessage('accounts.signup.required_email');
-        const INVALID_EMAIL_MESSAGE = window.getNotificationMessage('accounts.signup.invalid_email');
-        const REQUIRED_FULL_NAME_MESSAGE = window.getNotificationMessage('accounts.signup.required_full_name');
-        const REQUIRED_AUCTION_MESSAGE = window.getNotificationMessage('accounts.signup.required_auction_rules');
-        const PASSWORD_MIN_LENGTH_MESSAGE = window.getNotificationMessage('accounts.signup.password_min_length');
-        const PASSWORD_PATTERN_MESSAGE = window.getNotificationMessage('accounts.signup.password_pattern');
-        const PASSWORD_MISMATCH_MESSAGE = window.getNotificationMessage('accounts.signup.password_mismatch');
+        const REQUIRED_EMAIL_MESSAGE = "لطفا آدرس ایمیل را کامل کنید";
+        const INVALID_EMAIL_MESSAGE = "لطفا یک آدرس ایمیل معتبر وارد کنید";
+        const REQUIRED_FULL_NAME_MESSAGE = "وارد کردن نام و نام خانوادگی الزامی است.";
+        const REQUIRED_AUCTION_MESSAGE = "برای ثبت‌نام، پذیرش قوانین و مقررات الزامی است.";
+        const PASSWORD_MIN_LENGTH_MESSAGE = "رمز عبور باید حداقل ۸ کاراکتر باشد.";
+        const PASSWORD_PATTERN_MESSAGE = "رمز عبور باید حداقل ۸ کاراکتر و شامل حرف بزرگ، حرف کوچک و کاراکتر ویژه باشد.";
+        const PASSWORD_MISMATCH_MESSAGE = "رمز عبور و تکرار آن یکسان نیستند.";
         
         const phoneInput = document.getElementById("{{ form.phone_number.id_for_label }}");
         const fullNameInput = document.getElementById("{{ form.full_name.id_for_label }}");
@@ -332,6 +331,11 @@
         const passwordLiveMessage = document.getElementById("password-live-message");
         const passwordMatchMessage = document.getElementById("password-match-message");
         const auctionLiveMessage = document.getElementById("auction-live-message");
+
+        // اعمال ویژگی required از همان ابتدا برای چک‌باکس قوانین
+        if (auctionCheckbox) {
+            auctionCheckbox.setAttribute("required", "required");
+        }
 
         document.querySelectorAll('[data-server-error-for]').forEach(function (errorEl) {
             const field = document.getElementById(errorEl.dataset.serverErrorFor);
@@ -373,10 +377,9 @@
         fullNameInput?.addEventListener('input', handleVisualInput);
         addressInput?.addEventListener('input', handleVisualInput);
 
-        // بررسی خطای قوانین و مقررات صرفا زمان Submit
+        // بررسی خطای قوانین و مقررات زمان Submit
         function validateAuctionRulesOnSubmit() {
             if (!auctionCheckbox) return true;
-            auctionCheckbox.setAttribute("required", "required"); // اجباری ماندن از نظر HTML
             if (!auctionCheckbox.checked) {
                 auctionCheckbox.setCustomValidity(REQUIRED_AUCTION_MESSAGE);
                 setMessage(auctionLiveMessage, REQUIRED_AUCTION_MESSAGE, "error");
@@ -387,7 +390,7 @@
             }
         }
 
-        // بررسی خطای نام و نام خانوادگی صرفا زمان Submit
+        // بررسی خطای نام و نام خانوادگی زمان Submit
         function validateFullNameOnSubmit() {
             if (!fullNameInput) return true;
             fullNameInput.setAttribute("required", "required");
@@ -598,7 +601,6 @@
         emailInput?.addEventListener("input", syncPhoneAndEmail);
         fullNameInput?.addEventListener("input", syncFullNameRules);
         
-        // فراخوانی اولیه برداشته شد تا زمان لود صفحه ارور نشان داده نشود
     })();
 </script>
 
@@ -631,4 +633,4 @@
         padding-right: 2.75rem !important;
     }
 </style>
-{% endblock %}
+{% endblock  %}
