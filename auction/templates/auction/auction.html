@@ -111,7 +111,7 @@
                                 <img alt="{{ product.title }}"
                                      data-product-img="{{ product.pk }}"
                                      class="w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-110"
-                                     src="{% static 'images/action/' %}{{ product.product_id }}/{{ product.product_id }}.webp"/>
+                                     src="{% static 'images/action/' %}{{ product.product_id }}/{{ product.product_id }}.jpg"/>
                             </div>
                             
                             <div class="px-4 text-right flex-grow flex flex-col relative z-20">
@@ -121,28 +121,19 @@
                                 <div class="bg-neutral-50 dark:bg-zinc-800/50 rounded-xl p-4 mb-5 border border-neutral-100 dark:border-zinc-700 transition-colors duration-300">
                                     <div class="flex justify-between items-center mb-2">
                                         <span class="text-xs text-neutral-500 dark:text-neutral-400 font-medium">قیمت پایه</span>
-                                        <span class="inline-flex items-center gap-1.5 text-sm text-neutral-900 dark:text-white whitespace-nowrap" dir="rtl">
-                                            <span class="font-en font-bold">
-                                                {{ product.base_price|intcomma|fa_digits }}
-                                            </span>
-                                            <img src="{% static 'images/toman-1.svg' %}"
-                                                 alt="تومان"
-                                                 class="h-5 w-auto shrink-0 opacity-100"
-                                                 loading="lazy">
+                                        <span class="font-en font-bold text-sm text-neutral-900 dark:text-white flex items-center gap-1 dir-ltr">
+                                            <span class="text-xs">تومان</span>
+                                            <span>{{ product.base_price|intcomma|fa_digits }}</span>
                                         </span>
                                     </div>
                                     <div class="flex justify-between items-center mb-2">
-                                        <span class="text-xs text-neutral-500 dark:text-neutral-400 font-medium">قیمت نهایی</span>
-                                        <span class="inline-flex items-center gap-1.5 text-base text-primary" data-product-price-display dir="rtl">
-                                            <span class="font-en font-bold" data-amount-value>
-                                                {{ product.current_price|default:product.base_price|intcomma|fa_digits }}
-                                            </span>
-                                            <img src="{% static 'images/toman-1.svg' %}"
-                                                 alt="تومان"
-                                                 class="h-5 w-auto shrink-0 opacity-100"
-                                                 loading="lazy">
+                                        <span class="text-xs text-neutral-500 dark:text-neutral-400 font-medium">قیمت نهایی/فعلی</span>
+                                        <span class="font-en font-bold text-base text-primary flex items-center gap-1 dir-ltr" data-product-price-display>
+                                            <span class="text-xs">تومان</span>
+                                            <span>{{ product.current_price|default:product.base_price|intcomma|fa_digits }}</span>
                                         </span>
                                     </div>
+
                                     {% if product.price_description %}
                                         <div class="text-[9px] font-medium text-neutral-400 dark:text-neutral-500 text-left" data-product-price-description>
                                             {{ product.price_description|fa_digits }}
@@ -223,7 +214,7 @@
                             <div class="relative w-full aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-neutral-100 dark:bg-zinc-800">
                                 <img alt="{{ auction.name|default:auction }}"
                                      class="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
-                                     src="{% static 'images/action/' %}{{ auction.pk }}.webp"/>
+                                     src="{% static 'images/action/' %}{{ auction.pk }}.jpg"/>
                             </div>
                             <div class="px-4 text-right">
                                 <h3 class="font-bold text-xl text-neutral-900 dark:text-white leading-tight mb-4 font-display tracking-tight">
@@ -324,24 +315,14 @@
             </div>
             <div id="qb-bid-state" class="p-6 space-y-6">
                 <div class="p-0 space-y-6" id="qb-calc-container" data-current-price="0" data-min-next="0" data-bid-value="0">
-                    
-                    <!-- اصلاح ردیف قیمت فعلی: بردن کامل قیمت به سمت چپ -->
-                    <div class="flex items-center w-full">
-                        <span class="text-sm font-medium text-neutral-500 dark:text-neutral-400">قیمت فعلی</span>
-                        <!-- mr-auto باعث می‌شود این بخش تمام فضای خالی را هل داده و کاملا به چپ بچسبد -->
-                        <div class="mr-auto mr-[auto] flex items-center justify-end gap-1 text-2xl font-black text-neutral-900 dark:text-white" id="qb-current-price-display" dir="rtl">
-                            <span class="font-en" data-amount-value>--</span>
-                            <img src="{% static 'images/toman-1.svg' %}"
-                                 alt="تومان"
-                                 class="h-6 w-auto shrink-0 opacity-100"
-                                 loading="lazy">
-                        </div>
+                    <div class="text-center">
+                        <div class="text-sm text-neutral-500 mb-1">قیمت فعلی</div>
+                        <div class="text-3xl font-black text-neutral-900 dark:text-white" id="qb-current-price-display">--</div>
                     </div>
-
                     <div class="space-y-3">
-                        <div class="rounded-xl border border-primary/10 bg-primary/5 px-4 py-3 flex items-center justify-between">
-                            <span class="text-sm font-medium text-neutral-600 dark:text-neutral-400">افزایش هر گام</span>
-                            <span class="text-lg font-black text-primary" id="qb-step-percent-display">--</span>
+                        <div class="rounded-xl border border-primary/10 bg-primary/5 px-4 py-3 text-center">
+                            <div class="text-xs text-neutral-500">افزایش هر گام</div>
+                            <div class="mt-1 text-lg font-black text-primary" id="qb-step-percent-display">--</div>
                         </div>
                         <div class="flex items-center justify-between">
                             <span class="text-sm font-medium text-neutral-600 dark:text-neutral-400">تعداد گام افزایش:</span>
@@ -352,16 +333,10 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- اصلاح ردیف مبلغ نهایی: بردن کامل به سمت چپ -->
-                    <div class="flex items-center bg-primary/5 rounded-xl p-4 border border-primary/10 w-full">
-                        <span class="text-sm text-primary font-bold">مبلغ نهایی پیشنهاد</span>
-                        <div class="mr-auto mr-[auto] flex items-center justify-end gap-1 text-2xl font-black text-primary" id="qb-final-bid-text" dir="rtl">
-                            <span class="font-en" data-amount-value>--</span>
-                            <span class="text-sm font-bold text-primary/80">تومان</span>
-                        </div>
+                    <div class="bg-primary/5 rounded-xl p-4 text-center border border-primary/10">
+                        <div class="text-xs text-primary font-bold mb-1">مبلغ نهایی پیشنهاد شما</div>
+                        <div class="text-2xl font-black text-primary" id="qb-final-bid-text">-- تومان</div>
                     </div>
-
                     <form id="qb-form" method="post" action="">
                         {% csrf_token %}
                         <input type="hidden" name="amount" id="qb-bid-amount" value=""/>
@@ -423,6 +398,16 @@
         const auctionStatus = "{{ auction.status|default:'' }}";
         const loginUrl = "{% url 'login' %}?next=" + encodeURIComponent(window.location.pathname + window.location.search);
         const editUrl = "{% url 'profile' %}?next=" + encodeURIComponent(window.location.pathname + window.location.search);
+        const auctionNotifications = {
+            inactive: window.getNotificationMessage('auction.inactive'),
+            detailLoginRequired: window.getNotificationMessage('auction.list_detail_login_required'),
+            bidLoginRequired: window.getNotificationMessage('auction.list_bid_login_required'),
+            bidSuccess: window.getNotificationMessage('auction.bid_success_ajax'),
+            genericError: window.getNotificationMessage('auction.generic_error'),
+            requestSubmitError: window.getNotificationMessage('common.request_submit_error'),
+            serverCommunicationError: window.getNotificationMessage('common.server_communication_error'),
+            serverRetryError: window.getNotificationMessage('common.server_retry_error')
+        };
         let isPendingLocalStorage = false;
         if (userIsAuthenticated && !userIsVerified && currentUserId) {
             isPendingLocalStorage = (localStorage.getItem('auction_req_pending_' + currentUserId) === 'true');
@@ -461,8 +446,11 @@
         }
 
         function showInactiveAuctionToast() {
-            if (window.showToast) {
-                window.showToast('مزایده فعال نیست', 'warning', 'bottom-left');
+            if (window.showNotificationText) {
+                window.showNotificationText(auctionNotifications.inactive, {
+                    type: 'warning',
+                    position: 'bottom-left'
+                });
             }
         }
 
@@ -532,7 +520,7 @@
             if (!userIsAuthenticated) {
                 window.openLoginRequiredModal(
                     targetUrl || (window.location.pathname + window.location.search),
-                    loginMessage || 'برای مشاهده جزئیات و شرکت در مزایده، لطفاً ابتدا وارد حساب کاربری خود شوید.'
+                    loginMessage || auctionNotifications.detailLoginRequired
                 );
                 return false;
             }
@@ -549,7 +537,7 @@
                 a.addEventListener('click', e => {
                     if (!ensureAuctionAccess(
                         a.getAttribute('href'),
-                        a.getAttribute('data-login-message') || 'برای مشاهده جزئیات محصول مزایده، لطفاً ابتدا وارد حساب کاربری خود شوید.'
+                        a.getAttribute('data-login-message') || auctionNotifications.detailLoginRequired
                     )) {
                         e.preventDefault();
                     }
@@ -574,16 +562,6 @@
             }
         }
 
-        function setAmountWithToman(container, value) {
-            if (!container) return;
-            const valueEl = container.querySelector('[data-amount-value]');
-            if (valueEl) {
-                valueEl.textContent = formatFaNumber(value);
-                return;
-            }
-            container.textContent = formatFaNumber(value);
-        }
-
         function applyProductLiveState(productId, data) {
             if (!productId || !data) return;
 
@@ -595,7 +573,7 @@
             const btn = card.querySelector('button[data-product-id]');
 
             if (priceEl && typeof data.current_price !== 'undefined') {
-                setAmountWithToman(priceEl, data.current_price);
+                priceEl.textContent = formatFaNumber(data.current_price);
             }
 
             if (bidsEl && typeof data.bid_count !== 'undefined') {
@@ -625,7 +603,7 @@
                 if (typeof data.current_price !== 'undefined') {
                     currentBidButton.setAttribute('data-current-price', String(data.current_price));
                     qbCalcContainer.dataset.currentPrice = String(data.current_price);
-                    setAmountWithToman(qbCurrentPriceDisplay, data.current_price);
+                    qbCurrentPriceDisplay.textContent = formatFaNumber(data.current_price) + ' تومان';
                 }
                 if (typeof data.min_next_bid !== 'undefined') {
                     currentBidButton.setAttribute('data-min-next', String(data.min_next_bid));
@@ -654,7 +632,7 @@
                     if (freshCard) {
                         const priceEl = card.querySelector('[data-product-price-display]');
                         const freshPriceEl = freshCard.querySelector('[data-product-price-display]');
-                        if (priceEl && freshPriceEl) priceEl.innerHTML = freshPriceEl.innerHTML;
+                        if (priceEl && freshPriceEl) priceEl.textContent = freshPriceEl.textContent;
 
                         const bidsEl = card.querySelector('[data-product-bids-display]');
                         const freshBidsEl = freshCard.querySelector('[data-product-bids-display]');
@@ -831,7 +809,7 @@
             }
             if (!ensureAuctionAccess(
                 window.location.pathname + window.location.search,
-                'برای ثبت پیشنهاد در مزایده، لطفاً ابتدا وارد حساب کاربری خود شوید.'
+                auctionNotifications.bidLoginRequired
             )) return;
             currentBidButton = btn; 
 
@@ -839,7 +817,7 @@
             const current = btn.getAttribute('data-current-price');
 
             qbForm.action = basePlaceBidUrl.replace('123456789', pid);
-            setAmountWithToman(qbCurrentPriceDisplay, current);
+            qbCurrentPriceDisplay.textContent = formatToman(current) + ' تومان';
 
             qbCalcContainer.dataset.currentPrice = current;
             qbCalcContainer.dataset.minNext = btn.getAttribute('data-min-next');
@@ -884,7 +862,7 @@
             if (qbStepPercentDisplay) {
                 qbStepPercentDisplay.textContent = formatFaNumber(bidValue) + '٪ از مبلغ فعلی';
             }
-            setAmountWithToman(qbFinalText, computed);
+            qbFinalText.textContent = formatToman(computed) + ' تومان';
             qbAmountInput.value = String(computed);
         }
 
@@ -907,17 +885,30 @@
                 const data = await response.json();
                 if (data.success) {
                     closeQuickBidModal();
-                    if(window.showToast) window.showToast(data.message || 'پیشنهاد با موفقیت ثبت شد.', 'success', 'bottom-left');
+                    if (window.showNotificationText) {
+                        window.showNotificationText(data.message || auctionNotifications.bidSuccess, {
+                            type: 'success',
+                            position: 'bottom-left'
+                        });
+                    }
                     syncAuctionData(); 
                 } else {
                     if (data.needs_credit_increase) {
                         setQuickBidModalState(data.credit_request_state === 'pending' ? 'pending' : 'credit');
-                    } else if(window.showToast) {
-                        window.showToast(data.message || 'خطایی رخ داده است.', 'error', 'bottom-left');
+                    } else if (window.showNotificationText) {
+                        window.showNotificationText(data.message || auctionNotifications.genericError, {
+                            type: 'error',
+                            position: 'bottom-left'
+                        });
                     }
                 }
             } catch (error) {
-                if(window.showToast) window.showToast('خطا در ارتباط با سرور.', 'error', 'bottom-left');
+                if (window.showNotificationText) {
+                    window.showNotificationText(auctionNotifications.serverCommunicationError, {
+                        type: 'error',
+                        position: 'bottom-left'
+                    });
+                }
             } finally {
                 qbSubmitBtn.disabled = false;
                 qbSubmitBtn.querySelector('.btn-text').classList.remove('hidden');
@@ -996,10 +987,13 @@
                     .catch(error => {
                         this.disabled = false;
                         this.innerHTML = originalHtml;
-                        if (window.showToast) {
-                            window.showToast(error.message || 'خطا در ثبت درخواست', 'error', 'bottom-left');
+                        if (window.showNotificationText) {
+                            window.showNotificationText(error.message || auctionNotifications.requestSubmitError, {
+                                type: 'error',
+                                position: 'bottom-left'
+                            });
                         } else {
-                            alert(error.message || 'خطا در ثبت درخواست');
+                            alert(error.message || auctionNotifications.requestSubmitError);
                         }
                     });
                 });
@@ -1038,18 +1032,24 @@
                             if (btnProfileLink && data.profile_url) {
                                 btnProfileLink.href = data.profile_url;
                             }
-                        } else if (window.showToast) {
-                            window.showToast(data.message || 'خطا در ثبت درخواست.', 'error', 'bottom-left');
+                        } else if (window.showNotificationText) {
+                            window.showNotificationText(data.message || auctionNotifications.requestSubmitError, {
+                                type: 'error',
+                                position: 'bottom-left'
+                            });
                         } else {
-                            alert(data.message || 'خطا در ثبت درخواست.');
+                            alert(data.message || auctionNotifications.requestSubmitError);
                         }
                     } catch (error) {
                         btnSubmitCredit.innerHTML = originalText;
                         btnSubmitCredit.disabled = false;
-                        if (window.showToast) {
-                            window.showToast('خطا در ارتباط با سرور. لطفاً مجدداً تلاش کنید.', 'error', 'bottom-left');
+                        if (window.showNotificationText) {
+                            window.showNotificationText(auctionNotifications.serverRetryError, {
+                                type: 'error',
+                                position: 'bottom-left'
+                            });
                         } else {
-                            alert('خطا در ارتباط با سرور. لطفاً مجدداً تلاش کنید.');
+                            alert(auctionNotifications.serverRetryError);
                         }
                     }
                 });
