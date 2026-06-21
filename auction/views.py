@@ -66,7 +66,7 @@ class AuctionListView(ListView):
     model = Auction
     template_name = 'auction/act.html'
     context_object_name = 'auctions'
-    paginate_by = 100
+    paginate_by = 12
 
     def get_queryset(self):
         return Auction.objects.annotate(bid_count=Count('bids')).order_by('-start_date')
@@ -377,7 +377,7 @@ class AuctionGridView(ListView):
     model = Auction
     template_name = 'auction/auction.html'
     context_object_name = 'auctions'
-    paginate_by = 100
+    paginate_by = 12
 
     def get_queryset(self):
         return Auction.objects.annotate(bid_count=Count('bids')).order_by('-start_date')
@@ -413,7 +413,7 @@ class AuctionProductsView(ListView):
     model = AuctionProduct
     template_name = 'auction/auction.html'
     context_object_name = 'products'
-    paginate_by = 100
+    paginate_by = 12
 
     def dispatch(self, request, *args, **kwargs):
         self.auction = get_object_or_404(Auction, pk=kwargs.get('pk'))
