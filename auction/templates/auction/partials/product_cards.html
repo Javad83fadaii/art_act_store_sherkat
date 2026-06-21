@@ -1,0 +1,146 @@
+{% load static humanize fa_digits %}
+{% for product in products %}
+    <!-- کارت محصول -->
+    <div class="group bg-white dark:bg-zinc-900 rounded-[1.5rem] overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 border border-neutral-200 dark:border-zinc-800 p-2 pb-5 flex flex-col relative" data-product-card="{{ product.pk }}" data-live-state-url="{% url 'auction:auction_product_live_state' product.pk %}" data-has-winner="{% if product.winner_id %}1{% else %}0{% endif %}" data-is-user-winner="{% if request.user.is_authenticated and product.winner_id == request.user.pk %}1{% else %}0{% endif %}">
+        
+        <!-- هاله نورانی بک‌گراند برای حالت انتظار (به صورت پیش‌فرض مخفی) -->
+        <div data-glow="NOT_STARTED" class="absolute inset-0 bg-blue-500/5 dark:bg-blue-400/5 rounded-[1.5rem] opacity-0 transition-opacity duration-700 pointer-events-none z-0"></div>
+        
+        <!-- هاله نورانی بک‌گراند برای حالت پایان یافته (به صورت پیش‌فرض مخفی) -->
+        <div data-glow="ENDED" class="absolute inset-0 bg-red-500/5 dark:bg-red-500/5 rounded-[1.5rem] opacity-0 transition-opacity duration-700 pointer-events-none z-0"></div>
+
+        <div class="relative w-full aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-neutral-100 dark:bg-zinc-800">
+            <div data-sold-badge class="absolute top-3 right-3 z-[16] {% if auction.status == 'finished' and product.winner_id %}flex{% else %}hidden{% endif %} items-center gap-1 rounded-full border px-3 py-1 text-[11px] font-bold text-white shadow-lg backdrop-blur-md {% if request.user.is_authenticated and product.winner_id == request.user.pk %}border-amber-300/80 bg-amber-500/95 shadow-amber-500/25{% else %}border-emerald-300/70 bg-emerald-500/90 shadow-emerald-500/20{% endif %}">
+                <span data-sold-badge-icon class="material-symbols-outlined text-[14px]">{% if request.user.is_authenticated and product.winner_id == request.user.pk %}military_tech{% else %}sell{% endif %}</span>
+                <span data-sold-badge-text>{% if request.user.is_authenticated and product.winner_id == request.user.pk %}شما برنده شدید{% else %}به فروش رسید{% endif %}</span>
+            </div>
+
+            <div data-winner-medal class="absolute top-3 left-3 z-[16] {% if auction.status == 'finished' and request.user.is_authenticated and product.winner_id == request.user.pk %}flex{% else %}hidden{% endif %} h-11 w-11 items-center justify-center rounded-full border border-amber-200/90 bg-gradient-to-br from-amber-300 via-yellow-400 to-amber-500 text-white shadow-lg shadow-amber-500/30">
+                <span class="material-symbols-outlined text-[22px]">military_tech</span>
+            </div>
+            
+            <!-- اورلی وضعیت شروع نشده -->
+            <div data-status-overlay="NOT_STARTED" class="absolute inset-0 z-[15] bg-neutral-900/50 backdrop-blur-[3px] hidden flex-col items-center justify-center transition-all duration-500">
+                <div class="bg-white/10 p-3 rounded-full backdrop-blur-md border border-white/20 mb-2 shadow-[0_0_15px_rgba(255,255,255,0.2)] animate-pulse">
+                    <span class="material-symbols-outlined text-white text-3xl">lock_clock</span>
+                </div>
+                <span class="text-white font-bold tracking-widest text-sm drop-shadow-md">به زودی آغاز می‌شود</span>
+            </div>
+
+            <!-- اورلی وضعیت پایان یافته -->
+            <div data-status-overlay="ENDED" class="absolute inset-0 z-[15] bg-neutral-900/60 backdrop-blur-[2px] hidden flex-col items-center justify-center transition-all duration-500">
+                <div class="bg-red-500/20 text-red-100 p-3 rounded-full backdrop-blur-md border border-red-500/30 mb-2 shadow-[0_0_15px_rgba(239,68,68,0.2)]">
+                    <span class="material-symbols-outlined text-3xl">gavel</span>
+                </div>
+                <span class="text-white font-bold tracking-widest text-sm drop-shadow-md">مزایده پایان یافت</span>
+            </div>
+
+            <img alt="{{ product.title }}"
+                 data-product-img="{{ product.pk }}"
+                 class="w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-110"
+                 src="{% static 'images/action/' %}/{{ product.product_id }}.webp"/>
+        </div>
+        
+        <div class="px-4 text-right flex-grow flex flex-col relative z-20">
+            <h3 class="font-bold text-xl text-neutral-900 dark:text-white leading-tight mb-3 font-display tracking-tight transition-colors duration-300">
+                {{ product.title }}
+            </h3>
+            <div class="bg-neutral-50 dark:bg-zinc-800/50 rounded-xl p-4 mb-5 border border-neutral-100 dark:border-zinc-700 transition-colors duration-300">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs text-neutral-500 dark:text-neutral-400 font-medium">قیمت پایه</span>
+                    <span class="inline-flex items-center gap-1.5 text-sm text-neutral-900 dark:text-white whitespace-nowrap" dir="rtl">
+                        <span class="font-en font-bold">
+                            {{ product.base_price|intcomma|fa_digits }}
+                        </span>
+                        <img src="{% static 'images/toman-1.svg' %}"
+                             alt="تومان"
+                             class="h-5 w-auto shrink-0 opacity-100"
+                             loading="lazy">
+                    </span>
+                </div>
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs text-neutral-500 dark:text-neutral-400 font-medium">قیمت نهایی</span>
+                    <span class="inline-flex items-center gap-1.5 text-base text-primary" data-product-price-display dir="rtl">
+                        <span class="font-en font-bold" data-amount-value>
+                            {{ product.current_price|default:product.base_price|intcomma|fa_digits }}
+                        </span>
+                        <img src="{% static 'images/toman-1.svg' %}"
+                             alt="تومان"
+                             class="h-5 w-auto shrink-0 opacity-100"
+                             loading="lazy">
+                    </span>
+                </div>
+                {% if product.price_description %}
+                    <div class="text-[9px] font-medium text-neutral-400 dark:text-neutral-500 text-left" data-product-price-description>
+                        {{ product.price_description|fa_digits }}
+                    </div>
+                {% endif %}
+                <!-- <div class="flex justify-between items-center">
+                    <span class="text-xs text-neutral-500 dark:text-neutral-400 font-medium">تعداد پیشنهادات</span>
+                    <span class="font-en font-bold text-sm text-neutral-900 dark:text-white" data-product-bids-display>
+                        {{ product.bid_count|default:0|intcomma|fa_digits }}
+                    </span>
+                </div> -->
+            </div>
+
+            <div class="mt-auto space-y-2.5">
+                {% if auction.status == 'finished' and request.user.is_authenticated and product.winner_id == request.user.pk and product.detail_access_token %}
+                    <a class="w-full flex items-center justify-center gap-2 bg-amber-500/10 hover:bg-amber-500 text-amber-700 hover:text-white text-sm font-bold py-3 rounded-xl transition-all border border-amber-500/20 hover:border-amber-500"
+                       href="{% url 'auction:auction_product_detail' product.pk %}?access_token={{ product.detail_access_token|urlencode }}"
+                       data-track-visit="1"
+                       data-track-kind="auction_winner_product"
+                       data-track-id="{{ product.pk }}">
+                        <span class="material-symbols-outlined text-[18px]">military_tech</span>
+                        مشاهده جزئیات محصول برنده‌شده
+                    </a>
+                {% endif %}
+                <a class="w-full flex items-center justify-center bg-primary/10 hover:bg-primary text-primary hover:text-white text-sm font-bold py-3 rounded-xl transition-all border border-primary/20 hover:border-primary"
+                   data-auction-product-link="1"
+                   href="{% url 'auction:auction_product_detail' product.pk %}"
+                   data-login-message="برای مشاهده جزئیات محصول مزایده، لطفاً ابتدا وارد حساب کاربری خود شوید."
+                   data-track-visit="1"
+                   data-track-guard="auction-access"
+                   data-track-kind="auction_product"
+                   data-track-id="{{ product.pk }}">
+                    مشاهده جزئیات کامل
+                </a>
+
+                <!-- دکمه حالت فعال -->
+                <button type="button"
+                        data-btn-active="1"
+                        data-auction-quick-bid="1"
+                        class="w-full flex items-center justify-center gap-2 bg-primary text-white hover:bg-primary-dark text-sm font-bold py-3 rounded-xl transition-all shadow-md shadow-primary/20 hover:shadow-lg ring-2 ring-transparent focus:ring-primary/50"
+                        data-login-message="برای ثبت پیشنهاد در مزایده، لطفاً ابتدا وارد حساب کاربری خود شوید."
+                        data-product-id="{{ product.pk }}"
+                        data-product-title="{{ product.title }}"
+                        data-current-price="{{ product.current_price|default:product.base_price }}"
+                        data-min-next="{{ product.get_min_next_bid|default:0 }}"
+                        data-bid-value="{{ product.bid_value|default:0 }}"
+                        data-bid-count="{{ product.bid_count|default:0 }}">
+                    <span class="material-symbols-outlined text-[18px] filled">bolt</span>
+                    ثبت پیشنهاد سریع
+                </button>
+
+                <!-- دکمه حالت انتظار (شروع نشده) -->
+                <button type="button"
+                        data-btn-waiting="1"
+                        class="hidden w-full items-center justify-center gap-2 bg-blue-50 dark:bg-blue-900/20 text-blue-500 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50 text-sm font-bold py-3 rounded-xl transition-all cursor-not-allowed">
+                    <span class="material-symbols-outlined text-[18px]">hourglass_top</span>
+                    در انتظار شروع
+                </button>
+                
+                <!-- دکمه حالت پایان یافته -->
+                <button type="button"
+                        data-btn-ended="1"
+                        class="hidden w-full items-center justify-center gap-2 bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 border border-red-200 dark:border-red-800/50 text-sm font-bold py-3 rounded-xl transition-all cursor-not-allowed">
+                    <span class="material-symbols-outlined text-[18px]">block</span>
+                    مزایده پایان یافت
+                </button>
+            </div>
+        </div>
+    </div>
+{% empty %}
+    <div class="col-span-full py-12 text-center text-neutral-500 dark:text-neutral-400 font-medium bg-neutral-50 dark:bg-zinc-800 rounded-2xl border border-neutral-200 dark:border-zinc-700">
+        در حال حاضر محصولی برای این مزایده ثبت نشده است.
+    </div>
+{% endfor %}
