@@ -112,22 +112,55 @@ class AuctionProduct(models.Model):
     def __str__(self) -> str:
         return f'{self.product_id} - {self.title}'
 
+    @staticmethod
+    def _image_extensions():
+        return ('.webp', '.jpg', '.jpeg', '.png')
+
+    def _get_static_root(self):
+        try:
+            if settings.STATICFILES_DIRS:
+                return Path(settings.STATICFILES_DIRS[0])
+        except AttributeError:
+            pass
+        return Path(settings.BASE_DIR) / 'static'
+
+    def _get_product_image_dir(self):
+        if not self.product_id:
+            return None
+        return self._get_static_root() / 'images' / 'action' / self.product_id
+
+    def _get_product_image_files(self):
+        image_dir = self._get_product_image_dir()
+        if not image_dir or not (image_dir.exists() and image_dir.is_dir()):
+            return []
+
+        image_files = [
+            file_path
+            for file_path in image_dir.iterdir()
+            if file_path.is_file() and file_path.suffix.lower() in self._image_extensions()
+        ]
+        image_files.sort(key=lambda p: p.name.lower())
+        return image_files
+
     @property
     def main_image_url(self):
         if not self.product_id:
             return f'{settings.STATIC_URL}images/no-image.jpg'
 
-        try:
-            if settings.STATICFILES_DIRS:
-                static_root = Path(settings.STATICFILES_DIRS[0])
-            else:
-                static_root = Path(settings.BASE_DIR) / 'static'
-        except AttributeError:
-            static_root = Path(settings.BASE_DIR) / 'static'
+        image_files = self._get_product_image_files()
+        if not image_files:
+            return f'{settings.STATIC_URL}images/no-image.jpg'
 
-        file_name = f'{self.product_id}.jpg'
-        full_path = static_root / 'images' / 'action' / self.product_id / file_name
-        if full_path.exists():
+        main_file = None
+        for ext in self._image_extensions():
+            candidate_name = f'{self.product_id}{ext}'
+            main_file = next((file_path for file_path in image_files if file_path.name.lower() == candidate_name), None)
+            if main_file:
+                break
+
+        selected = main_file or image_files[0]
+        file_name = selected.name
+        if file_name:
             return f'{settings.STATIC_URL}images/action/{self.product_id}/{file_name}'
         return f'{settings.STATIC_URL}images/no-image.jpg'
 
@@ -136,29 +169,18 @@ class AuctionProduct(models.Model):
         if not self.product_id:
             return []
 
-        try:
-            if settings.STATICFILES_DIRS:
-                static_root = Path(settings.STATICFILES_DIRS[0])
-            else:
-                static_root = Path(settings.BASE_DIR) / 'static'
-        except AttributeError:
+        image_files = self._get_product_image_files()
+        if not image_files:
             return []
 
-        full_dir_path = static_root / 'images' / 'action' / self.product_id
-        if not (full_dir_path.exists() and full_dir_path.is_dir()):
-            return []
+        file_names = [file_path.name for file_path in image_files]
 
-        file_names = [
-            file_path.name
-            for file_path in full_dir_path.iterdir()
-            if file_path.is_file() and file_path.suffix.lower() == '.jpg'
-        ]
-        file_names.sort(key=lambda n: n.lower())
-
-        main_name = f'{self.product_id}.jpg'
-        if main_name in file_names:
-            file_names.remove(main_name)
-            file_names.insert(0, main_name)
+        for ext in self._image_extensions():
+            main_name = f'{self.product_id}{ext}'
+            if main_name in file_names:
+                file_names.remove(main_name)
+                file_names.insert(0, main_name)
+                break
 
         images_urls = [f"{settings.STATIC_URL}images/action/{self.product_id}/{name}" for name in file_names]
         return images_urls
