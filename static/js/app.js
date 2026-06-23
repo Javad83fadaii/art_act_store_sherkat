@@ -136,7 +136,7 @@ const Toast = (function() {
         toast.appendChild(progress);
 
         // Add to container
-        // container.appendChild(toast);
+        container.appendChild(toast);
 
         // Animate in
         requestAnimationFrame(() => {
