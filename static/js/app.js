@@ -167,9 +167,11 @@ window.showToast = Toast.show;
 
 document.addEventListener('DOMContentLoaded', () => {
     try {
+        if (window.__TOAST_QUERY_HANDLED) return;
         const q = new URLSearchParams(window.location.search);
         const message = q.get('toast_message');
         if (!message) return;
+        window.__TOAST_QUERY_HANDLED = true;
         const type = q.get('toast_type') || 'info';
         const position = q.get('toast_position') || 'bottom-left';
         const actionLabel = q.get('toast_action_label') || '';
