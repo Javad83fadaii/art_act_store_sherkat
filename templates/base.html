@@ -464,6 +464,8 @@
                             type: toastType,
                             position: 'bottom-left'
                         });
+                    } else if (window.showToast) {
+                        window.showToast(item.text, toastType, 'bottom-left');
                     }
                 }, index * 180);
             });

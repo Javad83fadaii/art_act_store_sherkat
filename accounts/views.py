@@ -220,11 +220,22 @@ class SignupView(View):
         if form.is_valid():
             form.save()
             message_text = get_notification('accounts.signup.success')
-            messages.success(request, message_text)
             login_url = reverse('login')
             return redirect(
                 f'{login_url}?{urlencode({"toast_message": message_text, "toast_type": "success", "toast_position": "bottom-left"})}'
             )
+
+        non_field_errors = form.non_field_errors()
+        for error in non_field_errors:
+            messages.error(request, str(error))
+
+        for field_name, errors in form.errors.items():
+            if field_name == "__all__":
+                continue
+            field = form.fields.get(field_name)
+            label = str(getattr(field, "label", "") or "").strip() or field_name
+            for error in errors:
+                messages.error(request, f"{label}: {error}")
 
         return render(request, 'registration/signup.html', {'form': form})
 
