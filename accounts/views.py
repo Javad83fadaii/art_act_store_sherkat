@@ -219,8 +219,12 @@ class SignupView(View):
         form = PublicSignupForm(request.POST)
         if form.is_valid():
             form.save()
-            messages.success(request, get_notification('accounts.signup.success'))
-            return redirect('login')  
+            message_text = get_notification('accounts.signup.success')
+            messages.success(request, message_text)
+            login_url = reverse('login')
+            return redirect(
+                f'{login_url}?{urlencode({"toast_message": message_text, "toast_type": "success", "toast_position": "bottom-left"})}'
+            )
 
         return render(request, 'registration/signup.html', {'form': form})
 

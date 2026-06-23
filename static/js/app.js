@@ -26,6 +26,7 @@ const Toast = (function() {
         container.style.flexDirection = 'column';
         container.style.gap = '10px';
         container.style.pointerEvents = 'none';
+        container.style.maxWidth = 'calc(100vw - 32px)';
 
         if (position === 'top-right') { container.style.top = '20px'; container.style.right = '20px'; }
         if (position === 'top-left') { container.style.top = '20px'; container.style.left = '20px'; }
@@ -59,7 +60,8 @@ const Toast = (function() {
         toast.style.fontWeight = '500';
         toast.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
         toast.style.pointerEvents = 'auto';
-        toast.style.minWidth = '300px';
+        toast.style.minWidth = '0';
+        toast.style.maxWidth = 'calc(100vw - 32px)';
         toast.style.display = 'flex';
         toast.style.alignItems = 'center';
         toast.style.gap = '8px';
@@ -84,6 +86,8 @@ const Toast = (function() {
 
         const messageEl = document.createElement('span');
         messageEl.style.flex = '1';
+        messageEl.style.wordBreak = 'break-word';
+        messageEl.style.whiteSpace = 'normal';
         messageEl.textContent = String(message ?? '');
 
         toast.appendChild(iconEl);

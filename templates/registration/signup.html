@@ -308,6 +308,9 @@
         const INVALID_EMAIL_MESSAGE = "لطفا یک آدرس ایمیل معتبر وارد کنید";
         const REQUIRED_FULL_NAME_MESSAGE = "وارد کردن نام و نام خانوادگی الزامی است.";
         const REQUIRED_AUCTION_MESSAGE = "برای ثبت‌نام، پذیرش قوانین و مقررات الزامی است.";
+        const REQUIRED_PHONE_MESSAGE = "وارد کردن شماره موبایل الزامی است.";
+        const REQUIRED_PASSWORD1_MESSAGE = "وارد کردن رمز عبور الزامی است.";
+        const REQUIRED_PASSWORD2_MESSAGE = "وارد کردن تکرار رمز عبور الزامی است.";
         const PASSWORD_MIN_LENGTH_MESSAGE = "رمز عبور باید حداقل ۸ کاراکتر باشد.";
         const PASSWORD_PATTERN_MESSAGE = "رمز عبور باید حداقل ۸ کاراکتر و شامل حرف بزرگ، حرف کوچک و کاراکتر ویژه باشد.";
         const PASSWORD_MISMATCH_MESSAGE = "رمز عبور و تکرار آن یکسان نیستند.";
@@ -411,27 +414,96 @@
                 if (addressInput) addressInput.value = toEnglishDigits(addressInput.value);
                 
                 let isFormValid = true;
+                const toastErrors = [];
+
+                function notifyError(text) {
+                    if (!text) return;
+                    if (window.showNotificationText) {
+                        window.showNotificationText(text, { type: 'error', position: 'bottom-left' });
+                        return;
+                    }
+                    if (window.showToast) {
+                        window.showToast(text, 'error', 'bottom-left');
+                    }
+                }
 
                 // چک کردن موارد در لحظه ثبت
-                if (!validateFullNameOnSubmit()) isFormValid = false;
-                if (!validateAuctionRulesOnSubmit()) isFormValid = false;
+                if (!validateFullNameOnSubmit()) {
+                    isFormValid = false;
+                    toastErrors.push(REQUIRED_FULL_NAME_MESSAGE);
+                }
+                if (!validateAuctionRulesOnSubmit()) {
+                    isFormValid = false;
+                    toastErrors.push(REQUIRED_AUCTION_MESSAGE);
+                }
+
+                if (phoneInput) {
+                    const phoneDigits = normalizeDigits(phoneInput.value || "");
+                    if (!phoneDigits) {
+                        phoneInput.setCustomValidity(REQUIRED_PHONE_MESSAGE);
+                        toastErrors.push(REQUIRED_PHONE_MESSAGE);
+                        isFormValid = false;
+                    } else {
+                        phoneInput.setCustomValidity("");
+                    }
+                }
+
+                if (password1Input) {
+                    const p1 = (password1Input.value || "").trim();
+                    if (!p1) {
+                        password1Input.setCustomValidity(REQUIRED_PASSWORD1_MESSAGE);
+                        toastErrors.push(REQUIRED_PASSWORD1_MESSAGE);
+                        isFormValid = false;
+                    }
+                }
+                if (password2Input) {
+                    const p2 = (password2Input.value || "").trim();
+                    if (!p2) {
+                        password2Input.setCustomValidity(REQUIRED_PASSWORD2_MESSAGE);
+                        toastErrors.push(REQUIRED_PASSWORD2_MESSAGE);
+                        isFormValid = false;
+                    }
+                }
                 
                 if (!isFormValid) {
                     e.preventDefault();
+                    const uniqueErrors = Array.from(new Set(toastErrors));
+                    uniqueErrors.forEach(function (msg, index) {
+                        window.setTimeout(function () { notifyError(msg); }, index * 180);
+                    });
+                    const firstInvalid = signupForm.querySelector(':invalid');
+                    if (firstInvalid && typeof firstInvalid.focus === 'function') {
+                        firstInvalid.focus({ preventScroll: false });
+                    }
                 }
             });
 
             let lastToastText = "";
             let lastToastAt = 0;
             signupForm.addEventListener('invalid', function(event) {
-                if (!window.showToast) return;
-                const message = event.target?.validationMessage || "";
+                if (!window.showToast && !window.showNotificationText) return;
+                const target = event.target;
+                let message = target?.validationMessage || "";
                 const now = Date.now();
+                if (target?.validity?.valueMissing) {
+                    const name = String(target?.name || '');
+                    if (name === 'full_name') message = REQUIRED_FULL_NAME_MESSAGE;
+                    else if (name === 'phone_number') message = REQUIRED_PHONE_MESSAGE;
+                    else if (name === 'password1') message = REQUIRED_PASSWORD1_MESSAGE;
+                    else if (name === 'password2') message = REQUIRED_PASSWORD2_MESSAGE;
+                    else if (name === 'participate_in_auction') message = REQUIRED_AUCTION_MESSAGE;
+                    else message = "وارد کردن این فیلد الزامی است.";
+                    if (typeof target?.setCustomValidity === 'function') target.setCustomValidity(message);
+                }
                 if (!message) return;
                 if (message === lastToastText && now - lastToastAt < 800) return;
                 lastToastText = message;
                 lastToastAt = now;
-                window.showToast(message, 'error', 'bottom-left');
+                if (window.showNotificationText) {
+                    window.showNotificationText(message, { type: 'error', position: 'bottom-left' });
+                } else {
+                    window.showToast(message, 'error', 'bottom-left');
+                }
             }, true);
         }
 
@@ -592,6 +664,17 @@
                 // پیام خطا در زمان برداشتن تیک پاک می‌شود تا صرفاً موقع ثبت (Submit) دیده شود
                 setMessage(auctionLiveMessage, "", null); 
             }
+        });
+
+        phoneInput?.addEventListener("input", function() {
+            const phoneDigits = normalizeDigits(phoneInput.value || "");
+            if (phoneDigits) phoneInput.setCustomValidity("");
+        });
+        password1Input?.addEventListener("input", function() {
+            if ((password1Input.value || "").trim()) password1Input.setCustomValidity("");
+        });
+        password2Input?.addEventListener("input", function() {
+            if ((password2Input.value || "").trim()) password2Input.setCustomValidity("");
         });
 
         // ثبت رویدادهای اعتبارسنجی

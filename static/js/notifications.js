@@ -38,6 +38,7 @@
         container.style.flexDirection = 'column';
         container.style.gap = '10px';
         container.style.pointerEvents = 'none';
+        container.style.maxWidth = 'calc(100vw - 32px)';
 
         if (safePosition === 'top-right') {
             container.style.top = '20px';
@@ -66,8 +67,10 @@
         toast.style.color = '#fff';
         toast.style.fontWeight = '700';
         toast.style.fontSize = '13px';
-        toast.style.minWidth = '260px';
-        toast.style.maxWidth = '360px';
+        toast.style.minWidth = '0';
+        toast.style.maxWidth = 'calc(100vw - 32px)';
+        toast.style.wordBreak = 'break-word';
+        toast.style.whiteSpace = 'normal';
         toast.style.boxShadow = '0 12px 30px rgba(0, 0, 0, 0.18)';
         toast.style.pointerEvents = 'auto';
         toast.style.opacity = '0';
