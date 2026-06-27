@@ -38,7 +38,7 @@
             <img alt="{{ product.title }}"
                  data-product-img="{{ product.pk }}"
                  class="w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-110"
-                 src="{% static 'images/action/' %}/{{ product.product_id }}.webp"/>
+                 src="{{ product.main_image_url }}"/>
         </div>
         
         <div class="px-4 text-right flex-grow flex flex-col relative z-20">

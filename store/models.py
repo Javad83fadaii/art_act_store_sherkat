@@ -149,11 +149,42 @@ class Artwork(models.Model):
 
     @property
     def main_image_url(self):
-        if self.product_id:
-            png_path = os.path.join(settings.BASE_DIR, 'static', 'images', 'artwork', f'{self.product_id}.webp')
-            if os.path.exists(png_path):
-                return f'{settings.STATIC_URL}images/artwork/{self.product_id}.webp'
-            return f'{settings.STATIC_URL}images/artwork/{self.product_id}.jpg'
+        if not self.product_id:
+            return f'{settings.STATIC_URL}images/no-image.jpg'
+
+        try:
+            if settings.STATICFILES_DIRS:
+                static_root = Path(settings.STATICFILES_DIRS[0])
+            else:
+                static_root = Path(settings.BASE_DIR) / 'static'
+        except AttributeError:
+            static_root = Path(settings.BASE_DIR) / 'static'
+
+        exts = ('.webp', '.png', '.jpg', '.jpeg')
+
+        root_dir = static_root / 'images' / 'artwork'
+        for ext in exts:
+            candidate = root_dir / f'{self.product_id}{ext}'
+            if candidate.exists() and candidate.is_file():
+                return f'{settings.STATIC_URL}images/artwork/{self.product_id}{ext}'
+
+        folder_dir = root_dir / self.product_id
+        if folder_dir.exists() and folder_dir.is_dir():
+            for ext in exts:
+                candidate = folder_dir / f'{self.product_id}{ext}'
+                if candidate.exists() and candidate.is_file():
+                    return f'{settings.STATIC_URL}images/artwork/{self.product_id}/{candidate.name}'
+
+            image_files = [
+                file_path
+                for file_path in folder_dir.iterdir()
+                if file_path.is_file() and file_path.suffix.lower() in exts
+            ]
+            image_files.sort(key=lambda p: p.name.lower())
+            if image_files:
+                selected = image_files[0]
+                return f'{settings.STATIC_URL}images/artwork/{self.product_id}/{selected.name}'
+
         return f'{settings.STATIC_URL}images/no-image.jpg'
 
     @property
