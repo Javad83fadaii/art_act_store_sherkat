@@ -562,6 +562,13 @@ def auction_list(request):
             return JsonResponse({'error': 'artwork_type_id الزامی است'}, status=400)
 
         try:
+            lot_raw = data.get('lot')
+            lot_value = None
+            if lot_raw not in ('', None):
+                lot_value = int(lot_raw)
+                if lot_value <= 0:
+                    raise ValueError('لات باید عدد مثبت باشد')
+
             prod_id = (data.get('product_id') or '').strip() or f"AUC-{uuid.uuid4().hex[:8].upper()}"
             title = (data.get('title') or data.get('artwork_title') or 'بدون عنوان').strip() or 'بدون عنوان'
             base_price = data.get('base_price', None)
@@ -583,6 +590,7 @@ def auction_list(request):
                 product_id=prod_id,
                 title=title,
                 authenticity_status=authenticity_status,
+                lot=lot_value,
                 description=data.get('description'),
                 dimensions=data.get('dimensions'),
                 creation_year=data.get('creation_year'),
@@ -648,6 +656,7 @@ def auction_list(request):
         'auction_id': ap.auction_id,
         'auction': ap.auction.name or f'مزایده {ap.auction.id}' if ap.auction else '',
         'artwork_title': ap.title,
+        'lot': ap.lot,
         'artist': ap.artist.name if ap.artist else 'نامشخص',
         'reserve_price': str(ap.base_price), # نگاشت base_price دیتابیس به فرمت مورد انتظار فرانت
         'status': status_fa.get(ap.auction.status, 'نامشخص') if ap.auction else 'نامشخص',
@@ -694,6 +703,18 @@ def auction_detail(request, pk):
             ap.material_id = data.get('material_id') or None
         if 'authenticity_status' in data:
             ap.authenticity_status = data.get('authenticity_status')
+        if 'lot' in data:
+            lot_raw = data.get('lot')
+            if lot_raw in ('', None):
+                ap.lot = None
+            else:
+                try:
+                    lot_value = int(lot_raw)
+                except (TypeError, ValueError):
+                    return JsonResponse({'error': 'لات نامعتبر است'}, status=400)
+                if lot_value <= 0:
+                    return JsonResponse({'error': 'لات باید عدد مثبت باشد'}, status=400)
+                ap.lot = lot_value
         if 'current_price' in data:
             ap.current_price = data.get('current_price') if data.get('current_price') not in ('', None) else None
         if 'bid_value' in data:
@@ -725,6 +746,7 @@ def auction_detail(request, pk):
         'auction_id': ap.auction_id,
         'auction': ap.auction.name or f'مزایده {ap.auction.id}' if ap.auction else '',
         'artwork_title': ap.title,
+        'lot': ap.lot,
         'artist': ap.artist.name if ap.artist else 'نامشخص',
         'artist_id': ap.artist_id,
         'artwork_type_id': ap.artwork_type_id,

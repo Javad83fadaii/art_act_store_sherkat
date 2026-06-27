@@ -52,6 +52,7 @@
                     <tr>
                         <th class="py-3.5 px-4 font-bold w-10 text-center">#</th>
                         <th class="py-3.5 px-4 font-bold min-w-[280px]">عنوان</th>
+                        <th class="py-3.5 px-4 font-bold w-20 text-center">لات</th>
                         <th class="py-3.5 px-4 font-bold w-36">مزایده</th>
                         <th class="py-3.5 px-4 font-bold w-28">هنرمند</th>
                         <th class="py-3.5 px-4 font-bold w-32">قیمت پایه</th>
@@ -144,7 +145,7 @@
             renderPagination(data.pages || 1);
             document.getElementById('total-text').innerText = `تعداد کل: ${data.total || 0}`;
         } catch (e) {
-            document.getElementById('products-tbody').innerHTML = `<tr><td colspan="8" class="py-10 text-center text-red-500 font-bold">خطا در دریافت لیست محصولات.</td></tr>`;
+            document.getElementById('products-tbody').innerHTML = `<tr><td colspan="9" class="py-10 text-center text-red-500 font-bold">خطا در دریافت لیست محصولات.</td></tr>`;
         } finally {
             loading.classList.add('hidden');
         }
@@ -154,7 +155,7 @@
         const tbody = document.getElementById('products-tbody');
         tbody.innerHTML = '';
         if (!items.length) {
-            tbody.innerHTML = `<tr><td colspan="8" class="py-10 text-center text-text-muted font-bold">محصولی یافت نشد.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="9" class="py-10 text-center text-text-muted font-bold">محصولی یافت نشد.</td></tr>`;
             return;
         }
 
@@ -191,6 +192,7 @@
                             ${rankingsHtml}
                         </div>` : ''}
                     </td>
+                    <td class="py-3 px-4 text-center text-text-muted text-xs dir-ltr">${item.lot || '-'}</td>
                     <td class="py-3 px-4">
                         <a href="${auctionPublicUrl}" target="_blank" class="text-text-main dark:text-white font-black hover:underline line-clamp-1 text-xs">${item.auction || '-'}</a>
                     </td>

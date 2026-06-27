@@ -40,6 +40,10 @@
                     <input id="productIdInput" type="text" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
                 </div>
                 <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">لات (Lot)</label>
+                    <input id="lotInput" type="number" min="1" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
+                </div>
+                <div>
                     <label class="block text-xs font-black text-text-muted mb-2">مزایده</label>
                     <select id="auctionSelect" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white"></select>
                 </div>
@@ -264,6 +268,7 @@
             document.getElementById('product-meta').innerText = `شناسه داخلی: #${data.id} | product_id: ${data.product_id || '-'} | auction_id: ${data.auction_id || '-'}`;
 
             document.getElementById('productIdInput').value = data.product_id || '';
+            document.getElementById('lotInput').value = data.lot || '';
             document.getElementById('auctionSelect').value = data.auction_id || '';
             document.getElementById('titleInput').value = data.artwork_title || '';
             document.getElementById('reserveInput').value = data.reserve_price || '';
@@ -305,6 +310,7 @@
         try {
             const payload = {
                 product_id: document.getElementById('productIdInput').value.trim(),
+                lot: document.getElementById('lotInput').value !== '' ? Number(document.getElementById('lotInput').value) : null,
                 auction_id: document.getElementById('auctionSelect').value ? Number(document.getElementById('auctionSelect').value) : null,
                 artwork_title: document.getElementById('titleInput').value.trim(),
                 reserve_price: document.getElementById('reserveInput').value,

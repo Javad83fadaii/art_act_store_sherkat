@@ -95,6 +95,10 @@
                     <input id="pProductId" type="text" class="w-full bg-white dark:bg-admin-surface-dark border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
                 </div>
                 <div>
+                    <label class="block text-[11px] font-black text-text-muted mb-2">لات (Lot)</label>
+                    <input id="pLot" type="number" min="1" class="w-full bg-white dark:bg-admin-surface-dark border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
+                </div>
+                <div>
                     <label class="block text-[11px] font-black text-text-muted mb-2">artist_id</label>
                     <input id="pArtistId" type="number" class="w-full bg-white dark:bg-admin-surface-dark border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
                 </div>
@@ -341,6 +345,7 @@
                 auction_id: AUCTION_PK,
                 product_id: document.getElementById('pProductId').value.trim(),
                 title: document.getElementById('pTitle').value.trim(),
+                lot: document.getElementById('pLot').value ? Number(document.getElementById('pLot').value) : null,
                 artist_id: document.getElementById('pArtistId').value ? Number(document.getElementById('pArtistId').value) : null,
                 artwork_type_id: document.getElementById('pTypeId').value ? Number(document.getElementById('pTypeId').value) : null,
                 subject_id: document.getElementById('pSubjectId').value ? Number(document.getElementById('pSubjectId').value) : null,
@@ -363,6 +368,7 @@
             showCreateMessage('محصول با موفقیت ساخته شد.', 'success');
             document.getElementById('pTitle').value = '';
             document.getElementById('pProductId').value = '';
+            document.getElementById('pLot').value = '';
             document.getElementById('pArtistId').value = '';
             document.getElementById('pTypeId').value = '';
             document.getElementById('pSubjectId').value = '';

@@ -140,6 +140,10 @@
                 <input id="apProductId" type="text" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
             </div>
             <div>
+                <label class="block text-xs font-black text-text-muted mb-2">لات (Lot)</label>
+                <input id="apLot" type="number" min="1" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
+            </div>
+            <div>
                 <label class="block text-xs font-black text-text-muted mb-2">اصالت</label>
                 <select id="apAuth" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white">
                     <option value="0">اصالت تایید شده</option>
@@ -255,6 +259,7 @@
                         <th class="py-3 px-4 font-bold text-center w-12">#</th>
                         <th class="py-3 px-4 font-bold">عنوان محصول</th>
                         <th class="py-3 px-4 font-bold">شناسه (Product ID)</th>
+                        <th class="py-3 px-4 font-bold">لات</th>
                         <th class="py-3 px-4 font-bold">هنرمند</th>
                         <th class="py-3 px-4 font-bold">قیمت پایه</th>
                         <th class="py-3 px-4 font-bold text-center w-20">عملیات</th>
@@ -293,6 +298,10 @@
                 <div>
                     <label class="block text-xs font-black text-text-muted mb-2">product_id (اختیاری)</label>
                     <input id="mProductId" type="text" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-text-muted mb-2">لات (Lot)</label>
+                    <input id="mLot" type="number" min="1" class="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-text-main dark:text-white dir-ltr text-right">
                 </div>
                 <div>
                     <label class="block text-xs font-black text-text-muted mb-2">هنرمند</label>
@@ -524,6 +533,7 @@
     function clearModalInputs() {
         document.getElementById('mTitle').value = '';
         document.getElementById('mProductId').value = '';
+        document.getElementById('mLot').value = '';
         document.getElementById('mArtistId').value = '';
         document.getElementById('mArtworkTypeId').value = '';
         document.getElementById('mSubjectId').value = '';
@@ -552,6 +562,7 @@
             id: crypto.randomUUID(),
             title: title,
             product_id: document.getElementById('mProductId').value.trim(),
+            lot: document.getElementById('mLot').value,
             artist_id: document.getElementById('mArtistId').value,
             artwork_type_id: document.getElementById('mArtworkTypeId').value,
             subject_id: document.getElementById('mSubjectId').value,
@@ -581,7 +592,7 @@
         const tbody = document.getElementById('auction-products-tbody');
         tbody.innerHTML = '';
         if (!productRows.length) {
-            tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-text-muted font-bold">هیچ محصولی به لیست اضافه نشده است.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" class="py-6 text-center text-text-muted font-bold">هیچ محصولی به لیست اضافه نشده است.</td></tr>`;
             return;
         }
 
@@ -598,6 +609,7 @@
                     <td class="py-3 px-4 text-center text-text-muted font-bold">${idx + 1}</td>
                     <td class="py-3 px-4 font-bold">${row.title}</td>
                     <td class="py-3 px-4 dir-ltr text-right text-text-muted">${row.product_id || '-'}</td>
+                    <td class="py-3 px-4 dir-ltr text-right text-text-muted">${row.lot || '-'}</td>
                     <td class="py-3 px-4">${artistName}</td>
                     <td class="py-3 px-4 dir-ltr text-right">${row.reserve_price || '0'}</td>
                     <td class="py-3 px-4 text-center">
@@ -686,6 +698,7 @@
                     auction_id: auctionId,
                     product_id: (r.product_id || '').trim(),
                     title: (r.title || '').trim(),
+                    lot: r.lot ? Number(r.lot) : null,
                     authenticity_status: r.authenticity_status !== undefined && r.authenticity_status !== '' ? Number(r.authenticity_status) : 0,
                     artist_id: r.artist_id ? Number(r.artist_id) : null,
                     artwork_type_id: r.artwork_type_id ? Number(r.artwork_type_id) : null,
@@ -749,6 +762,7 @@
                 auction_id: document.getElementById('apAuctionId').value ? Number(document.getElementById('apAuctionId').value) : null,
                 product_id: document.getElementById('apProductId').value.trim(),
                 title: document.getElementById('apTitle').value.trim(),
+                lot: document.getElementById('apLot').value ? Number(document.getElementById('apLot').value) : null,
                 authenticity_status: Number(document.getElementById('apAuth').value),
                 artist_id: document.getElementById('apArtistId').value ? Number(document.getElementById('apArtistId').value) : null,
                 artwork_type_id: document.getElementById('apArtworkTypeId').value ? Number(document.getElementById('apArtworkTypeId').value) : null,

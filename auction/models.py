@@ -51,6 +51,7 @@ class AuctionProduct(models.Model):
         default=AuthenticityStatus.CONFIRMED,
         verbose_name='وضعیت اصالت',
     )
+    lot = models.PositiveIntegerField(blank=True, null=True, verbose_name='لات')
     description = models.TextField(blank=True, null=True)
     dimensions = models.CharField(max_length=255, blank=True, null=True)
     creation_year = models.PositiveIntegerField(blank=True, null=True)
@@ -103,6 +104,13 @@ class AuctionProduct(models.Model):
     class Meta:
         db_table = 'auction_product'
         ordering = ['-created_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['auction', 'lot'],
+                condition=models.Q(lot__isnull=False),
+                name='uniq_auctionproduct_lot_per_auction',
+            ),
+        ]
 
     def save(self, *args, **kwargs):
         if self.current_price is None:
