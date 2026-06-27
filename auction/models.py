@@ -117,8 +117,16 @@ class AuctionProduct(models.Model):
             self.current_price = self.base_price
         return super().save(*args, **kwargs)
 
+    @property
+    def display_title(self) -> str:
+        parts = [self.title, self.product_id]
+        if self.lot is not None:
+            parts.append(f'لات {self.lot}')
+        return ' - '.join(filter(None, parts))
+
     def __str__(self) -> str:
-        return f'{self.product_id} - {self.title}'
+        return self.display_title
+
 
     @staticmethod
     def _image_extensions():

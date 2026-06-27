@@ -35,7 +35,7 @@
                 <span class="text-white font-bold tracking-widest text-sm drop-shadow-md">مزایده پایان یافت</span>
             </div>
 
-            <img alt="{{ product.title }}"
+            <img alt="{{ product.display_title|fa_digits }}"
                  data-product-img="{{ product.pk }}"
                  class="w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-110"
                  src="{{ product.main_image_url }}"/>
@@ -43,7 +43,7 @@
         
         <div class="px-4 text-right flex-grow flex flex-col relative z-20">
             <h3 class="font-bold text-xl text-neutral-900 dark:text-white leading-tight mb-3 font-display tracking-tight transition-colors duration-300">
-                {{ product.title }}
+                {{ product.display_title|fa_digits }}
             </h3>
             <div class="bg-neutral-50 dark:bg-zinc-800/50 rounded-xl p-4 mb-5 border border-neutral-100 dark:border-zinc-700 transition-colors duration-300">
                 <div class="flex justify-between items-center mb-2">
@@ -112,7 +112,7 @@
                         class="w-full flex items-center justify-center gap-2 bg-primary text-white hover:bg-primary-dark text-sm font-bold py-3 rounded-xl transition-all shadow-md shadow-primary/20 hover:shadow-lg ring-2 ring-transparent focus:ring-primary/50"
                         data-login-message="برای ثبت پیشنهاد در مزایده، لطفاً ابتدا وارد حساب کاربری خود شوید."
                         data-product-id="{{ product.pk }}"
-                        data-product-title="{{ product.title }}"
+                        data-product-title="{{ product.display_title }}"
                         data-current-price="{{ product.current_price|default:product.base_price }}"
                         data-min-next="{{ product.get_min_next_bid|default:0 }}"
                         data-bid-value="{{ product.bid_value|default:0 }}"

@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static humanize fa_digits %}
 
-{% block title %}جزئیات مزایده - {{ auction.title|fa_digits }}{% endblock %}
+{% block title %}جزئیات مزایده - {{ auction.display_title|fa_digits }}{% endblock %}
 
 {% block extra_head %}
     <!-- جلوگیری از کش شدن در سطح هدر HTTP -->
@@ -67,7 +67,7 @@
 
                 <div class="w-full h-full bg-cover bg-center transition-transform duration-700 ease-in-out hover:scale-110 cursor-pointer"
                      id="product-main-image"
-                     data-alt="{{ auction.title|fa_digits }}"
+                     data-alt="{{ auction.display_title|fa_digits }}"
                      style="background-image: url('{{ auction.main_image_url }}');"
                      onclick="openGalleryModal(currentGalleryIndex)">
                 </div>
@@ -168,21 +168,9 @@
                 
                 <!-- بخش هدر: عنوان و مشخصات -->
                 <div class="border-b border-neutral-200 pb-6 animate-fadeIn" style="animation-delay: 0.1s;">
-                    <div class="mb-3 flex flex-wrap items-center gap-3">
-                        <h1 class="text-4xl lg:text-5xl font-bold text-neutral-900 tracking-tight leading-tight">
-                            {{ auction.title|fa_digits }}
-                        </h1>
-                        <div class="flex flex-wrap items-center gap-2 text-sm font-bold text-neutral-600">
-                            <span class="inline-flex items-center rounded-full border border-neutral-200 bg-neutral-100 px-3 py-1">
-                                شناسه: {{ auction.product_id|fa_digits }}
-                            </span>
-                            {% if auction.lot %}
-                            <span class="inline-flex items-center rounded-full border border-neutral-200 bg-neutral-100 px-3 py-1">
-                                لات: {{ auction.lot|fa_digits }}
-                            </span>
-                            {% endif %}
-                        </div>
-                    </div>
+                    <h1 class="text-4xl lg:text-5xl font-bold text-neutral-900 mb-3 tracking-tight leading-tight">
+                        {{ auction.display_title|fa_digits }}
+                    </h1>
                     <h2 class="text-2xl lg:text-3xl text-neutral-600 font-medium mb-6">
                     {{ auction.artist.name|fa_digits }}
                     </h2>
