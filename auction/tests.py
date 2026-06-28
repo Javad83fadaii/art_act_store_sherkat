@@ -289,6 +289,50 @@ class AuctionBidCreditFlowTests(TestCase):
         self.assertContains(response, 'به فروش رسید')
         self.assertContains(response, 'data-has-winner="1"')
 
+    def test_auction_products_page_orders_items_by_lot_number(self):
+        AuctionProduct.objects.create(
+            auction=self.auction,
+            product_id='A-1002',
+            title='محصول لات 10',
+            lot=10,
+            artist=self.artist,
+            artwork_type=self.artwork_type,
+            base_price=Decimal('100'),
+            bid_value=Decimal('10'),
+        )
+        AuctionProduct.objects.create(
+            auction=self.auction,
+            product_id='A-1003',
+            title='محصول لات 2',
+            lot=2,
+            artist=self.artist,
+            artwork_type=self.artwork_type,
+            base_price=Decimal('100'),
+            bid_value=Decimal('10'),
+        )
+        AuctionProduct.objects.create(
+            auction=self.auction,
+            product_id='A-1004',
+            title='محصول بدون لات',
+            lot=None,
+            artist=self.artist,
+            artwork_type=self.artwork_type,
+            base_price=Decimal('100'),
+            bid_value=Decimal('10'),
+        )
+
+        response = self.client.get(
+            reverse('auction:auction_products', kwargs={'pk': self.auction.pk}),
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        product_titles = [product.title for product in response.context['products']]
+        self.assertEqual(
+            product_titles,
+            ['محصول لات 2', 'محصول لات 10', 'تابلو تست', 'محصول بدون لات'],
+        )
+
 
 class AuctionVisitTrackingTests(TestCase):
     def setUp(self):

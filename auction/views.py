@@ -4,7 +4,7 @@ from decimal import Decimal, InvalidOperation
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
-from django.db.models import Count, OuterRef, Subquery, Max
+from django.db.models import Case, Count, IntegerField, Max, OuterRef, Subquery, Value, When
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
@@ -59,6 +59,19 @@ def _has_finished_winner_profile_access(request, product: AuctionProduct, access
             user_id=request.user.pk,
             product_id=product.pk,
         )
+    )
+
+
+def _order_auction_products_by_lot(queryset):
+    return (
+        queryset.annotate(
+            _lot_is_null=Case(
+                When(lot__isnull=True, then=Value(1)),
+                default=Value(0),
+                output_field=IntegerField(),
+            )
+        )
+        .order_by('_lot_is_null', 'lot', 'created_at', 'pk')
     )
 
 
@@ -421,13 +434,13 @@ class AuctionProductsView(ListView):
 
     def get_queryset(self):
         artwork_pk = Artwork.objects.filter(product_id=OuterRef('product_id')).values('pk')[:1]
-        return (
+        queryset = (
             AuctionProduct.objects.filter(auction=self.auction)
             .select_related('artist', 'artwork_type', 'auction')
             .annotate(bid_count=Count('bids'))
             .annotate(artwork_pk=Subquery(artwork_pk))
-            .order_by('-created_at')
         )
+        return _order_auction_products_by_lot(queryset)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

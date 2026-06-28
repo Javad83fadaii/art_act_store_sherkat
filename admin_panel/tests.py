@@ -68,6 +68,70 @@ class AdminRequestManagementTests(TestCase):
         self.assertEqual(page_response.status_code, 200)
         self.assertEqual(api_response.status_code, 200)
 
+    def test_superuser_auction_products_list_orders_items_by_lot_number(self):
+        self.client.force_login(self.super_user)
+        artist = Artist.objects.create(id=101, name='هنرمند ادمین')
+        artwork_type = ArtworkType.objects.create(name='چاپ')
+        auction = Auction.objects.create(
+            name='مزایده ادمین',
+            start_date=timezone.now() - timedelta(hours=1),
+            end_date=timezone.now() + timedelta(hours=1),
+            products_count=4,
+        )
+        AuctionProduct.objects.create(
+            auction=auction,
+            product_id='ADM-1001',
+            title='محصول لات 10',
+            lot=10,
+            artist=artist,
+            artwork_type=artwork_type,
+            base_price=Decimal('100'),
+            bid_value=Decimal('10'),
+        )
+        AuctionProduct.objects.create(
+            auction=auction,
+            product_id='ADM-1002',
+            title='محصول لات 2',
+            lot=2,
+            artist=artist,
+            artwork_type=artwork_type,
+            base_price=Decimal('100'),
+            bid_value=Decimal('10'),
+        )
+        AuctionProduct.objects.create(
+            auction=auction,
+            product_id='ADM-1003',
+            title='محصول بدون لات اول',
+            lot=None,
+            artist=artist,
+            artwork_type=artwork_type,
+            base_price=Decimal('100'),
+            bid_value=Decimal('10'),
+        )
+        AuctionProduct.objects.create(
+            auction=auction,
+            product_id='ADM-1004',
+            title='محصول بدون لات دوم',
+            lot=None,
+            artist=artist,
+            artwork_type=artwork_type,
+            base_price=Decimal('100'),
+            bid_value=Decimal('10'),
+        )
+
+        response = self.client.get(
+            reverse('admin_panel:products-auction-list'),
+            {'auction_id': auction.pk},
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        product_titles = [item['artwork_title'] for item in response.json()['products']]
+        self.assertEqual(
+            product_titles,
+            ['محصول لات 2', 'محصول لات 10', 'محصول بدون لات اول', 'محصول بدون لات دوم'],
+        )
+
     def test_verification_request_can_be_approved_from_admin_panel(self):
         request_obj = VerificationRequest.objects.create(
             user=self.normal_user,

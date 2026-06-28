@@ -3,7 +3,7 @@ import uuid
 from datetime import timedelta
 
 from django.core.paginator import Paginator
-from django.db.models import Q, Count, Sum
+from django.db.models import Case, Count, IntegerField, Q, Sum, Value, When
 from django.db.models.functions import TruncDate
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
@@ -23,6 +23,19 @@ def _request_payload(request):
         return json.loads(request.body.decode() or '{}')
     except (json.JSONDecodeError, UnicodeDecodeError):
         return request.POST.dict()
+
+
+def _order_auction_products_by_lot(queryset):
+    return (
+        queryset.annotate(
+            _lot_is_null=Case(
+                When(lot__isnull=True, then=Value(1)),
+                default=Value(0),
+                output_field=IntegerField(),
+            )
+        )
+        .order_by('_lot_is_null', 'lot', 'created_at', 'pk')
+    )
 
 
 @superuser_required
@@ -613,7 +626,6 @@ def auction_list(request):
     products = (
         AuctionProduct.objects.select_related('auction', 'artist')
         .annotate(views_count=Count('visit_history'))
-        .order_by('-created_at')
     )
 
     auction_id = request.GET.get('auction_id')
@@ -637,8 +649,11 @@ def auction_list(request):
             | Q(artist__name__icontains=search)
         )
 
-    sort = request.GET.get('sort', '-created_at')
-    products = products.order_by(sort)
+    sort = request.GET.get('sort', '').strip()
+    if sort:
+        products = products.order_by(sort)
+    else:
+        products = _order_auction_products_by_lot(products)
 
     paginator = Paginator(products, 20)
     page = paginator.get_page(request.GET.get('page', 1))
