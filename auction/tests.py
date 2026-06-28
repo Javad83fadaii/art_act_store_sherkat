@@ -333,6 +333,39 @@ class AuctionBidCreditFlowTests(TestCase):
             ['محصول لات 2', 'محصول لات 10', 'تابلو تست', 'محصول بدون لات'],
         )
 
+    def test_auction_product_model_default_ordering_uses_lot_number(self):
+        AuctionProduct.objects.filter(pk=self.product.pk).update(lot=7)
+        self.product.refresh_from_db()
+        AuctionProduct.objects.create(
+            auction=self.auction,
+            product_id='A-1005',
+            title='محصول لات 3',
+            lot=3,
+            artist=self.artist,
+            artwork_type=self.artwork_type,
+            base_price=Decimal('100'),
+            bid_value=Decimal('10'),
+        )
+        AuctionProduct.objects.create(
+            auction=self.auction,
+            product_id='A-1006',
+            title='محصول بدون لات',
+            lot=None,
+            artist=self.artist,
+            artwork_type=self.artwork_type,
+            base_price=Decimal('100'),
+            bid_value=Decimal('10'),
+        )
+
+        product_titles = list(
+            AuctionProduct.objects.filter(auction=self.auction).values_list('title', flat=True)
+        )
+
+        self.assertEqual(
+            product_titles,
+            ['محصول لات 3', 'تابلو تست', 'محصول بدون لات'],
+        )
+
 
 class AuctionVisitTrackingTests(TestCase):
     def setUp(self):

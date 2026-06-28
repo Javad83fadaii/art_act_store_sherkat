@@ -103,7 +103,11 @@ class AuctionProduct(models.Model):
 
     class Meta:
         db_table = 'auction_product'
-        ordering = ['-created_at']
+        ordering = [
+            models.F('lot').asc(nulls_last=True),
+            'created_at',
+            'pk',
+        ]
         constraints = [
             models.UniqueConstraint(
                 fields=['auction', 'lot'],
