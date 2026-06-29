@@ -124,7 +124,7 @@ class AuctionProduct(models.Model):
     @property
     def display_title(self) -> str:
         if self.lot is not None:
-            return f'{self.lot} {self.title}'.strip()
+            return f'{self.lot} — {self.title}'.strip()
         return (self.title or '').strip()
 
     def __str__(self) -> str:
