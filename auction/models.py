@@ -123,10 +123,9 @@ class AuctionProduct(models.Model):
 
     @property
     def display_title(self) -> str:
-        parts = [self.title, self.product_id]
         if self.lot is not None:
-            parts.append(f'لات {self.lot}')
-        return ' - '.join(filter(None, parts))
+            return f'{self.lot} {self.title}'.strip()
+        return (self.title or '').strip()
 
     def __str__(self) -> str:
         return self.display_title
