@@ -46,7 +46,8 @@
                 <h3 class="block font-bold text-lg sm:text-[1.15rem] text-neutral-900 dark:text-white leading-8 sm:leading-9 mb-3 font-display tracking-tight transition-colors duration-300">
                     <span class="inline-flex align-middle ml-2 mb-1 w-fit items-center gap-1.5 rounded-full border border-amber-200/80 bg-gradient-to-r from-amber-50 via-white to-amber-100 px-3 py-1.5 text-[11px] font-black text-amber-800 shadow-sm shadow-amber-100/80 dark:border-amber-500/20 dark:from-amber-500/15 dark:via-zinc-900 dark:to-amber-400/10 dark:text-amber-200 whitespace-nowrap">
                         <span class="material-symbols-outlined text-[13px] sm:text-[14px]">sell</span>
-                        <span> {{ product.lot|fa_digits }}</span>
+                        <!-- در این قسمت کلاس‌های اندازه فونت بزرگتر به اسپَن حاوی عدد اضافه شد -->
+                        <span class="text-[15px] sm:text-[16px] leading-none"> {{ product.lot|fa_digits }}</span>
                     </span>
                     <span class="inline align-middle text-base sm:text-[1.15rem]">{{ product.title }}</span>
                 </h3>
@@ -86,12 +87,6 @@
                         {{ product.price_description|fa_digits }}
                     </div>
                 {% endif %}
-                <!-- <div class="flex justify-between items-center">
-                    <span class="text-xs text-neutral-500 dark:text-neutral-400 font-medium">تعداد پیشنهادات</span>
-                    <span class="font-en font-bold text-sm text-neutral-900 dark:text-white" data-product-bids-display>
-                        {{ product.bid_count|default:0|intcomma|fa_digits }}
-                    </span>
-                </div> -->
             </div>
 
             <div class="mt-auto space-y-2.5">
