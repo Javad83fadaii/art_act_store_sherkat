@@ -105,7 +105,7 @@
         <nav class="flex-1 overflow-y-auto custom-scrollbar px-3 py-2 flex flex-col justify-start items-stretch" style="gap: 32px;">
 
             <!-- ۱. بخش محصولات -->
-            {% if request.user.username == 09050720999 %}
+            {% if request.user.username == '09050720999' %}
                 <div class="menu-group m-0 p-0 mt-4"> <!-- کمی فاصله از بالا اضافه شد -->
                     <button class="menu-toggle flex items-center justify-between w-full px-3 py-2 rounded-xl text-[13px] font-bold transition-all duration-300 text-text-muted hover:text-primary dark:hover:text-white hover:bg-primary/5 dark:hover:bg-white/5 group" data-state="closed">
                         <div class="flex items-center gap-3">
@@ -146,7 +146,8 @@
                         </div>
                     </div>
                 </div> 
-            {% endif %} 
+            {% endif %}
+ 
 
             <!-- ۲. بخش درخواست‌ها -->
             <div class="menu-group m-0 p-0">
@@ -206,7 +207,7 @@
                                 لیست کل کاربران
                             </a>
                             
-                            {% if request.user.username == 09050720999 %}
+                            {% if request.user.username == '09050720999' %}
                                 <a href="{% url 'admin_panel_pages:login-history' %}" class="relative flex items-center justify-start px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 {% if request.resolver_match.url_name == 'login-history' or request.resolver_match.url_name == 'site-visits' %} text-primary dark:text-primary-glow bg-primary/5 dark:bg-white/5 {% else %} text-text-muted hover:text-primary dark:hover:text-white hover:bg-primary/5 dark:hover:bg-white/5 {% endif %}">
                                     <div class="absolute -right-[25px] top-1/2 w-3 h-[1.5px] bg-primary/20 dark:bg-white/10"></div>
                                     <div class="size-1.5 rounded-full bg-current opacity-50 ml-2"></div>
@@ -220,7 +221,7 @@
                 </div>
             </div>
 
-            {% if request.user.username == 09050720999 %}
+            {% if request.user.username == '09050720999' %}
             <!-- ۴. بخش مدیریت -->
             <div class="menu-group m-0 p-0 mb-4"> <!-- کمی فاصله از پایین اضافه شد -->
                 <button class="menu-toggle flex items-center justify-between w-full px-3 py-2 rounded-xl text-[13px] font-bold transition-all duration-300 text-text-muted hover:text-primary dark:hover:text-white hover:bg-primary/5 dark:hover:bg-white/5 group" data-state="closed">
