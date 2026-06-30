@@ -35,10 +35,13 @@
                 <span class="text-white font-bold tracking-widest text-sm drop-shadow-md">مزایده پایان یافت</span>
             </div>
 
-            <img alt="{{ product.title }}"
-                 data-product-img="{{ product.pk }}"
-                 class="w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-110"
-                 src="{{ product.main_image_url }}"/>
+            <!-- افزودن لینک به تصویر -->
+            <a href="{% url 'auction:auction_product_detail' product.pk %}" class="block w-full h-full">
+                <img alt="{{ product.title }}"
+                     data-product-img="{{ product.pk }}"
+                     class="w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-110"
+                     src="{{ product.main_image_url }}"/>
+            </a>
         </div>
         
         <div class="px-4 text-right flex-grow flex flex-col relative z-20">
