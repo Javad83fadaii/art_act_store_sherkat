@@ -165,7 +165,7 @@
                                     <img src="{{ like.product.main_image_url }}" alt="{{ like.product.title }}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
                                 </div>
                                 <div class="min-w-0 flex-1">
-                                    <h3 class="font-bold text-sm text-gray-900 dark:text-white truncate drop-shadow-sm">{{ like.product.title|fa_digits }}</h3>
+                                    <h3 class="font-bold text-sm text-gray-900 dark:text-white truncate drop-shadow-sm">{% include 'partials/lot_badge_title.html' with lot=like.product.lot title=like.product.title %}</h3>
                                     <p class="text-xs text-gray-700 dark:text-gray-300 mt-1">{{ like.product.artist.name|fa_digits }}</p>
                                 </div>
                                 <div class="pl-2">
