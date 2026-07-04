@@ -101,12 +101,14 @@
                             <span class="material-symbols-outlined text-[28px] leading-none block">account_circle</span>
                             
                             {% if request.user.is_verified == 1 %}
-                                <span class="absolute -top-1 -right-1 z-10 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center shadow-sm" title="کاربر تایید شده">
+                                <span class="absolute -top-1 -right-1 z-10 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center shadow-sm" title="کاربر تایید شده">
                                     <i class="material-symbols-outlined text-white text-[21.5px] mt-px">check_circle</i>
                                 </span>
                             {% endif %}
                         </div>
-                        <span class="text-sm font-bold font-body text-[#1F2937] dark:text-gray-200">خوش آمدید</span>
+                        <span class="inline-block max-w-[80px] truncate text-sm font-bold font-body text-[#1F2937] dark:text-gray-200" title="{{ request.user.get_full_name }}">
+                            {{ request.user.get_full_name|default:"کاربر" }}
+                        </span>
                     {% else %}
                         <!-- حالت لاگین نکرده -->
                         <div class="relative flex items-center justify-center">

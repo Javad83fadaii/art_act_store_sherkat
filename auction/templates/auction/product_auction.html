@@ -186,7 +186,7 @@
                             <span class="material-symbols-outlined text-[20px] text-neutral-400">square_foot</span>
                             <span id="product-dimensions">{{ auction.dimensions|default:"—"|fa_digits }}</span>
                         </div>
-                        {% if auction.authenticity_status == 0 %}
+                        {% comment %} {% if auction.authenticity_status == 0 %}
                             <div class="flex items-center gap-2 text-primary bg-primary/10 px-2.5 py-1 rounded-full border border-primary/20">
                                 <span class="material-symbols-outlined text-[18px] filled">verified</span>
                                 {{ auction.get_authenticity_status_display|fa_digits }}
@@ -196,7 +196,7 @@
                                 <span class="material-symbols-outlined text-[18px]">new_releases</span>
                                 {{ auction.get_authenticity_status_display|fa_digits }}
                             </div>
-                        {% endif %}
+                        {% endif %} {% endcomment %}
                     </div>
                 </div>
 
@@ -307,7 +307,7 @@
                             <!-- نمایش قیمت -->
                             <div class="space-y-3 text-center sm:text-right">
                                 <div class="flex justify-between items-center">
-                                    <span class="text-sm text-neutral-500 font-bold bg-neutral-100 px-2 py-1 rounded">آخرین پیشنهاد (<span id="bid-count-number">{{ auction.bids.count|fa_digits }}</span> بید)</span>
+                                    <span class="text-sm text-neutral-500 font-bold bg-neutral-100 px-2 py-1 rounded">آخرین پیشنهاد </span>
                                     <span class="dir-ltr inline-flex items-center gap-1 rounded-lg bg-neutral-100 px-3 py-1.5 text-sm font-extrabold text-neutral-800 border border-neutral-200">
                                         قیمت پایه: {{ auction.base_price|intcomma|fa_digits }}
                                     </span>
