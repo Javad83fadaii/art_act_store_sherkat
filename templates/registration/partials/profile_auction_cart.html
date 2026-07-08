@@ -12,7 +12,7 @@
                 {{ auction_cart_active_total|fa_digits }} آیتم فعال
             </span>
             <span class="px-3 py-1 bg-amber-100/70 dark:bg-amber-900/30 backdrop-blur-md border border-amber-200/70 dark:border-amber-700/50 text-amber-700 dark:text-amber-300 text-xs font-bold rounded-full shadow-sm dir-ltr">
-                {{ auction_reserved_credit|default:"0"|floatformat:"0"|intcomma|fa_digits }} تومان
+                ${{ auction_reserved_credit|default:"0"|floatformat:"0"|intcomma|fa_digits }}
             </span>
         </div>
     </div>
@@ -49,8 +49,7 @@
                                             </div>
                                         {% endif %}
 
-                                        {% include 'partials/auction_lot_badge.html' with lot=item.product.lot variant='compact' %}
-                                        <h3 class="font-bold text-sm text-gray-900 dark:text-white truncate">{{ item.product.title|fa_digits }}</h3>
+                                        <h3 class="font-bold text-sm text-gray-900 dark:text-white truncate">{% include 'partials/lot_badge_title.html' with lot=item.product.lot title=item.product.title fallback_title=item.product.display_title %}</h3>
                                     </div>
 
                                     <div class="mt-1 text-xs text-gray-600 dark:text-gray-400">
@@ -71,7 +70,7 @@
                                         {% endif %}
 
                                         <span class="inline-flex items-center rounded-lg {% if item.is_active %}bg-amber-100/70 dark:bg-amber-900/30 border-amber-200/80 dark:border-amber-700/40 text-amber-700 dark:text-amber-300{% else %}bg-gray-200/70 dark:bg-gray-700/40 border-gray-300/80 dark:border-gray-600/60 text-gray-700 dark:text-gray-300{% endif %} border px-3 py-1 text-[11px] font-black dir-ltr">
-                                            {{ item.reserved_amount|floatformat:"0"|intcomma|fa_digits }} تومان
+                                            ${{ item.reserved_amount|floatformat:"0"|intcomma|fa_digits }}
                                         </span>
 
                                         <span class="inline-flex items-center rounded-lg bg-white/40 dark:bg-gray-900/40 border border-white/50 dark:border-gray-600/40 px-3 py-1 text-[11px] font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
@@ -85,7 +84,7 @@
 
                                     {% if not item.is_active %}
                                         <div class="mt-2 text-[11px] text-amber-600 dark:text-amber-400 font-bold">
-                                            پیشنهاد شما، دیگر بالاترین پیشنهاد نیست. قیمت فعلی: {{ item.product.current_price|floatformat:"0"|intcomma|fa_digits }} تومان
+                                            پیشنهاد شما، دیگر بالاترین پیشنهاد نیست. قیمت فعلی: ${{ item.product.current_price|floatformat:"0"|intcomma|fa_digits }}
                                         </div>
                                     {% endif %}
                                 </div>
@@ -105,7 +104,7 @@
                         {% if item.bid_history %}
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 {% for bid in item.bid_history %}
-                                    <div class="flex items-center justify-between gap-3 rounded-xl border p-3 shadow-sm transition-all duration-300 {% if forloop.first %}border-white/70 dark:border-gray-500/60 bg-white/50 dark:bg-gray-900/55 ring-1 ring-primary/35{% else %}border-white/35 dark:border-gray-700/30 bg-white/15 dark:bg-gray-900/20 opacity-65{% endif %}">
+                                    <div class="flex items-center justify-between gap-3 rounded-xl border border-white/50 dark:border-gray-600/40 bg-white/30 dark:bg-gray-900/40 p-3 shadow-sm">
                                         <div class="flex items-center gap-2 min-w-0">
                                             {% with rank=bid|get_bid_rank %}
                                                 {% if rank == 1 %}
@@ -128,9 +127,9 @@
                                                     <div class="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_5px_currentColor] shrink-0"></div>
                                                 {% endif %}
                                             {% endwith %}
-                                            <span class="text-sm {% if forloop.first %}font-black text-gray-900 dark:text-white{% else %}font-bold text-gray-500 dark:text-gray-400{% endif %}">{{ bid.bid_amount|floatformat:"0"|intcomma|fa_digits }} تومان</span>
+                                            <span class="text-sm font-black text-gray-900 dark:text-white dir-ltr">${{ bid.bid_amount|floatformat:"0"|intcomma|fa_digits }}</span>
                                         </div>
-                                        <span class="text-[10px] {% if forloop.first %}font-medium text-gray-700 dark:text-gray-300{% else %}font-normal text-gray-500 dark:text-gray-400{% endif %} whitespace-nowrap">{{ bid.created_at|to_jalali:'%Y/%m/%d | %H:%M'|fa_digits }}</span>
+                                        <span class="text-[10px] font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">{{ bid.created_at|to_jalali:'%Y/%m/%d | %H:%M'|fa_digits }}</span>
                                     </div>
                                 {% endfor %}
                             </div>
@@ -175,8 +174,7 @@
                             <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                                 <div class="min-w-0 flex-1">
                                     <div class="flex flex-wrap items-center gap-2">
-                                        {% include 'partials/auction_lot_badge.html' with lot=item.product.lot variant='compact' %}
-                                        <h4 class="font-bold text-sm text-gray-900 dark:text-white truncate">{{ item.product.title|fa_digits }}</h4>
+                                        <h4 class="font-bold text-sm text-gray-900 dark:text-white truncate">{% include 'partials/lot_badge_title.html' with lot=item.product.lot title=item.product.title fallback_title=item.product.display_title %}</h4>
                                         {% if item.product.winner_id == user.id %}
                                             <span class="inline-flex items-center rounded-lg bg-emerald-100/70 dark:bg-emerald-900/30 border border-emerald-200/80 dark:border-emerald-700/40 px-3 py-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
                                                 برنده شدید
@@ -198,10 +196,10 @@
                                     </div>
                                     <div class="mt-3 flex flex-wrap items-center gap-2">
                                         <span class="inline-flex items-center rounded-lg bg-white/40 dark:bg-gray-900/40 border border-white/50 dark:border-gray-600/40 px-3 py-1 text-[11px] font-black text-gray-800 dark:text-gray-200 dir-ltr">
-                                            بید شما: {{ item.reserved_amount|floatformat:"0"|intcomma|fa_digits }} تومان
+                                            بید شما: ${{ item.reserved_amount|floatformat:"0"|intcomma|fa_digits }}
                                         </span>
                                         <span class="inline-flex items-center rounded-lg bg-primary/10 border border-primary/20 px-3 py-1 text-[11px] font-black text-primary dir-ltr">
-                                            قیمت نهایی: {{ item.product.current_price|floatformat:"0"|intcomma|fa_digits }} تومان
+                                            قیمت نهایی: ${{ item.product.current_price|floatformat:"0"|intcomma|fa_digits }}
                                         </span>
                                         <span class="inline-flex items-center rounded-lg bg-white/40 dark:bg-gray-900/40 border border-white/50 dark:border-gray-600/40 px-3 py-1 text-[11px] font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
                                             پایان مزایده: {{ item.auction.end_date|to_jalali:'%Y/%m/%d | %H:%M'|fa_digits }}
