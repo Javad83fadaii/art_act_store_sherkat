@@ -104,7 +104,7 @@
                         {% if item.bid_history %}
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 {% for bid in item.bid_history %}
-                                    <div class="flex items-center justify-between gap-3 rounded-xl border border-white/50 dark:border-gray-600/40 bg-white/30 dark:bg-gray-900/40 p-3 shadow-sm">
+                                    <div class="flex items-center justify-between gap-3 rounded-xl border p-3 shadow-sm transition-all duration-200 {% if forloop.first %}bg-white/45 dark:bg-gray-900/55 border-primary/30 dark:border-blue-400/30 ring-1 ring-primary/15 dark:ring-blue-400/20{% else %}bg-white/15 dark:bg-gray-900/20 border-white/30 dark:border-gray-700/30 opacity-60{% endif %}">
                                         <div class="flex items-center gap-2 min-w-0">
                                             {% with rank=bid|get_bid_rank %}
                                                 {% if rank == 1 %}
@@ -127,9 +127,9 @@
                                                     <div class="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_5px_currentColor] shrink-0"></div>
                                                 {% endif %}
                                             {% endwith %}
-                                            <span class="text-sm font-black text-gray-900 dark:text-white dir-ltr">${{ bid.bid_amount|floatformat:"0"|intcomma|fa_digits }}</span>
+                                            <span class="text-sm font-black dir-ltr {% if forloop.first %}text-gray-900 dark:text-white{% else %}text-gray-600 dark:text-gray-300{% endif %}">${{ bid.bid_amount|floatformat:"0"|intcomma|fa_digits }}</span>
                                         </div>
-                                        <span class="text-[10px] font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">{{ bid.created_at|to_jalali:'%Y/%m/%d | %H:%M'|fa_digits }}</span>
+                                        <span class="text-[10px] whitespace-nowrap {% if forloop.first %}font-semibold text-gray-700 dark:text-gray-300{% else %}font-medium text-gray-500 dark:text-gray-400{% endif %}">{{ bid.created_at|to_jalali:'%Y/%m/%d | %H:%M'|fa_digits }}</span>
                                     </div>
                                 {% endfor %}
                             </div>
