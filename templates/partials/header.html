@@ -1,12 +1,9 @@
 {% load static %}
-<!-- استایل هدر به کپسول شناور و شیشه‌ای تغییر یافت، اما چیدمان داخلی دست نخورد -->
-<!-- تغییرات: سایه هدر با کلاس‌های shadow-2xl و shadow-black/15 به طرز چشمگیری بیشتر شد -->
 <header
     class="fixed top-4 left-1/2 -translate-x-1/2 z-[1001] w-[96%] max-w-[1440px] rounded-full border border-[#F3F4F6] dark:border-white/5 glass-effect bg-[#FFFFFF]/80 dark:bg-gray-900/80 backdrop-blur-lg shadow-2xl shadow-black/15 dark:shadow-black/40 transition-all duration-300">
     <div class="px-6 md:px-8 h-16 md:h-[76px] flex items-center justify-between relative w-full">
 
-        <!-- دکمه منوی همبرگری (سمت راست در RTL) -->
-        <!-- نکته: رویداد onclick اضافه شد تا با فایل base.html شما هماهنگ شود -->
+        <!-- دکمه منوی همبرگری -->
         <button id="mobile-menu-btn" onclick="toggleMobileMenu()"
             class="lg:hidden p-2 -mr-2 text-[#4B5563] dark:text-gray-300 hover:text-primary transition-colors z-30">
             <span class="material-symbols-outlined text-[28px]">menu</span>
@@ -16,15 +13,12 @@
         <div
             class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 lg:static lg:translate-x-0 lg:translate-y-0 flex items-center gap-2 lg:gap-3 z-20 pointer-events-none lg:pointer-events-auto">
             <a href="{% url 'home' %}" class="flex items-center gap-2 lg:gap-3 pointer-events-auto">
-                <!-- تغییرات اعمال شده: سایز دایره در موبایل به 10 و در دسکتاپ به 12 تغییر یافت -->
                 <div class="logo-bg-reveal size-10 lg:size-12 rounded-full bg-primary text-white flex items-center justify-center shrink-0">
-                    <!-- تغییرات اعمال شده: سایز گیف در موبایل به 12 و در دسکتاپ به 14 تغییر یافت و دراپ‌شدو اضافه شد -->
                     <img id="header-logo-anim" src="{% static 'images/122.gif' %}" alt="gavel"
                         class="size-28 lg:size-32 object-contain drop-shadow-[0_4px_8px_#AB8C58]">
                 </div> 
 
                 <div class="flex flex-col items-center lg:items-start">
-                    <!-- جایگزینی متن نام مجموعه با تصویر -->
                     <h1 class="leading-none whitespace-nowrap">
                         <img
                             src="{% static 'images/1.svg' %}"
@@ -46,27 +40,38 @@
             <span class="material-symbols-outlined text-[28px]">search</span>
         </button>
 
-        <!-- منوی دسکتاپ -->
+        <!-- منوی دسکتاپ (آپدیت شده برای صفحات داخلی و جزئیات محصول) -->
         <nav class="hidden lg:flex items-center gap-8 mx-auto pl-10">
-            <a class="text-sm font-medium text-[#4B5563] dark:text-gray-300 hover:text-primary transition-colors font-body relative group py-2"
-                href="{% url 'auction:auction' %}">
+            
+            <!-- مزایده: فعال در تمام صفحات اپلیکیشن auction -->
+            {% url 'auction:auction' as url_auction %}
+            <a class="text-sm font-medium transition-colors font-body relative group py-2 {% if request.resolver_match.namespace == 'auction' or request.path == url_auction %}text-primary dark:text-primary{% else %}text-[#4B5563] dark:text-gray-300 hover:text-primary{% endif %}"
+                href="{{ url_auction }}">
                 مزایده
-                <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
+                <span class="absolute bottom-0 left-0 h-0.5 bg-primary transition-all duration-300 {% if request.resolver_match.namespace == 'auction' or request.path == url_auction %}w-full{% else %}w-0 group-hover:w-full{% endif %}"></span>
             </a>
-            <a class="text-sm font-medium text-[#4B5563] dark:text-gray-300 hover:text-primary transition-colors font-body relative group py-2"
-                href="{% url 'store:artwork_list' %}">
+
+            <!-- فروشگاه: فعال در تمام صفحات اپلیکیشن store از جمله جزئیات محصول -->
+            {% url 'store:artwork_list' as url_store %}
+            <a class="text-sm font-medium transition-colors font-body relative group py-2 {% if request.resolver_match.namespace == 'store' or request.path == url_store %}text-primary dark:text-primary{% else %}text-[#4B5563] dark:text-gray-300 hover:text-primary{% endif %}"
+                href="{{ url_store }}">
                 فروشگاه
-                <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
+                <span class="absolute bottom-0 left-0 h-0.5 bg-primary transition-all duration-300 {% if request.resolver_match.namespace == 'store' or request.path == url_store %}w-full{% else %}w-0 group-hover:w-full{% endif %}"></span>
             </a>
-            <a class="text-sm font-medium text-[#4B5563] dark:text-gray-300 hover:text-primary transition-colors font-body relative group py-2"
-                href="{% url 'about' %}">
+
+            <!-- شناسنامه -->
+            {% url 'about' as url_about %}
+            <a class="text-sm font-medium transition-colors font-body relative group py-2 {% if request.path == url_about %}text-primary dark:text-primary{% else %}text-[#4B5563] dark:text-gray-300 hover:text-primary{% endif %}"
+                href="{{ url_about }}">
                 شناسنامه
-                <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
+                <span class="absolute bottom-0 left-0 h-0.5 bg-primary transition-all duration-300 {% if request.path == url_about %}w-full{% else %}w-0 group-hover:w-full{% endif %}"></span>
             </a>
-            <a class="text-sm font-medium text-[#4B5563] dark:text-gray-300 hover:text-primary transition-colors font-body relative group py-2"
-                href="{% url 'about' %}">
+
+            <!-- درباره ما -->
+            <a class="text-sm font-medium transition-colors font-body relative group py-2 {% if request.path == url_about %}text-primary dark:text-primary{% else %}text-[#4B5563] dark:text-gray-300 hover:text-primary{% endif %}"
+                href="{{ url_about }}">
                 درباره ما
-                <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
+                <span class="absolute bottom-0 left-0 h-0.5 bg-primary transition-all duration-300 {% if request.path == url_about %}w-full{% else %}w-0 group-hover:w-full{% endif %}"></span>
             </a>
         </nav>
 
@@ -91,12 +96,10 @@
 
             <!-- پروفایل -->
             <div class="relative group">
-                <!-- دکمه پروفایل/ورود تغییر یافته -->
                 <button
                     class="flex items-center gap-2 p-1.5 px-3 text-[#4B5563] hover:text-primary transition-colors rounded-full bg-primary/5 hover:bg-primary/10 dark:bg-white/5 dark:hover:bg-white/10">
                     
                     {% if request.user.is_authenticated %}
-                        <!-- حالت لاگین شده -->
                         <div class="relative flex items-center justify-center">
                             <span class="material-symbols-outlined text-[28px] leading-none block">account_circle</span>
                             
@@ -110,7 +113,6 @@
                             {{ request.user.get_full_name|default:"کاربر" }}
                         </span>
                     {% else %}
-                        <!-- حالت لاگین نکرده -->
                         <div class="relative flex items-center justify-center">
                             <span class="material-symbols-outlined text-[28px] leading-none block">login</span>
                         </div>
@@ -125,7 +127,6 @@
                     <div
                         class="bg-[#FFFFFF] dark:bg-gray-900 rounded-2xl shadow-2xl shadow-primary/5 border border-[#F3F4F6] dark:border-gray-800 p-2 overflow-hidden">
                         
-                        <!-- نمایش مشخصات کاربر فقط در صورت لاگین بودن -->
                         {% if request.user.is_authenticated %}
                         <div
                             class="px-4 py-3 border-b border-[#F3F4F6] dark:border-gray-800 bg-[#F9FAFB] dark:bg-white/5 rounded-t-xl mb-1">
@@ -142,7 +143,6 @@
                                 <span class="material-symbols-outlined text-[20px]">account_circle</span>پروفایل
                             </a>
                             
-                            <!-- بررسی وضعیت استاف برای نمایش دکمه مدیریت -->
                             {% if request.user.is_staff %}
                                 <a class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-[#4B5563] hover:text-primary hover:bg-primary/5 dark:hover:bg-gray-800 rounded-xl transition-colors font-body"
                                     href="/admin-panel/dashboard/">
