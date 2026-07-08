@@ -194,8 +194,23 @@
                         <img alt="{{ auction.name|default:auction|fa_digits }}"
                              class="w-full h-full object-cover transition-transform duration-[2.5s] ease-out {% if auction.status != 'finished' %}group-hover:scale-105{% endif %} {% if auction.status == 'ready' %}grayscale-[0.3]{% elif auction.status == 'finished' %}grayscale opacity-60{% endif %}"
                              src="{% static 'images/action/' %}{{ auction.pk }}.webp" />
-                        <div class="absolute inset-0 {% if auction.status == 'ongoing' %}bg-[#AB8C58]/5{% elif auction.status == 'ready' %}bg-zinc-800/5{% else %}bg-white/20{% endif %} {% if auction.status != 'finished' %}group-hover:bg-transparent transition-colors duration-500{% endif %}"></div>
-                    </div>
+
+
+
+                    <div class="absolute inset-0 z-10 {% if auction.status == 'ongoing' %}bg-[#AB8C58]/5{% elif auction.status == 'ready' %}bg-zinc-800/5{% else %}bg-white/20{% endif %} {% if auction.status != 'finished' %}group-hover:bg-transparent transition-colors duration-500{% endif %} pointer-events-none"></div>
+
+                        <!-- دکمه شناور دانلود کاتالوگ روی تصویر (بالا منتقل شد) -->
+                        <a href="{{ auction.catalog_url }}" 
+                           target="_blank" 
+                           download
+                           title="دانلود کاتالوگ مزایده"
+                           class="absolute top-4 left-4 sm:top-6 sm:left-6 z-30 flex items-center gap-2 bg-white/90 backdrop-blur hover:bg-[#AB8C58] text-zinc-800 hover:text-white py-2 px-4 sm:py-2.5 sm:px-5 rounded-2xl shadow-lg transition-all duration-300 font-bold text-sm sm:text-base border border-white/50 group/btn">
+                            <span class="material-symbols-outlined text-lg sm:text-xl transition-transform group-hover/btn:-translate-y-0.5">download</span>
+                            دانلود کاتالوگ
+                        </a>
+
+
+                    
                 </div>
             {% endfor %}
         {% else %}
