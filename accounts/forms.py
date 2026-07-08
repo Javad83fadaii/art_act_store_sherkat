@@ -199,6 +199,10 @@ class PublicSignupForm(forms.ModelForm):
         label="شرکت در مزایده",
         required=False,
     )
+    newsletter_catalog_opt_in = forms.BooleanField(
+        label="تمایل به دریافت خبرنامه و کاتالوگ",
+        required=False,
+    )
     phone_number = forms.CharField(label="شماره موبایل(نام کاربری)", max_length=20, required=True)
     address_street = forms.CharField(label="آدرس", max_length=255, required=False)
     email = forms.EmailField(label="آدرس ایمیل", required=False)
@@ -358,6 +362,9 @@ class PublicSignupForm(forms.ModelForm):
 
         user.email = self.cleaned_data.get("email")
         user.preferred_contact_methods = self.cleaned_data.get("preferred_contact_methods") or []
+        user.newsletter_catalog_opt_in = bool(
+            self.cleaned_data.get("newsletter_catalog_opt_in")
+        )
         user.telegram_id = self.cleaned_data.get("telegram_id")
 
         # رمزنگاری و ثبت پسورد
@@ -618,6 +625,7 @@ class AdminUserEditForm(forms.ModelForm):
             "phone_number",
             "email",
             "preferred_contact_methods",
+            "newsletter_catalog_opt_in",
             "telegram_id",
             "address_country",
             "address_city",

@@ -121,6 +121,17 @@
                         </div>
                     </div>
                 </div>
+                <div class="flex items-start gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-500/10 flex items-center justify-center shrink-0">
+                        <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h18M5 7l1 11a2 2 0 002 2h8a2 2 0 002-2l1-11M10 11v6M14 11v6M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"></path></svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">خبرنامه و کاتالوگ</div>
+                        <div id="user-newsletter-display" class="text-sm font-black text-gray-900 dark:text-white">
+                            {% if user.newsletter_catalog_opt_in %}بله{% else %}خیر{% endif %}
+                        </div>
+                    </div>
+                </div>
                 <div id="user-address-row" class="flex items-start gap-3 {% if not user.address_city and not user.address_country %}hidden{% endif %}">
                     <div class="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-500/10 flex items-center justify-center shrink-0">
                         <svg class="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
@@ -404,6 +415,12 @@
                         <label class="block text-xs font-black text-text-muted mb-2">آدرس</label>
                         <input type="text" name="address_street" class="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-primary">
                     </div>
+                    <div class="md:col-span-2 xl:col-span-3 rounded-2xl border border-emerald-100 dark:border-emerald-500/20 bg-emerald-50/70 dark:bg-emerald-500/5 p-4">
+                        <label class="flex items-center gap-3 text-sm font-bold text-gray-800 dark:text-gray-200">
+                            <input type="checkbox" name="newsletter_catalog_opt_in" class="rounded border-gray-300 text-primary focus:ring-primary">
+                            کاربر مایل به دریافت خبرنامه و کاتالوگ است
+                        </label>
+                    </div>
                     <div class="md:col-span-2 xl:col-span-3 rounded-2xl border border-blue-100 dark:border-blue-500/20 bg-blue-50/70 dark:bg-blue-500/5 p-4">
                         <div class="flex flex-col gap-3">
                             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -653,6 +670,7 @@ function updatePageUserSnapshot(user) {
     updateOptionalRow('user-email-row', 'user-email-display', user.email || '');
     updateOptionalRow('user-telegram-row', 'user-telegram-display', user.telegram_id || '');
     updatePreferredContactMethods(user.preferred_contact_methods || []);
+    setTextContent('user-newsletter-display', user.newsletter_catalog_opt_in ? 'بله' : 'خیر');
     updateOptionalRow('user-address-row', 'user-address-display', addressText);
     updateOptionalRow('user-description-box', 'user-description-display', user.description || '');
 }
@@ -746,7 +764,7 @@ function populateEditForm(user) {
         input.checked = preferredContactMethods.includes(input.value);
     });
 
-    ['is_active', 'is_staff', 'is_superuser', 'clear_profile_picture'].forEach((name) => {
+    ['is_active', 'is_staff', 'is_superuser', 'clear_profile_picture', 'newsletter_catalog_opt_in'].forEach((name) => {
         if (form.elements[name]) {
             form.elements[name].checked = name === 'clear_profile_picture' ? false : Boolean(user[name]);
         }

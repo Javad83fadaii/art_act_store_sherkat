@@ -84,6 +84,10 @@ class CustomUser(AbstractUser):
     credit = models.DecimalField(max_digits=15, decimal_places=0, default=0)
     # اعتبار قابل استفاده فعلی برای ثبت بید
     current_credit = models.DecimalField(max_digits=15, decimal_places=0, default=0)
+    newsletter_catalog_opt_in = models.BooleanField(
+        default=False,
+        verbose_name="تمایل به دریافت خبرنامه و کاتالوگ",
+    )
 
     objects = CustomUserManager()
 

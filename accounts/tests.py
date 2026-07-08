@@ -95,18 +95,26 @@ class VerificationRequestModelTests(TestCase):
                 "telegram_id": "",
                 "password1": "Signup@123",
                 "password2": "Signup@123",
+                "newsletter_catalog_opt_in": "on",
                 "participate_in_auction": "on",
             },
         )
 
         self.assertEqual(response.status_code, 302)
         new_user = CustomUser.objects.get(phone_number="09123334444")
+        self.assertTrue(new_user.newsletter_catalog_opt_in)
         pending_qs = VerificationRequest.objects.filter(
                 user=new_user,
                 status=VerificationRequest.RequestStatus.PENDING,
             )
         self.assertTrue(pending_qs.exists())
         self.assertEqual(pending_qs.count(), 1)
+
+    def test_signup_page_renders_newsletter_opt_in_field(self):
+        response = self.client.get(reverse("signup"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "تمایل به دریافت خبرنامه و کاتالوگ")
 
     def test_signup_duplicate_phone_shows_validation_feedback(self):
         response = self.client.post(
