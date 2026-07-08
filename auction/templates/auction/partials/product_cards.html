@@ -47,12 +47,12 @@
         <div class="px-4 text-right flex-grow flex flex-col relative z-20">
             {% if product.lot %}
                 <h3 class="block font-bold text-lg sm:text-[1.15rem] text-neutral-900 dark:text-white leading-8 sm:leading-9 mb-3 font-display tracking-tight transition-colors duration-300"
-                    title="شناسه محصول: {{ product.pk|fa_digits }}">
+                    title="شناسه محصول: {{ product.product_id|default:product.pk|fa_digits }}">
                     {% include 'partials/lot_badge_title.html' with lot=product.lot title=product.title title_class='inline align-middle text-base sm:text-[1.15rem]' %}
                 </h3>
             {% else %}
                 <h3 class="font-bold text-base sm:text-[1.15rem] text-neutral-900 dark:text-white leading-7 sm:leading-[1.9rem] mb-3 font-display tracking-tight transition-colors duration-300"
-                    title="شناسه محصول: {{ product.pk|fa_digits }}">
+                    title="شناسه محصول: {{ product.product_id|default:product.pk|fa_digits }}">
                     {{ product.title }}
                 </h3>
             {% endif %}
