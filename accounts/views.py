@@ -219,6 +219,7 @@ class SignupView(View):
 
     def post(self, request):
         form = PublicSignupForm(request.POST)
+
         if form.is_valid():
             form.save()
             login_url = reverse('login')
@@ -230,19 +231,21 @@ class SignupView(View):
 
         non_field_errors = form.non_field_errors()
         for error in non_field_errors:
+            pass
             # messages.error(request, str(error))
 
-            for field_name, errors in form.errors.items():
-            if field_name == "__all__":
+        for field_name, errors in form.errors.items():
+            if field_name == "all":
                 continue
+
             field = form.fields.get(field_name)
             label = str(getattr(field, "label", "") or "").strip() or field_name
+
             for error in errors:
+                pass
                 # messages.error(request, f"{label}: {error}")
 
         return render(request, 'registration/signup.html', {'form': form})
-
-
 @login_required
 def request_auction_verification(request):
     next_url = request.POST.get("next") if request.method == "POST" else request.GET.get("next")
