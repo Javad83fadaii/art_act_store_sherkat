@@ -90,19 +90,19 @@ class EditProfileView(LoginRequiredMixin, View):
 
             if current_password or new_password or confirm_password:
                 if not current_password:
-                    messages.error(request, get_notification('accounts.profile.current_password_required'))
+                    # messages.error(request, get_notification('accounts.profile.current_password_required'))
                     return redirect(next_url)
                 
                 if not user.check_password(current_password):
-                    messages.error(request, get_notification('accounts.profile.current_password_incorrect'))
+                    # messages.error(request, get_notification('accounts.profile.current_password_incorrect'))
                     return redirect(next_url)
                 
                 if new_password != confirm_password:
-                    messages.error(request, get_notification('accounts.profile.new_password_mismatch'))
+                    # messages.error(request, get_notification('accounts.profile.new_password_mismatch'))
                     return redirect(next_url)
                 
                 if len(new_password) < 8:
-                    messages.error(request, get_notification('accounts.profile.new_password_min_length'))
+                    # messages.error(request, get_notification('accounts.profile.new_password_min_length'))
                     return redirect(next_url)
 
                 user.set_password(new_password)
@@ -129,16 +129,18 @@ class EditProfileView(LoginRequiredMixin, View):
 
             if password_changed_successfully:
                 update_session_auth_hash(request, user)
-                messages.success(request, get_notification('accounts.profile.password_changed'))
+                # messages.success(request, get_notification('accounts.profile.password_changed'))
             else:
-                messages.success(request, get_notification('accounts.profile.updated'))
+                # messages.success(request, get_notification('accounts.profile.updated'))
+                pass
 
             return redirect(next_url)
             
         else:
             for field, errors in form.errors.items():
                 for error in errors:
-                    messages.error(request, f"{error}")
+                    # messages.error(request, f"{error}")
+                    pass
             return redirect(next_url)
 
 
@@ -190,7 +192,7 @@ class ProfileView(LoginRequiredMixin, TemplateView):
         # ذخیره نهایی کاربر
         user.save()
 
-        messages.success(request, get_notification('accounts.profile.updated'))
+        # messages.success(request, get_notification('accounts.profile.updated'))
         return redirect('profile')
 
 
@@ -219,15 +221,16 @@ class SignupView(View):
         form = PublicSignupForm(request.POST)
         if form.is_valid():
             form.save()
-            message_text = get_notification('accounts.signup.success')
             login_url = reverse('login')
-            return redirect(
-                f'{login_url}?{urlencode({"toast_message": message_text, "toast_type": "success", "toast_position": "bottom-left"})}'
-            )
+            # message_text = get_notification('accounts.signup.success')
+            # return redirect(
+            #     f'{login_url}?{urlencode({"toast_message": message_text, "toast_type": "success", "toast_position": "bottom-left"})}'
+            # )
+            return redirect(login_url)
 
         non_field_errors = form.non_field_errors()
         for error in non_field_errors:
-            messages.error(request, str(error))
+            # messages.error(request, str(error))
 
         for field_name, errors in form.errors.items():
             if field_name == "__all__":
@@ -235,7 +238,7 @@ class SignupView(View):
             field = form.fields.get(field_name)
             label = str(getattr(field, "label", "") or "").strip() or field_name
             for error in errors:
-                messages.error(request, f"{label}: {error}")
+                # messages.error(request, f"{label}: {error}")
 
         return render(request, 'registration/signup.html', {'form': form})
 
@@ -322,7 +325,7 @@ def credit_increase_requests(request):
         status=CreditIncreaseRequest.RequestStatus.PENDING,
     ).exists()
     if pending_request:
-        messages.warning(request, get_notification('accounts.credit_increase.pending_exists'))
+        # messages.warning(request, get_notification('accounts.credit_increase.pending_exists'))
         next_url = request.META.get("HTTP_REFERER") or "/"
         return redirect(next_url)
 
@@ -333,7 +336,7 @@ def credit_increase_requests(request):
     )
     
     # نمایش پیام موفقیت به کاربر
-    messages.success(request, get_notification('accounts.credit_increase.created'))
+    # messages.success(request, get_notification('accounts.credit_increase.created'))
     
     # بازگرداندن کاربر به همان صفحه‌ای که دکمه را در آن کلیک کرده است
     next_url = request.META.get("HTTP_REFERER") or "/"

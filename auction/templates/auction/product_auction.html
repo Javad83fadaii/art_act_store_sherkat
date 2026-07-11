@@ -806,15 +806,13 @@
                         if (btnProfileLink && data.profile_url) {
                             btnProfileLink.href = data.profile_url;
                         }
-                    } else {
-                        alert(data.message || productAuctionNotifications.requestSubmitError);
                     }
                 })
                 .catch(err => {
                     console.error('Error submitting credit request:', err);
                     btnSubmitCredit.innerHTML = originalText;
                     btnSubmitCredit.disabled = false;
-                    alert(window.getNotificationMessage('common.server_retry_error'));
+                    // alert(window.getNotificationMessage('common.server_retry_error'));
                 });
             });
         }

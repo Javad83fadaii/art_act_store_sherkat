@@ -172,13 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const message = q.get('toast_message');
         if (!message) return;
         window.__TOAST_QUERY_HANDLED = true;
-        const type = q.get('toast_type') || 'info';
-        const position = q.get('toast_position') || 'bottom-left';
-        const actionLabel = q.get('toast_action_label') || '';
-        const actionHref = q.get('toast_action_href') || '';
-        if (window.showToast) {
-            window.showToast(message, type, position, { actionLabel, actionHref });
-        }
+        // Notification display disabled by request. We only clean the URL params.
         q.delete('toast_message');
         q.delete('toast_type');
         q.delete('toast_position');

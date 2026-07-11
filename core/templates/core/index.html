@@ -679,16 +679,16 @@
                     }
 
                     setModalState();
-                    if (window.showToast) {
-                        window.showToast(
-                            data.toast_message || indexNotifications.requestSuccess,
-                            data.toast_type || 'success',
-                            'bottom-left',
-                            data.toast_action_label
-                                ? { actionLabel: data.toast_action_label, actionHref: data.toast_action_href || '#' }
-                                : undefined
-                        );
-                    }
+                    // if (window.showToast) {
+                    //     window.showToast(
+                    //         data.toast_message || indexNotifications.requestSuccess,
+                    //         data.toast_type || 'success',
+                    //         'bottom-left',
+                    //         data.toast_action_label
+                    //             ? { actionLabel: data.toast_action_label, actionHref: data.toast_action_href || '#' }
+                    //             : undefined
+                    //     );
+                    // }
                     if (data.request_state === 'incomplete_profile' && data.toast_action_href) {
                         window.location.href = data.toast_action_href;
                     }
@@ -696,11 +696,11 @@
                 .catch(error => {
                     this.disabled = false;
                     this.innerHTML = originalHtml;
-                    if (window.showToast) {
-                        window.showToast(error.message || indexNotifications.requestSubmitError, 'error', 'bottom-left');
-                    } else {
-                        alert(error.message || indexNotifications.requestSubmitError);
-                    }
+                    // if (window.showToast) {
+                    //     window.showToast(error.message || indexNotifications.requestSubmitError, 'error', 'bottom-left');
+                    // } else {
+                    //     alert(error.message || indexNotifications.requestSubmitError);
+                    // }
                 });
             });
         }

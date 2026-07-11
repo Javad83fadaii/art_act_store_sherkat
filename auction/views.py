@@ -42,9 +42,10 @@ def _split_seconds(total_seconds: int) -> tuple[int, int, int, int]:
 
 def _build_inactive_auction_redirect(product: AuctionProduct):
     list_url = reverse('auction:auction_products', kwargs={'pk': product.auction.pk})
-    return redirect(
-        f'{list_url}?{urlencode({"toast_message": "مزایده فعال نیست.", "toast_type": "warning"})}'
-    )
+    # return redirect(
+    #     f'{list_url}?{urlencode({"toast_message": "مزایده فعال نیست.", "toast_type": "warning"})}'
+    # )
+    return redirect(list_url)
 
 
 def _has_finished_winner_profile_access(request, product: AuctionProduct, access_token: str) -> bool:
@@ -156,9 +157,10 @@ def auction_product_detail(request, pk: int):
     if not request.user.is_authenticated:
         login_url = f'{reverse("login")}?{urlencode({"next": request.path})}'
         list_url = reverse('auction:auction_products', kwargs={'pk': product.auction.pk})
-        return redirect(
-            f'{list_url}?{urlencode({"toast_message": "برای مشاهده جزئیات مزایده لطفاً وارد شوید.", "toast_type": "warning", "toast_action_label": "ورود", "toast_action_href": login_url})}'
-        )
+        # return redirect(
+        #     f'{list_url}?{urlencode({"toast_message": "برای مشاهده جزئیات مزایده لطفاً وارد شوید.", "toast_type": "warning", "toast_action_label": "ورود", "toast_action_href": login_url})}'
+        # )
+        return redirect(list_url)
 
     if int(getattr(request.user, 'is_verified', 0) or 0) != 1 and not has_winner_profile_access:
         list_url = reverse('auction:auction_products', kwargs={'pk': product.auction.pk})
@@ -166,13 +168,15 @@ def auction_product_detail(request, pk: int):
 
         if not has_opt_in:
             edit_url = f'{reverse("edit_profile")}?{urlencode({"next": list_url})}'
-            return redirect(
-                f'{list_url}?{urlencode({"toast_message": "برای شرکت در مزایده، گزینه «شرکت در مزایده» را فعال کنید.", "toast_type": "warning", "toast_action_label": "ویرایش", "toast_action_href": edit_url})}'
-            )
+            # return redirect(
+            #     f'{list_url}?{urlencode({"toast_message": "برای شرکت در مزایده، گزینه «شرکت در مزایده» را فعال کنید.", "toast_type": "warning", "toast_action_label": "ویرایش", "toast_action_href": edit_url})}'
+            # )
+            return redirect(list_url)
 
-        return redirect(
-            f'{list_url}?{urlencode({"toast_message": "درخواست شما ثبت شده و در انتظار تایید مدیران است.", "toast_type": "warning"})}'
-        )
+        # return redirect(
+        #     f'{list_url}?{urlencode({"toast_message": "درخواست شما ثبت شده و در انتظار تایید مدیران است.", "toast_type": "warning"})}'
+        # )
+        return redirect(list_url)
 
     # ----------------------------------
     # Query های بهینه
@@ -298,16 +302,18 @@ def place_bid(request, pk: int):
                 return JsonResponse({'success': False, 'message': msg})
                 
             edit_url = f'{reverse("edit_profile")}?{urlencode({"next": next_url})}'
-            return redirect(
-                f'{next_url}?{urlencode({"toast_message": msg, "toast_type": "warning", "toast_action_label": "ویرایش", "toast_action_href": edit_url})}'
-            )
+            # return redirect(
+            #     f'{next_url}?{urlencode({"toast_message": msg, "toast_type": "warning", "toast_action_label": "ویرایش", "toast_action_href": edit_url})}'
+            # )
+            return redirect(next_url)
             
         msg_pending = "درخواست شما ثبت شده و در انتظار تایید مدیران است."
         if is_ajax:
             return JsonResponse({'success': False, 'message': msg_pending})
-        return redirect(
-            f'{next_url}?{urlencode({"toast_message": msg_pending, "toast_type": "warning"})}'
-        )
+        # return redirect(
+        #     f'{next_url}?{urlencode({"toast_message": msg_pending, "toast_type": "warning"})}'
+        # )
+        return redirect(next_url)
 
     raw = (amount or "").strip() if isinstance(amount, str) else amount
     try:
@@ -352,16 +358,17 @@ def place_bid(request, pk: int):
                     status=400,
                 )
             
-            toast_payload = {"toast_message": msg_credit, "toast_type": "error"}
-            if not pending_credit_request:
-                credit_url = reverse("credit_increase_requests")
-                toast_payload.update({
-                    "toast_action_label": "درخواست افزایش اعتبار",
-                    "toast_action_href": credit_url,
-                })
-            return redirect(
-                f'{next_url}?{urlencode(toast_payload)}'
-            )
+            # toast_payload = {"toast_message": msg_credit, "toast_type": "error"}
+            # if not pending_credit_request:
+            #     credit_url = reverse("credit_increase_requests")
+            #     toast_payload.update({
+            #         "toast_action_label": "درخواست افزایش اعتبار",
+            #         "toast_action_href": credit_url,
+            #     })
+            # return redirect(
+            #     f'{next_url}?{urlencode(toast_payload)}'
+            # )
+            return redirect(next_url)
 
     try:
         auction.place_bid(request.user, amount)
@@ -369,7 +376,8 @@ def place_bid(request, pk: int):
         message = exc.messages[0] if getattr(exc, 'messages', None) else str(exc)
         if is_ajax:
             return JsonResponse({'success': False, 'message': message})
-        return redirect(f'{next_url}?{urlencode({"toast_message": message, "toast_type": "error"})}')
+        # return redirect(f'{next_url}?{urlencode({"toast_message": message, "toast_type": "error"})}')
+        return redirect(next_url)
 
     if is_ajax:
         auction.refresh_from_db()
@@ -381,9 +389,10 @@ def place_bid(request, pk: int):
             }
         )
 
-    return redirect(
-        f'{next_url}?{urlencode({"toast_message": "بید شما با موفقیت ثبت شد.", "toast_type": "success"})}'
-    )
+    # return redirect(
+    #     f'{next_url}?{urlencode({"toast_message": "بید شما با موفقیت ثبت شد.", "toast_type": "success"})}'
+    # )
+    return redirect(next_url)
 
 
 class AuctionGridView(ListView):

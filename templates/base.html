@@ -432,6 +432,7 @@
     <script src="{% static 'js/app.js' %}"></script>
 
     {% if messages %}
+    {% comment %}
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const toastTypeMap = {
@@ -471,6 +472,7 @@
             });
         });
     </script>
+    {% endcomment %}
     {% endif %}
 
     <!-- اسکریپت‌های کنترل پنل‌ها -->

@@ -284,6 +284,7 @@
     </div>
 </div>
 {% if form.errors %}
+{% comment %}
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         if (!window.showToast) return;
@@ -306,6 +307,7 @@
         });
     });
 </script>
+{% endcomment %}
 {% endif %}
 
 <!-- اسکریپت‌های منطق فرم -->
@@ -440,13 +442,13 @@
 
                 function notifyError(text) {
                     if (!text) return;
-                    if (window.showNotificationText) {
-                        window.showNotificationText(text, { type: 'error', position: 'bottom-left' });
-                        return;
-                    }
-                    if (window.showToast) {
-                        window.showToast(text, 'error', 'bottom-left');
-                    }
+                    // if (window.showNotificationText) {
+                    //     window.showNotificationText(text, { type: 'error', position: 'bottom-left' });
+                    //     return;
+                    // }
+                    // if (window.showToast) {
+                    //     window.showToast(text, 'error', 'bottom-left');
+                    // }
                 }
 
                 // چک کردن موارد در لحظه ثبت
@@ -521,11 +523,11 @@
                 if (message === lastToastText && now - lastToastAt < 800) return;
                 lastToastText = message;
                 lastToastAt = now;
-                if (window.showNotificationText) {
-                    window.showNotificationText(message, { type: 'error', position: 'bottom-left' });
-                } else {
-                    window.showToast(message, 'error', 'bottom-left');
-                }
+                // if (window.showNotificationText) {
+                //     window.showNotificationText(message, { type: 'error', position: 'bottom-left' });
+                // } else {
+                //     window.showToast(message, 'error', 'bottom-left');
+                // }
             }, true);
         }
 
