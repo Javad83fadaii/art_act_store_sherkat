@@ -232,7 +232,7 @@ class SignupView(View):
         for error in non_field_errors:
             # messages.error(request, str(error))
 
-        for field_name, errors in form.errors.items():
+            for field_name, errors in form.errors.items():
             if field_name == "__all__":
                 continue
             field = form.fields.get(field_name)
