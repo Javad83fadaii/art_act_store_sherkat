@@ -26,15 +26,6 @@ def update_auction_product_current_price_on_bid_save(sender, instance: Bid, **kw
     AuctionProduct.objects.filter(product_id=instance.product_id).update(current_price=latest)
     if product_pk:
         transaction.on_commit(lambda: broadcast_product_bid_update(product_pk))
-    
-    # بروزرسانی پروفایل تمامی کاربرانی که روی این محصول بید زده‌اند
-    user_ids = list(AuctionCartItem.objects.filter(product_id=instance.product_id).values_list('user_id', flat=True))
-    
-    def _broadcast_all():
-        for uid in user_ids:
-            broadcast_profile_update(uid)
-            
-    transaction.on_commit(_broadcast_all)
 
 
 @receiver(post_delete, sender=Bid)

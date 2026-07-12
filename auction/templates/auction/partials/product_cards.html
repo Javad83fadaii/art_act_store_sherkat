@@ -1,7 +1,7 @@
 {% load static humanize fa_digits %}
 {% for product in products %}
     <!-- کارت محصول -->
-    <div class="group bg-white dark:bg-zinc-900 rounded-[1.5rem] overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 border border-neutral-200 dark:border-zinc-800 p-2 pb-5 flex flex-col relative" data-product-card="{{ product.pk }}" data-live-state-url="{% url 'auction:auction_product_live_state' product.pk %}" data-has-winner="{% if product.winner_id %}1{% else %}0{% endif %}" data-is-user-winner="{% if request.user.is_authenticated and product.winner_id == request.user.pk %}1{% else %}0{% endif %}">
+    <div class="group bg-white dark:bg-zinc-900 rounded-[1.5rem] overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 border border-neutral-200 dark:border-zinc-800 p-2 pb-5 flex flex-col relative" data-product-card="{{ product.pk }}" data-live-state-url="{% url 'auction:auction_product_live_state' product.pk %}?compact=1" data-has-winner="{% if product.winner_id %}1{% else %}0{% endif %}" data-is-user-winner="{% if request.user.is_authenticated and product.winner_id == request.user.pk %}1{% else %}0{% endif %}">
         
         <!-- هاله نورانی بک‌گراند برای حالت انتظار (به صورت پیش‌فرض مخفی) -->
         <div data-glow="NOT_STARTED" class="absolute inset-0 bg-blue-500/5 dark:bg-blue-400/5 rounded-[1.5rem] opacity-0 transition-opacity duration-700 pointer-events-none z-0"></div>

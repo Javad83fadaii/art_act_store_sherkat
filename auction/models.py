@@ -493,21 +493,9 @@ class AuctionProduct(models.Model):
             product.winner = bidder
             product.save(update_fields=['current_price', 'winner'])
 
-            bidder_id = bidder.pk
-            previous_bidder_id = previous_bidder.pk if previous_bidder is not None else None
-
             bidder.refresh_current_credit()
             if previous_bidder is not None:
                 previous_bidder.refresh_current_credit()
-
-            def _broadcast_profile_updates():
-                from accounts.realtime import broadcast_profile_update
-
-                broadcast_profile_update(bidder_id)
-                if previous_bidder_id and previous_bidder_id != bidder_id:
-                    broadcast_profile_update(previous_bidder_id)
-
-            transaction.on_commit(_broadcast_profile_updates)
 
             return bid
 

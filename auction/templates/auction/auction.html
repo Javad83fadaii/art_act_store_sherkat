@@ -624,57 +624,44 @@
             infiniteScrollObserver.observe(infiniteScrollSentinel);
         }
 
-        async function syncAuctionData() {
-            try {
-                const response = await fetch(window.location.href, { 
-                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Cache-Control': 'no-cache' } 
+        async function syncAuctionData({ productIds = null } = {}) {
+            const cards = Array.from(document.querySelectorAll('[data-product-card]'));
+            const targetIds = Array.isArray(productIds) && productIds.length
+                ? new Set(productIds.map(String))
+                : null;
+            const targetCards = targetIds
+                ? cards.filter(card => targetIds.has(String(card.getAttribute('data-product-card') || '')))
+                : cards;
+
+            if (!targetCards.length) return;
+
+            const requests = targetCards.map(async (card) => {
+                const productId = card.getAttribute('data-product-card');
+                const liveStateUrl = card.getAttribute('data-live-state-url');
+                if (!productId || !liveStateUrl) return;
+
+                const response = await fetch(liveStateUrl, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Cache-Control': 'no-cache' }
                 });
-                const html = await response.text();
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-
-                document.querySelectorAll('[data-product-card]').forEach(card => {
-                    const pid = card.getAttribute('data-product-card');
-                    const freshCard = doc.querySelector(`[data-product-card="${pid}"]`);
-                    
-                    if (freshCard) {
-                        const priceEl = card.querySelector('[data-product-price-display]');
-                        const freshPriceEl = freshCard.querySelector('[data-product-price-display]');
-                        if (priceEl && freshPriceEl) priceEl.innerHTML = freshPriceEl.innerHTML;
-
-                        const bidsEl = card.querySelector('[data-product-bids-display]');
-                        const freshBidsEl = freshCard.querySelector('[data-product-bids-display]');
-                        if (bidsEl && freshBidsEl) bidsEl.textContent = freshBidsEl.textContent;
-
-                        const btn = card.querySelector('button[data-product-id]');
-                        const freshBtn = freshCard.querySelector('button[data-product-id]');
-                        if (btn && freshBtn) {
-                            ['data-current-price', 'data-min-next', 'data-bid-count'].forEach(attr => {
-                                btn.setAttribute(attr, freshBtn.getAttribute(attr));
-                            });
-                        }
-
-                        if (freshCard.hasAttribute('data-has-winner')) {
-                            card.setAttribute('data-has-winner', freshCard.getAttribute('data-has-winner') || '0');
-                        }
-                        if (freshCard.hasAttribute('data-is-user-winner')) {
-                            card.setAttribute('data-is-user-winner', freshCard.getAttribute('data-is-user-winner') || '0');
-                        }
-                    }
-                });
-
-                const freshCreditStatus = doc.querySelector('#credit-request-status');
-                if (creditRequestStatus && freshCreditStatus) {
-                    creditRequestStatus.dataset.status = freshCreditStatus.dataset.status || '';
+                if (!response.ok) {
+                    throw new Error(`sync_failed_${productId}`);
                 }
-            } catch (err) {
-                console.error("Sync failed:", err);
+
+                const data = await response.json();
+                if (data && data.success) {
+                    applyProductLiveState(productId, data);
+                }
+            });
+
+            const results = await Promise.allSettled(requests);
+            if (results.some(result => result.status === 'rejected')) {
+                console.error('Sync failed for some auction cards.');
             }
         }
 
-        let liveSockets = [];
+        let liveSockets = new Map();
         let livePollingTimer = null;
-        let liveReconnectTimer = null;
+        let liveReconnectTimers = new Map();
 
         function stopLivePolling() {
             if (!livePollingTimer) return;
@@ -688,17 +675,45 @@
             livePollingTimer = window.setInterval(syncAuctionData, 5000);
         }
 
+        function clearLiveReconnectTimer(productId) {
+            const timer = liveReconnectTimers.get(String(productId));
+            if (!timer) return;
+            window.clearTimeout(timer);
+            liveReconnectTimers.delete(String(productId));
+        }
+
         function closeLiveSockets() {
             liveSockets.forEach((socket) => {
                 try {
                     socket.close();
                 } catch {}
             });
-            liveSockets = [];
+            liveSockets.clear();
+            liveReconnectTimers.forEach((timer) => {
+                window.clearTimeout(timer);
+            });
+            liveReconnectTimers.clear();
         }
 
-        function connectAuctionLiveUpdates() {
-            const cards = Array.from(document.querySelectorAll('[data-product-card]'));
+        function scheduleLiveReconnect(productId) {
+            const normalizedProductId = String(productId || '');
+            if (!normalizedProductId || liveReconnectTimers.has(normalizedProductId)) return;
+
+            const timer = window.setTimeout(() => {
+                liveReconnectTimers.delete(normalizedProductId);
+                const card = document.querySelector(`[data-product-card="${normalizedProductId}"]`);
+                if (card) {
+                    connectAuctionLiveUpdates([card]);
+                }
+            }, 3000);
+
+            liveReconnectTimers.set(normalizedProductId, timer);
+        }
+
+        function connectAuctionLiveUpdates(cardsInput = null) {
+            const cards = Array.isArray(cardsInput) && cardsInput.length
+                ? cardsInput
+                : Array.from(document.querySelectorAll('[data-product-card]'));
             if (!cards.length) return;
 
             if (!('WebSocket' in window)) {
@@ -706,15 +721,18 @@
                 return;
             }
 
-            closeLiveSockets();
+            stopLivePolling();
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 
             cards.forEach((card) => {
                 const productId = card.getAttribute('data-product-card');
                 if (!productId) return;
+                if (liveSockets.has(String(productId))) return;
 
-                const socket = new WebSocket(`${protocol}//${window.location.host}/ws/auction/product/${productId}/`);
-                liveSockets.push(socket);
+                clearLiveReconnectTimer(productId);
+
+                const socket = new WebSocket(`${protocol}//${window.location.host}/ws/auction/product/${productId}/?compact=1`);
+                liveSockets.set(String(productId), socket);
 
                 socket.addEventListener('open', function() {
                     stopLivePolling();
@@ -736,11 +754,13 @@
                 });
 
                 socket.addEventListener('close', function() {
-                    startLivePolling();
-                    if (liveReconnectTimer) {
-                        window.clearTimeout(liveReconnectTimer);
+                    if (liveSockets.get(String(productId)) === socket) {
+                        liveSockets.delete(String(productId));
                     }
-                    liveReconnectTimer = window.setTimeout(connectAuctionLiveUpdates, 3000);
+                    if (liveSockets.size === 0) {
+                        startLivePolling();
+                    }
+                    scheduleLiveReconnect(productId);
                 });
             });
         }
@@ -887,14 +907,21 @@
                 const response = await fetch(qbForm.action, {
                     method: 'POST',
                     body: formData,
-                    headers: { 'X-CSRFToken': formData.get('csrfmiddlewaretoken'), 'X-Requested-With': 'XMLHttpRequest' }
+                    headers: {
+                        'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-Auction-Quick-Bid': '1'
+                    }
                 });
                 
                 const data = await response.json();
                 if (data.success) {
+                    const submittedProductId = currentBidButton?.getAttribute('data-product-id');
+                    if (submittedProductId) {
+                        applyProductLiveState(submittedProductId, data);
+                    }
                     closeQuickBidModal();
                     // if(window.showToast) window.showToast(data.message || 'پیشنهاد با موفقیت ثبت شد.', 'success', 'bottom-left');
-                    syncAuctionData(); 
                 } else {
                     if (data.needs_credit_increase) {
                         setQuickBidModalState(data.credit_request_state === 'pending' ? 'pending' : 'credit');
@@ -1047,9 +1074,6 @@
 
         window.addEventListener('beforeunload', () => {
             stopLivePolling();
-            if (liveReconnectTimer) {
-                window.clearTimeout(liveReconnectTimer);
-            }
             closeLiveSockets();
         });
     </script>

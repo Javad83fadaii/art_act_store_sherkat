@@ -267,6 +267,7 @@ def auction_product_live_state(request, pk: int):
     product = get_object_or_404(AuctionProduct, pk=pk)
     product = ensure_auction_product_winner(product)
     access_token = request.GET.get('access_token', '').strip()
+    include_user_history = request.GET.get('compact') != '1'
     is_active_auction = product.auction.status == 'ongoing'
     has_winner_profile_access = _has_finished_winner_profile_access(request, product, access_token)
     if not is_active_auction and not has_winner_profile_access:
@@ -274,7 +275,11 @@ def auction_product_live_state(request, pk: int):
     return JsonResponse(
         {
             'success': True,
-            **build_bid_live_payload(product, request.user),
+            **build_bid_live_payload(
+                product,
+                request.user,
+                include_user_history=include_user_history,
+            ),
         }
     )
 
@@ -285,6 +290,7 @@ def place_bid(request, pk: int):
     
     # بررسی اینکه آیا درخواست از نوع AJAX (Fetch) است یا خیر
     is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.content_type == 'application/json'
+    is_quick_bid_request = request.headers.get('x-auction-quick-bid') == '1'
 
     if request.method != 'POST':
         if is_ajax:
@@ -385,7 +391,11 @@ def place_bid(request, pk: int):
             {
                 'success': True,
                 'message': 'پیشنهاد شما با موفقیت ثبت شد.',
-                **build_bid_live_payload(auction, request.user),
+                **build_bid_live_payload(
+                    auction,
+                    request.user,
+                    include_user_history=not is_quick_bid_request,
+                ),
             }
         )
 
