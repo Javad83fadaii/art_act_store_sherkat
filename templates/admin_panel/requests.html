@@ -265,16 +265,31 @@
         return dateTimeFormatter.format(dateObj);
     }
 
+    function normalizeAdminNumericValue(value) {
+        const digitMap = { '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4', '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9' };
+        return String(value ?? '')
+            .replace(/[۰-۹]/g, (digit) => digitMap[digit] || digit)
+            .replace(/\D/g, '')
+            .trim();
+    }
+
     function formatAdminAmountWithDots(value) {
-        const digits = String(value || '').replace(/\D/g, '');
-        if (!digits) return '';
-        return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        const normalized = normalizeAdminNumericValue(value);
+        const parsed = Number.parseInt(normalized, 10);
+        if (!Number.isFinite(parsed) || parsed < 0) return '';
+        return parsed.toLocaleString('fa-IR').replace(/٬/g, ',');
     }
 
     function parseAdminAmountInput(value) {
-        const digits = String(value || '').replace(/\D/g, '');
-        if (!digits) return 0;
-        return Number.parseInt(digits, 10);
+        const normalized = normalizeAdminNumericValue(value);
+        const parsed = Number.parseInt(normalized, 10);
+        return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    function formatFaInt(value) {
+        const parsed = Number(value);
+        if (!Number.isFinite(parsed)) return String(value ?? '');
+        return parsed.toLocaleString('fa-IR').replace(/٬/g, ',');
     }
 
     function getDefaultAdminAmount(rawValue) {
@@ -510,10 +525,12 @@
                         ? `<a href="${buildUserHistoryUrl(req.user_id)}" class="text-primary hover:text-primary/80 hover:underline transition-colors">${req.user}</a>`
                         : `${req.user}`;
                     if (currentType === 'credit') {
+                        const formattedCurrent = formatAdminAmountWithDots(req.current_credit);
+                        const formattedTotal = formatAdminAmountWithDots(req.total_credit);
                         detailsCell = `
                             <div class="flex flex-col gap-1">
-                                <span class="font-black text-text-main dark:text-white">${req.current_credit || '---'}</span>
-                                <span class="text-xs text-text-muted">اعتبار کل: ${req.total_credit || '---'}</span>
+                                <span class="font-black text-text-main dark:text-white">${formattedCurrent ? `${formattedCurrent} تومان` : '---'}</span>
+                                <span class="text-xs text-text-muted">اعتبار کل: ${formattedTotal ? `${formattedTotal} تومان` : '---'}</span>
                             </div>
                         `;
                     }
@@ -578,7 +595,7 @@
     }
 
     function renderPagination(totalPages) {
-        document.getElementById('pagination-info').innerText = `نمایش برگه ${currentPage} از ${totalPages}`;
+        document.getElementById('pagination-info').innerText = `نمایش برگه ${formatFaInt(currentPage)} از ${formatFaInt(totalPages)}`;
         const container = document.getElementById('pagination-controls');
         container.innerHTML = '';
         
@@ -586,7 +603,7 @@
 
         for(let i = 1; i <= totalPages; i++) {
             const btn = document.createElement('button');
-            btn.innerText = i;
+            btn.innerText = formatFaInt(i);
             btn.className = `w-8 h-8 flex items-center justify-center rounded-lg text-sm font-bold transition-colors ${i === currentPage ? 'bg-primary text-white shadow-md shadow-primary/30' : 'text-text-muted hover:bg-gray-100 dark:hover:bg-white/10'}`;
             btn.onclick = () => { currentPage = i; updatePageQuery(); loadRequests(); };
             container.appendChild(btn);
@@ -641,7 +658,7 @@
                 } else if (key === 'status') {
                     extraIdAndData = 'id="modal-status"';
                     displayValue = getStatusBadge(value);
-                } else if (['total_credit', 'current_credit', 'requested_credit', 'granted_credit', 'amount', 'price'].includes(key) && !isNaN(value)) {
+                } else if (['total_credit', 'current_credit', 'requested_credit', 'granted_credit', 'amount', 'price'].includes(key)) {
                     // آیدی دادن به فیلد current_credit برای آپدیت زنده در جاوااسکریپت
                     if (key === 'current_credit') {
                         extraIdAndData = `id="modal-current-credit" data-value="${value}"`;
@@ -649,7 +666,10 @@
                     const amountClass = ['amount', 'price', 'requested_credit', 'granted_credit'].includes(key)
                         ? 'text-green-600 dark:text-green-400'
                         : 'text-primary dark:text-blue-400';
-                    displayValue = `<span class="${amountClass} font-black" dir="ltr">$${Number(value).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>`;
+                    const parsedAmount = Number(normalizeAdminNumericValue(value));
+                    displayValue = Number.isFinite(parsedAmount)
+                        ? `<span class="${amountClass} font-black" dir="ltr">${parsedAmount.toLocaleString('fa-IR').replace(/٬/g, ',')} تومان</span>`
+                        : String(value ?? '');
                 } else if (key === 'contact_ways') {
                     textDirClass = 'dir-rtl';
                 } else if (['created_at', 'updated_at'].includes(key)) {
@@ -682,12 +702,12 @@
                     ? (data.requested_credit || '')
                     : (data.granted_credit || data.amount || '');
                 const defaultAmount = formatAdminAmountWithDots(getDefaultAdminAmount(rawDefaultAmount));
-                let labelText = currentType === 'credit' ? 'تعیین مبلغ افزایش اعتبار (دلار):' : 'تعیین مبلغ اعتبار (دلار) - اختیاری برای احراز:';
+                let labelText = currentType === 'credit' ? 'تعیین مبلغ افزایش اعتبار (تومان):' : 'تعیین مبلغ اعتبار (تومان) - اختیاری برای احراز:';
                 
                 html += `
                     <div id="amount-input-container" class="mt-5 pt-5 border-t border-gray-200 dark:border-white/10">
                         <label class="block text-sm font-black text-text-main dark:text-white mb-2">${labelText}</label>
-                        <input type="text" inputmode="numeric" id="amount-input" value="${defaultAmount}" class="w-full bg-white dark:bg-admin-surface-dark border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 text-base font-bold focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all dir-ltr" placeholder="مثال: 500.000.000" autocomplete="off">
+                        <input type="text" inputmode="numeric" id="amount-input" value="${defaultAmount}" class="w-full bg-white dark:bg-admin-surface-dark border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 text-base font-bold focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all dir-ltr" placeholder="مثال: ۵۰۰,۰۰۰,۰۰۰" autocomplete="off">
                         <p id="amount-help-text" class="text-xs text-gray-500 mt-2">حداقل مبلغ قابل تخصیص ${formatAdminAmountWithDots(MIN_ADMIN_CREDIT_AMOUNT)} است.</p>
                     </div>
                 `;

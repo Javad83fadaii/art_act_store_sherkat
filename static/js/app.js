@@ -584,8 +584,9 @@ window.openBidModal = function(triggerEl) {
     if (form && action) form.setAttribute('action', action);
 
     if (minNextEl) {
-        const parsed = Number(String(minNextRaw).replace(/,/g, ''));
-        minNextEl.textContent = Number.isFinite(parsed) && parsed > 0 ? `حداقل پیشنهاد بعدی: ${parsed.toLocaleString('fa-IR')} دلار` : '';
+        const parsed = Number(String(minNextRaw).replace(/[,\u066C]/g, ''));
+        const formatted = Number.isFinite(parsed) && parsed > 0 ? parsed.toLocaleString('fa-IR').replace(/٬/g, ',') : '';
+        minNextEl.textContent = formatted ? `حداقل پیشنهاد بعدی: ${formatted} تومان` : '';
     }
 
     modal.classList.remove('hidden');

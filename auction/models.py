@@ -11,6 +11,12 @@ from django.db import models, transaction
 from django.utils import timezone
 
 
+def _fa_digits(value):
+    if value is None:
+        return ''
+    return str(value).translate(str.maketrans('0123456789', '۰۱۲۳۴۵۶۷۸۹'))
+
+
 class Auction(models.Model):
     name = models.CharField(max_length=255, blank=True, null=True)
     start_date = models.DateTimeField()
@@ -418,7 +424,7 @@ class AuctionProduct(models.Model):
             min_next = Decimal(str(product.get_min_next_bid()))
             if bid_amount < min_next:
                 # تغییر متن ارور از دلار به تومان
-                raise ValidationError(f'حداقل پیشنهاد بعدی {int(min_next):,} تومان است.')
+                raise ValidationError(f'حداقل پیشنهاد بعدی {_fa_digits(f"{int(min_next):,}")} تومان است.')
 
             bidder = user_model.objects.select_for_update().get(pk=user.pk)
             bidder.refresh_current_credit()

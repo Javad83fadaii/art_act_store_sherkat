@@ -521,12 +521,12 @@ function formatDate(isoString) {
 }
 
 function formatNumber(num) {
-    return Number(num || 0).toLocaleString('fa-IR');
+    return Number(num || 0).toLocaleString('fa-IR').replace(/٬/g, ',');
 }
 
 function formatDollar(price) {
     const raw = (price === null || price === undefined) ? '' : String(price);
-    const n = Number(raw.replace(/,/g, ''));
+    const n = Number(raw.replace(/[,\u066C]/g, ''));
     if (!Number.isFinite(n)) return raw || '-';
     return '$' + n.toLocaleString('en-US', { maximumFractionDigits: 2, minimumFractionDigits: 0 });
 }
@@ -544,7 +544,7 @@ function normalizeNumericValue(value) {
     const digitMap = { '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4', '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9' };
     const normalized = String(value ?? '')
         .replace(/[۰-۹]/g, (digit) => digitMap[digit] || digit)
-        .replace(/,/g, '')
+        .replace(/[,\u066C]/g, '')
         .trim();
     const parsed = Number(normalized);
     return Number.isFinite(parsed) ? parsed : 0;
@@ -1198,7 +1198,7 @@ function renderPagination(containerId, totalPages, currentPage, onPageChange) {
         pageBtn.className = i === currentPage ?
             'px-3 py-1 rounded-lg bg-primary text-white font-black' :
             'px-3 py-1 rounded-lg bg-gray-100 dark:bg-white/10 text-text-main dark:text-white hover:bg-primary hover:text-white transition-colors';
-        pageBtn.textContent = i.toLocaleString('fa-IR');
+        pageBtn.textContent = i.toLocaleString('fa-IR').replace(/٬/g, ',');
         pageBtn.onclick = () => onPageChange(i);
         container.appendChild(pageBtn);
     }

@@ -14,15 +14,15 @@
         <div class="flex flex-col gap-1 px-4 py-2 bg-white/60 dark:bg-gray-800/60 backdrop-blur-md border border-green-200/80 dark:border-green-700/50 rounded-lg shadow-sm shrink-0 min-w-[10rem]">
             <div class="flex items-center justify-between gap-3 text-[10px] ">
                 <span class="text-gray-600 dark:text-gray-300 font-bold">اعتبار کل</span>
-                <span class="text-emerald-700 dark:text-emerald-300 font-black dir-ltr">${{ auction_total_credit|default:"0"|floatformat:"0"|intcomma|fa_digits }}</span>
+                <span class="text-emerald-700 dark:text-emerald-300 font-black">{{ auction_total_credit|default:"0"|floatformat:"0"|intcomma|fa_digits }} تومان</span>
             </div>
             <div class="flex items-center justify-between gap-3 text-[10px]">
                 <span class="text-gray-500 dark:text-gray-400 font-bold">در سبد مزایده</span>
-                <span class="text-amber-700 dark:text-amber-400 font-black dir-ltr">${{ auction_reserved_credit|default:"0"|floatformat:"0"|intcomma|fa_digits }}</span>
+                <span class="text-amber-700 dark:text-amber-400 font-black">{{ auction_reserved_credit|default:"0"|floatformat:"0"|intcomma|fa_digits }} تومان</span>
             </div>
             <div class="flex items-center justify-between gap-3 text-[10px] border-t border-green-200/70 dark:border-green-700/40 pt-1">
                 <span class="text-gray-500 dark:text-gray-400 font-bold">اعتبار فعلی</span>
-                <span class="text-green-700 dark:text-green-400 font-black dir-ltr">${{ live_credit|default:"0"|floatformat:"0"|intcomma|fa_digits }}</span>
+                <span class="text-green-700 dark:text-green-400 font-black">{{ live_credit|default:"0"|floatformat:"0"|intcomma|fa_digits }} تومان</span>
             </div>
         </div>
     </div>

@@ -444,7 +444,7 @@
 
         function formatFaNumber(value) {
             try {
-                return Number(value).toLocaleString('fa-IR');
+                return Number(value).toLocaleString('fa-IR').replace(/٬/g, ',');
             } catch {
                 return String(value);
             }
@@ -768,7 +768,7 @@
         window.addEventListener('pageshow', (event) => { syncAuctionData(); });
         document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') syncAuctionData(); });
 
-        const formatToman = (value) => Number(value).toLocaleString('fa-IR');
+        const formatToman = (value) => Number(value).toLocaleString('fa-IR').replace(/٬/g, ',');
         const ceilInt = (n) => Math.ceil(Number(n));
 
         const qbModal = document.getElementById('quick-bid-modal');

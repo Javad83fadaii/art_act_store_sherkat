@@ -168,8 +168,9 @@
                 
                 <!-- بخش هدر: عنوان و مشخصات -->
                 <div class="border-b border-neutral-200 pb-6 animate-fadeIn" style="animation-delay: 0.1s;">
+                    {% include 'partials/auction_lot_badge.html' with lot=auction.lot variant='detail' extra_classes='mb-4' %}
                     <h1 class="text-4xl lg:text-5xl font-bold text-neutral-900 mb-3 tracking-tight leading-tight">
-                        {{ auction.display_title|fa_digits }}
+                        {{ auction.title|fa_digits }}
                     </h1>
                     <h2 class="text-2xl lg:text-3xl text-neutral-600 font-medium mb-6">
                     {{ auction.artist.name|fa_digits }}
@@ -586,7 +587,7 @@
 
         function formatFaNumber(value) {
             try {
-                return Number(value).toLocaleString('fa-IR');
+                return Number(value).toLocaleString('fa-IR').replace(/٬/g, ',');
             } catch {
                 return toPersianNum(String(value));
             }
@@ -1048,7 +1049,7 @@
             }
         }, 10);
 
-        modalCountEl.innerText = Number(allGalleryImages.length).toLocaleString('fa-IR');
+        modalCountEl.innerText = Number(allGalleryImages.length).toLocaleString('fa-IR').replace(/٬/g, ',');
         updateModalImage();
         if (window.syncGalleryDownload) window.syncGalleryDownload(allGalleryImages[currentGalleryIndex]);
         if (window.resetGalleryZoom) window.resetGalleryZoom();
@@ -1079,7 +1080,7 @@
     function updateModalImage() {
         if (!modalImg || !modalIndexEl) return;
         modalImg.src = allGalleryImages[currentGalleryIndex];
-        modalIndexEl.innerText = Number(currentGalleryIndex + 1).toLocaleString('fa-IR');
+        modalIndexEl.innerText = Number(currentGalleryIndex + 1).toLocaleString('fa-IR').replace(/٬/g, ',');
         if (window.syncGalleryDownload) window.syncGalleryDownload(allGalleryImages[currentGalleryIndex]);
         if (window.resetGalleryZoom) window.resetGalleryZoom();
     }

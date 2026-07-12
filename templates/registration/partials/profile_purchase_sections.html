@@ -82,8 +82,8 @@
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                     برنده مزایده
                                 </span>
-                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black bg-emerald-100/60 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-700/50 backdrop-blur-md whitespace-nowrap shadow-sm dir-ltr">
-                                    ${{ purchase.current_price|floatformat:"0"|intcomma|fa_digits }}
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black bg-emerald-100/60 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-700/50 backdrop-blur-md whitespace-nowrap shadow-sm">
+                                    {{ purchase.current_price|floatformat:"0"|intcomma|fa_digits }} تومان
                                 </span>
                                 <div class="text-[10px] font-bold text-gray-700 dark:text-gray-300 bg-white/40 dark:bg-gray-900/40 backdrop-blur-md px-3 py-1 rounded-full border border-white/50 dark:border-gray-600/40 shadow-sm shrink-0">
                                     {{ purchase.auction.end_date|to_jalali:'%Y/%m/%d'|fa_digits }}

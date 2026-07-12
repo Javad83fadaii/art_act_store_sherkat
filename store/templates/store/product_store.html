@@ -516,7 +516,7 @@ function openGalleryModal(startIndex = 0) {
         }
     }, 10);
 
-    modalCountEl.innerText = Number(allGalleryImages.length).toLocaleString('fa-IR');
+    modalCountEl.innerText = Number(allGalleryImages.length).toLocaleString('fa-IR').replace(/٬/g, ',');
     updateModalImage();
     if (window.syncGalleryDownload) window.syncGalleryDownload(allGalleryImages[currentGalleryIndex]);
     if (window.resetGalleryZoom) window.resetGalleryZoom();
@@ -544,7 +544,7 @@ function changeGalleryImage(direction) {
 
 function updateModalImage() {
     modalImg.src = allGalleryImages[currentGalleryIndex];
-    modalIndexEl.innerText = Number(currentGalleryIndex + 1).toLocaleString('fa-IR');
+    modalIndexEl.innerText = Number(currentGalleryIndex + 1).toLocaleString('fa-IR').replace(/٬/g, ',');
     if (window.syncGalleryDownload) window.syncGalleryDownload(allGalleryImages[currentGalleryIndex]);
     if (window.resetGalleryZoom) window.resetGalleryZoom();
 }
