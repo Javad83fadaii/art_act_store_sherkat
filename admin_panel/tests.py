@@ -14,7 +14,7 @@ from store.models import Artist, Artwork, ArtworkType, SiteVisitLog, VisitHistor
 
 
 class AdminRequestManagementTests(TestCase):
-    MIN_ADMIN_CREDIT_AMOUNT = Decimal('500000000')
+    MIN_ADMIN_CREDIT_AMOUNT = Decimal('1000000000')
 
     def setUp(self):
         cache.clear()
