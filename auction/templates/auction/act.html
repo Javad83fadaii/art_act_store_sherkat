@@ -192,9 +192,8 @@
                     <!-- بخش عکس -->
                     <div class="lg:w-7/12 relative overflow-hidden {% if auction.status == 'finished' %}bg-gray-100{% else %}bg-gray-50{% endif %} border-l border-border-light h-64 sm:h-72 lg:h-auto order-1 lg:order-2">
                         <img alt="{{ auction.name|default:auction|fa_digits }}"
-                             class="w-full h-full object-cover transition-transform duration-[2.5s] ease-out {% if auction.status != 'finished' %}group-hover:scale-105{% endif %} {% if auction.status == 'ready' %}grayscale-[0.3]{% elif auction.status == 'finished' %}grayscale opacity-60{% endif %}"
-                             src="{% static 'images/action/' %}{{ auction.pk }}.webp" />
-
+                            class="w-full h-full object-cover transition-transform duration-[2.5s] ease-out {% if auction.status != 'finished' %}group-hover:scale-105{% endif %} {% if auction.status == 'ready' %}grayscale-[0.3]{% elif auction.status == 'finished' %}grayscale opacity-60{% endif %}"
+                            src="{% static 'images/action/' %}{{ auction.pk }}.webp" />
 
 
                     <div class="absolute inset-0 z-10 {% if auction.status == 'ongoing' %}bg-[#AB8C58]/5{% elif auction.status == 'ready' %}bg-zinc-800/5{% else %}bg-white/20{% endif %} {% if auction.status != 'finished' %}group-hover:bg-transparent transition-colors duration-500{% endif %} pointer-events-none"></div>
