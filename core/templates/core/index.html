@@ -180,21 +180,34 @@
                                     <div class="relative bg-white dark:bg-gray-900 rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl border border-primary/20 transition-all duration-300 flex flex-col lg:flex-row-reverse w-full group hover:-translate-y-1 z-0 transform-gpu" style="-webkit-mask-image: -webkit-radial-gradient(white, black);">
                                         
                                         <!-- بخش عکس مزایده -->
-                                        <div class="w-full lg:w-[45%] relative overflow-hidden flex flex-col items-center justify-center p-8 min-h-[200px] lg:min-h-[380px] border-b lg:border-b-0 lg:border-r border-primary/10">
-                                            
-                                            <div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
-                                                 style="background-image: url('{% static 'images/action/' %}{{ auction.pk }}.webp');">
-                                            </div>
-                                            
-                                            <div class="absolute inset-0 bg-black/50 transition-colors duration-500 group-hover:bg-black/40"></div>
+                                        <div class="w-full lg:w-[45%] relative overflow-hidden border-b lg:border-b-0 lg:border-r border-primary/10">
 
-                                            <div class="w-16 h-16 md:w-20 md:h-20 bg-white/20 backdrop-blur-md border border-white/30 rounded-full flex items-center justify-center mb-4 relative z-10 text-white shadow-lg">
-                                                <span class="material-symbols-outlined text-3xl md:text-4xl drop-shadow-md">account_balance</span>
-                                            </div>
-                                            <!-- عنوان مزایده روی تصویر -->
-                                            <h3 class="relative z-10 text-2xl md:text-3xl font-bold text-white font-display text-center leading-tight drop-shadow-lg">
-                                                {{ auction.name|default:auction }}
-                                            </h3>
+                                            <a href="{% url 'auction:auction_products' auction.pk %}"
+                                            class="check-access-btn flex flex-col items-center justify-center p-8 min-h-[200px] lg:min-h-[380px] w-full h-full"
+                                            data-track-visit="1"
+                                            data-track-guard="auction-access"
+                                            data-track-kind="auction"
+                                            data-track-id="{{ auction.pk }}">
+
+                                                <div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
+                                                    style="background-image: url('{% static 'images/action/' %}{{ auction.pk }}.webp');">
+                                                </div>
+
+                                                <div class="absolute inset-0 bg-black/50 transition-colors duration-500 group-hover:bg-black/40"></div>
+
+                                                <div class="w-16 h-16 md:w-20 md:h-20 bg-white/20 backdrop-blur-md border border-white/30 rounded-full flex items-center justify-center mb-4 relative z-10 text-white shadow-lg">
+                                                    <span class="material-symbols-outlined text-3xl md:text-4xl drop-shadow-md">
+                                                        account_balance
+                                                    </span>
+                                                </div>
+
+                                                <!-- عنوان مزایده روی تصویر -->
+                                                <h3 class="relative z-10 text-2xl md:text-3xl font-bold text-white font-display text-center leading-tight drop-shadow-lg">
+                                                    {{ auction.name|default:auction }}
+                                                </h3>
+
+                                            </a>
+
                                         </div>
                                         
                                         <!-- بخش اطلاعات و دکمه‌ها -->
