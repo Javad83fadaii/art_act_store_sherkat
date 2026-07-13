@@ -189,24 +189,42 @@
                         </div>
                     </div>
 
+                    
                     <!-- بخش عکس -->
                     <div class="lg:w-7/12 relative overflow-hidden {% if auction.status == 'finished' %}bg-gray-100{% else %}bg-gray-50{% endif %} border-l border-border-light h-64 sm:h-72 lg:h-auto order-1 lg:order-2">
-                        <img alt="{{ auction.name|default:auction|fa_digits }}"
-                            class="w-full h-full object-cover transition-transform duration-[2.5s] ease-out {% if auction.status != 'finished' %}group-hover:scale-105{% endif %} {% if auction.status == 'ready' %}grayscale-[0.3]{% elif auction.status == 'finished' %}grayscale opacity-60{% endif %}"
-                            src="{% static 'images/action/' %}{{ auction.pk }}.webp" />
 
+                        <!-- تصویر قابل کلیک -->
+                        <a href="{% url 'auction:auction_products' auction.pk %}"
+                        class="block w-full h-full check-access-btn"
+                        data-track-visit="1"
+                        data-track-guard="auction-access"
+                        data-track-kind="auction"
+                        data-track-id="{{ auction.pk }}">
 
-                    <div class="absolute inset-0 z-10 {% if auction.status == 'ongoing' %}bg-[#AB8C58]/5{% elif auction.status == 'ready' %}bg-zinc-800/5{% else %}bg-white/20{% endif %} {% if auction.status != 'finished' %}group-hover:bg-transparent transition-colors duration-500{% endif %} pointer-events-none"></div>
+                            <img alt="{{ auction.name|default:auction|fa_digits }}"
+                                class="w-full h-full object-cover transition-transform duration-[2.5s] ease-out {% if auction.status != 'finished' %}group-hover:scale-105{% endif %} {% if auction.status == 'ready' %}grayscale-[0.3]{% elif auction.status == 'finished' %}grayscale opacity-60{% endif %}"
+                                src="{% static 'images/action/' %}{{ auction.pk }}.webp" />
 
-                        <!-- دکمه شناور دانلود کاتالوگ روی تصویر (بالا منتقل شد) -->
-                        <a href="{{ auction.catalog_url }}" 
-                           target="_blank" 
-                           download
-                           title="دانلود کاتالوگ مزایده"
-                           class="absolute top-4 left-4 sm:top-6 sm:left-6 z-30 flex items-center gap-2 bg-white/90 backdrop-blur hover:bg-[#AB8C58] text-zinc-800 hover:text-white py-2 px-4 sm:py-2.5 sm:px-5 rounded-2xl shadow-lg transition-all duration-300 font-bold text-sm sm:text-base border border-white/50 group/btn">
-                            <span class="material-symbols-outlined text-lg sm:text-xl transition-transform group-hover/btn:-translate-y-0.5">download</span>
+                            <!-- افکت روی تصویر -->
+                            <div class="absolute inset-0 z-10 {% if auction.status == 'ongoing' %}bg-[#AB8C58]/5{% elif auction.status == 'ready' %}bg-zinc-800/5{% else %}bg-white/20{% endif %} {% if auction.status != 'finished' %}group-hover:bg-transparent transition-colors duration-500{% endif %} pointer-events-none"></div>
+
+                        </a>
+
+                        <!-- دکمه دانلود کاتالوگ -->
+                        <a href="{{ auction.catalog_url }}"
+                        target="_blank"
+                        download
+                        title="دانلود کاتالوگ مزایده"
+                        class="absolute top-4 left-4 sm:top-6 sm:left-6 z-30 flex items-center gap-2 bg-white/90 backdrop-blur hover:bg-[#AB8C58] text-zinc-800 hover:text-white py-2 px-4 sm:py-2.5 sm:px-5 rounded-2xl shadow-lg transition-all duration-300 font-bold text-sm sm:text-base border border-white/50 group/btn">
+
+                            <span class="material-symbols-outlined text-lg sm:text-xl transition-transform group-hover/btn:-translate-y-0.5">
+                                download
+                            </span>
+
                             دانلود کاتالوگ
                         </a>
+
+                    </div>
 
 
                     
