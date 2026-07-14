@@ -21,7 +21,9 @@
                     {% for purchase in store_purchases %}
                         <a href="{% url 'store:artwork_detail' purchase.artwork.id %}" class="flex flex-col sm:flex-row sm:items-center gap-4 p-3 bg-white/20 dark:bg-gray-800/20 backdrop-blur-sm hover:bg-white/40 dark:hover:bg-gray-700/40 border border-white/30 dark:border-gray-600/20 hover:border-white/60 dark:hover:border-gray-500/50 rounded-2xl transition-all duration-300 shadow-[0_4px_20px_rgba(0,0,0,0.03)]" data-track-visit="1" data-track-kind="store_product" data-track-id="{{ purchase.artwork.id }}">
                             <div class="flex items-center gap-4 flex-1 min-w-0">
-                                <img src="{{ purchase.artwork.main_image_url }}" alt="{{ purchase.artwork.title|fa_digits }}" class="w-12 h-12 object-cover rounded-xl shadow-sm shrink-0">
+                                {% if purchase.artwork.main_image_url %}
+                                    <img src="{{ purchase.artwork.main_image_url }}" alt="{{ purchase.artwork.title|fa_digits }}" class="w-12 h-12 object-cover rounded-xl shadow-sm shrink-0">
+                                {% endif %}
                                 <div class="min-w-0 flex-1">
                                     <h4 class="font-bold text-sm text-gray-900 dark:text-white truncate drop-shadow-sm">{% include 'partials/lot_badge_title.html' with lot=purchase.artwork.lot title=purchase.artwork.title %}</h4>
                                     <p class="text-xs text-gray-600 dark:text-gray-400 mt-0.5 truncate">{{ purchase.artwork.artist.name|fa_digits }}</p>
@@ -67,7 +69,9 @@
                     {% for purchase in auction_purchases %}
                         <a href="{% url 'auction:auction_product_detail' purchase.pk %}?access_token={{ purchase.detail_access_token|urlencode }}" class="flex flex-col sm:flex-row sm:items-center gap-4 p-3 bg-white/20 dark:bg-gray-800/20 backdrop-blur-sm hover:bg-white/40 dark:hover:bg-gray-700/40 border border-white/30 dark:border-gray-600/20 hover:border-white/60 dark:hover:border-gray-500/50 rounded-2xl transition-all duration-300 shadow-[0_4px_20px_rgba(0,0,0,0.03)]" data-track-visit="1" data-track-kind="auction_product" data-track-id="{{ purchase.pk }}">
                             <div class="flex items-center gap-4 flex-1 min-w-0">
-                                <img src="{{ purchase.main_image_url }}" alt="{{ purchase.title|fa_digits }}" class="w-12 h-12 object-cover rounded-xl shadow-sm shrink-0">
+                                {% if purchase.main_image_url %}
+                                    <img src="{{ purchase.main_image_url }}" alt="{{ purchase.title|fa_digits }}" class="w-12 h-12 object-cover rounded-xl shadow-sm shrink-0">
+                                {% endif %}
                                 <div class="min-w-0 flex-1">
                                     <h4 class="font-bold text-sm text-gray-900 dark:text-white truncate drop-shadow-sm">{% include 'partials/lot_badge_title.html' with lot=purchase.lot title=purchase.title %}</h4>
                                     <p class="text-xs text-gray-600 dark:text-gray-400 mt-0.5 truncate">

@@ -37,10 +37,12 @@
 
             <!-- افزودن لینک به تصویر -->
             <a href="{% url 'auction:auction_product_detail' product.pk %}" class="block w-full h-full">
-                <img alt="{{ product.title }}"
-                     data-product-img="{{ product.pk }}"
-                     class="w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-110"
-                     src="{{ product.main_image_url }}"/>
+                {% if product.main_image_url %}
+                    <img alt="{{ product.title }}"
+                         data-product-img="{{ product.pk }}"
+                         class="w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-110"
+                         src="{{ product.main_image_url }}"/>
+                {% endif %}
             </a>
         </div>
         

@@ -119,7 +119,7 @@ class Auction(models.Model):
     @property
     def main_image_url(self):
         if not self.pk:
-            return f'{settings.STATIC_URL}images/no-image.jpg'
+            return ''
 
         image_files = self._get_image_files(self._main_image_extensions())
         if image_files:
@@ -129,15 +129,7 @@ class Auction(models.Model):
         if legacy_main_image_url:
             return legacy_main_image_url
 
-        fallback_image_files = self._get_image_files()
-        if fallback_image_files:
-            return f"{settings.STATIC_URL}images/action/{self.pk}/{fallback_image_files[0].name}"
-
-        legacy_fallback_url = self._get_legacy_image_url(self._image_extensions())
-        if legacy_fallback_url:
-            return legacy_fallback_url
-
-        return f'{settings.STATIC_URL}images/no-image.jpg'
+        return ''
 
     @property
     def catalog_url(self):
@@ -307,29 +299,20 @@ class AuctionProduct(models.Model):
     @property
     def main_image_url(self):
         if not self.product_id:
-            return f'{settings.STATIC_URL}images/no-image.jpg'
+            return ''
 
         image_files = self._get_product_image_files(self._main_image_extensions())
         if not image_files:
             legacy_main_image_url = self._get_legacy_main_image_url()
             if legacy_main_image_url:
                 return legacy_main_image_url
-
-            fallback_image_files = self._get_product_image_files()
-            if fallback_image_files:
-                selected = fallback_image_files[0]
-                return f'{settings.STATIC_URL}images/action/{self.product_id}/{selected.name}'
-
-            legacy_fallback_url = self._get_legacy_image_url(self._image_extensions())
-            if legacy_fallback_url:
-                return legacy_fallback_url
-            return f'{settings.STATIC_URL}images/no-image.jpg'
+            return ''
 
         selected = image_files[0]
         file_name = selected.name
         if file_name:
             return f'{settings.STATIC_URL}images/action/{self.product_id}/{file_name}'
-        return f'{settings.STATIC_URL}images/no-image.jpg'
+        return ''
 
     @property
     def gallery_images(self):
