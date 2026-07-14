@@ -47,6 +47,14 @@ class Auction(models.Model):
     def _image_extensions():
         return ('.webp', '.png', '.jpg', '.jpeg')
 
+    @staticmethod
+    def _main_image_extensions():
+        return ('.webp',)
+
+    @staticmethod
+    def _gallery_image_extensions():
+        return ('.jpg', '.jpeg')
+
     def _get_priority_image_names(self):
         if not self.pk:
             return ('main', 'cover', 'primary', 'first')
@@ -78,42 +86,56 @@ class Auction(models.Model):
 
         return (len(priority_names), 2, file_path.name.lower())
 
-    def _get_image_files(self):
+    def _get_image_files(self, allowed_extensions=None):
         image_dir = self._get_image_dir()
         if not image_dir or not (image_dir.exists() and image_dir.is_dir()):
             return []
 
+        allowed_extensions = tuple(
+            ext.lower() for ext in (allowed_extensions or self._image_extensions())
+        )
         image_files = [
             file_path
             for file_path in image_dir.iterdir()
-            if file_path.is_file() and file_path.suffix.lower() in self._image_extensions()
+            if file_path.is_file() and file_path.suffix.lower() in allowed_extensions
         ]
         image_files.sort(key=self._image_sort_key)
         return image_files
 
-    def _get_legacy_main_image_url(self):
+    def _get_legacy_image_url(self, extensions):
         if not self.pk:
             return None
 
         static_root = self._get_static_root()
-        for ext in self._image_extensions():
+        for ext in extensions:
             legacy_file = static_root / 'images' / 'action' / f'{self.pk}{ext}'
             if legacy_file.exists() and legacy_file.is_file():
                 return f"{settings.STATIC_URL}images/action/{legacy_file.name}"
         return None
+
+    def _get_legacy_main_image_url(self):
+        return self._get_legacy_image_url(self._main_image_extensions())
 
     @property
     def main_image_url(self):
         if not self.pk:
             return f'{settings.STATIC_URL}images/no-image.jpg'
 
-        image_files = self._get_image_files()
+        image_files = self._get_image_files(self._main_image_extensions())
         if image_files:
             return f"{settings.STATIC_URL}images/action/{self.pk}/{image_files[0].name}"
 
         legacy_main_image_url = self._get_legacy_main_image_url()
         if legacy_main_image_url:
             return legacy_main_image_url
+
+        fallback_image_files = self._get_image_files()
+        if fallback_image_files:
+            return f"{settings.STATIC_URL}images/action/{self.pk}/{fallback_image_files[0].name}"
+
+        legacy_fallback_url = self._get_legacy_image_url(self._image_extensions())
+        if legacy_fallback_url:
+            return legacy_fallback_url
 
         return f'{settings.STATIC_URL}images/no-image.jpg'
 
@@ -208,6 +230,14 @@ class AuctionProduct(models.Model):
     def _image_extensions():
         return ('.webp', '.png', '.jpg', '.jpeg')
 
+    @staticmethod
+    def _main_image_extensions():
+        return ('.webp',)
+
+    @staticmethod
+    def _gallery_image_extensions():
+        return ('.jpg', '.jpeg')
+
     def _get_priority_image_names(self):
         if not self.product_id:
             return ('main', 'cover', 'primary', 'first')
@@ -232,29 +262,35 @@ class AuctionProduct(models.Model):
             return None
         return self._get_static_root() / 'images' / 'action' / self.product_id
 
-    def _get_product_image_files(self):
+    def _get_product_image_files(self, allowed_extensions=None):
         image_dir = self._get_product_image_dir()
         if not image_dir or not (image_dir.exists() and image_dir.is_dir()):
             return []
 
+        allowed_extensions = tuple(
+            ext.lower() for ext in (allowed_extensions or self._image_extensions())
+        )
         image_files = [
             file_path
             for file_path in image_dir.iterdir()
-            if file_path.is_file() and file_path.suffix.lower() in self._image_extensions()
+            if file_path.is_file() and file_path.suffix.lower() in allowed_extensions
         ]
         image_files.sort(key=self._image_sort_key)
         return image_files
 
-    def _get_legacy_main_image_url(self):
+    def _get_legacy_image_url(self, extensions):
         if not self.product_id:
             return None
 
         static_root = self._get_static_root()
-        for ext in self._image_extensions():
+        for ext in extensions:
             legacy_file = static_root / 'images' / 'action' / f'{self.product_id}{ext}'
             if legacy_file.exists() and legacy_file.is_file():
                 return f"{settings.STATIC_URL}images/action/{legacy_file.name}"
         return None
+
+    def _get_legacy_main_image_url(self):
+        return self._get_legacy_image_url(self._main_image_extensions())
 
     def _image_sort_key(self, file_path):
         stem = file_path.stem.lower()
@@ -273,11 +309,20 @@ class AuctionProduct(models.Model):
         if not self.product_id:
             return f'{settings.STATIC_URL}images/no-image.jpg'
 
-        image_files = self._get_product_image_files()
+        image_files = self._get_product_image_files(self._main_image_extensions())
         if not image_files:
             legacy_main_image_url = self._get_legacy_main_image_url()
             if legacy_main_image_url:
                 return legacy_main_image_url
+
+            fallback_image_files = self._get_product_image_files()
+            if fallback_image_files:
+                selected = fallback_image_files[0]
+                return f'{settings.STATIC_URL}images/action/{self.product_id}/{selected.name}'
+
+            legacy_fallback_url = self._get_legacy_image_url(self._image_extensions())
+            if legacy_fallback_url:
+                return legacy_fallback_url
             return f'{settings.STATIC_URL}images/no-image.jpg'
 
         selected = image_files[0]
@@ -291,7 +336,7 @@ class AuctionProduct(models.Model):
         if not self.product_id:
             return []
 
-        image_files = self._get_product_image_files()
+        image_files = self._get_product_image_files(self._gallery_image_extensions())
         if not image_files:
             return []
 
