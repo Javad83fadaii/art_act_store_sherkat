@@ -76,7 +76,7 @@
                 {% elif auctions %}
                     {% for auction in auctions %}
                         <div class="group bg-white dark:bg-zinc-900 rounded-[1.5rem] overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 border border-neutral-200 dark:border-zinc-800 p-2 pb-5">
-                            <div class="relative w-full aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-neutral-100 dark:bg-zinc-800">
+                            <div class="relative w-full aspect-[135/112] rounded-xl overflow-hidden mb-4 bg-neutral-100 dark:bg-zinc-800">
                                 <img alt="{{ auction.name|default:auction }}"
                                      class="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
                                      src="{% static 'images/action/' %}{{ auction.pk }}.webp"/>
