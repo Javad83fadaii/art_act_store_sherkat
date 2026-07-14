@@ -9,7 +9,7 @@
         <!-- هاله نورانی بک‌گراند برای حالت پایان یافته (به صورت پیش‌فرض مخفی) -->
         <div data-glow="ENDED" class="absolute inset-0 bg-red-500/5 dark:bg-red-500/5 rounded-[1.5rem] opacity-0 transition-opacity duration-700 pointer-events-none z-0"></div>
 
-        <div class="relative w-full aspect-[135/112] rounded-xl overflow-hidden mb-4 bg-neutral-100 dark:bg-zinc-800">
+        <div class="relative w-full aspect-[112/135] rounded-xl overflow-hidden mb-4 bg-neutral-100 dark:bg-zinc-800">
             <div data-sold-badge class="absolute top-3 right-3 z-[16] {% if auction.status == 'finished' and product.winner_id %}flex{% else %}hidden{% endif %} items-center gap-1 rounded-full border px-3 py-1 text-[11px] font-bold text-white shadow-lg backdrop-blur-md {% if request.user.is_authenticated and product.winner_id == request.user.pk %}border-amber-300/80 bg-amber-500/95 shadow-amber-500/25{% else %}border-emerald-300/70 bg-emerald-500/90 shadow-emerald-500/20{% endif %}">
                 <span data-sold-badge-icon class="material-symbols-outlined text-[14px]">{% if request.user.is_authenticated and product.winner_id == request.user.pk %}military_tech{% else %}sell{% endif %}</span>
                 <span data-sold-badge-text>{% if request.user.is_authenticated and product.winner_id == request.user.pk %}شما برنده شدید{% else %}به فروش رسید{% endif %}</span>
