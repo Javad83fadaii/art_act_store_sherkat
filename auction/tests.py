@@ -483,6 +483,7 @@ class AuctionVisitTrackingTests(TestCase):
         self.assertIn('data-login-message="برای مشاهده جزئیات محصول مزایده، لطفاً ابتدا وارد حساب کاربری خود شوید."', html)
         self.assertIn('data-track-kind="auction_product"', html)
         self.assertIn('data-track-guard="auction-access"', html)
+        self.assertIn('data-product-image-link="1"', html)
 
     def test_finished_auction_products_page_allows_public_product_navigation_script(self):
         winner = CustomUser.objects.create_user(
