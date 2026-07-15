@@ -5,16 +5,13 @@
 <main class="flex-grow w-full max-w-[1440px] mx-auto px-6 pt-6 md:pt-8 pb-10 md:pb-16 relative">
     
     <!-- بخش هدر (کارت ماه) -->
-    <div class="w-full max-w-6xl mx-auto bg-[radial-gradient(circle_at_top_right,rgba(171,140,88,0.18),transparent_28%),linear-gradient(180deg,#ffffff_0%,#fcfaf5_100%)] dark:bg-zinc-800/60 backdrop-blur-md rounded-[2.25rem] border border-stone-200/80 dark:border-zinc-700 px-6 py-8 md:px-10 md:py-10 text-center z-10 relative shadow-[0_24px_70px_-45px_rgba(24,24,27,0.45)]">
-        <span class="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-xs font-black text-primary border border-primary/15 mb-5">
-            <span class="material-symbols-outlined text-[16px]">diamond</span>
-            مجموعه مزایده‌های هنری
-        </span>
+    <div class="w-full max-w-6xl mx-auto bg-white dark:bg-zinc-800/60 backdrop-blur-md rounded-[2rem] border border-gray-100 dark:border-zinc-700 px-6 py-6 text-center z-10 relative">
         <h2 class="text-3xl md:text-5xl font-bold leading-tight text-text-main dark:text-white font-display">
-            آرشیو و رویدادهای مزایده
+            ماه 
         </h2>
-        <p class="text-text-muted dark:text-gray-400 text-base md:text-lg font-medium max-w-3xl mx-auto mt-5 leading-8">
-            مجموعه‌ای از مزایده‌های هنری با نمایش هماهنگ آثار، زمان‌بندی دقیق و دسترسی عمومی به جزئیات پس از پایان هر رویداد.
+        <br>
+        <p class="text-text-muted dark:text-gray-400 text-base md:text-lg font-medium">
+            فرصتی بی‌نظیر برای سرمایه‌گذاری در هنر. آثار نفیس از هنرمندان معاصر و کلاسیک در مزایده آنلاین.
         </p>
     </div>
     
@@ -23,7 +20,7 @@
         {% if auctions %}
             {% for auction in auctions %}
                 <!-- ساختار کارت -->
-                <div class="group relative w-full {% if auction.status == 'finished' %}bg-gradient-to-br from-white to-stone-50 border-stone-200{% else %}bg-white border-primary/10 hover:shadow-gold-glow{% endif %} rounded-[2rem] overflow-hidden shadow-soft-elegant transition-all duration-500 border flex flex-col lg:flex-row min-h-[360px]">
+                <div class="group relative w-full {% if auction.status == 'finished' %}bg-white/80 border-gray-200{% else %}bg-white border-primary/10 hover:shadow-gold-glow{% endif %} rounded-[2rem] overflow-hidden shadow-soft-elegant transition-all duration-500 border flex flex-col lg:flex-row min-h-[360px]">
                     
                     <!-- بخش متنی -->
                     <div class="lg:w-5/12 p-5 lg:p-7 flex flex-col justify-between {% if auction.status == 'finished' %}bg-white/90{% else %}bg-white{% endif %} z-20 text-right order-2 lg:order-1">
@@ -194,7 +191,7 @@
 
                     
                     <!-- بخش عکس -->
-                    <div class="lg:w-7/12 relative overflow-hidden {% if auction.status == 'finished' %}bg-stone-100{% else %}bg-gray-50{% endif %} border-l border-border-light h-64 sm:h-72 lg:h-auto order-1 lg:order-2">
+                    <div class="lg:w-7/12 relative overflow-hidden {% if auction.status == 'finished' %}bg-gray-100{% else %}bg-gray-50{% endif %} border-l border-border-light h-64 sm:h-72 lg:h-auto order-1 lg:order-2">
 
                         <!-- تصویر قابل کلیک -->
                         <a href="{% url 'auction:auction_products' auction.pk %}"
@@ -204,14 +201,12 @@
                         data-track-kind="auction"
                         data-track-id="{{ auction.pk }}">
 
-                            {% if auction.main_image_url %}
-                                <img alt="{{ auction.name|default:auction|fa_digits }}"
-                                    class="w-full h-full object-cover transition-transform duration-[2.5s] ease-out {% if auction.status != 'finished' %}group-hover:scale-105{% endif %} {% if auction.status == 'ready' %}grayscale-[0.18]{% elif auction.status == 'finished' %}opacity-90{% endif %}"
-                                    src="{{ auction.main_image_url }}" />
-                            {% endif %}
+                            <img alt="{{ auction.name|default:auction|fa_digits }}"
+                                class="w-full h-full object-cover transition-transform duration-[2.5s] ease-out {% if auction.status != 'finished' %}group-hover:scale-105{% endif %} {% if auction.status == 'ready' %}grayscale-[0.3]{% elif auction.status == 'finished' %}grayscale opacity-60{% endif %}"
+                                src="{% static 'images/action/' %}{{ auction.pk }}.webp" />
 
                             <!-- افکت روی تصویر -->
-                            <div class="absolute inset-0 z-10 {% if auction.status == 'ongoing' %}bg-[#AB8C58]/5{% elif auction.status == 'ready' %}bg-zinc-800/5{% else %}bg-gradient-to-t from-stone-950/25 via-transparent to-transparent{% endif %} {% if auction.status != 'finished' %}group-hover:bg-transparent transition-colors duration-500{% endif %} pointer-events-none"></div>
+                            <div class="absolute inset-0 z-10 {% if auction.status == 'ongoing' %}bg-[#AB8C58]/5{% elif auction.status == 'ready' %}bg-zinc-800/5{% else %}bg-white/20{% endif %} {% if auction.status != 'finished' %}group-hover:bg-transparent transition-colors duration-500{% endif %} pointer-events-none"></div>
 
                         </a>
 

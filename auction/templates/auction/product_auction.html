@@ -31,13 +31,13 @@
 ></div>
 {% endif %}
 
-<div class="min-h-screen bg-[radial-gradient(circle_at_top_right,rgba(171,140,88,0.14),transparent_28%),linear-gradient(180deg,#fcfbf7_0%,#ffffff_42%,#f7f3ea_100%)] dark:bg-background-dark text-text-main dark:text-white flex flex-col">
-<main class="flex-grow w-full max-w-[1380px] mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-14">
+<div class="bg-background-light dark:bg-background-dark text-text-main dark:text-white min-h-screen flex flex-col">
+<main class="flex-grow w-full max-w-[1300px] mx-auto px-4 sm:px-6 lg:px-8 py-10">
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 xl:gap-16">
         
         <!-- ستون سمت راست: گالری تصاویر -->
         <div class="lg:col-span-7 flex flex-col gap-6">
-            <div class="relative w-full aspect-[4/3] bg-stone-100 rounded-[1.75rem] overflow-hidden shadow-[0_24px_60px_-35px_rgba(24,24,27,0.45)] border border-stone-200/80 group zoom-container">
+            <div class="relative w-full aspect-[4/3] bg-neutral-100 rounded-xl overflow-hidden shadow-sm border border-neutral-200 group zoom-container">
 
                 <div class="absolute top-4 right-4 flex gap-2 z-20">
                     <button id="btn-view-image" onclick="switchView('image')" class="px-3 py-1.5 bg-white/90 backdrop-blur-md border border-white/50 rounded-lg text-xs font-bold text-primary shadow-sm hover:bg-white transition-all ring-2 ring-primary">
@@ -50,10 +50,10 @@
                     {% endif %}
                 </div>
 
-                {% if auction.auction.status == 'finished' %}
-                    <div class="absolute top-4 left-4 z-20 inline-flex items-center gap-2 px-4 py-2 rounded-full {% if auction.winner_id %}bg-emerald-600/95{% else %}bg-stone-900/90{% endif %} text-white shadow-lg border border-white/20 backdrop-blur-sm">
-                        <span class="material-symbols-outlined text-[18px]">{% if auction.winner_id %}check_circle{% else %}info{% endif %}</span>
-                        <span class="text-xs sm:text-sm font-black">{% if auction.winner_id %}فروخته شد{% else %}پایان مزایده{% endif %}</span>
+                {% if auction.auction.status == 'finished' and auction.winner_id %}
+                    <div class="absolute top-4 left-4 z-20 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-600/95 text-white shadow-lg border border-white/20 backdrop-blur-sm">
+                        <span class="material-symbols-outlined text-[18px]">check_circle</span>
+                        <span class="text-xs sm:text-sm font-black">فروخته شد</span>
                     </div>
                 {% endif %}
 
@@ -167,7 +167,7 @@
             <div class="sticky top-28 space-y-8">
                 
                 <!-- بخش هدر: عنوان و مشخصات -->
-                <div class="border-b border-stone-200 pb-6 animate-fadeIn" style="animation-delay: 0.1s;">
+                <div class="border-b border-neutral-200 pb-6 animate-fadeIn" style="animation-delay: 0.1s;">
 
                     <h1 class="text-4xl lg:text-5xl font-bold text-neutral-900 mb-3 tracking-tight leading-tight">
                         {{ auction.title|fa_digits }}
@@ -175,19 +175,6 @@
                     <h2 class="text-2xl lg:text-3xl text-neutral-600 font-medium mb-6">
                     {{ auction.artist.name|fa_digits }}
                     </h2>
-
-                    <div class="mb-6 flex flex-wrap items-center gap-2.5">
-                        <span class="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-xs font-black text-primary border border-primary/15">
-                            <span class="material-symbols-outlined text-[16px]">palette</span>
-                            {{ auction.artwork_type.name|default:"اثر هنری"|fa_digits }}
-                        </span>
-                        {% if auction.auction.status == 'finished' %}
-                            <span class="inline-flex items-center gap-2 rounded-full bg-stone-900 px-4 py-2 text-xs font-black text-white border border-stone-900">
-                                <span class="material-symbols-outlined text-[16px]">menu_book</span>
-                                آرشیو عمومی مزایده
-                            </span>
-                        {% endif %}
-                    </div>
                     
                     <div class="flex flex-wrap gap-y-3 gap-x-6 text-sm text-secondary-text font-medium">
                         {% if auction.creation_year %}
@@ -215,21 +202,21 @@
                 </div>
 
                 <!-- باکس اصلی: تایمر، قیمت و پیشنهاد -->
-                <div class="bg-white/95 rounded-[1.75rem] shadow-[0_24px_60px_-35px_rgba(24,24,27,0.35)] border border-stone-200/80 animate-fadeIn overflow-hidden backdrop-blur-sm" style="animation-delay: 0.2s;">
+                <div class="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-neutral-200 animate-fadeIn overflow-hidden" style="animation-delay: 0.2s;">
                     
                     <!-- بخش 1: تایمر -->
                     <div class="px-6 sm:px-8 py-5 border-b border-neutral-100 bg-neutral-50/30">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-2.5">
-                                {% if auction.auction.status == 'finished' %}
-                                    <span class="material-symbols-outlined text-[22px] {% if auction.winner_id %}text-emerald-600{% else %}text-stone-700{% endif %}">{% if auction.winner_id %}verified{% else %}info{% endif %}</span>
+                                {% if auction.auction.status == 'finished' and auction.winner_id %}
+                                    <span class="material-symbols-outlined text-[22px] text-emerald-600">verified</span>
                                 {% else %}
                                     <span class="material-symbols-outlined text-[22px] text-primary animate-hourglass">hourglass_top</span>
                                 {% endif %}
                                 <div class="flex flex-col">
-                                    {% if auction.auction.status == 'finished' %}
+                                    {% if auction.auction.status == 'finished' and auction.winner_id %}
                                         <span class="text-xs font-bold text-neutral-700">وضعیت اثر</span>
-                                        <span class="text-[10px] text-neutral-400">جزئیات این اثر اکنون برای همه کاربران قابل مشاهده است</span>
+                                        <span class="text-[10px] text-neutral-400">مزایده این اثر به پایان رسیده است</span>
                                     {% else %}
                                         <span class="text-xs font-bold text-neutral-700">زمان باقی‌مانده</span>
                                         <span class="text-[10px] text-neutral-400">تا پایان مزایده</span>
@@ -237,10 +224,10 @@
                                 </div>
                             </div>
 
-                            {% if auction.auction.status == 'finished' %}
-                                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full {% if auction.winner_id %}bg-emerald-50 text-emerald-700 border-emerald-200{% else %}bg-stone-100 text-stone-700 border-stone-200{% endif %} border">
-                                    <span class="material-symbols-outlined text-[18px]">{% if auction.winner_id %}gavel{% else %}history{% endif %}</span>
-                                    <span class="text-sm font-black">{% if auction.winner_id %}فروخته‌شده{% else %}بایگانی‌شده{% endif %}</span>
+                            {% if auction.auction.status == 'finished' and auction.winner_id %}
+                                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    <span class="material-symbols-outlined text-[18px]">gavel</span>
+                                    <span class="text-sm font-black">فروخته‌شده</span>
                                 </div>
                             {% else %}
                                 <div class="flex items-center gap-2 text-neutral-800" dir="ltr" id="linear-timer" data-endtime="{{ auction.end_time|date:'Y-m-d\\TH:i:s' }}">
@@ -273,26 +260,22 @@
                          data-current-price="{{ auction.current_price|default:auction.base_price }}" 
                          data-min-next="{{ auction.get_min_next_bid }}" 
                          data-bid-value="{{ auction.bid_value }}">
-                        {% if auction.auction.status == 'finished' %}
-                            <div class="relative overflow-hidden rounded-[1.6rem] border {% if auction.winner_id %}border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-100{% else %}border-stone-200 bg-gradient-to-br from-stone-100 via-white to-amber-50{% endif %} p-6 sm:p-7">
-                                <div class="absolute -top-10 -left-10 w-32 h-32 rounded-full {% if auction.winner_id %}bg-emerald-200/40{% else %}bg-amber-200/40{% endif %} blur-2xl"></div>
-                                <div class="absolute -bottom-12 -right-10 w-36 h-36 rounded-full {% if auction.winner_id %}bg-emerald-300/30{% else %}bg-stone-300/30{% endif %} blur-3xl"></div>
+                        {% if auction.auction.status == 'finished' and auction.winner_id %}
+                            <div class="relative overflow-hidden rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-100 p-6 sm:p-7">
+                                <div class="absolute -top-10 -left-10 w-32 h-32 rounded-full bg-emerald-200/40 blur-2xl"></div>
+                                <div class="absolute -bottom-12 -right-10 w-36 h-36 rounded-full bg-emerald-300/30 blur-3xl"></div>
                                 <div class="relative space-y-5">
-                                    <div class="w-16 h-16 rounded-2xl {% if auction.winner_id %}bg-emerald-600 shadow-emerald-600/25{% else %}bg-stone-900 shadow-stone-900/20{% endif %} text-white flex items-center justify-center shadow-lg">
-                                        <span class="material-symbols-outlined text-[30px]">{% if auction.winner_id %}workspace_premium{% else %}menu_book{% endif %}</span>
+                                    <div class="w-16 h-16 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-600/25">
+                                        <span class="material-symbols-outlined text-[30px]">workspace_premium</span>
                                     </div>
                                     <div class="space-y-2">
-                                        <h3 class="text-2xl font-black text-neutral-900">{% if auction.winner_id %}این اثر فروخته شد{% else %}مزایده این اثر به پایان رسیده است{% endif %}</h3>
+                                        <h3 class="text-2xl font-black text-neutral-900">این اثر فروخته شد</h3>
                                         <p class="text-sm leading-7 text-neutral-600">
-                                            {% if auction.winner_id %}
-                                                این مزایده به پایان رسیده و این اثر با بالاترین پیشنهاد نهایی شده است.
-                                            {% else %}
-                                                این اثر بدون برنده نهایی در آرشیو مزایده قرار گرفته و اطلاعات آن برای همه کاربران قابل مشاهده است.
-                                            {% endif %}
+                                            این مزایده به پایان رسیده و این اثر با بالاترین پیشنهاد نهایی شده است.
                                         </p>
                                     </div>
                                     <div class="rounded-xl border border-white/70 bg-white/80 backdrop-blur-sm p-4">
-                                        <span class="text-xs font-bold text-neutral-500">{% if auction.winner_id %}قیمت نهایی فروش{% else %}آخرین قیمت ثبت‌شده{% endif %}</span>
+                                        <span class="text-xs font-bold text-neutral-500">قیمت نهایی فروش</span>
                                         <div class="mt-2 flex items-baseline gap-1">
                                             <span class="text-3xl font-extrabold text-neutral-900">
                                                 {{ auction.current_price|default:auction.base_price|intcomma|fa_digits }}
@@ -306,13 +289,11 @@
                                         {% endif %}
                                         <div class="mt-4 border-t border-emerald-100 pt-4">
                                             <span class="text-xs font-bold text-neutral-500">وضعیت دسترسی</span>
-                                            <div class="mt-2 text-sm font-bold {% if auction.winner_id %}text-emerald-700{% else %}text-stone-700{% endif %} leading-7">
+                                            <div class="mt-2 text-sm font-bold text-emerald-700 leading-7">
                                                 {% if has_winner_profile_access %}
                                                     شما برنده این اثر هستید و جزئیات آن برای شما فعال است.
-                                                {% elif is_public_finished_view %}
-                                                    جزئیات، تصاویر و توضیحات این اثر اکنون برای همه کاربران باز است.
                                                 {% else %}
-                                                    این اثر در آرشیو پایان‌یافته مزایده قرار دارد.
+                                                    این اثر دارای برنده نهایی است.
                                                 {% endif %}
                                             </div>
                                         </div>
@@ -435,7 +416,7 @@
                     </div>
 
                     <!-- فوتر هزینه‌ها -->
-                    <div class="bg-stone-50/90 border-t border-stone-200 px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-2 text-[11px] text-neutral-500 font-medium">
+                    <div class="bg-neutral-50 border-t border-neutral-200 px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-2 text-[11px] text-neutral-500 font-medium">
                         <span class="flex items-center gap-1.5">
                             <span class="material-symbols-outlined text-[16px] text-neutral-400">percent</span>
                             کمیسیون خریدار: ۱۰٪ مبلغ نهایی
@@ -448,7 +429,7 @@
                 </div>
 
                 <!-- آکاردئون‌های توضیحات -->
-                <div class="divide-y divide-stone-200 border-t border-stone-200 pt-6">
+                <div class="divide-y divide-neutral-200 border-t border-neutral-200 pt-6">
                     <details class="group py-4" open>
                         <summary class="flex justify-between items-center font-bold text-lg text-neutral-900 cursor-pointer list-none select-none hover:text-primary transition-colors">
                             <span>درباره اثر</span>

@@ -146,16 +146,15 @@ def auction_product_detail(request, pk: int):
     product = ensure_auction_product_winner(product)
     access_token = request.GET.get('access_token', '').strip()
     has_winner_profile_access = _has_finished_winner_profile_access(request, product, access_token)
-    is_finished_auction = product.auction.status == 'finished'
     is_active_auction = product.auction.status == 'ongoing'
 
-    if not is_active_auction and not is_finished_auction and not has_winner_profile_access:
+    if not is_active_auction and not has_winner_profile_access:
         if not request.user.is_authenticated and access_token:
             login_url = f'{reverse("login")}?{urlencode({"next": request.get_full_path()})}'
             return redirect(login_url)
         return _build_inactive_auction_redirect(product)
 
-    if is_active_auction and not request.user.is_authenticated:
+    if not request.user.is_authenticated:
         login_url = f'{reverse("login")}?{urlencode({"next": request.path})}'
         list_url = reverse('auction:auction_products', kwargs={'pk': product.auction.pk})
         # return redirect(
@@ -163,11 +162,7 @@ def auction_product_detail(request, pk: int):
         # )
         return redirect(list_url)
 
-    if (
-        is_active_auction
-        and int(getattr(request.user, 'is_verified', 0) or 0) != 1
-        and not has_winner_profile_access
-    ):
+    if int(getattr(request.user, 'is_verified', 0) or 0) != 1 and not has_winner_profile_access:
         list_url = reverse('auction:auction_products', kwargs={'pk': product.auction.pk})
         has_opt_in = request.user.has_pending_auction_request
 
@@ -187,68 +182,63 @@ def auction_product_detail(request, pk: int):
     # Query های بهینه
     # ----------------------------------
 
-    my_bids = []
-    my_bids_count = 0
+    user_bids_qs = Bid.objects.filter(
+        user=request.user,
+        product_id=product.product_id
+    )
 
-    if request.user.is_authenticated:
-        user_bids_qs = Bid.objects.filter(
-            user=request.user,
-            product_id=product.product_id
-        )
+    my_bids = list(
+        user_bids_qs
+        .order_by('-created_at', '-pk')[:50]
+    )
 
-        my_bids = list(
-            user_bids_qs
-            .order_by('-created_at', '-pk')[:50]
-        )
+    my_bids_count = user_bids_qs.count()
 
-        my_bids_count = user_bids_qs.count()
+    # بالاترین بید کل مزایده
+    highest_auction_bid = (
+        Bid.objects.filter(product_id=product.product_id)
+        .aggregate(max_bid=Max('bid_amount'))
+        .get('max_bid')
+    )
 
-        # بالاترین بید کل مزایده
-        highest_auction_bid = (
-            Bid.objects.filter(product_id=product.product_id)
-            .aggregate(max_bid=Max('bid_amount'))
-            .get('max_bid')
-        )
+    # بالاترین بید کاربر
+    highest_user_bid = (
+        user_bids_qs
+        .aggregate(max_bid=Max('bid_amount'))
+        .get('max_bid')
+    )
+
+    # آخرین بید کاربر
+    latest_user_bid_id = (
+        user_bids_qs
+        .order_by('-created_at', '-pk')
+        .values_list('id', flat=True)
+        .first()
+    )
+
+    # ----------------------------------
+    # فلگ های UI
+    # ----------------------------------
+
+    for bid in my_bids:
+
+        # آخرین بید
+        bid.is_latest = bid.id == latest_user_bid_id
 
         # بالاترین بید کاربر
-        highest_user_bid = (
-            user_bids_qs
-            .aggregate(max_bid=Max('bid_amount'))
-            .get('max_bid')
+        bid.is_user_top = highest_user_bid and bid.bid_amount == highest_user_bid
+
+        # برنده فعلی
+        bid.is_user_highest = (
+            highest_user_bid
+            and highest_auction_bid
+            and highest_user_bid == highest_auction_bid
+            and bid.bid_amount == highest_user_bid
         )
-
-        # آخرین بید کاربر
-        latest_user_bid_id = (
-            user_bids_qs
-            .order_by('-created_at', '-pk')
-            .values_list('id', flat=True)
-            .first()
-        )
-
-        # ----------------------------------
-        # فلگ های UI
-        # ----------------------------------
-
-        for bid in my_bids:
-
-            # آخرین بید
-            bid.is_latest = bid.id == latest_user_bid_id
-
-            # بالاترین بید کاربر
-            bid.is_user_top = highest_user_bid and bid.bid_amount == highest_user_bid
-
-            # برنده فعلی
-            bid.is_user_highest = (
-                highest_user_bid
-                and highest_auction_bid
-                and highest_user_bid == highest_auction_bid
-                and bid.bid_amount == highest_user_bid
-            )
 
     context = {
         'auction': product,
         'has_winner_profile_access': has_winner_profile_access,
-        'is_public_finished_view': is_finished_auction,
         'live_state_url': (
             f'{reverse("auction:auction_product_live_state", kwargs={"pk": product.pk})}?{urlencode({"access_token": access_token})}'
             if has_winner_profile_access and access_token
@@ -264,7 +254,7 @@ def auction_product_detail(request, pk: int):
             .order_by('-updated_at', '-created_at', '-pk')
             .values_list('status', flat=True)
             .first() or ''
-        ) if request.user.is_authenticated else '',
+        ),
     }
 
     context['bid_error'] = request.GET.get('bid_error', '') or context['bid_error']
@@ -279,9 +269,8 @@ def auction_product_live_state(request, pk: int):
     access_token = request.GET.get('access_token', '').strip()
     include_user_history = request.GET.get('compact') != '1'
     is_active_auction = product.auction.status == 'ongoing'
-    is_finished_auction = product.auction.status == 'finished'
     has_winner_profile_access = _has_finished_winner_profile_access(request, product, access_token)
-    if not is_active_auction and not is_finished_auction and not has_winner_profile_access:
+    if not is_active_auction and not has_winner_profile_access:
         return JsonResponse({'success': False, 'message': 'مزایده فعال نیست.'}, status=403)
     return JsonResponse(
         {
