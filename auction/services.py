@@ -25,7 +25,7 @@ def ensure_auction_product_winner(product: AuctionProduct) -> AuctionProduct:
         # اضافه کردن ۱۰ درصد به قیمت
         from decimal import Decimal, ROUND_CEILING
         expected_price = (raw_price * Decimal('1.1')).to_integral_value(rounding=ROUND_CEILING)
-        price_desc = "مبلغ آخرین پیشنهاد به علاوه ۱۰ درصد کمیسون و هزینه حمل و نقل"
+        price_desc =  "مبلغ آخرین پیشنهاد به علاوه ۱۰ درصد کمیسون و هزینه "
     else:
         expected_price = product.current_price or product.base_price
         price_desc = None
