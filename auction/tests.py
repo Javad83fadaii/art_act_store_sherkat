@@ -423,6 +423,33 @@ class AuctionVisitTrackingTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(AuctionVisitHistory.objects.count(), 0)
 
+    def test_finished_auction_product_detail_is_public_without_bid_submission(self):
+        winner = CustomUser.objects.create_user(
+            phone_number='09120000111',
+            password='Test@1234',
+            full_name='برنده مزایده',
+        )
+        winner.is_verified = 1
+        winner.credit = Decimal('1000')
+        winner.current_credit = Decimal('1000')
+        winner.save()
+
+        self.product.place_bid(winner, '200')
+        self.auction.end_date = timezone.now() - timedelta(seconds=1)
+        self.auction.save(update_fields=['end_date'])
+
+        response = self.client.get(
+            reverse('auction:auction_product_detail', kwargs={'pk': self.product.pk}),
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'مزایده این اثر به پایان رسیده است')
+        self.assertContains(response, 'این اثر دارای برنده نهایی است.')
+        self.assertNotContains(response, 'این صفحه برای مشاهده عمومی باز است و ثبت بید غیرفعال شده است.')
+        self.assertNotContains(response, 'id="bid-submit-form"', html=False)
+        self.assertNotContains(response, 'ورود جهت ثبت پیشنهاد')
+
     def test_auction_products_page_marks_product_detail_links_for_guarded_visit_tracking(self):
         response = self.client.get(reverse('auction:auction_products', kwargs={'pk': self.auction.pk}))
 

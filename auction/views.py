@@ -147,14 +147,15 @@ def auction_product_detail(request, pk: int):
     access_token = request.GET.get('access_token', '').strip()
     has_winner_profile_access = _has_finished_winner_profile_access(request, product, access_token)
     is_active_auction = product.auction.status == 'ongoing'
+    is_finished_auction = product.auction.status == 'finished'
 
-    if not is_active_auction and not has_winner_profile_access:
+    if not is_active_auction and not is_finished_auction and not has_winner_profile_access:
         if not request.user.is_authenticated and access_token:
             login_url = f'{reverse("login")}?{urlencode({"next": request.get_full_path()})}'
             return redirect(login_url)
         return _build_inactive_auction_redirect(product)
 
-    if not request.user.is_authenticated:
+    if is_active_auction and not request.user.is_authenticated:
         login_url = f'{reverse("login")}?{urlencode({"next": request.path})}'
         list_url = reverse('auction:auction_products', kwargs={'pk': product.auction.pk})
         # return redirect(
@@ -162,7 +163,11 @@ def auction_product_detail(request, pk: int):
         # )
         return redirect(list_url)
 
-    if int(getattr(request.user, 'is_verified', 0) or 0) != 1 and not has_winner_profile_access:
+    if (
+        is_active_auction
+        and int(getattr(request.user, 'is_verified', 0) or 0) != 1
+        and not has_winner_profile_access
+    ):
         list_url = reverse('auction:auction_products', kwargs={'pk': product.auction.pk})
         has_opt_in = request.user.has_pending_auction_request
 
@@ -182,38 +187,53 @@ def auction_product_detail(request, pk: int):
     # Query های بهینه
     # ----------------------------------
 
-    user_bids_qs = Bid.objects.filter(
-        user=request.user,
-        product_id=product.product_id
-    )
+    my_bids = []
+    my_bids_count = 0
+    latest_credit_request_status = ''
+    highest_user_bid = None
+    latest_user_bid_id = None
 
-    my_bids = list(
-        user_bids_qs
-        .order_by('-created_at', '-pk')[:50]
-    )
+    if request.user.is_authenticated:
+        user_bids_qs = Bid.objects.filter(
+            user=request.user,
+            product_id=product.product_id
+        )
 
-    my_bids_count = user_bids_qs.count()
+        my_bids = list(
+            user_bids_qs
+            .order_by('-created_at', '-pk')[:50]
+        )
+
+        my_bids_count = user_bids_qs.count()
+
+        # بالاترین بید کاربر
+        highest_user_bid = (
+            user_bids_qs
+            .aggregate(max_bid=Max('bid_amount'))
+            .get('max_bid')
+        )
+
+        # آخرین بید کاربر
+        latest_user_bid_id = (
+            user_bids_qs
+            .order_by('-created_at', '-pk')
+            .values_list('id', flat=True)
+            .first()
+        )
+
+        latest_credit_request_status = (
+            CreditIncreaseRequest.objects
+            .filter(user=request.user)
+            .order_by('-updated_at', '-created_at', '-pk')
+            .values_list('status', flat=True)
+            .first() or ''
+        )
 
     # بالاترین بید کل مزایده
     highest_auction_bid = (
         Bid.objects.filter(product_id=product.product_id)
         .aggregate(max_bid=Max('bid_amount'))
         .get('max_bid')
-    )
-
-    # بالاترین بید کاربر
-    highest_user_bid = (
-        user_bids_qs
-        .aggregate(max_bid=Max('bid_amount'))
-        .get('max_bid')
-    )
-
-    # آخرین بید کاربر
-    latest_user_bid_id = (
-        user_bids_qs
-        .order_by('-created_at', '-pk')
-        .values_list('id', flat=True)
-        .first()
     )
 
     # ----------------------------------
@@ -248,13 +268,7 @@ def auction_product_detail(request, pk: int):
         'my_bids_count': my_bids_count,
         'bid_success': request.session.pop('bid_success', None),
         'bid_error': request.session.pop('bid_error', None),
-        'latest_credit_request_status': (
-            CreditIncreaseRequest.objects
-            .filter(user=request.user)
-            .order_by('-updated_at', '-created_at', '-pk')
-            .values_list('status', flat=True)
-            .first() or ''
-        ),
+        'latest_credit_request_status': latest_credit_request_status,
     }
 
     context['bid_error'] = request.GET.get('bid_error', '') or context['bid_error']

@@ -208,13 +208,17 @@
                     <div class="px-6 sm:px-8 py-5 border-b border-neutral-100 bg-neutral-50/30">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-2.5">
-                                {% if auction.auction.status == 'finished' and auction.winner_id %}
-                                    <span class="material-symbols-outlined text-[22px] text-emerald-600">verified</span>
+                                {% if auction.auction.status == 'finished' %}
+                                    {% if auction.winner_id %}
+                                        <span class="material-symbols-outlined text-[22px] text-emerald-600">verified</span>
+                                    {% else %}
+                                        <span class="material-symbols-outlined text-[22px] text-neutral-600">schedule</span>
+                                    {% endif %}
                                 {% else %}
                                     <span class="material-symbols-outlined text-[22px] text-primary animate-hourglass">hourglass_top</span>
                                 {% endif %}
                                 <div class="flex flex-col">
-                                    {% if auction.auction.status == 'finished' and auction.winner_id %}
+                                    {% if auction.auction.status == 'finished' %}
                                         <span class="text-xs font-bold text-neutral-700">وضعیت اثر</span>
                                         <span class="text-[10px] text-neutral-400">مزایده این اثر به پایان رسیده است</span>
                                     {% else %}
@@ -224,10 +228,10 @@
                                 </div>
                             </div>
 
-                            {% if auction.auction.status == 'finished' and auction.winner_id %}
-                                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                    <span class="material-symbols-outlined text-[18px]">gavel</span>
-                                    <span class="text-sm font-black">فروخته‌شده</span>
+                            {% if auction.auction.status == 'finished' %}
+                                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full {% if auction.winner_id %}bg-emerald-50 text-emerald-700 border border-emerald-200{% else %}bg-neutral-100 text-neutral-700 border border-neutral-200{% endif %}">
+                                    <span class="material-symbols-outlined text-[18px]">{% if auction.winner_id %}gavel{% else %}event_busy{% endif %}</span>
+                                    <span class="text-sm font-black">{% if auction.winner_id %}فروخته‌شده{% else %}پایان‌یافته{% endif %}</span>
                                 </div>
                             {% else %}
                                 <div class="flex items-center gap-2 text-neutral-800" dir="ltr" id="linear-timer" data-endtime="{{ auction.end_time|date:'Y-m-d\\TH:i:s' }}">
@@ -260,22 +264,26 @@
                          data-current-price="{{ auction.current_price|default:auction.base_price }}" 
                          data-min-next="{{ auction.get_min_next_bid }}" 
                          data-bid-value="{{ auction.bid_value }}">
-                        {% if auction.auction.status == 'finished' and auction.winner_id %}
-                            <div class="relative overflow-hidden rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-100 p-6 sm:p-7">
-                                <div class="absolute -top-10 -left-10 w-32 h-32 rounded-full bg-emerald-200/40 blur-2xl"></div>
-                                <div class="absolute -bottom-12 -right-10 w-36 h-36 rounded-full bg-emerald-300/30 blur-3xl"></div>
+                        {% if auction.auction.status == 'finished' %}
+                            <div class="relative overflow-hidden rounded-2xl {% if auction.winner_id %}border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-100{% else %}border border-neutral-200 bg-gradient-to-br from-neutral-50 via-white to-neutral-100{% endif %} p-6 sm:p-7">
+                                <div class="absolute -top-10 -left-10 w-32 h-32 rounded-full {% if auction.winner_id %}bg-emerald-200/40{% else %}bg-neutral-200/50{% endif %} blur-2xl"></div>
+                                <div class="absolute -bottom-12 -right-10 w-36 h-36 rounded-full {% if auction.winner_id %}bg-emerald-300/30{% else %}bg-neutral-300/40{% endif %} blur-3xl"></div>
                                 <div class="relative space-y-5">
-                                    <div class="w-16 h-16 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-600/25">
-                                        <span class="material-symbols-outlined text-[30px]">workspace_premium</span>
+                                    <div class="w-16 h-16 rounded-2xl {% if auction.winner_id %}bg-emerald-600 shadow-lg shadow-emerald-600/25{% else %}bg-neutral-800 shadow-lg shadow-neutral-800/20{% endif %} text-white flex items-center justify-center">
+                                        <span class="material-symbols-outlined text-[30px]">{% if auction.winner_id %}workspace_premium{% else %}event_busy{% endif %}</span>
                                     </div>
                                     <div class="space-y-2">
-                                        <h3 class="text-2xl font-black text-neutral-900">این اثر فروخته شد</h3>
+                                        <h3 class="text-2xl font-black text-neutral-900">{% if auction.winner_id %}این اثر فروخته شد{% else %}مزایده این اثر پایان یافت{% endif %}</h3>
                                         <p class="text-sm leading-7 text-neutral-600">
-                                            این مزایده به پایان رسیده و این اثر با بالاترین پیشنهاد نهایی شده است.
+                                            {% if auction.winner_id %}
+                                                این مزایده به پایان رسیده و این اثر با بالاترین پیشنهاد نهایی شده است.
+                                            {% else %}
+                                                این مزایده به پایان رسیده است و دیگر امکان ثبت پیشنهاد جدید برای این اثر وجود ندارد.
+                                            {% endif %}
                                         </p>
                                     </div>
                                     <div class="rounded-xl border border-white/70 bg-white/80 backdrop-blur-sm p-4">
-                                        <span class="text-xs font-bold text-neutral-500">قیمت نهایی فروش</span>
+                                        <span class="text-xs font-bold text-neutral-500">{% if auction.winner_id %}قیمت نهایی فروش{% else %}آخرین قیمت ثبت‌شده{% endif %}</span>
                                         <div class="mt-2 flex items-baseline gap-1">
                                             <span class="text-3xl font-extrabold text-neutral-900">
                                                 {{ auction.current_price|default:auction.base_price|intcomma|fa_digits }}
@@ -287,11 +295,13 @@
                                                 {{ auction.price_description|fa_digits }}
                                             </div>
                                         {% endif %}
-                                        <div class="mt-4 border-t border-emerald-100 pt-4">
+                                        <div class="mt-4 border-t {% if auction.winner_id %}border-emerald-100{% else %}border-neutral-200{% endif %} pt-4">
                                             <span class="text-xs font-bold text-neutral-500">وضعیت دسترسی</span>
-                                            <div class="mt-2 text-sm font-bold text-emerald-700 leading-7">
+                                            <div class="mt-2 text-sm font-bold {% if auction.winner_id %}text-emerald-700{% else %}text-neutral-700{% endif %} leading-7">
                                                 {% if has_winner_profile_access %}
                                                     شما برنده این اثر هستید و جزئیات آن برای شما فعال است.
+                                                {% elif not auction.winner_id %}
+                                                    این صفحه برای مشاهده عمومی باز است و ثبت بید غیرفعال شده است.
                                                 {% else %}
                                                     این اثر دارای برنده نهایی است.
                                                 {% endif %}
