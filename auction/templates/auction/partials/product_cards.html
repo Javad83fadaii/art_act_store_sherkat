@@ -93,16 +93,7 @@
             </div>
 
             <div class="mt-auto space-y-2.5">
-                {% if auction.status == 'finished' and request.user.is_authenticated and product.winner_id == request.user.pk and product.detail_access_token %}
-                    <a class="w-full flex items-center justify-center gap-2 bg-amber-500/10 hover:bg-amber-500 text-amber-700 hover:text-white text-sm font-bold py-3 rounded-xl transition-all border border-amber-500/20 hover:border-amber-500"
-                       href="{% url 'auction:auction_product_detail' product.pk %}?access_token={{ product.detail_access_token|urlencode }}"
-                       data-track-visit="1"
-                       data-track-kind="auction_winner_product"
-                       data-track-id="{{ product.pk }}">
-                        <span class="material-symbols-outlined text-[18px]">military_tech</span>
-                        مشاهده جزئیات محصول برنده‌شده
-                    </a>
-                {% endif %}
+                
                 <a class="w-full flex items-center justify-center bg-primary/10 hover:bg-primary text-primary hover:text-white text-sm font-bold py-3 rounded-xl transition-all border border-primary/20 hover:border-primary"
                    data-auction-product-link="1"
                    href="{% url 'auction:auction_product_detail' product.pk %}"
