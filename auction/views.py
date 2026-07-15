@@ -283,8 +283,9 @@ def auction_product_live_state(request, pk: int):
     access_token = request.GET.get('access_token', '').strip()
     include_user_history = request.GET.get('compact') != '1'
     is_active_auction = product.auction.status == 'ongoing'
+    is_finished_auction = product.auction.status == 'finished'
     has_winner_profile_access = _has_finished_winner_profile_access(request, product, access_token)
-    if not is_active_auction and not has_winner_profile_access:
+    if not is_active_auction and not is_finished_auction and not has_winner_profile_access:
         return JsonResponse({'success': False, 'message': 'مزایده فعال نیست.'}, status=403)
     return JsonResponse(
         {

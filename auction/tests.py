@@ -206,6 +206,25 @@ class AuctionBidCreditFlowTests(TestCase):
         self.assertEqual(payload['my_bids_count'], 1)
         self.assertIn('تاریخچه بیدهای شما', payload['my_bids_html'])
 
+    def test_finished_live_state_endpoint_is_public_for_compact_product_cards(self):
+        self.product.place_bid(self.user_one, '200')
+        self.auction.end_date = timezone.now() - timedelta(seconds=1)
+        self.auction.save(update_fields=['end_date'])
+
+        response = self.client.get(
+            reverse('auction:auction_product_live_state', kwargs={'pk': self.product.pk}),
+            {'compact': '1'},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload['success'])
+        self.assertEqual(payload['current_price'], 220)
+        self.assertEqual(payload['bid_count'], 1)
+        self.assertTrue(payload['has_winner'])
+
     def test_profile_shows_active_auction_cart_items(self):
         self.product.place_bid(self.user_one, '200')
         self.client.force_login(self.user_one)
@@ -451,7 +470,10 @@ class AuctionVisitTrackingTests(TestCase):
         self.assertNotContains(response, 'ورود جهت ثبت پیشنهاد')
 
     def test_auction_products_page_marks_product_detail_links_for_guarded_visit_tracking(self):
-        response = self.client.get(reverse('auction:auction_products', kwargs={'pk': self.auction.pk}))
+        response = self.client.get(
+            reverse('auction:auction_products', kwargs={'pk': self.auction.pk}),
+            follow=True,
+        )
 
         self.assertEqual(response.status_code, 200)
         html = response.content.decode()
@@ -461,6 +483,32 @@ class AuctionVisitTrackingTests(TestCase):
         self.assertIn('data-login-message="برای مشاهده جزئیات محصول مزایده، لطفاً ابتدا وارد حساب کاربری خود شوید."', html)
         self.assertIn('data-track-kind="auction_product"', html)
         self.assertIn('data-track-guard="auction-access"', html)
+
+    def test_finished_auction_products_page_allows_public_product_navigation_script(self):
+        winner = CustomUser.objects.create_user(
+            phone_number='09120000112',
+            password='Test@1234',
+            full_name='برنده مزایده عمومی',
+        )
+        winner.is_verified = 1
+        winner.credit = Decimal('1000')
+        winner.current_credit = Decimal('1000')
+        winner.save()
+
+        self.product.place_bid(winner, '200')
+        self.auction.end_date = timezone.now() - timedelta(seconds=1)
+        self.auction.save(update_fields=['end_date'])
+
+        response = self.client.get(
+            reverse('auction:auction_products', kwargs={'pk': self.auction.pk}),
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        self.assertIn('window.canTrackAuctionVisit = function(link)', html)
+        self.assertIn("link.dataset.trackKind === 'auction_product'", html)
+        self.assertIn('if (canViewAuctionProductDetails()) return;', html)
 
     def test_track_visit_endpoint_creates_auction_product_visit_only_on_click(self):
         response = self.client.post(

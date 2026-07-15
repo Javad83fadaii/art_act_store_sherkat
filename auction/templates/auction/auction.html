@@ -393,7 +393,15 @@
             return userIsVerified;
         }
 
-        window.canTrackAuctionVisit = function() {
+        function canViewAuctionProductDetails() {
+            if (isAuctionEnded()) return true;
+            return hasAuctionAccessForNavigation();
+        }
+
+        window.canTrackAuctionVisit = function(link) {
+            if (link && link.dataset && link.dataset.trackKind === 'auction_product') {
+                return canViewAuctionProductDetails();
+            }
             return hasAuctionAccessForNavigation();
         };
 
@@ -423,6 +431,8 @@
                 a.dataset.guardBound = '1';
 
                 a.addEventListener('click', e => {
+                    if (canViewAuctionProductDetails()) return;
+
                     if (!ensureAuctionAccess(
                         a.getAttribute('href'),
                         a.getAttribute('data-login-message') || 'برای مشاهده جزئیات محصول مزایده، لطفاً ابتدا وارد حساب کاربری خود شوید.'
