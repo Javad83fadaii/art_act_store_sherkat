@@ -1,7 +1,7 @@
 {% load static humanize fa_digits %}
 {% for product in products %}
     <!-- کارت محصول -->
-    <div class="group bg-white dark:bg-zinc-900 rounded-[1.5rem] overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 border border-neutral-200 dark:border-zinc-800 p-2 pb-5 flex flex-col relative" data-product-card="{{ product.pk }}" data-live-state-url="{% url 'auction:auction_product_live_state' product.pk %}?compact=1" data-has-winner="{% if product.winner_id %}1{% else %}0{% endif %}" data-is-user-winner="{% if request.user.is_authenticated and product.winner_id == request.user.pk %}1{% else %}0{% endif %}">
+    <div class="group bg-gradient-to-b from-white via-white to-stone-50/70 dark:from-zinc-900 dark:via-zinc-900 dark:to-zinc-900 rounded-[1.75rem] overflow-hidden shadow-[0_16px_45px_-30px_rgba(24,24,27,0.4)] hover:shadow-[0_24px_60px_-30px_rgba(171,140,88,0.45)] transition-all duration-500 border border-stone-200/80 dark:border-zinc-800 p-3 pb-5 flex flex-col relative" data-product-card="{{ product.pk }}" data-live-state-url="{% url 'auction:auction_product_live_state' product.pk %}?compact=1" data-has-winner="{% if product.winner_id %}1{% else %}0{% endif %}" data-is-user-winner="{% if request.user.is_authenticated and product.winner_id == request.user.pk %}1{% else %}0{% endif %}">
         
         <!-- هاله نورانی بک‌گراند برای حالت انتظار (به صورت پیش‌فرض مخفی) -->
         <div data-glow="NOT_STARTED" class="absolute inset-0 bg-blue-500/5 dark:bg-blue-400/5 rounded-[1.5rem] opacity-0 transition-opacity duration-700 pointer-events-none z-0"></div>
@@ -9,7 +9,7 @@
         <!-- هاله نورانی بک‌گراند برای حالت پایان یافته (به صورت پیش‌فرض مخفی) -->
         <div data-glow="ENDED" class="absolute inset-0 bg-red-500/5 dark:bg-red-500/5 rounded-[1.5rem] opacity-0 transition-opacity duration-700 pointer-events-none z-0"></div>
 
-        <div class="relative w-full aspect-[112/135] rounded-xl overflow-hidden mb-4 bg-neutral-100 dark:bg-zinc-800">
+        <div class="relative w-full aspect-[112/135] rounded-[1.35rem] overflow-hidden mb-4 bg-stone-100 dark:bg-zinc-800">
             <div data-sold-badge class="absolute top-3 right-3 z-[16] {% if auction.status == 'finished' and product.winner_id %}flex{% else %}hidden{% endif %} items-center gap-1 rounded-full border px-3 py-1 text-[11px] font-bold text-white shadow-lg backdrop-blur-md {% if request.user.is_authenticated and product.winner_id == request.user.pk %}border-amber-300/80 bg-amber-500/95 shadow-amber-500/25{% else %}border-emerald-300/70 bg-emerald-500/90 shadow-emerald-500/20{% endif %}">
                 <span data-sold-badge-icon class="material-symbols-outlined text-[14px]">{% if request.user.is_authenticated and product.winner_id == request.user.pk %}military_tech{% else %}sell{% endif %}</span>
                 <span data-sold-badge-text>{% if request.user.is_authenticated and product.winner_id == request.user.pk %}شما برنده شدید{% else %}به فروش رسید{% endif %}</span>
@@ -28,11 +28,16 @@
             </div>
 
             <!-- اورلی وضعیت پایان یافته -->
-            <div data-status-overlay="ENDED" class="absolute inset-0 z-[15] bg-neutral-900/60 backdrop-blur-[2px] hidden flex-col items-center justify-center transition-all duration-500">
-                <div class="bg-red-500/20 text-red-100 p-3 rounded-full backdrop-blur-md border border-red-500/30 mb-2 shadow-[0_0_15px_rgba(239,68,68,0.2)]">
-                    <span class="material-symbols-outlined text-3xl">gavel</span>
+            <div data-status-overlay="ENDED" class="absolute inset-x-0 bottom-0 z-[15] hidden items-end p-4 transition-all duration-500">
+                <div class="w-full rounded-2xl border border-white/15 bg-gradient-to-t from-neutral-950/85 via-neutral-900/65 to-neutral-900/35 px-4 py-3 text-white shadow-xl backdrop-blur-md">
+                    <div class="flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[20px] text-amber-300">gavel</span>
+                            <span class="text-sm font-black">مزایده پایان یافت</span>
+                        </div>
+                        <span class="text-[11px] font-medium text-white/80">جزئیات عمومی فعال است</span>
+                    </div>
                 </div>
-                <span class="text-white font-bold tracking-widest text-sm drop-shadow-md">مزایده پایان یافت</span>
             </div>
 
             <!-- افزودن لینک به تصویر -->
@@ -40,13 +45,24 @@
                 {% if product.main_image_url %}
                     <img alt="{{ product.title }}"
                          data-product-img="{{ product.pk }}"
-                         class="w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-110"
+                         class="w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-[1.06]"
                          src="{{ product.main_image_url }}"/>
                 {% endif %}
             </a>
         </div>
         
         <div class="px-4 text-right flex-grow flex flex-col relative z-20">
+            <div class="mb-3 flex items-center justify-between gap-2 text-[11px] font-bold">
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-stone-100 px-3 py-1 text-stone-600 border border-stone-200">
+                    <span class="material-symbols-outlined text-[14px]">palette</span>
+                    {{ product.artist.name|default:"اثر هنری"|fa_digits }}
+                </span>
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-primary border border-primary/15">
+                    <span class="material-symbols-outlined text-[14px]">style</span>
+                    {{ product.artwork_type.name|default:"هنر"|fa_digits }}
+                </span>
+            </div>
+
             {% if product.lot %}
                 <h3 class="block font-bold text-lg sm:text-[1.15rem] text-neutral-900 dark:text-white leading-8 sm:leading-9 mb-3 font-display tracking-tight transition-colors duration-300"
                     title="شناسه محصول: {{ product.product_id|default:product.pk|fa_digits }}">
@@ -59,7 +75,7 @@
                 </h3>
             {% endif %}
             
-            <div class="bg-neutral-50 dark:bg-zinc-800/50 rounded-xl p-4 mb-5 border border-neutral-100 dark:border-zinc-700 transition-colors duration-300">
+            <div class="bg-gradient-to-br from-stone-50 to-white dark:from-zinc-800/70 dark:to-zinc-900 rounded-2xl p-4 mb-5 border border-stone-200/80 dark:border-zinc-700 transition-colors duration-300">
                 <div class="flex justify-between items-center mb-2">
                     <span class="text-xs text-neutral-500 dark:text-neutral-400 font-medium">قیمت پایه</span>
                     <span class="inline-flex items-center gap-1.5 text-sm text-neutral-900 dark:text-white whitespace-nowrap" dir="rtl">
@@ -73,7 +89,7 @@
                     </span>
                 </div>
                 <div class="flex justify-between items-center mb-2">
-                    <span class="text-xs text-neutral-500 dark:text-neutral-400 font-medium">قیمت نهایی</span>
+                    <span class="text-xs text-neutral-500 dark:text-neutral-400 font-medium">{% if auction.status == 'finished' %}قیمت نهایی{% else %}پیشنهاد جاری{% endif %}</span>
                     <span class="inline-flex items-center gap-1.5 text-base text-primary" data-product-price-display dir="rtl">
                         <span class="font-en font-bold" data-amount-value>
                             {{ product.current_price|default:product.base_price|intcomma|fa_digits }}
@@ -110,7 +126,7 @@
                    data-track-guard="auction-access"
                    data-track-kind="auction_product"
                    data-track-id="{{ product.pk }}">
-                    مشاهده جزئیات کامل
+                    {% if auction.status == 'finished' %}مشاهده نتیجه و جزئیات{% else %}مشاهده جزئیات کامل{% endif %}
                 </a>
 
                 <!-- دکمه حالت فعال -->
@@ -138,12 +154,16 @@
                 </button>
                 
                 <!-- دکمه حالت پایان یافته -->
-                <button type="button"
-                        data-btn-ended="1"
-                        class="hidden w-full items-center justify-center gap-2 bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 border border-red-200 dark:border-red-800/50 text-sm font-bold py-3 rounded-xl transition-all cursor-not-allowed">
-                    <span class="material-symbols-outlined text-[18px]">block</span>
-                    مزایده پایان یافت
-                </button>
+                <a data-btn-ended="1"
+                   class="hidden w-full items-center justify-center gap-2 bg-stone-900 hover:bg-primary text-white border border-stone-900 hover:border-primary text-sm font-bold py-3 rounded-xl transition-all shadow-md shadow-stone-900/10"
+                   href="{% url 'auction:auction_product_detail' product.pk %}"
+                   data-auction-product-link="1"
+                   data-track-visit="1"
+                   data-track-kind="auction_product_archive"
+                   data-track-id="{{ product.pk }}">
+                    <span class="material-symbols-outlined text-[18px]">menu_book</span>
+                    بررسی نتیجه نهایی
+                </a>
             </div>
         </div>
     </div>
