@@ -1174,7 +1174,9 @@
                                 } else {
                                     soldBadge.classList.add('border-emerald-300/70', 'bg-emerald-500/90', 'shadow-emerald-500/20');
                                 }
-                                
+                                if (soldBadgeIcon) {
+                                    soldBadgeIcon.textContent = isUserWinner ? 'military_tech' : 'sell';
+                                }
                                 if (soldBadgeText) {
                                     soldBadgeText.textContent = isUserWinner ? 'شما برنده شدید' : 'به فروش رسید';
                                 }
