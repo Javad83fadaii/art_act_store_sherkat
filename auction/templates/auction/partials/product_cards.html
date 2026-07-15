@@ -10,15 +10,6 @@
         <div data-glow="ENDED" class="absolute inset-0 bg-red-500/5 dark:bg-red-500/5 rounded-[1.5rem] opacity-0 transition-opacity duration-700 pointer-events-none z-0"></div>
 
         <div class="relative w-full aspect-[112/135] rounded-xl overflow-hidden mb-4 bg-neutral-100 dark:bg-zinc-800">
-            <div data-sold-badge class="absolute top-3 right-3 z-[16] pointer-events-none {% if auction.status == 'finished' and product.winner_id %}flex{% else %}hidden{% endif %} items-center gap-1 rounded-full border px-3 py-1 text-[11px] font-bold text-white shadow-lg backdrop-blur-md {% if request.user.is_authenticated and product.winner_id == request.user.pk %}border-amber-300/80 bg-amber-500/95 shadow-amber-500/25{% else %}border-emerald-300/70 bg-emerald-500/90 shadow-emerald-500/20{% endif %}">
-                <span data-sold-badge-icon class="material-symbols-outlined text-[14px]">{% if request.user.is_authenticated and product.winner_id == request.user.pk %}military_tech{% else %}sell{% endif %}</span>
-                <span data-sold-badge-text>{% if request.user.is_authenticated and product.winner_id == request.user.pk %}شما برنده شدید{% else %}به فروش رسید{% endif %}</span>
-            </div>
-
-            <div data-winner-medal class="absolute top-3 left-3 z-[16] pointer-events-none {% if auction.status == 'finished' and request.user.is_authenticated and product.winner_id == request.user.pk %}flex{% else %}hidden{% endif %} h-11 w-11 items-center justify-center rounded-full border border-amber-200/90 bg-gradient-to-br from-amber-300 via-yellow-400 to-amber-500 text-white shadow-lg shadow-amber-500/30">
-                <span class="material-symbols-outlined text-[22px]">military_tech</span>
-            </div>
-            
             <!-- اورلی وضعیت شروع نشده -->
             <div data-status-overlay="NOT_STARTED" class="absolute inset-0 z-[15] pointer-events-none bg-neutral-900/50 backdrop-blur-[3px] hidden flex-col items-center justify-center transition-all duration-500">
                 <div class="bg-white/10 p-3 rounded-full backdrop-blur-md border border-white/20 mb-2 shadow-[0_0_15px_rgba(255,255,255,0.2)] animate-pulse">
