@@ -28,12 +28,7 @@
             </div>
 
             <!-- اورلی وضعیت پایان یافته -->
-            <div data-status-overlay="ENDED" class="absolute inset-0 z-[15] pointer-events-none bg-neutral-900/60 backdrop-blur-[2px] hidden flex-col items-center justify-center transition-all duration-500">
-                <div class="bg-red-500/20 text-red-100 p-3 rounded-full backdrop-blur-md border border-red-500/30 mb-2 shadow-[0_0_15px_rgba(239,68,68,0.2)]">
-                    <span class="material-symbols-outlined text-3xl">gavel</span>
-                </div>
-                <span class="text-white font-bold tracking-widest text-sm drop-shadow-md">مزایده پایان یافت</span>
-            </div>
+            
 
             <!-- افزودن لینک به تصویر -->
             <a href="{% url 'auction:auction_product_detail' product.pk %}"
