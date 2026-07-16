@@ -162,7 +162,13 @@ class AuctionProduct(models.Model):
     creation_year = models.PositiveIntegerField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    artist = models.ForeignKey('store.Artist', on_delete=models.PROTECT, related_name='auction_products')
+    artist = models.ForeignKey(
+        'store.Artist',
+        on_delete=models.PROTECT,
+        related_name='auction_products',
+        null=True,
+        blank=True,
+    )
     artwork_type = models.ForeignKey(
         'store.ArtworkType',
         on_delete=models.PROTECT,
