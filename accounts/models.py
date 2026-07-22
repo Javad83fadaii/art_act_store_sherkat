@@ -79,6 +79,7 @@ class CustomUser(AbstractUser):
     profile_picture = models.ImageField(upload_to='profile_pictures/', null=True, blank=True)
     description = models.TextField(blank=True, null=True)
     is_verified = models.IntegerField(default=0)
+    is_email_verified = models.BooleanField(default=False)
     
     # اعتبار کل تخصیص‌یافته به کاربر
     credit = models.DecimalField(max_digits=15, decimal_places=0, default=0)
@@ -104,6 +105,10 @@ class CustomUser(AbstractUser):
 
     def get_short_name(self):
         return str(self.full_name).strip() if self.full_name else self.phone_number
+
+    @property
+    def has_verified_email(self):
+        return bool(str(self.email or "").strip()) and bool(self.is_email_verified)
 
     @property
     def has_pending_auction_request(self):
@@ -376,3 +381,31 @@ class CreditIncreaseRequest(models.Model):
                 amount = Decimal(str(self.current_credit or 0))
                 user_obj.credit = Decimal(str(user_obj.credit or 0)) + amount
                 user_obj.save(refresh_current_credit=True)
+
+
+class EmailVerificationOTP(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="email_otps"
+    )
+    email = models.EmailField()
+    code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def is_valid(self):
+        # Checks if the OTP is unused and hasn't expired yet
+        return not self.is_used and timezone.now() <= self.expires_at
+
+    @classmethod
+    def generate_otp(cls, user, email, expire_minutes=10):
+        import random
+        # Generate a random 6-digit code
+        code = f"{random.randint(100000, 999999)}"
+        expires_at = timezone.now() + timezone.timedelta(minutes=expire_minutes)
+        return cls.objects.create(user=user, email=email, code=code, expires_at=expires_at)

@@ -5,7 +5,12 @@ from django.contrib import admin
 from django.contrib.admin.forms import AdminAuthenticationForm
 from django.contrib.auth.admin import UserAdmin
 
-from .forms import CustomUserCreationForm, CustomUserChangeForm
+from django.shortcuts import render
+from django.http import HttpResponseRedirect
+from django.core.mail import send_mail
+from django.conf import settings
+from django.contrib import messages
+from .forms import CustomUserCreationForm, CustomUserChangeForm, SendCustomEmailForm
 from .models import CustomUser, CreditIncreaseRequest
 
 
@@ -14,6 +19,43 @@ class CustomUserAdmin(UserAdmin):
     add_form = CustomUserCreationForm
     form = CustomUserChangeForm
     list_display = ("username", "email", "full_name")
+    actions = ['send_custom_email_action']
+
+    @admin.action(description='ارسال ایمیل سفارشی (Send Custom Email)')
+    def send_custom_email_action(self, request, queryset):
+        if 'apply' in request.POST:
+            form = SendCustomEmailForm(request.POST)
+            if form.is_valid():
+                subject = form.cleaned_data['subject']
+                message = form.cleaned_data['message']
+                
+                # filter out users without email
+                valid_users = queryset.exclude(email__isnull=True).exclude(email__exact='')
+                emails = list(valid_users.values_list('email', flat=True))
+                
+                if emails:
+                    send_mail(
+                        subject,
+                        message,
+                        settings.DEFAULT_FROM_EMAIL,
+                        emails,
+                        fail_silently=True,
+                    )
+                    self.message_user(request, f"ایمیل با موفقیت به {len(emails)} کاربر ارسال شد.", messages.SUCCESS)
+                else:
+                    self.message_user(request, "هیچ کاربری با ایمیل معتبر یافت نشد.", messages.WARNING)
+                
+                return HttpResponseRedirect(request.get_full_path())
+        else:
+            form = SendCustomEmailForm(initial={'_selected_action': request.POST.getlist(admin.ACTION_CHECKBOX_NAME)})
+            
+        context = {
+            'users': queryset,
+            'form': form,
+            'title': 'ارسال ایمیل سفارشی',
+            **self.admin_site.each_context(request),
+        }
+        return render(request, 'admin/send_custom_email.html', context)
 
 
 class SuperuserFriendlyAdminAuthenticationForm(AdminAuthenticationForm):

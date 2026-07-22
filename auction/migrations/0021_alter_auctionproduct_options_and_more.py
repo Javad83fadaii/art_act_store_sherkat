@@ -6,6 +6,9 @@ from django.db import migrations, models
 
 def make_artist_nullable(apps, schema_editor):
     connection = schema_editor.connection
+    if connection.vendor != "mysql":
+        return
+
     table_name = 'auction_product'
     column_name = 'artist_id'
     fk_name = 'auction_product_artist_id_82cdd1fe_fk_store_artist_id'

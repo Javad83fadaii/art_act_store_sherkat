@@ -1,0 +1,195 @@
+{% extends 'admin_panel/base.html' %}
+
+{% block title %}تنظیمات ادمین | آرت‌پنل{% endblock %}
+{% block page_title %}تنظیمات و ایمیل{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex flex-col gap-6">
+    <section class="rounded-3xl border border-white/40 dark:border-white/5 bg-white/80 dark:bg-slate-800/80 p-6 shadow-sm">
+        <div class="flex flex-col gap-2">
+            <h1 class="text-2xl font-black text-slate-800 dark:text-white">وضعیت زیرساخت ایمیل</h1>
+            <p class="text-sm font-medium text-slate-500 dark:text-slate-400">
+                وضعیت فعلی تنظیمات SMTP و آمادگی ارسال ایمیل از داخل پنل سفارشی.
+            </p>
+        </div>
+
+        <div class="mt-5 flex flex-wrap items-center gap-3">
+            {% if email_status.is_ready %}
+            <span class="inline-flex items-center gap-2 rounded-xl bg-emerald-100/70 px-4 py-2 text-sm font-black text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+                <span class="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
+                تنظیمات ایمیل کامل است
+            </span>
+            {% else %}
+            <span class="inline-flex items-center gap-2 rounded-xl bg-amber-100/70 px-4 py-2 text-sm font-black text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
+                <span class="h-2.5 w-2.5 rounded-full bg-amber-500"></span>
+                تنظیمات ایمیل نیاز به بررسی دارد
+            </span>
+            {% endif %}
+        </div>
+
+        {% if email_status.issues %}
+        <div class="mt-5 rounded-2xl border border-amber-200 bg-amber-50/90 p-4 dark:border-amber-500/20 dark:bg-amber-500/10">
+            <h2 class="text-sm font-black text-amber-700 dark:text-amber-300">مواردی که بررسی و اصلاح شدند یا باید حواست به آن‌ها باشد</h2>
+            <ul class="mt-3 space-y-2 text-sm font-medium text-amber-800 dark:text-amber-200">
+                {% for issue in email_status.issues %}
+                <li>• {{ issue }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <div class="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div class="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-slate-900/40">
+                <div class="text-xs font-bold text-slate-500 dark:text-slate-400">SMTP Host</div>
+                <div class="mt-2 text-sm font-black text-slate-800 dark:text-white dir-ltr text-left">{{ email_status.host }}</div>
+            </div>
+            <div class="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-slate-900/40">
+                <div class="text-xs font-bold text-slate-500 dark:text-slate-400">Port / Timeout</div>
+                <div class="mt-2 text-sm font-black text-slate-800 dark:text-white dir-ltr text-left">{{ email_status.port }} / {{ email_status.timeout }}s</div>
+            </div>
+            <div class="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-slate-900/40">
+                <div class="text-xs font-bold text-slate-500 dark:text-slate-400">SMTP User</div>
+                <div class="mt-2 text-sm font-black text-slate-800 dark:text-white dir-ltr text-left break-all">{{ email_status.host_user }}</div>
+            </div>
+            <div class="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-slate-900/40">
+                <div class="text-xs font-bold text-slate-500 dark:text-slate-400">From Email</div>
+                <div class="mt-2 text-sm font-black text-slate-800 dark:text-white dir-ltr text-left break-all">{{ email_status.default_from_email }}</div>
+            </div>
+        </div>
+
+        <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div class="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-slate-900/40">
+                <div class="text-xs font-bold text-slate-500 dark:text-slate-400">TLS / SSL</div>
+                <div class="mt-2 text-sm font-black text-slate-800 dark:text-white">
+                    TLS: {{ email_status.use_tls|yesno:"فعال,غیرفعال" }} | SSL: {{ email_status.use_ssl|yesno:"فعال,غیرفعال" }}
+                </div>
+            </div>
+            <div class="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-slate-900/40">
+                <div class="text-xs font-bold text-slate-500 dark:text-slate-400">Backend</div>
+                <div class="mt-2 text-sm font-black text-slate-800 dark:text-white dir-ltr text-left break-all">{{ email_status.backend }}</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <div class="rounded-3xl border border-white/40 dark:border-white/5 bg-white/80 dark:bg-slate-800/80 p-6 shadow-sm">
+            <div class="flex flex-col gap-2">
+                <h2 class="text-xl font-black text-slate-800 dark:text-white">ارسال ایمیل تست</h2>
+                <p class="text-sm font-medium text-slate-500 dark:text-slate-400">
+                    برای اطمینان از اینکه SMTP واقعاً کار می‌کند، یک ایمیل تست بفرست.
+                </p>
+            </div>
+
+            <form method="post" class="mt-5 space-y-4">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="send_test_email">
+                <div>
+                    <label class="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">گیرنده تست</label>
+                    <input
+                        type="email"
+                        name="test_recipient"
+                        value="{{ email_status.host_user }}"
+                        class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-left text-sm text-slate-900 outline-none transition focus:border-primary dark:border-white/10 dark:bg-slate-900/50 dark:text-white"
+                        dir="ltr"
+                    >
+                </div>
+                <div>
+                    <label class="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">موضوع</label>
+                    <input
+                        type="text"
+                        name="test_subject"
+                        value="تست ارسال ایمیل"
+                        class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-primary dark:border-white/10 dark:bg-slate-900/50 dark:text-white"
+                    >
+                </div>
+                <div>
+                    <label class="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">متن پیام</label>
+                    <textarea
+                        name="test_message"
+                        rows="5"
+                        class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-primary dark:border-white/10 dark:bg-slate-900/50 dark:text-white"
+                    >این ایمیل برای تست موفق بودن تنظیمات SMTP از داخل پنل مدیریت ارسال شده است.</textarea>
+                </div>
+                <button type="submit" class="inline-flex items-center justify-center rounded-2xl bg-primary px-5 py-3 text-sm font-black text-white shadow-lg shadow-primary/20 transition hover:opacity-90">
+                    ارسال ایمیل تست
+                </button>
+            </form>
+        </div>
+
+        <div class="rounded-3xl border border-white/40 dark:border-white/5 bg-white/80 dark:bg-slate-800/80 p-6 shadow-sm">
+            <div class="flex flex-col gap-2">
+                <h2 class="text-xl font-black text-slate-800 dark:text-white">ارسال ایمیل سفارشی</h2>
+                <p class="text-sm font-medium text-slate-500 dark:text-slate-400">
+                    برای یک یا چند گیرنده، متن دلخواه بفرست. گیرنده‌ها را با ویرگول یا خط جدید جدا کن.
+                </p>
+            </div>
+
+            <form method="post" class="mt-5 space-y-4">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="send_custom_email">
+                <div>
+                    <label class="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">گیرنده‌ها</label>
+                    <textarea
+                        name="custom_recipients"
+                        rows="4"
+                        class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-left text-sm text-slate-900 outline-none transition focus:border-primary dark:border-white/10 dark:bg-slate-900/50 dark:text-white"
+                        dir="ltr"
+                        placeholder="first@example.com, second@example.com"
+                    ></textarea>
+                </div>
+                <div>
+                    <label class="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">موضوع</label>
+                    <input
+                        type="text"
+                        name="custom_subject"
+                        class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-primary dark:border-white/10 dark:bg-slate-900/50 dark:text-white"
+                    >
+                </div>
+                <div>
+                    <label class="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">متن پیام</label>
+                    <textarea
+                        name="custom_message"
+                        rows="7"
+                        class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-primary dark:border-white/10 dark:bg-slate-900/50 dark:text-white"
+                    ></textarea>
+                </div>
+                <button type="submit" class="inline-flex items-center justify-center rounded-2xl bg-slate-900 px-5 py-3 text-sm font-black text-white transition hover:opacity-90 dark:bg-white dark:text-slate-900">
+                    ارسال ایمیل سفارشی
+                </button>
+            </form>
+        </div>
+    </section>
+
+    <section class="rounded-3xl border border-white/40 dark:border-white/5 bg-white/80 dark:bg-slate-800/80 p-6 shadow-sm">
+        <div class="flex flex-col gap-2">
+            <h2 class="text-xl font-black text-slate-800 dark:text-white">خلاصه تنظیمات فنی</h2>
+            <p class="text-sm font-medium text-slate-500 dark:text-slate-400">
+                این بخش برای چک نهایی قبل از استقرار روی سرور مفید است.
+            </p>
+        </div>
+
+        <div class="mt-5 overflow-x-auto">
+            <table class="min-w-full text-sm">
+                <tbody class="divide-y divide-slate-200 dark:divide-white/10">
+                    <tr>
+                        <td class="py-3 pl-4 font-black text-slate-700 dark:text-slate-200">SESSION_COOKIE_SECURE</td>
+                        <td class="py-3 text-slate-600 dark:text-slate-300">{{ settings_data.session_cookie_secure }}</td>
+                    </tr>
+                    <tr>
+                        <td class="py-3 pl-4 font-black text-slate-700 dark:text-slate-200">SESSION_COOKIE_SAMESITE</td>
+                        <td class="py-3 text-slate-600 dark:text-slate-300">{{ settings_data.session_cookie_samesite }}</td>
+                    </tr>
+                    <tr>
+                        <td class="py-3 pl-4 font-black text-slate-700 dark:text-slate-200">EMAIL_BACKEND</td>
+                        <td class="py-3 text-slate-600 dark:text-slate-300 dir-ltr text-left">{{ settings_data.email_backend }}</td>
+                    </tr>
+                    <tr>
+                        <td class="py-3 pl-4 font-black text-slate-700 dark:text-slate-200">SERVER_EMAIL</td>
+                        <td class="py-3 text-slate-600 dark:text-slate-300 dir-ltr text-left">{{ settings_data.server_email }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}

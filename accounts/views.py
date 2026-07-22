@@ -1,22 +1,33 @@
+import json
+import smtplib
+import socket
 from urllib.parse import urlencode
 from decimal import Decimal
 
 from django.shortcuts import render, redirect
+from django.conf import settings
 from django.urls import reverse
 from django.http import JsonResponse
 from django.views.generic import View, TemplateView
-from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth import update_session_auth_hash, login as auth_login
 from django.contrib.auth.views import LoginView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserChangeForm
-from django.contrib import messages 
+from django.contrib import messages
+from django.core.exceptions import ValidationError
+from django.core.mail import send_mail
+from django.core.validators import validate_email
+from django.utils.http import url_has_allowed_host_and_scheme
 from core.notification_messages import get_notification
 from store.models import SiteVisitLog
+from django.views.decorators.http import require_POST
 
 from auction.models import AuctionCartItem, Bid
+from core.emailing import normalize_email_value
 from .realtime import build_profile_live_context, build_profile_live_payload
-from .models import CustomUser, VerificationRequest, CreditIncreaseRequest
+from .emails import send_verification_code_email, send_welcome_email
+from .models import CustomUser, VerificationRequest, CreditIncreaseRequest, EmailVerificationOTP
 from .forms import (
     CustomUserCreationForm, 
     PublicSignupForm, 
@@ -56,6 +67,14 @@ class CustomLoginView(LoginView):
                 if current_session_key:
                     guest_visit_log.session_key = current_session_key
                 guest_visit_log.save(update_fields=['user', 'session_key'])
+
+        if not getattr(logged_in_user, "has_verified_email", False):
+            success_url = super().get_success_url()
+            verification_url = reverse("email_verification")
+            if success_url:
+                params = urlencode({"next": success_url})
+                return redirect(f"{verification_url}?{params}")
+            return redirect(verification_url)
 
         return response
 
@@ -221,13 +240,22 @@ class SignupView(View):
         form = PublicSignupForm(request.POST)
 
         if form.is_valid():
-            form.save()
-            login_url = reverse('login')
-            # message_text = get_notification('accounts.signup.success')
-            # return redirect(
-            #     f'{login_url}?{urlencode({"toast_message": message_text, "toast_type": "success", "toast_position": "bottom-left"})}'
-            # )
-            return redirect(login_url)
+            user = form.save()
+            auth_login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+
+            ok, error_message = _send_email_verification_code_for_user(user=user, email=user.email)
+            if ok:
+                request.session["email_verification_alert"] = {
+                    "type": "success",
+                    "message": "کد تایید به ایمیل شما ارسال شد.",
+                }
+            else:
+                request.session["email_verification_alert"] = {
+                    "type": "error",
+                    "message": error_message or "ارسال کد تایید با خطا مواجه شد.",
+                }
+
+            return redirect(reverse("email_verification"))
 
         non_field_errors = form.non_field_errors()
         for error in non_field_errors:
@@ -344,3 +372,234 @@ def credit_increase_requests(request):
     # بازگرداندن کاربر به همان صفحه‌ای که دکمه را در آن کلیک کرده است
     next_url = request.META.get("HTTP_REFERER") or "/"
     return redirect(next_url)
+
+def _json_body(request):
+    try:
+        return json.loads((request.body or b"{}").decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return None
+
+
+def _email_error_response(exc):
+    if isinstance(exc, smtplib.SMTPAuthenticationError):
+        return "احراز هویت SMTP ناموفق بود. نام کاربری یا رمز عبور ایمیل را بررسی کنید."
+    if isinstance(exc, smtplib.SMTPConnectError):
+        return "اتصال به سرور SMTP برقرار نشد. هاست، پورت و دسترسی شبکه را بررسی کنید."
+    if isinstance(exc, smtplib.SMTPServerDisconnected):
+        detail = str(exc).lower()
+        if "timed out" in detail:
+            return "اتصال به سرور SMTP تایم‌اوت شد. دسترسی شبکه یا پورت خروجی سرور را بررسی کنید."
+        return "اتصال سرور SMTP ناگهانی قطع شد. احتمالاً پورت یا TLS/SSL نادرست است."
+    if isinstance(exc, (TimeoutError, socket.timeout)):
+        return "زمان انتظار برای اتصال یا ارسال ایمیل تمام شد. دسترسی شبکه سرور به SMTP را بررسی کنید."
+    return str(exc)
+
+def _safe_next_url(request, next_url):
+    candidate = str(next_url or "").strip()
+    if not candidate:
+        return None
+    if not url_has_allowed_host_and_scheme(
+        url=candidate,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return None
+    return candidate
+
+
+def _user_requires_email_verification(user):
+    return not getattr(user, "has_verified_email", False)
+
+
+def _send_email_verification_code_for_user(*, user, email):
+    email_value = normalize_email_value(email)
+    if not email_value:
+        return False, "وارد کردن آدرس ایمیل الزامی است."
+
+    try:
+        validate_email(email_value)
+    except ValidationError:
+        return False, "لطفا یک آدرس ایمیل معتبر وارد کنید."
+
+    if (
+        CustomUser.objects.exclude(pk=user.pk)
+        .filter(email__iexact=email_value)
+        .exists()
+    ):
+        return False, "این آدرس ایمیل قبلاً در سیستم ثبت شده است."
+
+    EmailVerificationOTP.objects.filter(
+        user=user,
+        email__iexact=email_value,
+        is_used=False,
+    ).update(is_used=True)
+
+    otp = EmailVerificationOTP.generate_otp(user=user, email=email_value)
+
+    try:
+        send_verification_code_email(email=email_value, code=otp.code)
+    except Exception as exc:
+        otp.is_used = True
+        otp.save(update_fields=["is_used"])
+        return False, _email_error_response(exc)
+
+    return True, None
+
+
+def _verify_email_code_for_user(*, user, email, code):
+    email_value = normalize_email_value(email)
+    code_value = str(code or "").strip()
+    if not email_value or not code_value:
+        return False, "وارد کردن ایمیل و کد الزامی است."
+
+    try:
+        validate_email(email_value)
+    except ValidationError:
+        return False, "لطفا یک آدرس ایمیل معتبر وارد کنید."
+
+    otp = (
+        EmailVerificationOTP.objects
+        .filter(user=user, email__iexact=email_value, code=code_value)
+        .order_by("-created_at")
+        .first()
+    )
+
+    if not otp:
+        return False, "کد تایید نامعتبر است."
+
+    if not otp.is_valid():
+        return False, "کد تایید منقضی شده یا قبلاً استفاده شده است."
+
+    otp.is_used = True
+    otp.save(update_fields=["is_used"])
+
+    user.email = email_value
+    user.is_email_verified = True
+    user.save(update_fields=["email", "is_email_verified"])
+
+    return True, None
+
+
+class EmailVerificationView(LoginRequiredMixin, View):
+    template_name = "registration/email_verification.html"
+
+    def get(self, request):
+        if not _user_requires_email_verification(request.user):
+            next_url = _safe_next_url(request, request.GET.get("next"))
+            return redirect(next_url or reverse("home"))
+
+        alert = request.session.pop("email_verification_alert", None) or {}
+        return render(
+            request,
+            self.template_name,
+            {
+                "email": getattr(request.user, "email", "") or "",
+                "next": request.GET.get("next") or "",
+                "alert_type": alert.get("type") or "",
+                "alert_message": alert.get("message") or "",
+            },
+        )
+
+    def post(self, request):
+        action = str(request.POST.get("action") or "").strip()
+        email = normalize_email_value(request.POST.get("email"))
+        code = str(request.POST.get("code") or "").strip()
+        next_raw = request.POST.get("next") or request.GET.get("next") or ""
+        next_url = _safe_next_url(request, next_raw)
+
+        if action == "send_code":
+            ok, error_message = _send_email_verification_code_for_user(user=request.user, email=email)
+            return render(
+                request,
+                self.template_name,
+                {
+                    "email": email,
+                    "next": next_raw,
+                    "alert_type": "success" if ok else "error",
+                    "alert_message": "کد تایید ارسال شد." if ok else (error_message or "ارسال کد تایید با خطا مواجه شد."),
+                },
+            )
+
+        if action == "verify_code":
+            ok, error_message = _verify_email_code_for_user(user=request.user, email=email, code=code)
+            if ok:
+                return redirect(next_url or reverse("home"))
+            return render(
+                request,
+                self.template_name,
+                {
+                    "email": email,
+                    "next": next_raw,
+                    "alert_type": "error",
+                    "alert_message": error_message or "تایید ایمیل با خطا مواجه شد.",
+                },
+            )
+
+        return render(
+            request,
+            self.template_name,
+            {
+                "email": email or (getattr(request.user, "email", "") or ""),
+                "next": next_raw,
+                "alert_type": "error",
+                "alert_message": "درخواست نامعتبر است.",
+            },
+        )
+
+
+@login_required
+@require_POST
+def send_email_verification(request):
+    payload = _json_body(request)
+    if payload is None:
+        return JsonResponse({"error": "Invalid JSON payload."}, status=400)
+
+    email = normalize_email_value(payload.get("email"))
+    requested_user_id = str(payload.get("user_id") or "").strip()
+    if not email:
+        return JsonResponse({"error": "Email is required."}, status=400)
+
+    try:
+        validate_email(email)
+    except ValidationError:
+        return JsonResponse({"error": "A valid email address is required."}, status=400)
+
+    if requested_user_id and requested_user_id != str(request.user.pk):
+        return JsonResponse({"error": "You can only request email verification for your own account."}, status=403)
+
+    if (
+        CustomUser.objects.exclude(pk=request.user.pk)
+        .filter(email__iexact=email)
+        .exists()
+    ):
+        return JsonResponse({"error": "This email address is already in use."}, status=400)
+
+    ok, error_message = _send_email_verification_code_for_user(user=request.user, email=email)
+    if not ok:
+        return JsonResponse({"error": error_message or "Failed to send verification code."}, status=500)
+
+    return JsonResponse({"message": "Verification code sent successfully."})
+
+
+@login_required
+@require_POST
+def verify_email_code(request):
+    payload = _json_body(request)
+    if payload is None:
+        return JsonResponse({"error": "Invalid JSON payload."}, status=400)
+
+    email = normalize_email_value(payload.get("email"))
+    code = str(payload.get("code") or "").strip()
+    if not email or not code:
+        return JsonResponse({"error": "Email and code are required."}, status=400)
+
+    try:
+        validate_email(email)
+    except ValidationError:
+        return JsonResponse({"error": "A valid email address is required."}, status=400)
+
+    ok, error_message = _verify_email_code_for_user(user=request.user, email=email, code=code)
+    if not ok:
+        return JsonResponse({"error": error_message or "Email verification failed."}, status=400)
+
+    return JsonResponse({"message": "Email verified successfully."})

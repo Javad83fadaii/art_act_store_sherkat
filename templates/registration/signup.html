@@ -85,7 +85,7 @@
                     <!-- ایمیل -->
                     <div class="flex flex-col gap-2">
                         <label for="{{ form.email.id_for_label }}" class="text-sm font-bold text-gray-900 dark:text-white mr-1">
-                            {{ form.email.label }} <span id="email-required-indicator" class="text-red-500 hidden">*</span>
+                            {{ form.email.label }} <span id="email-required-indicator" class="text-red-500">*</span>
                         </label>
                         <div class="relative">
                             {{ form.email }}
@@ -540,15 +540,9 @@
 
         function syncConditionalFields() {
             const selected = getSelectedContactMethods();
-            const emailSelected = selected.includes("email");
             if (emailInput) {
-                if (emailSelected) {
-                    emailInput.setAttribute("required", "required");
-                    emailIndicator?.classList.remove("hidden");
-                } else {
-                    emailInput.removeAttribute("required");
-                    emailIndicator?.classList.add("hidden");
-                }
+                emailInput.setAttribute("required", "required");
+                emailIndicator?.classList.remove("hidden");
             }
             const telegramSelected = selected.includes("telegram");
             if (telegramWrapper) {
