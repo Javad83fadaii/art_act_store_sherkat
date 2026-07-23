@@ -14,7 +14,11 @@ from store.models import Artist, Artwork, ArtworkType, PurchaseHistory
 
 from .models import Auction, AuctionCartItem, AuctionProduct, AuctionVisitHistory
 from .signals import schedule_auction_emails
-from .tasks import send_auction_ended_email
+from .tasks import (
+    send_auction_ended_email,
+    send_auction_started_email,
+    send_auction_starting_soon_email,
+)
 
 
 class AuctionBidCreditFlowTests(TestCase):
@@ -433,6 +437,104 @@ class AuctionBidCreditFlowTests(TestCase):
         )
         self.assertIn('جمع کل صورتحساب اولیه', winner_mail.body)
         self.assertIn('تابلو تست', winner_mail.body)
+
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        DEFAULT_FROM_EMAIL="Auction Platform <sender@example.com>",
+        SERVER_EMAIL="sender@example.com",
+    )
+    @patch('auction.tasks.send_auction_starting_soon_email.apply_async')
+    @patch('auction.tasks.send_auction_started_email.apply_async')
+    def test_schedule_auction_emails_queues_start_notifications(self, started_mock, starting_soon_mock):
+        future_start = timezone.now() + timedelta(hours=30)
+        future_end = future_start + timedelta(hours=12)
+
+        auction = Auction.objects.create(
+            name='مزایده آینده',
+            start_date=future_start,
+            end_date=future_end,
+            products_count=1,
+        )
+
+        starting_soon_mock.assert_called_once()
+        _, starting_kwargs = starting_soon_mock.call_args
+        self.assertEqual(starting_kwargs['kwargs']['expected_start'], auction.start_date.isoformat())
+        self.assertEqual(starting_kwargs['eta'], future_start - timedelta(hours=24))
+
+        started_mock.assert_called_once()
+        _, started_kwargs = started_mock.call_args
+        self.assertEqual(started_kwargs['kwargs']['expected_start'], auction.start_date.isoformat())
+        self.assertEqual(started_kwargs['eta'], future_start)
+
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        DEFAULT_FROM_EMAIL="Auction Platform <sender@example.com>",
+        SERVER_EMAIL="sender@example.com",
+    )
+    def test_send_auction_starting_soon_email_sends_only_near_24h_mark(self):
+        self.user_one.email = 'first@example.com'
+        self.user_one.save(update_fields=['email'])
+        self.user_two.email = 'second@example.com'
+        self.user_two.save(update_fields=['email'])
+
+        self.auction.start_date = timezone.now() + timedelta(hours=24, minutes=1)
+        self.auction.end_date = self.auction.start_date + timedelta(hours=2)
+        self.auction.save(update_fields=['start_date', 'end_date'])
+        mail.outbox.clear()
+
+        send_auction_starting_soon_email(
+            self.auction.id,
+            expected_start=self.auction.start_date.isoformat(),
+        )
+        self.assertEqual(len(mail.outbox), 0)
+
+        self.auction.start_date = timezone.now() + timedelta(hours=24)
+        self.auction.end_date = self.auction.start_date + timedelta(hours=2)
+        self.auction.save(update_fields=['start_date', 'end_date'])
+        mail.outbox.clear()
+
+        send_auction_starting_soon_email(
+            self.auction.id,
+            expected_start=self.auction.start_date.isoformat(),
+        )
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('۲۴ ساعت تا شروع مزایده', mail.outbox[0].subject)
+        self.assertEqual(set(mail.outbox[0].to), {'first@example.com', 'second@example.com'})
+
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        DEFAULT_FROM_EMAIL="Auction Platform <sender@example.com>",
+        SERVER_EMAIL="sender@example.com",
+    )
+    def test_send_auction_started_email_sends_only_close_to_start_time(self):
+        self.user_one.email = 'first@example.com'
+        self.user_one.save(update_fields=['email'])
+
+        self.auction.start_date = timezone.now() + timedelta(minutes=10)
+        self.auction.end_date = self.auction.start_date + timedelta(hours=2)
+        self.auction.save(update_fields=['start_date', 'end_date'])
+        mail.outbox.clear()
+
+        send_auction_started_email(
+            self.auction.id,
+            expected_start=self.auction.start_date.isoformat(),
+        )
+        self.assertEqual(len(mail.outbox), 0)
+
+        self.auction.start_date = timezone.now()
+        self.auction.end_date = self.auction.start_date + timedelta(hours=2)
+        self.auction.save(update_fields=['start_date', 'end_date'])
+        mail.outbox.clear()
+
+        send_auction_started_email(
+            self.auction.id,
+            expected_start=self.auction.start_date.isoformat(),
+        )
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('مزایده', mail.outbox[0].subject)
+        self.assertIn('آغاز شد', mail.outbox[0].subject)
 
 
 class AuctionVisitTrackingTests(TestCase):

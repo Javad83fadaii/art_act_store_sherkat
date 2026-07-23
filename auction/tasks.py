@@ -50,6 +50,15 @@ def _scheduled_datetime_matches(actual_value, expected_value):
     return delta < 1
 
 
+def _is_within_delivery_window(target_time, *, late_grace_seconds=300):
+    if target_time is None:
+        return False
+    now = timezone.now()
+    earliest_allowed = target_time - timezone.timedelta(seconds=1)
+    latest_allowed = target_time + timezone.timedelta(seconds=late_grace_seconds)
+    return earliest_allowed <= now <= latest_allowed
+
+
 def _format_amount(value):
     try:
         amount = Decimal(str(value or 0))
@@ -74,6 +83,9 @@ def send_auction_starting_soon_email(auction_id, expected_start=None):
         return
 
     if not _scheduled_datetime_matches(auction.start_date, expected_start):
+        return
+
+    if not _is_within_delivery_window(auction.start_date - timezone.timedelta(hours=24)):
         return
 
     emails = get_active_users_emails()
@@ -106,6 +118,9 @@ def send_auction_started_email(auction_id, expected_start=None):
         return
 
     if not _scheduled_datetime_matches(auction.start_date, expected_start):
+        return
+
+    if not _is_within_delivery_window(auction.start_date):
         return
 
     emails = get_active_users_emails()

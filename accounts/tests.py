@@ -143,6 +143,34 @@ class VerificationRequestModelTests(TestCase):
         self.assertEqual(mail.outbox[1].to, ["welcome@example.com"])
         self.assertIn("کد تایید ایمیل", mail.outbox[1].subject)
 
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        DEFAULT_FROM_EMAIL="Auction Platform <sender@example.com>",
+        SERVER_EMAIL="sender@example.com",
+    )
+    @patch("accounts.views.send_welcome_email", side_effect=Exception("welcome failed"))
+    def test_signup_surfaces_welcome_email_failure_in_alert(self, _welcome_mock):
+        response = self.client.post(
+            reverse("signup"),
+            {
+                "full_name": "کاربر خطا",
+                "phone_number": "09123336666",
+                "address_street": "خیابان تست",
+                "email": "welcome-failure@example.com",
+                "preferred_contact_methods": [],
+                "telegram_id": "",
+                "password1": "Signup@123",
+                "password2": "Signup@123",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("کد تایید ایمیل", mail.outbox[0].subject)
+        self.assertEqual(self.client.session["email_verification_alert"]["type"], "error")
+        self.assertIn("ایمیل خوش‌آمدگویی", self.client.session["email_verification_alert"]["message"])
+        self.assertIn("welcome failed", self.client.session["email_verification_alert"]["message"])
+
     def test_signup_page_renders_newsletter_opt_in_field(self):
         response = self.client.get(reverse("signup"))
 

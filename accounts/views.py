@@ -1,4 +1,5 @@
 import json
+import logging
 import smtplib
 import socket
 from urllib.parse import urlencode
@@ -37,6 +38,9 @@ from .forms import (
 )
 
 from auction.models import Bid
+
+
+logger = logging.getLogger(__name__)
 
 
 class CustomLoginView(LoginView):
@@ -243,21 +247,38 @@ class SignupView(View):
             user = form.save()
             auth_login(request, user, backend="django.contrib.auth.backends.ModelBackend")
 
+            welcome_email_error = None
             try:
                 send_welcome_email(user=user)
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.exception("Signup welcome email exception for user %s", user.pk)
+                welcome_email_error = _email_error_response(exc)
 
             ok, error_message = _send_email_verification_code_for_user(user=user, email=user.email)
             if ok:
+                alert_type = "success"
+                alert_message = "کد تایید به ایمیل شما ارسال شد."
+                if welcome_email_error:
+                    alert_type = "error"
+                    alert_message = (
+                        "کد تایید به ایمیل شما ارسال شد، اما ایمیل خوش‌آمدگویی ارسال نشد. "
+                        f"{welcome_email_error}"
+                    )
                 request.session["email_verification_alert"] = {
-                    "type": "success",
-                    "message": "کد تایید به ایمیل شما ارسال شد.",
+                    "type": alert_type,
+                    "message": alert_message,
                 }
             else:
+                alert_message = error_message or "ارسال کد تایید با خطا مواجه شد."
+                if welcome_email_error:
+                    alert_message = (
+                        "ارسال ایمیل خوش‌آمدگویی با خطا مواجه شد. "
+                        f"{welcome_email_error} "
+                        f"ارسال کد تایید نیز با خطا مواجه شد: {alert_message}"
+                    )
                 request.session["email_verification_alert"] = {
                     "type": "error",
-                    "message": error_message or "ارسال کد تایید با خطا مواجه شد.",
+                    "message": alert_message,
                 }
 
             return redirect(reverse("email_verification"))
