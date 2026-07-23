@@ -172,7 +172,7 @@
                     </h2> 
                     
                     <div class="flex flex-wrap gap-y-3 gap-x-6 text-sm text-secondary-text font-medium">
-                        {% if auction.creation_year %}
+                        {% comment %} {% if auction.creation_year %}
                         <div class="flex items-center gap-2">
                             <span class="material-symbols-outlined text-[20px] text-neutral-400">calendar_month</span>
                             <span>{{ auction.creation_year|fa_digits }}</span>
@@ -181,7 +181,7 @@
                         <div class="flex items-center gap-2">
                             <span class="material-symbols-outlined text-[20px] text-neutral-400">square_foot</span>
                             <span id="product-dimensions">{{ auction.dimensions|default:"—"|fa_digits }}</span>
-                        </div>
+                        </div> {% endcomment %}
                         {% comment %} {% if auction.authenticity_status == 0 %}
                             <div class="flex items-center gap-2 text-primary bg-primary/10 px-2.5 py-1 rounded-full border border-primary/20">
                                 <span class="material-symbols-outlined text-[18px] filled">verified</span>

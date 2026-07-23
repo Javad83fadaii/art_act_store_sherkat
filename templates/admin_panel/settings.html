@@ -4,23 +4,29 @@
 {% block page_title %}تنظیمات و ایمیل{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex flex-col gap-6">
-    <section class="rounded-3xl border border-white/40 dark:border-white/5 bg-white/80 dark:bg-slate-800/80 p-6 shadow-sm">
+<div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex flex-col gap-8">
+    
+    <section class="rounded-3xl border border-white/40 dark:border-white/5 bg-white/80 dark:bg-slate-800/80 p-6 shadow-sm sm:p-8">
         <div class="flex flex-col gap-2">
-            <h1 class="text-2xl font-black text-slate-800 dark:text-white">وضعیت زیرساخت ایمیل</h1>
+            <h1 class="flex items-center gap-3 text-2xl font-black text-slate-800 dark:text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-7 h-7 text-primary">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+                </svg>
+                وضعیت زیرساخت ایمیل
+            </h1>
             <p class="text-sm font-medium text-slate-500 dark:text-slate-400">
                 وضعیت فعلی تنظیمات SMTP و آمادگی ارسال ایمیل از داخل پنل سفارشی.
             </p>
         </div>
 
-        <div class="mt-5 flex flex-wrap items-center gap-3">
+        <div class="mt-6 flex flex-wrap items-center gap-3">
             {% if email_status.is_ready %}
-            <span class="inline-flex items-center gap-2 rounded-xl bg-emerald-100/70 px-4 py-2 text-sm font-black text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
-                <span class="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
+            <span class="inline-flex items-center gap-2 rounded-xl bg-emerald-100/70 px-4 py-2.5 text-sm font-black text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+                <span class="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
                 تنظیمات ایمیل کامل است
             </span>
             {% else %}
-            <span class="inline-flex items-center gap-2 rounded-xl bg-amber-100/70 px-4 py-2 text-sm font-black text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
+            <span class="inline-flex items-center gap-2 rounded-xl bg-amber-100/70 px-4 py-2.5 text-sm font-black text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
                 <span class="h-2.5 w-2.5 rounded-full bg-amber-500"></span>
                 تنظیمات ایمیل نیاز به بررسی دارد
             </span>
@@ -28,168 +34,222 @@
         </div>
 
         {% if email_status.issues %}
-        <div class="mt-5 rounded-2xl border border-amber-200 bg-amber-50/90 p-4 dark:border-amber-500/20 dark:bg-amber-500/10">
-            <h2 class="text-sm font-black text-amber-700 dark:text-amber-300">مواردی که بررسی و اصلاح شدند یا باید حواست به آن‌ها باشد</h2>
+        <div class="mt-6 rounded-2xl border border-amber-200 bg-amber-50/90 p-5 dark:border-amber-500/20 dark:bg-amber-500/10">
+            <h2 class="flex items-center gap-2 text-sm font-black text-amber-700 dark:text-amber-300">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                    <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495ZM10 5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 5Zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clip-rule="evenodd" />
+                </svg>
+                مواردی که بررسی و اصلاح شدند یا باید حواست به آن‌ها باشد
+            </h2>
             <ul class="mt-3 space-y-2 text-sm font-medium text-amber-800 dark:text-amber-200">
                 {% for issue in email_status.issues %}
-                <li>• {{ issue }}</li>
+                <li class="flex items-start gap-2">
+                    <span class="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-amber-400"></span>
+                    <span>{{ issue }}</span>
+                </li>
                 {% endfor %}
             </ul>
         </div>
         {% endif %}
 
-        <div class="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <div class="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-slate-900/40">
+        <div class="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div class="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-5 dark:border-white/10 dark:bg-slate-900/40 transition hover:border-slate-300 dark:hover:border-white/20">
                 <div class="text-xs font-bold text-slate-500 dark:text-slate-400">SMTP Host</div>
                 <div class="mt-2 text-sm font-black text-slate-800 dark:text-white dir-ltr text-left">{{ email_status.host }}</div>
             </div>
-            <div class="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-slate-900/40">
+            <div class="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-5 dark:border-white/10 dark:bg-slate-900/40 transition hover:border-slate-300 dark:hover:border-white/20">
                 <div class="text-xs font-bold text-slate-500 dark:text-slate-400">Port / Timeout</div>
                 <div class="mt-2 text-sm font-black text-slate-800 dark:text-white dir-ltr text-left">{{ email_status.port }} / {{ email_status.timeout }}s</div>
             </div>
-            <div class="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-slate-900/40">
+            <div class="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-5 dark:border-white/10 dark:bg-slate-900/40 transition hover:border-slate-300 dark:hover:border-white/20">
                 <div class="text-xs font-bold text-slate-500 dark:text-slate-400">SMTP User</div>
                 <div class="mt-2 text-sm font-black text-slate-800 dark:text-white dir-ltr text-left break-all">{{ email_status.host_user }}</div>
             </div>
-            <div class="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-slate-900/40">
+            <div class="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-5 dark:border-white/10 dark:bg-slate-900/40 transition hover:border-slate-300 dark:hover:border-white/20">
                 <div class="text-xs font-bold text-slate-500 dark:text-slate-400">From Email</div>
                 <div class="mt-2 text-sm font-black text-slate-800 dark:text-white dir-ltr text-left break-all">{{ email_status.default_from_email }}</div>
             </div>
         </div>
 
         <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div class="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-slate-900/40">
+            <div class="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-5 dark:border-white/10 dark:bg-slate-900/40 transition hover:border-slate-300 dark:hover:border-white/20">
                 <div class="text-xs font-bold text-slate-500 dark:text-slate-400">TLS / SSL</div>
                 <div class="mt-2 text-sm font-black text-slate-800 dark:text-white">
                     TLS: {{ email_status.use_tls|yesno:"فعال,غیرفعال" }} | SSL: {{ email_status.use_ssl|yesno:"فعال,غیرفعال" }}
                 </div>
             </div>
-            <div class="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-slate-900/40">
+            <div class="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-5 dark:border-white/10 dark:bg-slate-900/40 transition hover:border-slate-300 dark:hover:border-white/20">
                 <div class="text-xs font-bold text-slate-500 dark:text-slate-400">Backend</div>
                 <div class="mt-2 text-sm font-black text-slate-800 dark:text-white dir-ltr text-left break-all">{{ email_status.backend }}</div>
             </div>
         </div>
     </section>
 
-    <section class="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <div class="rounded-3xl border border-white/40 dark:border-white/5 bg-white/80 dark:bg-slate-800/80 p-6 shadow-sm">
-            <div class="flex flex-col gap-2">
-                <h2 class="text-xl font-black text-slate-800 dark:text-white">ارسال ایمیل تست</h2>
-                <p class="text-sm font-medium text-slate-500 dark:text-slate-400">
-                    برای اطمینان از اینکه SMTP واقعاً کار می‌کند، یک ایمیل تست بفرست.
-                </p>
-            </div>
-
-            <form method="post" class="mt-5 space-y-4">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="send_test_email">
-                <div>
-                    <label class="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">گیرنده تست</label>
-                    <input
-                        type="email"
-                        name="test_recipient"
-                        value="{{ email_status.host_user }}"
-                        class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-left text-sm text-slate-900 outline-none transition focus:border-primary dark:border-white/10 dark:bg-slate-900/50 dark:text-white"
-                        dir="ltr"
-                    >
-                </div>
-                <div>
-                    <label class="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">موضوع</label>
-                    <input
-                        type="text"
-                        name="test_subject"
-                        value="تست ارسال ایمیل"
-                        class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-primary dark:border-white/10 dark:bg-slate-900/50 dark:text-white"
-                    >
-                </div>
-                <div>
-                    <label class="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">متن پیام</label>
-                    <textarea
-                        name="test_message"
-                        rows="5"
-                        class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-primary dark:border-white/10 dark:bg-slate-900/50 dark:text-white"
-                    >این ایمیل برای تست موفق بودن تنظیمات SMTP از داخل پنل مدیریت ارسال شده است.</textarea>
-                </div>
-                <button type="submit" class="inline-flex items-center justify-center rounded-2xl bg-primary px-5 py-3 text-sm font-black text-white shadow-lg shadow-primary/20 transition hover:opacity-90">
-                    ارسال ایمیل تست
-                </button>
-            </form>
-        </div>
-
-        <div class="rounded-3xl border border-white/40 dark:border-white/5 bg-white/80 dark:bg-slate-800/80 p-6 shadow-sm">
-            <div class="flex flex-col gap-2">
-                <h2 class="text-xl font-black text-slate-800 dark:text-white">ارسال ایمیل سفارشی</h2>
-                <p class="text-sm font-medium text-slate-500 dark:text-slate-400">
-                    برای یک یا چند گیرنده، متن دلخواه بفرست. گیرنده‌ها را با ویرگول یا خط جدید جدا کن.
-                </p>
-            </div>
-
-            <form method="post" class="mt-5 space-y-4">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="send_custom_email">
-                <div>
-                    <label class="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">گیرنده‌ها</label>
-                    <textarea
-                        name="custom_recipients"
-                        rows="4"
-                        class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-left text-sm text-slate-900 outline-none transition focus:border-primary dark:border-white/10 dark:bg-slate-900/50 dark:text-white"
-                        dir="ltr"
-                        placeholder="first@example.com, second@example.com"
-                    ></textarea>
-                </div>
-                <div>
-                    <label class="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">موضوع</label>
-                    <input
-                        type="text"
-                        name="custom_subject"
-                        class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-primary dark:border-white/10 dark:bg-slate-900/50 dark:text-white"
-                    >
-                </div>
-                <div>
-                    <label class="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">متن پیام</label>
-                    <textarea
-                        name="custom_message"
-                        rows="7"
-                        class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-primary dark:border-white/10 dark:bg-slate-900/50 dark:text-white"
-                    ></textarea>
-                </div>
-                <button type="submit" class="inline-flex items-center justify-center rounded-2xl bg-slate-900 px-5 py-3 text-sm font-black text-white transition hover:opacity-90 dark:bg-white dark:text-slate-900">
-                    ارسال ایمیل سفارشی
-                </button>
-            </form>
-        </div>
-    </section>
-
-    <section class="rounded-3xl border border-white/40 dark:border-white/5 bg-white/80 dark:bg-slate-800/80 p-6 shadow-sm">
-        <div class="flex flex-col gap-2">
-            <h2 class="text-xl font-black text-slate-800 dark:text-white">خلاصه تنظیمات فنی</h2>
+    <section class="rounded-3xl border border-white/40 dark:border-white/5 bg-white/80 dark:bg-slate-800/80 p-6 shadow-sm sm:p-8">
+        <div class="flex flex-col gap-2 mb-8">
+            <h2 class="flex items-center gap-3 text-xl font-black text-slate-800 dark:text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6 text-primary">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
+                </svg>
+                ارسال ایمیل سفارشی
+            </h2>
             <p class="text-sm font-medium text-slate-500 dark:text-slate-400">
-                این بخش برای چک نهایی قبل از استقرار روی سرور مفید است.
+                برای یک یا چند گیرنده، متن دلخواه بفرست. گیرنده‌ها را با ویرگول یا خط جدید جدا کن.
             </p>
         </div>
 
-        <div class="mt-5 overflow-x-auto">
-            <table class="min-w-full text-sm">
-                <tbody class="divide-y divide-slate-200 dark:divide-white/10">
-                    <tr>
-                        <td class="py-3 pl-4 font-black text-slate-700 dark:text-slate-200">SESSION_COOKIE_SECURE</td>
-                        <td class="py-3 text-slate-600 dark:text-slate-300">{{ settings_data.session_cookie_secure }}</td>
-                    </tr>
-                    <tr>
-                        <td class="py-3 pl-4 font-black text-slate-700 dark:text-slate-200">SESSION_COOKIE_SAMESITE</td>
-                        <td class="py-3 text-slate-600 dark:text-slate-300">{{ settings_data.session_cookie_samesite }}</td>
-                    </tr>
-                    <tr>
-                        <td class="py-3 pl-4 font-black text-slate-700 dark:text-slate-200">EMAIL_BACKEND</td>
-                        <td class="py-3 text-slate-600 dark:text-slate-300 dir-ltr text-left">{{ settings_data.email_backend }}</td>
-                    </tr>
-                    <tr>
-                        <td class="py-3 pl-4 font-black text-slate-700 dark:text-slate-200">SERVER_EMAIL</td>
-                        <td class="py-3 text-slate-600 dark:text-slate-300 dir-ltr text-left">{{ settings_data.server_email }}</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+        <form method="post" class="space-y-6 lg:space-y-0 lg:grid lg:grid-cols-12 lg:gap-8">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="send_custom_email">
+            
+            <div class="flex flex-col gap-6 lg:col-span-5">
+                <div class="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-5 dark:border-white/10 dark:bg-slate-900/40">
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                            <h3 class="text-sm font-black text-slate-800 dark:text-white">انتخاب کاربران سایت</h3>
+                            <p class="mt-1 text-xs font-medium leading-relaxed text-slate-500 dark:text-slate-400">
+                                کاربرانی که انتخاب می‌کنید به‌صورت خودکار به لیست گیرنده‌ها اضافه می‌شوند.
+                            </p>
+                        </div>
+                        <span id="selected-email-users-count" class="shrink-0 inline-flex items-center justify-center rounded-xl bg-primary/10 px-3 py-1.5 text-xs font-black text-primary">
+                            0 کاربر انتخاب شده
+                        </span>
+                    </div>
+
+                    <div class="mt-5">
+                        <div class="relative">
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-slate-400">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                                </svg>
+                            </div>
+                            <input
+                                type="text"
+                                id="email-user-search"
+                                class="w-full rounded-2xl border border-slate-300 bg-white py-3 pl-4 pr-11 text-sm text-slate-900 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-white/10 dark:bg-slate-900/50 dark:text-white dark:focus:ring-primary/20"
+                                placeholder="جستجو نام، شماره یا ایمیل..."
+                            >
+                        </div>
+                    </div>
+
+                    <div class="mt-4 max-h-[22rem] space-y-2 overflow-y-auto pr-1 pl-1" id="email-users-list">
+                        {% for user in email_users %}
+                        <label class="email-user-option flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200/80 bg-white p-3.5 transition hover:border-primary/40 hover:bg-primary/5 dark:border-white/10 dark:bg-slate-800/80 dark:hover:border-primary/40"
+                            data-search="{{ user.name }} {{ user.phone_number }} {{ user.email }}">
+                            <input
+                                type="checkbox"
+                                name="selected_user_ids"
+                                value="{{ user.id }}"
+                                data-email-user-checkbox
+                                class="mt-0.5 h-4 w-4 rounded border-slate-300 text-primary transition focus:ring-primary dark:border-white/20 dark:bg-slate-900"
+                            >
+                            <span class="min-w-0 flex-1">
+                                <span class="block text-sm font-black text-slate-800 dark:text-white">{{ user.name }}</span>
+                                <span class="mt-1 flex items-center justify-between gap-2">
+                                    <span class="block text-xs font-medium text-slate-500 dark:text-slate-400">{{ user.phone_number|default:"بدون شماره" }}</span>
+                                    <span class="block truncate text-left text-xs font-bold text-slate-700 dark:text-slate-300" dir="ltr">{{ user.email }}</span>
+                                </span>
+                            </span>
+                        </label>
+                        {% empty %}
+                        <div class="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 px-4 py-8 text-center dark:border-white/10">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-slate-400 mb-2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+                            </svg>
+                            <span class="text-sm font-bold text-slate-500 dark:text-slate-400">کاربری با ایمیل معتبر یافت نشد.</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div>
+                    <label class="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">گیرنده‌های دستی (دلخواه)</label>
+                    <textarea
+                        name="custom_recipients"
+                        rows="3"
+                        class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-left text-sm text-slate-900 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-white/10 dark:bg-slate-900/50 dark:text-white dark:focus:ring-primary/20"
+                        dir="ltr"
+                        placeholder="example1@mail.com, example2@mail.com"
+                    ></textarea>
+                    <p class="mt-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+                        ایمیل‌ها را با ویرگول از هم جدا کنید.
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-6 lg:col-span-7 bg-slate-50/50 dark:bg-slate-900/20 p-5 sm:p-6 rounded-3xl border border-slate-100 dark:border-white/5">
+                <div>
+                    <label class="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">موضوع ایمیل</label>
+                    <input
+                        type="text"
+                        name="custom_subject"
+                        class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3.5 text-sm text-slate-900 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-white/10 dark:bg-slate-900/50 dark:text-white dark:focus:ring-primary/20"
+                        placeholder="مثلا: خبرنامه دی‌ماه آرت‌پنل..."
+                    >
+                </div>
+
+                <div class="flex-1 flex flex-col">
+                    <label class="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">متن پیام</label>
+                    <textarea
+                        name="custom_message"
+                        class="w-full flex-1 min-h-[250px] rounded-2xl border border-slate-300 bg-white px-4 py-4 text-sm text-slate-900 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-white/10 dark:bg-slate-900/50 dark:text-white dark:focus:ring-primary/20 resize-y"
+                        placeholder="متن پیام خود را اینجا بنویسید..."
+                    ></textarea>
+                </div>
+
+                <button type="submit" class="group relative flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-6 py-4 text-sm font-black text-white transition-all hover:bg-slate-800 hover:shadow-lg hover:shadow-slate-900/20 focus:ring-4 focus:ring-slate-900/20 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 dark:hover:shadow-white/10 dark:focus:ring-white/20 mt-auto">
+                    <span>ارسال ایمیل به گیرندگان</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 transition-transform group-hover:-translate-x-1">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+                    </svg>
+                </button>
+            </div>
+            
+        </form>
     </section>
+
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const searchInput = document.getElementById('email-user-search');
+        const countElement = document.getElementById('selected-email-users-count');
+        const options = Array.from(document.querySelectorAll('.email-user-option'));
+        const checkboxes = Array.from(document.querySelectorAll('[data-email-user-checkbox]'));
+
+        function updateSelectedCount() {
+            const selectedCount = checkboxes.filter((checkbox) => checkbox.checked).length;
+            countElement.textContent = `${selectedCount} کاربر انتخاب شده`;
+            
+            // Highlight counter if users are selected
+            if (selectedCount > 0) {
+                countElement.classList.add('bg-primary', 'text-white');
+                countElement.classList.remove('bg-primary/10', 'text-primary');
+            } else {
+                countElement.classList.remove('bg-primary', 'text-white');
+                countElement.classList.add('bg-primary/10', 'text-primary');
+            }
+        }
+
+        function filterUsers() {
+            const term = (searchInput.value || '').trim().toLowerCase();
+            options.forEach((option) => {
+                const haystack = (option.dataset.search || '').toLowerCase();
+                option.classList.toggle('hidden', Boolean(term) && !haystack.includes(term));
+            });
+        }
+
+        if (searchInput) {
+            searchInput.addEventListener('input', filterUsers);
+        }
+
+        checkboxes.forEach((checkbox) => {
+            checkbox.addEventListener('change', updateSelectedCount);
+        });
+
+        updateSelectedCount();
+    });
+</script>
 {% endblock %}

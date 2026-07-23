@@ -1366,6 +1366,8 @@ class AdminRequestManagementTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'ارسال ایمیل تست')
         self.assertContains(response, 'ارسال ایمیل سفارشی')
+        self.assertContains(response, 'انتخاب کاربران دارای ایمیل')
+        self.assertContains(response, 'another@example.com')
 
     @override_settings(
         EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
@@ -1418,6 +1420,38 @@ class AdminRequestManagementTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(mail.outbox), 0)
         self.assertContains(response, 'این آدرس‌های ایمیل معتبر نیستند')
+
+    @override_settings(
+        EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+        DEFAULT_FROM_EMAIL='sender@example.com',
+        SERVER_EMAIL='sender@example.com',
+    )
+    def test_settings_page_custom_email_can_send_to_selected_users(self):
+        self.client.force_login(self.super_user)
+        extra_user = CustomUser.objects.create_user(
+            phone_number="09120000005",
+            password="User@1234",
+            full_name="گیرنده دوم",
+            email="second@example.com",
+        )
+
+        response = self.client.post(
+            reverse('admin_panel_pages:settings'),
+            {
+                'action': 'send_custom_email',
+                'selected_user_ids': [str(self.other_user.pk), str(extra_user.pk)],
+                'custom_subject': 'اعلان مهم',
+                'custom_message': 'متن اعلان برای کاربران انتخاب‌شده',
+            },
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].subject, 'اعلان مهم')
+        self.assertEqual(mail.outbox[0].body, 'متن اعلان برای کاربران انتخاب‌شده')
+        self.assertCountEqual(mail.outbox[0].to, ['another@example.com', 'second@example.com'])
+        self.assertContains(response, 'ایمیل با موفقیت برای 2 گیرنده ارسال شد.')
 
     @override_settings(
         EMAIL_BACKEND='django.core.mail.backends.smtp.EmailBackend',

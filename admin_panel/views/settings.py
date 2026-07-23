@@ -13,6 +13,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.core.validators import validate_email
 from django.views.decorators.http import require_http_methods
 
+from accounts.models import CustomUser
 from core.decorators import log_admin_action, superuser_required
 from core.models import NotificationPreference, SavedFilter
 
@@ -64,6 +65,52 @@ def _validate_recipient_list(raw_value):
         raise ValidationError("حداقل یک آدرس ایمیل معتبر وارد کنید.")
 
     return list(dict.fromkeys(recipients))
+
+
+def _selected_user_recipients(user_ids):
+    if not user_ids:
+        return []
+
+    queryset = (
+        CustomUser.objects
+        .filter(pk__in=user_ids)
+        .exclude(email__isnull=True)
+        .exclude(email__exact='')
+        .values_list('email', flat=True)
+    )
+    cleaned_recipients = []
+    for email in queryset:
+        candidate = (email or '').strip()
+        if candidate:
+            cleaned_recipients.append(candidate)
+    return list(dict.fromkeys(cleaned_recipients))
+
+
+def _custom_email_user_choices():
+    queryset = (
+        CustomUser.objects
+        .exclude(email__isnull=True)
+        .exclude(email__exact='')
+        .order_by('-date_joined')
+        .values('id', 'full_name', 'email', 'phone_number', 'username')
+    )
+    users = []
+    for item in queryset:
+        display_name = (
+            (item.get('full_name') or '').strip()
+            or (item.get('username') or '').strip()
+            or (item.get('phone_number') or '').strip()
+            or (item.get('email') or '').strip()
+        )
+        users.append(
+            {
+                'id': str(item['id']),
+                'name': display_name,
+                'email': (item.get('email') or '').strip(),
+                'phone_number': (item.get('phone_number') or '').strip(),
+            }
+        )
+    return users
 
 
 def _email_health_context():
@@ -167,7 +214,18 @@ def page_view(request):
                 return redirect('admin_panel_pages:settings')
 
             if action == 'send_custom_email':
-                recipients = _validate_recipient_list(request.POST.get('custom_recipients', ''))
+                recipients = []
+                manual_recipients = (request.POST.get('custom_recipients') or '').strip()
+                selected_user_ids = [item.strip() for item in request.POST.getlist('selected_user_ids') if item.strip()]
+
+                if manual_recipients:
+                    recipients.extend(_validate_recipient_list(manual_recipients))
+                recipients.extend(_selected_user_recipients(selected_user_ids))
+                recipients = list(dict.fromkeys(recipients))
+
+                if not recipients:
+                    raise ValidationError("حداقل یک کاربر یا آدرس ایمیل معتبر انتخاب کنید.")
+
                 subject = (request.POST.get('custom_subject') or '').strip()
                 message = (request.POST.get('custom_message') or '').strip()
                 if not subject:
@@ -190,6 +248,7 @@ def page_view(request):
     context = {
         'email_status': email_status,
         'settings_data': _settings_payload(),
+        'email_users': _custom_email_user_choices(),
     }
     return render(request, 'admin_panel/settings.html', context)
 
