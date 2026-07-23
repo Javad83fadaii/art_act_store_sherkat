@@ -116,6 +116,33 @@ class VerificationRequestModelTests(TestCase):
         self.assertTrue(pending_qs.exists())
         self.assertEqual(pending_qs.count(), 1)
 
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        DEFAULT_FROM_EMAIL="Auction Platform <sender@example.com>",
+        SERVER_EMAIL="sender@example.com",
+    )
+    def test_signup_sends_welcome_email_and_verification_code(self):
+        response = self.client.post(
+            reverse("signup"),
+            {
+                "full_name": "کاربر خوش آمد",
+                "phone_number": "09123335555",
+                "address_street": "خیابان تست",
+                "email": "welcome@example.com",
+                "preferred_contact_methods": [],
+                "telegram_id": "",
+                "password1": "Signup@123",
+                "password2": "Signup@123",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(len(mail.outbox), 2)
+        self.assertEqual(mail.outbox[0].to, ["welcome@example.com"])
+        self.assertIn("خوش آمدید", mail.outbox[0].subject)
+        self.assertEqual(mail.outbox[1].to, ["welcome@example.com"])
+        self.assertIn("کد تایید ایمیل", mail.outbox[1].subject)
+
     def test_signup_page_renders_newsletter_opt_in_field(self):
         response = self.client.get(reverse("signup"))
 

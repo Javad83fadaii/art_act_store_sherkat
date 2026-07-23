@@ -243,6 +243,11 @@ class SignupView(View):
             user = form.save()
             auth_login(request, user, backend="django.contrib.auth.backends.ModelBackend")
 
+            try:
+                send_welcome_email(user=user)
+            except Exception:
+                pass
+
             ok, error_message = _send_email_verification_code_for_user(user=user, email=user.email)
             if ok:
                 request.session["email_verification_alert"] = {

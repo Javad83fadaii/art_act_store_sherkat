@@ -1,8 +1,11 @@
 from decimal import Decimal
 from datetime import timedelta
 import json
+from unittest.mock import patch
 
+from django.core import mail
 from django.test import Client, TestCase
+from django.test.utils import override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -10,6 +13,8 @@ from accounts.models import CreditIncreaseRequest, CustomUser
 from store.models import Artist, Artwork, ArtworkType, PurchaseHistory
 
 from .models import Auction, AuctionCartItem, AuctionProduct, AuctionVisitHistory
+from .signals import schedule_auction_emails
+from .tasks import send_auction_ended_email
 
 
 class AuctionBidCreditFlowTests(TestCase):
@@ -384,6 +389,50 @@ class AuctionBidCreditFlowTests(TestCase):
             product_titles,
             ['محصول لات 3', 'تابلو تست', 'محصول بدون لات'],
         )
+
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        DEFAULT_FROM_EMAIL="Auction Platform <sender@example.com>",
+        SERVER_EMAIL="sender@example.com",
+    )
+    @patch('auction.tasks.send_auction_extended_email.delay')
+    def test_extending_auction_sends_extension_email_notification(self, extended_email_mock):
+        original_end = self.auction.end_date
+        self.auction.end_date = original_end + timedelta(hours=2)
+        self.auction.save(update_fields=['end_date'])
+
+        extended_email_mock.assert_called_once()
+        _, kwargs = extended_email_mock.call_args
+        self.assertEqual(kwargs['previous_end'], original_end.isoformat())
+        self.assertEqual(kwargs['expected_end'], self.auction.end_date.isoformat())
+
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        DEFAULT_FROM_EMAIL="Auction Platform <sender@example.com>",
+        SERVER_EMAIL="sender@example.com",
+    )
+    def test_send_auction_ended_email_sends_billing_email_to_winner(self):
+        self.user_one.email = 'winner@example.com'
+        self.user_one.save(update_fields=['email'])
+        self.user_two.email = 'other@example.com'
+        self.user_two.save(update_fields=['email'])
+        self.product.place_bid(self.user_one, '200')
+        self.auction.end_date = timezone.now() - timedelta(seconds=1)
+        self.auction.save(update_fields=['end_date'])
+
+        send_auction_ended_email(self.auction.id, expected_end=self.auction.end_date.isoformat())
+
+        subjects = [item.subject for item in mail.outbox]
+        self.assertIn(f"مزایده «{self.auction.name}» به پایان رسید", subjects)
+        self.assertIn(f"نتیجه مزایده و صورتحساب اولیه «{self.auction.name}»", subjects)
+        winner_messages = [item for item in mail.outbox if item.to == ['winner@example.com']]
+        self.assertTrue(winner_messages)
+        winner_mail = next(
+            item for item in winner_messages
+            if item.subject == f"نتیجه مزایده و صورتحساب اولیه «{self.auction.name}»"
+        )
+        self.assertIn('جمع کل صورتحساب اولیه', winner_mail.body)
+        self.assertIn('تابلو تست', winner_mail.body)
 
 
 class AuctionVisitTrackingTests(TestCase):
