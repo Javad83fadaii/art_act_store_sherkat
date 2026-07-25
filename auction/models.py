@@ -22,6 +22,11 @@ class Auction(models.Model):
     start_date = models.DateTimeField()
     end_date = models.DateTimeField()
     products_count = models.PositiveIntegerField()
+    start_reminder_24h_dispatched_at = models.DateTimeField(null=True, blank=True)
+    start_notice_dispatched_at = models.DateTimeField(null=True, blank=True)
+    end_reminder_12h_dispatched_at = models.DateTimeField(null=True, blank=True)
+    end_notice_dispatched_at = models.DateTimeField(null=True, blank=True)
+    winner_billing_dispatched_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -117,6 +117,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'auction.middleware.AuctionEmailDispatchMiddleware',
     'accounts.middleware.EmailVerificationRequiredMiddleware',
     'core.middleware.ErrorLoggingMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',

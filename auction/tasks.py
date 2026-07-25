@@ -1,6 +1,7 @@
 from collections import defaultdict
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
+import logging
 
 try:
     from celery import shared_task
@@ -24,6 +25,9 @@ from core.emailing import get_user_email_recipients, send_plain_email
 
 from .models import Auction
 from .services import ensure_products_have_finished_winners
+
+
+logger = logging.getLogger(__name__)
 
 
 def get_active_users_emails():
@@ -59,6 +63,22 @@ def _is_within_delivery_window(target_time, *, late_grace_seconds=300):
     return earliest_allowed <= now <= latest_allowed
 
 
+def _claim_dispatch(auction_id, field_name):
+    claimed_at = timezone.now()
+    updated = Auction.objects.filter(pk=auction_id, **{f"{field_name}__isnull": True}).update(
+        **{field_name: claimed_at}
+    )
+    if updated:
+        return claimed_at
+    return None
+
+
+def _release_dispatch(auction_id, field_name, claimed_at):
+    if claimed_at is None:
+        return
+    Auction.objects.filter(pk=auction_id, **{field_name: claimed_at}).update(**{field_name: None})
+
+
 def _format_amount(value):
     try:
         amount = Decimal(str(value or 0))
@@ -88,6 +108,10 @@ def send_auction_starting_soon_email(auction_id, expected_start=None):
     if not _is_within_delivery_window(auction.start_date - timezone.timedelta(hours=24)):
         return
 
+    claimed_at = _claim_dispatch(auction.id, 'start_reminder_24h_dispatched_at')
+    if claimed_at is None:
+        return
+
     emails = get_active_users_emails()
     if not emails:
         return
@@ -104,9 +128,10 @@ def send_auction_starting_soon_email(auction_id, expected_start=None):
 با آرزوی موفقیت
 تیم ماه آکشن"""
     try:
-        send_plain_email(subject=subject, message=message, recipients=emails, fail_silently=True)
+        send_plain_email(subject=subject, message=message, recipients=emails, fail_silently=False)
     except Exception:
-        pass
+        _release_dispatch(auction.id, 'start_reminder_24h_dispatched_at', claimed_at)
+        logger.exception("Starting-soon email failed for auction %s", auction.pk)
 
 
 @shared_task
@@ -123,6 +148,10 @@ def send_auction_started_email(auction_id, expected_start=None):
     if not _is_within_delivery_window(auction.start_date):
         return
 
+    claimed_at = _claim_dispatch(auction.id, 'start_notice_dispatched_at')
+    if claimed_at is None:
+        return
+
     emails = get_active_users_emails()
     if not emails:
         return
@@ -137,9 +166,10 @@ def send_auction_started_email(auction_id, expected_start=None):
 با آرزوی موفقیت
 تیم ماه آکشن"""
     try:
-        send_plain_email(subject=subject, message=message, recipients=emails, fail_silently=True)
+        send_plain_email(subject=subject, message=message, recipients=emails, fail_silently=False)
     except Exception:
-        pass
+        _release_dispatch(auction.id, 'start_notice_dispatched_at', claimed_at)
+        logger.exception("Started email failed for auction %s", auction.pk)
 
 
 @shared_task
@@ -151,6 +181,13 @@ def send_auction_ending_soon_email(auction_id, expected_end=None):
         return
 
     if not _scheduled_datetime_matches(auction.end_date, expected_end):
+        return
+
+    if not _is_within_delivery_window(auction.end_date - timezone.timedelta(hours=12)):
+        return
+
+    claimed_at = _claim_dispatch(auction.id, 'end_reminder_12h_dispatched_at')
+    if claimed_at is None:
         return
 
     emails = get_active_users_emails()
@@ -169,9 +206,10 @@ def send_auction_ending_soon_email(auction_id, expected_end=None):
 با سپاس
 تیم ماه آکشن"""
     try:
-        send_plain_email(subject=subject, message=message, recipients=emails, fail_silently=True)
+        send_plain_email(subject=subject, message=message, recipients=emails, fail_silently=False)
     except Exception:
-        pass
+        _release_dispatch(auction.id, 'end_reminder_12h_dispatched_at', claimed_at)
+        logger.exception("Ending-soon email failed for auction %s", auction.pk)
 
 
 @shared_task
@@ -223,6 +261,7 @@ def send_auction_ended_email(auction_id, expected_end=None):
         return
 
     emails = get_active_users_emails()
+    end_notice_claimed_at = _claim_dispatch(auction.id, 'end_notice_dispatched_at')
     if emails:
         subject = f"مزایده «{auction.name}» به پایان رسید"
         message = f"""سلام،
@@ -233,14 +272,20 @@ def send_auction_ended_email(auction_id, expected_end=None):
 
 با سپاس
 تیم ماه آکشن"""
-        try:
-            send_plain_email(subject=subject, message=message, recipients=emails, fail_silently=True)
-        except Exception:
-            pass
+        if end_notice_claimed_at is not None:
+            try:
+                send_plain_email(subject=subject, message=message, recipients=emails, fail_silently=False)
+            except Exception:
+                _release_dispatch(auction.id, 'end_notice_dispatched_at', end_notice_claimed_at)
+                logger.exception("Ended email failed for auction %s", auction.pk)
+                return
 
     products = ensure_products_have_finished_winners(
         auction.products.select_related('winner').all()
     )
+    billing_claimed_at = _claim_dispatch(auction.id, 'winner_billing_dispatched_at')
+    if billing_claimed_at is None:
+        return
     winners_map = defaultdict(list)
     for product in products:
         winner = getattr(product, 'winner', None)
@@ -284,7 +329,9 @@ def send_auction_ended_email(auction_id, expected_end=None):
                 subject=subject,
                 message=message,
                 recipients=[winner.email],
-                fail_silently=True,
+                fail_silently=False,
             )
         except Exception:
-            pass
+            _release_dispatch(auction.id, 'winner_billing_dispatched_at', billing_claimed_at)
+            logger.exception("Winner billing email failed for auction %s", auction.pk)
+            return

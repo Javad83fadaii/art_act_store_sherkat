@@ -3,6 +3,7 @@ from datetime import timedelta
 import json
 from unittest.mock import patch
 
+from django.core.cache import cache
 from django.core import mail
 from django.test import Client, TestCase
 from django.test.utils import override_settings
@@ -535,6 +536,76 @@ class AuctionBidCreditFlowTests(TestCase):
         self.assertEqual(len(mail.outbox), 1)
         self.assertIn('مزایده', mail.outbox[0].subject)
         self.assertIn('آغاز شد', mail.outbox[0].subject)
+
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        DEFAULT_FROM_EMAIL="Auction Platform <sender@example.com>",
+        SERVER_EMAIL="sender@example.com",
+    )
+    def test_request_middleware_dispatches_due_starting_soon_email_once(self):
+        cache.clear()
+        self.user_one.email = 'first@example.com'
+        self.user_one.save(update_fields=['email'])
+        self.user_two.email = 'second@example.com'
+        self.user_two.save(update_fields=['email'])
+
+        self.auction.start_date = timezone.now() + timedelta(hours=24)
+        self.auction.end_date = self.auction.start_date + timedelta(hours=2)
+        self.auction.save(update_fields=['start_date', 'end_date'])
+        mail.outbox.clear()
+
+        response = self.client.get(reverse('auction:action'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('۲۴ ساعت تا شروع مزایده', mail.outbox[0].subject)
+
+        cache.clear()
+        second_response = self.client.get(reverse('auction:action'))
+
+        self.assertEqual(second_response.status_code, 200)
+        self.assertEqual(len(mail.outbox), 1)
+        self.auction.refresh_from_db()
+        self.assertIsNotNone(self.auction.start_reminder_24h_dispatched_at)
+
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        DEFAULT_FROM_EMAIL="Auction Platform <sender@example.com>",
+        SERVER_EMAIL="sender@example.com",
+    )
+    def test_request_middleware_dispatches_due_ended_email_and_billing_once(self):
+        cache.clear()
+        self.user_one.email = 'winner@example.com'
+        self.user_one.save(update_fields=['email'])
+        self.user_two.email = 'other@example.com'
+        self.user_two.save(update_fields=['email'])
+        self.product.place_bid(self.user_one, '200')
+        self.auction.end_date = timezone.now() - timedelta(seconds=1)
+        self.auction.save(update_fields=['end_date'])
+        mail.outbox.clear()
+
+        response = self.client.get(reverse('auction:action'))
+
+        self.assertEqual(response.status_code, 200)
+        subjects = [item.subject for item in mail.outbox]
+        self.assertIn(f"مزایده «{self.auction.name}» به پایان رسید", subjects)
+        self.assertIn(f"نتیجه مزایده و صورتحساب اولیه «{self.auction.name}»", subjects)
+
+        cache.clear()
+        second_response = self.client.get(reverse('auction:action'))
+
+        self.assertEqual(second_response.status_code, 200)
+        self.assertEqual(
+            len([item for item in mail.outbox if item.subject == f"مزایده «{self.auction.name}» به پایان رسید"]),
+            1,
+        )
+        self.assertEqual(
+            len([item for item in mail.outbox if item.subject == f"نتیجه مزایده و صورتحساب اولیه «{self.auction.name}»"]),
+            1,
+        )
+        self.auction.refresh_from_db()
+        self.assertIsNotNone(self.auction.end_notice_dispatched_at)
+        self.assertIsNotNone(self.auction.winner_billing_dispatched_at)
 
 
 class AuctionVisitTrackingTests(TestCase):
