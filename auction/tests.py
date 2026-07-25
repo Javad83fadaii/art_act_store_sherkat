@@ -199,6 +199,17 @@ class AuctionBidCreditFlowTests(TestCase):
         self.assertEqual(payload['my_bids_count'], 1)
         self.assertIn('200', payload['my_bids_html'])
 
+    @patch('auction.signals._BID_EMAIL_EXECUTOR.submit')
+    def test_bid_email_notifications_are_enqueued_after_commit(self, submit_mock):
+        with self.captureOnCommitCallbacks(execute=True) as callbacks:
+            self.product.place_bid(self.user_one, '200')
+
+        self.assertEqual(len(callbacks), 1)
+        submit_mock.assert_called_once()
+        submitted_callable, submitted_bid_id = submit_mock.call_args.args
+        self.assertEqual(submitted_callable.__name__, '_send_bid_notification_emails')
+        self.assertIsInstance(submitted_bid_id, int)
+
     def test_live_state_endpoint_returns_latest_price_and_history_html(self):
         self.product.place_bid(self.user_one, '200')
         self.client.force_login(self.user_one)

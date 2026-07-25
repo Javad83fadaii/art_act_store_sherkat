@@ -1,5 +1,8 @@
 import datetime
+import logging
+from concurrent.futures import ThreadPoolExecutor
 
+from django.db import transaction
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
@@ -14,6 +17,90 @@ from .tasks import (
     send_auction_extended_email,
     send_auction_ended_email,
 )
+
+
+logger = logging.getLogger(__name__)
+_BID_EMAIL_EXECUTOR = ThreadPoolExecutor(max_workers=4, thread_name_prefix='bid-email')
+
+
+def _send_bid_notification_emails(bid_id):
+    bid = (
+        Bid.objects
+        .select_related('user', 'product')
+        .filter(pk=bid_id)
+        .first()
+    )
+    if bid is None:
+        return
+
+    current_user = bid.user
+    product_title = getattr(bid.product, 'title', bid.product.product_id)
+
+    if current_user.email:
+        subject = "ثبت موفق پیشنهاد قیمت"
+        message = f"""کاربر گرامی {bid.user_fullname}،
+
+پیشنهاد قیمت شما به مبلغ {bid.bid_amount:,} تومان برای اثر «{product_title}» با موفقیت ثبت شد.
+
+تا زمانی که این پیشنهاد بالاترین پیشنهاد فعال باشد، این اثر در سبد خرید مزایده شما نگه داشته می‌شود.
+
+در صورت ثبت پیشنهاد بالاتر توسط کاربر دیگر، هم از طریق سامانه و هم ایمیل شما را مطلع می‌کنیم.
+
+با سپاس از همراهی شما
+تیم ماه آکشن"""
+        try:
+            send_plain_email(
+                subject=subject,
+                message=message,
+                recipients=[current_user.email],
+                fail_silently=True,
+            )
+        except Exception:
+            logger.exception("Bid confirmation email failed for bid %s", bid.pk)
+
+    previous_highest_bid = (
+        Bid.objects
+        .select_related('user')
+        .filter(product=bid.product)
+        .exclude(id=bid.id)
+        .order_by('-bid_amount', '-created_at')
+        .first()
+    )
+
+    if not previous_highest_bid:
+        return
+
+    previous_user = previous_highest_bid.user
+    if previous_user.id == current_user.id or not previous_user.email:
+        return
+
+    outbid_subject = "رقابت ادامه دارد؛ پیشنهاد شما دیگر بالاترین قیمت نیست"
+    outbid_message = f"""سلام {previous_highest_bid.user_fullname}،
+
+پیشنهاد قیمت شما برای اثر «{product_title}» دیگر بالاترین پیشنهاد این مزایده نیست.
+
+بالاترین پیشنهاد فعلی: {bid.bid_amount:,} تومان
+
+به همین دلیل این اثر از سبد خرید مزایده شما خارج شد. در صورت تمایل می‌توانید دوباره پیشنهاد بالاتری ثبت کنید.
+
+با سپاس
+تیم ماه آکشن"""
+    try:
+        send_plain_email(
+            subject=outbid_subject,
+            message=outbid_message,
+            recipients=[previous_user.email],
+            fail_silently=True,
+        )
+    except Exception:
+        logger.exception("Outbid email failed for bid %s", bid.pk)
+
+
+def _enqueue_bid_notification_emails(bid_id):
+    try:
+        _BID_EMAIL_EXECUTOR.submit(_send_bid_notification_emails, bid_id)
+    except Exception:
+        logger.exception("Bid email queue submit failed for bid %s", bid_id)
 
 
 @receiver(pre_save, sender=Auction)
@@ -91,58 +178,7 @@ def schedule_auction_emails(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=Bid)
 def notify_bid_updates(sender, instance, created, **kwargs):
-    if created:
-        current_user = instance.user
-        product_title = getattr(instance.product, 'title', instance.product.product_id)
+    if not created:
+        return
 
-        if current_user.email:
-            subject = "ثبت موفق پیشنهاد قیمت"
-
-            message = f"""کاربر گرامی {instance.user_fullname}،
-
-پیشنهاد قیمت شما به مبلغ {instance.bid_amount:,} تومان برای اثر «{product_title}» با موفقیت ثبت شد.
-
-تا زمانی که این پیشنهاد بالاترین پیشنهاد فعال باشد، این اثر در سبد خرید مزایده شما نگه داشته می‌شود.
-
-در صورت ثبت پیشنهاد بالاتر توسط کاربر دیگر، هم از طریق سامانه و هم ایمیل شما را مطلع می‌کنیم.
-
-با سپاس از همراهی شما
-تیم ماه آکشن"""
-            try:
-                send_plain_email(
-                    subject=subject,
-                    message=message,
-                    recipients=[current_user.email],
-                    fail_silently=True,
-                )
-            except Exception:
-                pass
-
-        previous_highest_bid = Bid.objects.filter(
-            product=instance.product
-        ).exclude(id=instance.id).order_by('-bid_amount', '-created_at').first()
-
-        if previous_highest_bid:
-            previous_user = previous_highest_bid.user
-            if previous_user.id != current_user.id and previous_user.email:
-                outbid_subject = "رقابت ادامه دارد؛ پیشنهاد شما دیگر بالاترین قیمت نیست"
-
-                outbid_message = f"""سلام {previous_highest_bid.user_fullname}،
-
-پیشنهاد قیمت شما برای اثر «{product_title}» دیگر بالاترین پیشنهاد این مزایده نیست.
-
-بالاترین پیشنهاد فعلی: {instance.bid_amount:,} تومان
-
-به همین دلیل این اثر از سبد خرید مزایده شما خارج شد. در صورت تمایل می‌توانید دوباره پیشنهاد بالاتری ثبت کنید.
-
-با سپاس
-تیم ماه آکشن"""
-                try:
-                    send_plain_email(
-                        subject=outbid_subject,
-                        message=outbid_message,
-                        recipients=[previous_user.email],
-                        fail_silently=True,
-                    )
-                except Exception:
-                    pass
+    transaction.on_commit(lambda bid_id=instance.pk: _enqueue_bid_notification_emails(bid_id))

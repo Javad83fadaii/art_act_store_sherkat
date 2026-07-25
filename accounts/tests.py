@@ -420,3 +420,40 @@ class EmailVerificationFlowTests(TestCase):
         self.user.refresh_from_db()
         self.assertTrue(self.user.is_email_verified)
         self.assertEqual(self.user.email, "verified@example.com")
+
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        DEFAULT_FROM_EMAIL="Auction Platform <sender@example.com>",
+        SERVER_EMAIL="sender@example.com",
+    )
+    def test_email_verification_page_auto_sends_code_once_for_user_email(self):
+        self.user.email = "autoflow@example.com"
+        self.user.save(update_fields=["email"])
+        self.client.force_login(self.user)
+
+        first_response = self.client.get(reverse("email_verification"))
+        second_response = self.client.get(reverse("email_verification"))
+
+        self.assertEqual(first_response.status_code, 200)
+        self.assertEqual(second_response.status_code, 200)
+        self.assertContains(first_response, "autoflow@example.com")
+        self.assertContains(first_response, "ارسال مجدد کد")
+        self.assertContains(first_response, "کد تایید ۶ رقمی به ایمیل شما ارسال شد.")
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["autoflow@example.com"])
+
+    def test_verify_email_code_accepts_persian_digits(self):
+        self.client.force_login(self.user)
+        otp = EmailVerificationOTP.generate_otp(self.user, "persian-code@example.com")
+        persian_code = otp.code.translate(str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹"))
+
+        response = self.client.post(
+            reverse("verify_email_code"),
+            data=json.dumps({"email": "persian-code@example.com", "code": persian_code}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.is_email_verified)
+        self.assertEqual(self.user.email, "persian-code@example.com")

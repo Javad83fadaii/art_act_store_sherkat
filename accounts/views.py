@@ -41,6 +41,7 @@ from auction.models import Bid
 
 
 logger = logging.getLogger(__name__)
+EMAIL_VERIFICATION_SENT_TO_SESSION_KEY = "email_verification_code_sent_to"
 
 
 class CustomLoginView(LoginView):
@@ -256,6 +257,7 @@ class SignupView(View):
 
             ok, error_message = _send_email_verification_code_for_user(user=user, email=user.email)
             if ok:
+                _remember_sent_verification_code(request, user.email)
                 alert_type = "success"
                 alert_message = "کد تایید به ایمیل شما ارسال شد."
                 if welcome_email_error:
@@ -437,6 +439,28 @@ def _user_requires_email_verification(user):
     return not getattr(user, "has_verified_email", False)
 
 
+def _normalize_verification_code(code):
+    digit_map = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
+    return str(code or "").strip().translate(digit_map).replace(" ", "")
+
+
+def _remember_sent_verification_code(request, email):
+    email_value = normalize_email_value(email)
+    if email_value:
+        request.session[EMAIL_VERIFICATION_SENT_TO_SESSION_KEY] = email_value.casefold()
+
+
+def _has_sent_verification_code(request, email):
+    email_value = normalize_email_value(email)
+    if not email_value:
+        return False
+    return request.session.get(EMAIL_VERIFICATION_SENT_TO_SESSION_KEY) == email_value.casefold()
+
+
+def _clear_sent_verification_code(request):
+    request.session.pop(EMAIL_VERIFICATION_SENT_TO_SESSION_KEY, None)
+
+
 def _send_email_verification_code_for_user(*, user, email):
     email_value = normalize_email_value(email)
     if not email_value:
@@ -474,7 +498,7 @@ def _send_email_verification_code_for_user(*, user, email):
 
 def _verify_email_code_for_user(*, user, email, code):
     email_value = normalize_email_value(email)
-    code_value = str(code or "").strip()
+    code_value = _normalize_verification_code(code)
     if not email_value or not code_value:
         return False, "وارد کردن ایمیل و کد الزامی است."
 
@@ -482,6 +506,9 @@ def _verify_email_code_for_user(*, user, email, code):
         validate_email(email_value)
     except ValidationError:
         return False, "لطفا یک آدرس ایمیل معتبر وارد کنید."
+
+    if len(code_value) != 6 or not code_value.isdigit():
+        return False, "کد تایید باید ۶ رقم باشد."
 
     otp = (
         EmailVerificationOTP.objects
@@ -515,31 +542,50 @@ class EmailVerificationView(LoginRequiredMixin, View):
             return redirect(next_url or reverse("home"))
 
         alert = request.session.pop("email_verification_alert", None) or {}
+        email = normalize_email_value(getattr(request.user, "email", "") or "")
+        alert_type = alert.get("type") or ""
+        alert_message = alert.get("message") or ""
+
+        if email and not _has_sent_verification_code(request, email):
+            ok, error_message = _send_email_verification_code_for_user(user=request.user, email=email)
+            if ok:
+                _remember_sent_verification_code(request, email)
+                if not alert_message:
+                    alert_type = "success"
+                    alert_message = "کد تایید ۶ رقمی به ایمیل شما ارسال شد."
+            else:
+                alert_type = "error"
+                alert_message = error_message or "ارسال کد تایید با خطا مواجه شد."
+
         return render(
             request,
             self.template_name,
             {
-                "email": getattr(request.user, "email", "") or "",
+                "email": email,
+                "has_email": bool(email),
                 "next": request.GET.get("next") or "",
-                "alert_type": alert.get("type") or "",
-                "alert_message": alert.get("message") or "",
+                "alert_type": alert_type,
+                "alert_message": alert_message,
             },
         )
 
     def post(self, request):
         action = str(request.POST.get("action") or "").strip()
-        email = normalize_email_value(request.POST.get("email"))
-        code = str(request.POST.get("code") or "").strip()
+        email = normalize_email_value(request.POST.get("email")) or normalize_email_value(getattr(request.user, "email", "") or "")
+        code = _normalize_verification_code(request.POST.get("code"))
         next_raw = request.POST.get("next") or request.GET.get("next") or ""
         next_url = _safe_next_url(request, next_raw)
 
         if action == "send_code":
             ok, error_message = _send_email_verification_code_for_user(user=request.user, email=email)
+            if ok:
+                _remember_sent_verification_code(request, email)
             return render(
                 request,
                 self.template_name,
                 {
                     "email": email,
+                    "has_email": bool(email),
                     "next": next_raw,
                     "alert_type": "success" if ok else "error",
                     "alert_message": "کد تایید ارسال شد." if ok else (error_message or "ارسال کد تایید با خطا مواجه شد."),
@@ -549,12 +595,14 @@ class EmailVerificationView(LoginRequiredMixin, View):
         if action == "verify_code":
             ok, error_message = _verify_email_code_for_user(user=request.user, email=email, code=code)
             if ok:
+                _clear_sent_verification_code(request)
                 return redirect(next_url or reverse("home"))
             return render(
                 request,
                 self.template_name,
                 {
                     "email": email,
+                    "has_email": bool(email),
                     "next": next_raw,
                     "alert_type": "error",
                     "alert_message": error_message or "تایید ایمیل با خطا مواجه شد.",
@@ -566,6 +614,7 @@ class EmailVerificationView(LoginRequiredMixin, View):
             self.template_name,
             {
                 "email": email or (getattr(request.user, "email", "") or ""),
+                "has_email": bool(email or getattr(request.user, "email", "")),
                 "next": next_raw,
                 "alert_type": "error",
                 "alert_message": "درخواست نامعتبر است.",
@@ -604,6 +653,7 @@ def send_email_verification(request):
     if not ok:
         return JsonResponse({"error": error_message or "Failed to send verification code."}, status=500)
 
+    _remember_sent_verification_code(request, email)
     return JsonResponse({"message": "Verification code sent successfully."})
 
 
@@ -615,7 +665,7 @@ def verify_email_code(request):
         return JsonResponse({"error": "Invalid JSON payload."}, status=400)
 
     email = normalize_email_value(payload.get("email"))
-    code = str(payload.get("code") or "").strip()
+    code = _normalize_verification_code(payload.get("code"))
     if not email or not code:
         return JsonResponse({"error": "Email and code are required."}, status=400)
 
@@ -628,4 +678,5 @@ def verify_email_code(request):
     if not ok:
         return JsonResponse({"error": error_message or "Email verification failed."}, status=400)
 
+    _clear_sent_verification_code(request)
     return JsonResponse({"message": "Email verified successfully."})
