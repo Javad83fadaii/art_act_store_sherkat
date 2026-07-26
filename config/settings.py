@@ -83,6 +83,8 @@ ALLOWED_HOSTS = list(set(_allowed_hosts_from_env + [
     "mah.test",
     "192.168.50.242",
     "192.168.50.219",
+    "mahauction.com",
+    "www.mahauction.com",
     "mahauction.ir",          
     "www.mahauction.ir",      
 ]))
@@ -101,6 +103,7 @@ INSTALLED_APPS = [
     'store.apps.StoreConfig',
     'auction',
     'core',
+    'notifications.apps.NotificationsConfig',
     'accounts.apps.AccountsConfig',
     'admin_panel',
 ]
@@ -259,6 +262,8 @@ CSRF_TRUSTED_ORIGINS = _processed_csrf_origins
 
 # ترکیب مقادیر .env با پیش‌فرض‌ها
 CSRF_TRUSTED_ORIGINS = list(set(_processed_csrf_origins + [
+    "https://mahauction.com",
+    "https://www.mahauction.com",
     "https://mahauction.ir",
     "https://www.mahauction.ir",
     "http://127.0.0.1",

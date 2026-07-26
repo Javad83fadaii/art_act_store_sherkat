@@ -4,6 +4,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
+    path('39556468.txt', views.enamad_verification_file, name='enamad_verification_file'),
     path('accounts/', include('accounts.urls')), 
     path('accounts/', include('django.contrib.auth.urls')),
     path('track-visit/', views.track_public_visit, name='track_public_visit'),
