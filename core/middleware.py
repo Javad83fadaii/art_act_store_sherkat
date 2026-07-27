@@ -3,6 +3,9 @@ import traceback
 from .models import ErrorLog
 
 
+VERIFICATION_EXEMPT_PATHS = {'/39556468.txt'}
+
+
 class ErrorLoggingMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
@@ -13,6 +16,9 @@ class ErrorLoggingMiddleware:
         except Exception:
             self._create_error_log(request, 500, traceback.format_exc())
             raise
+
+        if request.path in VERIFICATION_EXEMPT_PATHS:
+            return response
 
         if response.status_code in {400, 403, 404, 500}:
             self._create_error_log(request, response.status_code, '')

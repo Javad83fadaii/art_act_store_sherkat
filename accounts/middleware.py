@@ -3,6 +3,9 @@ from django.urls import reverse
 from urllib.parse import urlencode
 
 
+VERIFICATION_EXEMPT_PATHS = {'/39556468.txt'}
+
+
 class EmailVerificationRequiredMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
@@ -10,7 +13,7 @@ class EmailVerificationRequiredMiddleware:
     def __call__(self, request):
         path = request.path or ""
 
-        if path.startswith("/static/") or path.startswith("/media/"):
+        if path.startswith("/static/") or path.startswith("/media/") or path in VERIFICATION_EXEMPT_PATHS:
             return self.get_response(request)
 
         if request.user.is_authenticated and not getattr(request.user, "has_verified_email", False):
