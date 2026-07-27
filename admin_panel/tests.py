@@ -11,6 +11,7 @@ from django.utils import timezone
 from accounts.models import CustomUser, VerificationRequest, CreditIncreaseRequest
 from auction.models import Auction, AuctionProduct, AuctionVisitHistory, AuctionCartItem, Bid
 from core.models import ActivityLog
+from notifications.models import NotificationDelivery
 from store.models import Artist, Artwork, ArtworkType, SiteVisitLog, VisitHistory, PurchaseHistory, TelegramPurchaseRequest
 
 
@@ -1391,11 +1392,12 @@ class AdminRequestManagementTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertEqual(mail.outbox[0].subject, 'تست پنل')
-        self.assertEqual(mail.outbox[0].body, 'متن تست پنل سفارشی')
-        self.assertEqual(mail.outbox[0].from_email, 'Auction Platform <sender@example.com>')
-        self.assertEqual(mail.outbox[0].to, ['receiver@example.com'])
+        email_deliveries = list(NotificationDelivery.objects.filter(provider='email'))
+        self.assertEqual(len(email_deliveries), 1)
+        self.assertEqual(email_deliveries[0].subject, 'تست پنل')
+        self.assertEqual(email_deliveries[0].body, 'متن تست پنل سفارشی')
+        self.assertEqual(email_deliveries[0].metadata.get('from_email'), 'Auction Platform <sender@example.com>')
+        self.assertEqual(email_deliveries[0].recipients, ['receiver@example.com'])
         self.assertContains(response, 'ایمیل تست با موفقیت')
 
     @override_settings(
@@ -1418,7 +1420,7 @@ class AdminRequestManagementTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(mail.outbox), 0)
+        self.assertEqual(NotificationDelivery.objects.count(), 0)
         self.assertContains(response, 'این آدرس‌های ایمیل معتبر نیستند')
 
     @override_settings(
@@ -1447,10 +1449,11 @@ class AdminRequestManagementTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertEqual(mail.outbox[0].subject, 'اعلان مهم')
-        self.assertEqual(mail.outbox[0].body, 'متن اعلان برای کاربران انتخاب‌شده')
-        self.assertCountEqual(mail.outbox[0].to, ['another@example.com', 'second@example.com'])
+        email_deliveries = list(NotificationDelivery.objects.filter(provider='email'))
+        self.assertEqual(len(email_deliveries), 1)
+        self.assertEqual(email_deliveries[0].subject, 'اعلان مهم')
+        self.assertEqual(email_deliveries[0].body, 'متن اعلان برای کاربران انتخاب‌شده')
+        self.assertCountEqual(email_deliveries[0].recipients, ['another@example.com', 'second@example.com'])
         self.assertContains(response, 'ایمیل با موفقیت برای 2 گیرنده ارسال شد.')
 
     @override_settings(

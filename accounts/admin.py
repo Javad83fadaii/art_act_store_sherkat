@@ -7,9 +7,8 @@ from django.contrib.auth.admin import UserAdmin
 
 from django.shortcuts import render
 from django.http import HttpResponseRedirect
-from django.core.mail import send_mail
-from django.conf import settings
 from django.contrib import messages
+from core.emailing import send_plain_email
 from .forms import CustomUserCreationForm, CustomUserChangeForm, SendCustomEmailForm
 from .models import CustomUser, CreditIncreaseRequest
 
@@ -34,12 +33,13 @@ class CustomUserAdmin(UserAdmin):
                 emails = list(valid_users.values_list('email', flat=True))
                 
                 if emails:
-                    send_mail(
-                        subject,
-                        message,
-                        settings.DEFAULT_FROM_EMAIL,
-                        emails,
+                    send_plain_email(
+                        event='accounts.admin.custom_email',
+                        subject=subject,
+                        message=message,
+                        recipients=emails,
                         fail_silently=True,
+                        metadata={'sender_admin_id': str(request.user.pk)},
                     )
                     self.message_user(request, f"ایمیل با موفقیت به {len(emails)} کاربر ارسال شد.", messages.SUCCESS)
                 else:

@@ -50,10 +50,12 @@ def _send_bid_notification_emails(bid_id):
 تیم ماه آکشن"""
         try:
             send_plain_email(
+                event='auction.bid.confirmed',
                 subject=subject,
                 message=message,
                 recipients=[current_user.email],
                 fail_silently=True,
+                metadata={'bid_id': str(bid.pk)},
             )
         except Exception:
             logger.exception("Bid confirmation email failed for bid %s", bid.pk)
@@ -87,10 +89,15 @@ def _send_bid_notification_emails(bid_id):
 تیم ماه آکشن"""
     try:
         send_plain_email(
+            event='auction.bid.outbid',
             subject=outbid_subject,
             message=outbid_message,
             recipients=[previous_user.email],
             fail_silently=True,
+            metadata={
+                'previous_bid_id': str(previous_highest_bid.pk),
+                'latest_bid_id': str(bid.pk),
+            },
         )
     except Exception:
         logger.exception("Outbid email failed for bid %s", bid.pk)

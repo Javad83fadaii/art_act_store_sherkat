@@ -25,7 +25,14 @@ def send_bid_confirmation_email(*, bid):
         "تا زمانی که بالاترین پیشنهاد را داشته باشید، این اثر در سبد مزایده شما فعال می‌ماند.\n\n"
         "با آرزوی موفقیت."
     )
-    return send_plain_email(subject=subject, message=message, recipients=[user.email], fail_silently=True)
+    return send_plain_email(
+        event='auction.bid.confirmed',
+        subject=subject,
+        message=message,
+        recipients=[user.email],
+        fail_silently=True,
+        metadata={'bid_id': str(bid.pk)},
+    )
 
 
 def send_outbid_email(*, previous_bid, latest_bid):
@@ -47,7 +54,17 @@ def send_outbid_email(*, previous_bid, latest_bid):
         f"پیشنهاد جدید ثبت‌شده: {_format_amount(latest_bid.bid_amount)} تومان\n\n"
         "اگر همچنان مایل هستید، می‌توانید دوباره پیشنهاد جدید ثبت کنید."
     )
-    return send_plain_email(subject=subject, message=message, recipients=[previous_user.email], fail_silently=True)
+    return send_plain_email(
+        event='auction.bid.outbid',
+        subject=subject,
+        message=message,
+        recipients=[previous_user.email],
+        fail_silently=True,
+        metadata={
+            'previous_bid_id': str(previous_bid.pk),
+            'latest_bid_id': str(latest_bid.pk),
+        },
+    )
 
 
 def build_auction_reminder_email(*, auction, reminder_type):

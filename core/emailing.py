@@ -1,8 +1,9 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
-from django.core.mail import send_mail
 from django.core.validators import validate_email
+
+from notifications.services import send_notification_safely
 
 
 def normalize_email_value(value):
@@ -26,15 +27,30 @@ def collect_valid_recipient_emails(recipients):
     return unique_recipients
 
 
-def send_plain_email(*, subject, message, recipients, fail_silently=False):
+def send_plain_email(
+    *,
+    subject,
+    message,
+    recipients,
+    fail_silently=False,
+    event='email.message',
+    metadata=None,
+    context=None,
+):
     valid_recipients = collect_valid_recipient_emails(recipients)
-    return send_mail(
+    send_notification_safely(
+        event=str(event or 'email.message').strip(),
+        recipients=valid_recipients,
         subject=str(subject or "").strip(),
-        message=str(message or "").strip(),
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=valid_recipients,
-        fail_silently=fail_silently,
+        body=str(message or "").strip(),
+        context=context,
+        metadata={
+            'fail_silently': bool(fail_silently),
+            'from_email': settings.DEFAULT_FROM_EMAIL,
+            **(metadata or {}),
+        },
     )
+    return len(valid_recipients)
 
 
 def get_user_email_recipients(*, queryset=None, only_active=True, only_verified_email=False):

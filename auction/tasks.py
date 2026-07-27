@@ -128,7 +128,14 @@ def send_auction_starting_soon_email(auction_id, expected_start=None):
 با آرزوی موفقیت
 تیم ماه آکشن"""
     try:
-        send_plain_email(subject=subject, message=message, recipients=emails, fail_silently=False)
+        send_plain_email(
+            event='auction.start.reminder_24h',
+            subject=subject,
+            message=message,
+            recipients=emails,
+            fail_silently=False,
+            metadata={'auction_id': str(auction.pk)},
+        )
     except Exception:
         _release_dispatch(auction.id, 'start_reminder_24h_dispatched_at', claimed_at)
         logger.exception("Starting-soon email failed for auction %s", auction.pk)
@@ -166,7 +173,14 @@ def send_auction_started_email(auction_id, expected_start=None):
 با آرزوی موفقیت
 تیم ماه آکشن"""
     try:
-        send_plain_email(subject=subject, message=message, recipients=emails, fail_silently=False)
+        send_plain_email(
+            event='auction.start.started',
+            subject=subject,
+            message=message,
+            recipients=emails,
+            fail_silently=False,
+            metadata={'auction_id': str(auction.pk)},
+        )
     except Exception:
         _release_dispatch(auction.id, 'start_notice_dispatched_at', claimed_at)
         logger.exception("Started email failed for auction %s", auction.pk)
@@ -206,7 +220,14 @@ def send_auction_ending_soon_email(auction_id, expected_end=None):
 با سپاس
 تیم ماه آکشن"""
     try:
-        send_plain_email(subject=subject, message=message, recipients=emails, fail_silently=False)
+        send_plain_email(
+            event='auction.end.reminder_12h',
+            subject=subject,
+            message=message,
+            recipients=emails,
+            fail_silently=False,
+            metadata={'auction_id': str(auction.pk)},
+        )
     except Exception:
         _release_dispatch(auction.id, 'end_reminder_12h_dispatched_at', claimed_at)
         logger.exception("Ending-soon email failed for auction %s", auction.pk)
@@ -241,7 +262,17 @@ def send_auction_extended_email(auction_id, previous_end=None, expected_end=None
 با سپاس
 تیم ماه آکشن"""
     try:
-        send_plain_email(subject=subject, message=message, recipients=emails, fail_silently=True)
+        send_plain_email(
+            event='auction.end.extended',
+            subject=subject,
+            message=message,
+            recipients=emails,
+            fail_silently=True,
+            metadata={
+                'auction_id': str(auction.pk),
+                'previous_end': previous_end,
+            },
+        )
     except Exception:
         pass
 
@@ -274,7 +305,14 @@ def send_auction_ended_email(auction_id, expected_end=None):
 تیم ماه آکشن"""
         if end_notice_claimed_at is not None:
             try:
-                send_plain_email(subject=subject, message=message, recipients=emails, fail_silently=False)
+                send_plain_email(
+                    event='auction.end.finished',
+                    subject=subject,
+                    message=message,
+                    recipients=emails,
+                    fail_silently=False,
+                    metadata={'auction_id': str(auction.pk)},
+                )
             except Exception:
                 _release_dispatch(auction.id, 'end_notice_dispatched_at', end_notice_claimed_at)
                 logger.exception("Ended email failed for auction %s", auction.pk)
@@ -326,10 +364,15 @@ def send_auction_ended_email(auction_id, expected_end=None):
 تیم ماه آکشن"""
         try:
             send_plain_email(
+                event='auction.winner.billing',
                 subject=subject,
                 message=message,
                 recipients=[winner.email],
                 fail_silently=False,
+                metadata={
+                    'auction_id': str(auction.pk),
+                    'winner_id': str(winner.pk),
+                },
             )
         except Exception:
             _release_dispatch(auction.id, 'winner_billing_dispatched_at', billing_claimed_at)

@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from accounts.forms import CustomLoginForm, PublicSignupForm
 from accounts.models import CreditIncreaseRequest, CustomUser, EmailVerificationOTP, VerificationRequest
+from notifications.models import NotificationDelivery
 from store.models import SiteVisitLog
 
 
@@ -137,11 +138,14 @@ class VerificationRequestModelTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(len(mail.outbox), 2)
-        self.assertEqual(mail.outbox[0].to, ["welcome@example.com"])
-        self.assertIn("خوش آمدید", mail.outbox[0].subject)
-        self.assertEqual(mail.outbox[1].to, ["welcome@example.com"])
-        self.assertIn("کد تایید ایمیل", mail.outbox[1].subject)
+        deliveries = list(NotificationDelivery.objects.order_by('created_at'))
+        self.assertEqual(len(deliveries), 6)
+        email_deliveries = [item for item in deliveries if item.provider == 'email']
+        self.assertEqual(len(email_deliveries), 2)
+        self.assertEqual(email_deliveries[0].recipients, ["welcome@example.com"])
+        self.assertIn("خوش آمدید", email_deliveries[0].subject)
+        self.assertEqual(email_deliveries[1].recipients, ["welcome@example.com"])
+        self.assertIn("کد تایید ایمیل", email_deliveries[1].subject)
 
     @override_settings(
         EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
@@ -165,8 +169,11 @@ class VerificationRequestModelTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertIn("کد تایید ایمیل", mail.outbox[0].subject)
+        email_deliveries = list(
+            NotificationDelivery.objects.filter(provider='email').order_by('created_at')
+        )
+        self.assertEqual(len(email_deliveries), 1)
+        self.assertIn("کد تایید ایمیل", email_deliveries[0].subject)
         self.assertEqual(self.client.session["email_verification_alert"]["type"], "error")
         self.assertIn("ایمیل خوش‌آمدگویی", self.client.session["email_verification_alert"]["message"])
         self.assertIn("welcome failed", self.client.session["email_verification_alert"]["message"])
@@ -364,8 +371,9 @@ class EmailVerificationFlowTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["message"], "Verification code sent successfully.")
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertEqual(mail.outbox[0].to, ["fresh@example.com"])
+        email_deliveries = list(NotificationDelivery.objects.filter(provider='email'))
+        self.assertEqual(len(email_deliveries), 1)
+        self.assertEqual(email_deliveries[0].recipients, ["fresh@example.com"])
 
         previous_otp.refresh_from_db()
         self.assertTrue(previous_otp.is_used)
@@ -373,7 +381,7 @@ class EmailVerificationFlowTests(TestCase):
         latest_otp = EmailVerificationOTP.objects.filter(user=self.user, email="fresh@example.com").first()
         self.assertIsNotNone(latest_otp)
         self.assertFalse(latest_otp.is_used)
-        self.assertIn(latest_otp.code, mail.outbox[0].body)
+        self.assertIn(latest_otp.code, email_deliveries[0].body)
 
     def test_send_email_verification_rejects_other_users_account(self):
         self.client.force_login(self.user)
@@ -439,8 +447,9 @@ class EmailVerificationFlowTests(TestCase):
         self.assertContains(first_response, "autoflow@example.com")
         self.assertContains(first_response, "ارسال مجدد کد")
         self.assertContains(first_response, "کد تایید ۶ رقمی به ایمیل شما ارسال شد.")
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertEqual(mail.outbox[0].to, ["autoflow@example.com"])
+        email_deliveries = list(NotificationDelivery.objects.filter(provider='email'))
+        self.assertEqual(len(email_deliveries), 1)
+        self.assertEqual(email_deliveries[0].recipients, ["autoflow@example.com"])
 
     def test_verify_email_code_accepts_persian_digits(self):
         self.client.force_login(self.user)

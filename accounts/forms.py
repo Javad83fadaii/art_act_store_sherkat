@@ -1,7 +1,11 @@
 from django import forms
-from django.contrib.auth.forms import UserCreationForm, UserChangeForm, AuthenticationForm
+from django.contrib.auth.forms import UserCreationForm, UserChangeForm, AuthenticationForm, PasswordResetForm
 from django.core.exceptions import ValidationError
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
 from decimal import Decimal, InvalidOperation
+
+from core.emailing import send_plain_email
 
 # ایمپورت CreditIncreaseRequest حذف شد چون دیگر در این فایل استفاده نمی‌شود
 from .models import CustomUser, VerificationRequest
@@ -129,6 +133,36 @@ class CustomLoginForm(AuthenticationForm):
             'placeholder': '••••••••'
         })
         self.fields['password'].label = "رمز عبور"
+
+
+class CustomPasswordResetForm(PasswordResetForm):
+    """Password reset form that routes delivery through NotificationService."""
+
+    def send_mail(
+        self,
+        subject_template_name,
+        email_template_name,
+        context,
+        from_email,
+        to_email,
+        html_email_template_name=None,
+    ):
+        subject = render_to_string(subject_template_name, context)
+        subject = "".join(subject.splitlines()).strip()
+        body = render_to_string(email_template_name, context)
+        plain_body = strip_tags(body).strip() or body.strip()
+        send_plain_email(
+            event='accounts.password.reset_requested',
+            subject=subject,
+            message=plain_body,
+            recipients=[to_email],
+            fail_silently=False,
+            metadata={
+                'user_id': str(getattr(context.get('user'), 'pk', '') or ''),
+                'reset_url': context.get('protocol', '') + '://' + context.get('domain', ''),
+            },
+            context=context,
+        )
 
 
 class CustomUserCreationForm(UserCreationForm):

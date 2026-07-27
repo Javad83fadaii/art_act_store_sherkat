@@ -6,7 +6,6 @@ from email.utils import parseaddr
 from django.conf import settings as django_settings
 from django.contrib import messages
 from django.core.exceptions import ValidationError
-from django.core.mail import get_connection, send_mail
 from django.db import IntegrityError
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -14,6 +13,7 @@ from django.core.validators import validate_email
 from django.views.decorators.http import require_http_methods
 
 from accounts.models import CustomUser
+from core.emailing import send_plain_email
 from core.decorators import log_admin_action, superuser_required
 from core.models import NotificationPreference, SavedFilter
 
@@ -153,19 +153,13 @@ def _email_health_context():
 
 
 def _send_email(subject, message, recipients):
-    connection = get_connection(fail_silently=False)
-    connection.open()
-    try:
-        send_mail(
-            subject=subject,
-            message=message,
-            from_email=django_settings.DEFAULT_FROM_EMAIL,
-            recipient_list=recipients,
-            fail_silently=False,
-            connection=connection,
-        )
-    finally:
-        connection.close()
+    return send_plain_email(
+        event='admin.settings.custom_email',
+        subject=subject,
+        message=message,
+        recipients=recipients,
+        fail_silently=False,
+    )
 
 
 def _friendly_email_exception(exc):
@@ -209,7 +203,14 @@ def page_view(request):
                     request.POST.get('test_message')
                     or 'این ایمیل برای تست موفق بودن تنظیمات SMTP از داخل پنل مدیریت ارسال شده است.'
                 ).strip()
-                _send_email(subject, message, [recipient])
+                send_plain_email(
+                    event='admin.settings.test_email',
+                    subject=subject,
+                    message=message,
+                    recipients=[recipient],
+                    fail_silently=False,
+                    metadata={'sender_admin_id': str(request.user.pk)},
+                )
                 messages.success(request, f"ایمیل تست با موفقیت به {recipient} ارسال شد.")
                 return redirect('admin_panel_pages:settings')
 
@@ -232,7 +233,14 @@ def page_view(request):
                     raise ValidationError("موضوع ایمیل الزامی است.")
                 if not message:
                     raise ValidationError("متن ایمیل الزامی است.")
-                _send_email(subject, message, recipients)
+                send_plain_email(
+                    event='admin.settings.custom_email',
+                    subject=subject,
+                    message=message,
+                    recipients=recipients,
+                    fail_silently=False,
+                    metadata={'sender_admin_id': str(request.user.pk)},
+                )
                 messages.success(request, f"ایمیل با موفقیت برای {len(recipients)} گیرنده ارسال شد.")
                 return redirect('admin_panel_pages:settings')
 

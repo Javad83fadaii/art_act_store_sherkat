@@ -9,7 +9,14 @@ def send_verification_code_email(*, email, code):
         "این کد تا ۱۰ دقیقه معتبر است.\n\n"
         "اگر این درخواست را شما ثبت نکرده‌اید، این پیام را نادیده بگیرید."
     )
-    return send_plain_email(subject=subject, message=message, recipients=[email], fail_silently=False)
+    return send_plain_email(
+        event='accounts.signup.verification_code',
+        subject=subject,
+        message=message,
+        recipients=[email],
+        fail_silently=False,
+        metadata={'code': str(code)},
+    )
 
 
 def send_welcome_email(*, user):
@@ -26,4 +33,11 @@ def send_welcome_email(*, user):
         "برای استفاده کامل از امکانات سایت، لطفا ایمیل خود را با کد ارسالی تایید کنید.\n\n"
         "از همراهی شما خوشحالیم."
     )
-    return send_plain_email(subject=subject, message=message, recipients=[user.email], fail_silently=False)
+    return send_plain_email(
+        event='accounts.signup.welcome',
+        subject=subject,
+        message=message,
+        recipients=[user.email],
+        fail_silently=False,
+        metadata={'user_id': str(user.pk)},
+    )

@@ -7,6 +7,18 @@ urlpatterns = [
     # مسیرهای ورود و خروج
     path('login/', views.CustomLoginView.as_view(), name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='home'), name='logout'),
+    path(
+        'password_reset/',
+        auth_views.PasswordResetView.as_view(
+            form_class=views.CustomPasswordResetForm,
+        ),
+        name='password_reset',
+    ),
+    path(
+        'password_change/',
+        views.CustomPasswordChangeView.as_view(),
+        name='password_change',
+    ),
 
     # مسیر ثبت‌نام
     path('signup/', views.SignupView.as_view(), name='signup'),

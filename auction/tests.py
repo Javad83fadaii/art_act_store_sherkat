@@ -11,6 +11,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import CreditIncreaseRequest, CustomUser
+from notifications.models import NotificationDelivery
 from store.models import Artist, Artwork, ArtworkType, PurchaseHistory
 
 from .models import Auction, AuctionCartItem, AuctionProduct, AuctionVisitHistory
@@ -438,10 +439,11 @@ class AuctionBidCreditFlowTests(TestCase):
 
         send_auction_ended_email(self.auction.id, expected_end=self.auction.end_date.isoformat())
 
-        subjects = [item.subject for item in mail.outbox]
+        email_deliveries = list(NotificationDelivery.objects.filter(provider='email'))
+        subjects = [item.subject for item in email_deliveries]
         self.assertIn(f"مزایده «{self.auction.name}» به پایان رسید", subjects)
         self.assertIn(f"نتیجه مزایده و صورتحساب اولیه «{self.auction.name}»", subjects)
-        winner_messages = [item for item in mail.outbox if item.to == ['winner@example.com']]
+        winner_messages = [item for item in email_deliveries if item.recipients == ['winner@example.com']]
         self.assertTrue(winner_messages)
         winner_mail = next(
             item for item in winner_messages
@@ -492,27 +494,28 @@ class AuctionBidCreditFlowTests(TestCase):
         self.auction.start_date = timezone.now() + timedelta(hours=24, minutes=1)
         self.auction.end_date = self.auction.start_date + timedelta(hours=2)
         self.auction.save(update_fields=['start_date', 'end_date'])
-        mail.outbox.clear()
+        NotificationDelivery.objects.all().delete()
 
         send_auction_starting_soon_email(
             self.auction.id,
             expected_start=self.auction.start_date.isoformat(),
         )
-        self.assertEqual(len(mail.outbox), 0)
+        self.assertEqual(NotificationDelivery.objects.count(), 0)
 
         self.auction.start_date = timezone.now() + timedelta(hours=24)
         self.auction.end_date = self.auction.start_date + timedelta(hours=2)
         self.auction.save(update_fields=['start_date', 'end_date'])
-        mail.outbox.clear()
+        NotificationDelivery.objects.all().delete()
 
         send_auction_starting_soon_email(
             self.auction.id,
             expected_start=self.auction.start_date.isoformat(),
         )
 
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertIn('۲۴ ساعت تا شروع مزایده', mail.outbox[0].subject)
-        self.assertEqual(set(mail.outbox[0].to), {'first@example.com', 'second@example.com'})
+        email_deliveries = list(NotificationDelivery.objects.filter(provider='email'))
+        self.assertEqual(len(email_deliveries), 1)
+        self.assertIn('۲۴ ساعت تا شروع مزایده', email_deliveries[0].subject)
+        self.assertEqual(set(email_deliveries[0].recipients), {'first@example.com', 'second@example.com'})
 
     @override_settings(
         EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
@@ -526,27 +529,28 @@ class AuctionBidCreditFlowTests(TestCase):
         self.auction.start_date = timezone.now() + timedelta(minutes=10)
         self.auction.end_date = self.auction.start_date + timedelta(hours=2)
         self.auction.save(update_fields=['start_date', 'end_date'])
-        mail.outbox.clear()
+        NotificationDelivery.objects.all().delete()
 
         send_auction_started_email(
             self.auction.id,
             expected_start=self.auction.start_date.isoformat(),
         )
-        self.assertEqual(len(mail.outbox), 0)
+        self.assertEqual(NotificationDelivery.objects.count(), 0)
 
         self.auction.start_date = timezone.now()
         self.auction.end_date = self.auction.start_date + timedelta(hours=2)
         self.auction.save(update_fields=['start_date', 'end_date'])
-        mail.outbox.clear()
+        NotificationDelivery.objects.all().delete()
 
         send_auction_started_email(
             self.auction.id,
             expected_start=self.auction.start_date.isoformat(),
         )
 
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertIn('مزایده', mail.outbox[0].subject)
-        self.assertIn('آغاز شد', mail.outbox[0].subject)
+        email_deliveries = list(NotificationDelivery.objects.filter(provider='email'))
+        self.assertEqual(len(email_deliveries), 1)
+        self.assertIn('مزایده', email_deliveries[0].subject)
+        self.assertIn('آغاز شد', email_deliveries[0].subject)
 
     @override_settings(
         EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
@@ -563,19 +567,20 @@ class AuctionBidCreditFlowTests(TestCase):
         self.auction.start_date = timezone.now() + timedelta(hours=24)
         self.auction.end_date = self.auction.start_date + timedelta(hours=2)
         self.auction.save(update_fields=['start_date', 'end_date'])
-        mail.outbox.clear()
+        NotificationDelivery.objects.all().delete()
 
         response = self.client.get(reverse('auction:action'))
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertIn('۲۴ ساعت تا شروع مزایده', mail.outbox[0].subject)
+        email_deliveries = list(NotificationDelivery.objects.filter(provider='email'))
+        self.assertEqual(len(email_deliveries), 1)
+        self.assertIn('۲۴ ساعت تا شروع مزایده', email_deliveries[0].subject)
 
         cache.clear()
         second_response = self.client.get(reverse('auction:action'))
 
         self.assertEqual(second_response.status_code, 200)
-        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(NotificationDelivery.objects.filter(provider='email').count(), 1)
         self.auction.refresh_from_db()
         self.assertIsNotNone(self.auction.start_reminder_24h_dispatched_at)
 
@@ -593,12 +598,13 @@ class AuctionBidCreditFlowTests(TestCase):
         self.product.place_bid(self.user_one, '200')
         self.auction.end_date = timezone.now() - timedelta(seconds=1)
         self.auction.save(update_fields=['end_date'])
-        mail.outbox.clear()
+        NotificationDelivery.objects.all().delete()
 
         response = self.client.get(reverse('auction:action'))
 
         self.assertEqual(response.status_code, 200)
-        subjects = [item.subject for item in mail.outbox]
+        email_deliveries = list(NotificationDelivery.objects.filter(provider='email'))
+        subjects = [item.subject for item in email_deliveries]
         self.assertIn(f"مزایده «{self.auction.name}» به پایان رسید", subjects)
         self.assertIn(f"نتیجه مزایده و صورتحساب اولیه «{self.auction.name}»", subjects)
 
@@ -607,11 +613,11 @@ class AuctionBidCreditFlowTests(TestCase):
 
         self.assertEqual(second_response.status_code, 200)
         self.assertEqual(
-            len([item for item in mail.outbox if item.subject == f"مزایده «{self.auction.name}» به پایان رسید"]),
+            len([item for item in NotificationDelivery.objects.filter(provider='email') if item.subject == f"مزایده «{self.auction.name}» به پایان رسید"]),
             1,
         )
         self.assertEqual(
-            len([item for item in mail.outbox if item.subject == f"نتیجه مزایده و صورتحساب اولیه «{self.auction.name}»"]),
+            len([item for item in NotificationDelivery.objects.filter(provider='email') if item.subject == f"نتیجه مزایده و صورتحساب اولیه «{self.auction.name}»"]),
             1,
         )
         self.auction.refresh_from_db()

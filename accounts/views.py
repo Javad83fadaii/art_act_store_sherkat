@@ -7,17 +7,17 @@ from decimal import Decimal
 
 from django.shortcuts import render, redirect
 from django.conf import settings
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from django.http import JsonResponse
 from django.views.generic import View, TemplateView
 from django.contrib.auth import update_session_auth_hash, login as auth_login
 from django.contrib.auth.views import LoginView
+from django.contrib.auth.views import PasswordChangeView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserChangeForm
 from django.contrib import messages
 from django.core.exceptions import ValidationError
-from django.core.mail import send_mail
 from django.core.validators import validate_email
 from django.utils.http import url_has_allowed_host_and_scheme
 from core.notification_messages import get_notification
@@ -25,7 +25,7 @@ from store.models import SiteVisitLog
 from django.views.decorators.http import require_POST
 
 from auction.models import AuctionCartItem, Bid
-from core.emailing import normalize_email_value
+from core.emailing import normalize_email_value, send_plain_email
 from .realtime import build_profile_live_context, build_profile_live_payload
 from .emails import send_verification_code_email, send_welcome_email
 from .models import CustomUser, VerificationRequest, CreditIncreaseRequest, EmailVerificationOTP
@@ -34,6 +34,7 @@ from .forms import (
     PublicSignupForm, 
     CustomLoginForm, 
     CustomUserChangeForm, 
+    CustomPasswordResetForm,
     PublicProfileUpdateForm,
 )
 
@@ -81,6 +82,29 @@ class CustomLoginView(LoginView):
                 return redirect(f"{verification_url}?{params}")
             return redirect(verification_url)
 
+        return response
+
+
+class CustomPasswordChangeView(LoginRequiredMixin, PasswordChangeView):
+    template_name = 'registration/password_change_form.html'
+    success_url = reverse_lazy('password_change_done')
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        user = self.request.user
+        if getattr(user, 'email', None):
+            send_plain_email(
+                event='accounts.password.changed',
+                subject='رمز عبور شما تغییر کرد',
+                message=(
+                    "سلام,\n\n"
+                    "رمز عبور حساب کاربری شما با موفقیت تغییر کرد.\n"
+                    "اگر این تغییر توسط شما انجام نشده است، لطفاً سریع‌تر رمز عبور خود را بازیابی کنید."
+                ),
+                recipients=[user.email],
+                fail_silently=True,
+                metadata={'user_id': str(user.pk)},
+            )
         return response
 
 
@@ -153,6 +177,19 @@ class EditProfileView(LoginRequiredMixin, View):
 
             if password_changed_successfully:
                 update_session_auth_hash(request, user)
+                if getattr(user, 'email', None):
+                    send_plain_email(
+                        event='accounts.password.changed',
+                        subject='رمز عبور شما تغییر کرد',
+                        message=(
+                            "سلام,\n\n"
+                            "رمز عبور حساب کاربری شما با موفقیت تغییر کرد.\n"
+                            "اگر این تغییر توسط شما انجام نشده است، لطفاً سریع‌تر رمز عبور خود را بازیابی کنید."
+                        ),
+                        recipients=[user.email],
+                        fail_silently=True,
+                        metadata={'user_id': str(user.pk)},
+                    )
                 # messages.success(request, get_notification('accounts.profile.password_changed'))
             else:
                 # messages.success(request, get_notification('accounts.profile.updated'))
@@ -529,6 +566,19 @@ def _verify_email_code_for_user(*, user, email, code):
     user.email = email_value
     user.is_email_verified = True
     user.save(update_fields=["email", "is_email_verified"])
+
+    send_plain_email(
+        event='accounts.signup.verified',
+        subject='ایمیل شما با موفقیت تایید شد',
+        message=(
+            "سلام,\n\n"
+            "ایمیل حساب کاربری شما با موفقیت تایید شد.\n"
+            "اکنون می‌توانید از امکانات کامل حساب خود استفاده کنید."
+        ),
+        recipients=[email_value],
+        fail_silently=True,
+        metadata={'user_id': str(user.pk)},
+    )
 
     return True, None
 
