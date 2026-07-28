@@ -70,12 +70,12 @@ def site_rules(request):
 
 def enamad_verification_file(request):
     """ارسال فایل تایید اینماد از ریشه دامنه."""
-    verification_file_path = Path(settings.BASE_DIR) / '39556468.txt'
+    verification_file_path = Path(settings.BASE_DIR) / '62603317.txt'
     if not verification_file_path.exists() or not verification_file_path.is_file():
         raise Http404()
 
     response = FileResponse(open(verification_file_path, 'rb'), content_type='text/plain')
-    response['Content-Disposition'] = 'inline; filename="39556468.txt"'
+    response['Content-Disposition'] = 'inline; filename="62603317.txt"'
     return response
 
 
