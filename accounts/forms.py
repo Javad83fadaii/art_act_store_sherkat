@@ -197,10 +197,20 @@ class CustomUserChangeForm(UserChangeForm):
     email = forms.EmailField(label="آدرس ایمیل", required=True)
     full_name = forms.CharField(label="نام و نام خانوادگی", max_length=150, required=False)
     phone_number = forms.CharField(label="شماره موبایل", max_length=15, required=True)
+    preferred_contact_methods = forms.MultipleChoiceField(
+        label="تنظیمات دریافت اطلاعیه‌ها",
+        choices=[
+            ("email", "دریافت ایمیل"),
+            ("sms", "دریافت پیامک"),
+            ("telegram", "دریافت تلگرام"),
+        ],
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+    )
 
     class Meta:
         model = CustomUser
-        fields = ("username", "email", "full_name", "phone_number")
+        fields = ("username", "email", "full_name", "phone_number", "preferred_contact_methods")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -215,17 +225,16 @@ class CustomUserChangeForm(UserChangeForm):
         self.fields['username'].label = "نام کاربری"
 
         for field_name, field in self.fields.items():
-            field.widget.attrs['class'] = input_style
-            field.widget.attrs['placeholder'] = f"{field.label}..."
+            if field_name != "preferred_contact_methods":
+                field.widget.attrs['class'] = input_style
+                field.widget.attrs['placeholder'] = f"{field.label}..."
 
 
 class PublicSignupForm(forms.ModelForm):
     CONTACT_METHOD_CHOICES = [
-        ("call", "تماس تلفنی"),
-        ("sms", "پیامک"),
-        ("email", "ایمیل"),
-        ("whatsapp", "واتساپ"),
-        ("telegram", "تلگرام"),
+        ("email", "دریافت ایمیل"),
+        ("sms", "دریافت پیامک"),
+        ("telegram", "دریافت تلگرام"),
     ]
 
     full_name = forms.CharField(label="نام و نام خانوادگی", max_length=150, required=False)

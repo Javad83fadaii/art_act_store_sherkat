@@ -17,7 +17,10 @@ class CustomUserAdmin(UserAdmin):
     model = CustomUser
     add_form = CustomUserCreationForm
     form = CustomUserChangeForm
-    list_display = ("username", "email", "full_name")
+    list_display = ("username", "email", "full_name", "preferred_contact_methods")
+    fieldsets = UserAdmin.fieldsets + (
+        ("تنظیمات اعلانات و ارتباطات", {"fields": ("preferred_contact_methods", "telegram_id")}),
+    )
     actions = ['send_custom_email_action']
 
     @admin.action(description='ارسال ایمیل سفارشی (Send Custom Email)')

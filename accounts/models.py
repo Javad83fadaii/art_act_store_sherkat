@@ -70,7 +70,12 @@ class CustomUser(AbstractUser):
     # فیلد نام کامل (اجباری)
     full_name = models.CharField(max_length=150)
     
-    preferred_contact_methods = models.JSONField(default=list, blank=True)
+    preferred_contact_methods = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name="تنظیمات کانال‌های دریافت پیام",
+        help_text="کانال‌های ارتباطی فعال کاربر برای دریافت اطلاعیه‌ها (ایمیل، پیامک، تلگرام)",
+    )
     telegram_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
     email = models.EmailField(unique=True, null=True, blank=True)
     address_country = models.CharField(max_length=255, blank=True, null=True)
@@ -105,6 +110,12 @@ class CustomUser(AbstractUser):
 
     def get_short_name(self):
         return str(self.full_name).strip() if self.full_name else self.phone_number
+
+    def get_enabled_notification_channels(self) -> list[str]:
+        """Return list of enabled notification channel strings ('email', 'sms', 'telegram')."""
+        if not self.preferred_contact_methods or not isinstance(self.preferred_contact_methods, (list, tuple, set)):
+            return []
+        return [str(method).strip().lower() for method in self.preferred_contact_methods if str(method).strip()]
 
     @property
     def has_verified_email(self):

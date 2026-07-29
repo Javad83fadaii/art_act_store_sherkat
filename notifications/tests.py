@@ -6,8 +6,9 @@ from unittest.mock import Mock, patch
 from django.core import mail
 from django.test import SimpleTestCase, TestCase, override_settings
 
-from notifications.enums import NotificationProviderType, NotificationStatus
+from notifications.enums import NotificationChannel, NotificationProviderType, NotificationStatus
 from notifications.models import NotificationDelivery
+from notifications.providers import NotificationSendResult
 from notifications.services import NotificationService, send_notification_safely
 
 
@@ -245,3 +246,144 @@ class NotificationSafeDispatchTests(SimpleTestCase):
             context=None,
             metadata={'source': 'test'},
         )
+
+
+class NotificationDispatcherUserSettingsTests(TestCase):
+    """Verify NotificationDispatcher respects user notification channel settings."""
+
+    def setUp(self) -> None:
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        self.user = User.objects.create_user(
+            phone_number='09129998877',
+            password='Password123!',
+            full_name='کاربر تست',
+            email='testuser@example.com',
+        )
+
+    def test_dispatcher_sends_email_only_when_user_selected_email(self) -> None:
+        """When user only selected email, dispatcher should invoke only EmailProvider."""
+        self.user.preferred_contact_methods = ['email']
+        self.user.save()
+
+        service = NotificationService()
+        email_res = NotificationSendResult(
+            provider=NotificationProviderType.EMAIL,
+            channel=NotificationChannel.EMAIL,
+            status=NotificationStatus.SENT,
+            recipients=['testuser@example.com'],
+            detail='OK',
+        )
+        with patch('notifications.providers.EmailProvider.send', return_value=email_res) as mock_email_send, \
+             patch('notifications.providers.SMSProvider.send') as mock_sms_send:
+
+            service.send(
+                event='test.event',
+                recipients=['testuser@example.com'],
+                subject='تست',
+                body='متن تست',
+                providers=[NotificationProviderType.EMAIL, NotificationProviderType.SMS],
+                context={'user': self.user},
+            )
+
+            self.assertEqual(mock_email_send.call_count, 1)
+            mock_sms_send.assert_not_called()
+
+    def test_dispatcher_sends_sms_only_when_user_selected_sms(self) -> None:
+        """When user only selected SMS, dispatcher should invoke only SMSProvider."""
+        self.user.preferred_contact_methods = ['sms']
+        self.user.save()
+
+        service = NotificationService()
+        sms_res = NotificationSendResult(
+            provider=NotificationProviderType.SMS,
+            channel=NotificationChannel.SMS,
+            status=NotificationStatus.SENT,
+            recipients=['09129998877'],
+            detail='OK',
+        )
+        with patch('notifications.providers.EmailProvider.send') as mock_email_send, \
+             patch('notifications.providers.SMSProvider.send', return_value=sms_res) as mock_sms_send:
+
+            service.send(
+                event='test.event',
+                recipients=['09129998877'],
+                subject='تست',
+                body='متن تست',
+                providers=[NotificationProviderType.EMAIL, NotificationProviderType.SMS],
+                context={'user': self.user},
+            )
+
+            mock_email_send.assert_not_called()
+            self.assertEqual(mock_sms_send.call_count, 1)
+
+    def test_dispatcher_sends_both_when_user_selected_both(self) -> None:
+        """When user selected both email and SMS, dispatcher should invoke both providers."""
+        self.user.preferred_contact_methods = ['email', 'sms']
+        self.user.save()
+
+        service = NotificationService()
+        email_res = NotificationSendResult(
+            provider=NotificationProviderType.EMAIL,
+            channel=NotificationChannel.EMAIL,
+            status=NotificationStatus.SENT,
+            recipients=['testuser@example.com'],
+            detail='OK',
+        )
+        sms_res = NotificationSendResult(
+            provider=NotificationProviderType.SMS,
+            channel=NotificationChannel.SMS,
+            status=NotificationStatus.SENT,
+            recipients=['09129998877'],
+            detail='OK',
+        )
+        with patch('notifications.providers.EmailProvider.send', return_value=email_res) as mock_email_send, \
+             patch('notifications.providers.SMSProvider.send', return_value=sms_res) as mock_sms_send:
+
+            service.send(
+                event='test.event',
+                recipients=['testuser@example.com', '09129998877'],
+                subject='تست',
+                body='متن تست',
+                providers=[NotificationProviderType.EMAIL, NotificationProviderType.SMS],
+                context={'user': self.user},
+            )
+
+            self.assertEqual(mock_email_send.call_count, 1)
+            self.assertEqual(mock_sms_send.call_count, 1)
+
+    def test_dispatcher_fallback_when_user_has_no_settings(self) -> None:
+        """When user has no settings specified, default project providers behavior is preserved."""
+        self.user.preferred_contact_methods = []
+        self.user.save()
+
+        service = NotificationService()
+        email_res = NotificationSendResult(
+            provider=NotificationProviderType.EMAIL,
+            channel=NotificationChannel.EMAIL,
+            status=NotificationStatus.SENT,
+            recipients=['testuser@example.com'],
+            detail='OK',
+        )
+        sms_res = NotificationSendResult(
+            provider=NotificationProviderType.SMS,
+            channel=NotificationChannel.SMS,
+            status=NotificationStatus.SENT,
+            recipients=['09129998877'],
+            detail='OK',
+        )
+        with patch('notifications.providers.EmailProvider.send', return_value=email_res) as mock_email_send, \
+             patch('notifications.providers.SMSProvider.send', return_value=sms_res) as mock_sms_send:
+
+            service.send(
+                event='test.event',
+                recipients=['testuser@example.com', '09129998877'],
+                subject='تست',
+                body='متن تست',
+                providers=[NotificationProviderType.EMAIL, NotificationProviderType.SMS],
+                context={'user': self.user},
+            )
+
+            self.assertEqual(mock_email_send.call_count, 1)
+            self.assertEqual(mock_sms_send.call_count, 1)
+
