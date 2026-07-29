@@ -347,3 +347,32 @@ EMAIL_TIMEOUT = int(_get_first_setting('EMAIL_TIMEOUT') or 30)
 
 if EMAIL_USE_TLS and EMAIL_USE_SSL:
     raise RuntimeError("EMAIL_USE_TLS and EMAIL_USE_SSL cannot both be enabled at the same time.")
+
+# ==========================================
+# SMS.ir Configuration
+# ==========================================
+SMS_IR_API_KEY = _get_first_setting('SMS_IR_API_KEY') or ''
+SMS_IR_BASE_URL = (_get_first_setting('SMS_IR_BASE_URL') or 'https://api.sms.ir').rstrip('/')
+SMS_IR_VERIFY_ENDPOINT = _get_first_setting('SMS_IR_VERIFY_ENDPOINT') or '/v1/send/verify'
+SMS_IR_TIMEOUT = int(_get_first_setting('SMS_IR_TIMEOUT') or 30)
+
+SMS_PATTERNS = {
+    'verification': {
+        'code': _get_first_setting('SMS_PATTERN_VERIFICATION_CODE') or '',
+        'variables': ('code',),
+    },
+    'auction_started': {
+        'code': _get_first_setting('SMS_PATTERN_AUCTION_STARTED_CODE') or '901013',
+        'variables': (
+            'first_name',
+            'auction_name',
+        ),
+    },
+    'auction_starting_soon': {
+        'code': _get_first_setting('SMS_PATTERN_AUCTION_STARTING_SOON_CODE') or '962018',
+        'variables': (
+            'auction_name',
+            'auctionstart_date',
+        ),
+    },
+}

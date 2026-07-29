@@ -64,27 +64,61 @@ class NotificationService:
     def send_template(
         self,
         *,
-        event: str,
-        template_key: str,
-        recipients: Iterable[str] | str | None,
+        event: str = '',
+        template_key: str = '',
+        recipients: Iterable[str] | str | None = None,
         context: Mapping[str, Any] | None = None,
         providers: Sequence[NotificationProviderType | str] | None = None,
         metadata: Mapping[str, Any] | None = None,
+        template: str = '',
+        channels: Sequence[NotificationProviderType | str] | None = None,
+        user: Any | None = None,
     ) -> NotificationDispatchResult:
         """Render a template and dispatch it through the selected providers."""
-        template_subject, template_body, template_providers = self._resolve_template(
-            template_key=template_key,
-            context=context,
+        resolved_template_key = str(template_key or template or '').strip()
+        if not resolved_template_key:
+            raise ValueError('template_key or template is required.')
+
+        selected_providers = self._normalize_provider_types(providers or channels)
+        try:
+            template_subject, template_body, template_providers = self._resolve_template(
+                template_key=resolved_template_key,
+                context=context,
+            )
+        except KeyError:
+            fallback_providers = selected_providers or (NotificationProviderType.SMS,)
+            if not self._can_dispatch_sms_pattern_only(
+                template_key=resolved_template_key,
+                providers=fallback_providers,
+            ):
+                raise
+            template_subject, template_body, template_providers = '', '', fallback_providers
+
+        selected_providers = selected_providers or template_providers
+        resolved_recipients = recipients
+        if resolved_recipients is None:
+            resolved_recipients = self._resolve_user_recipients(
+                user=user,
+                providers=selected_providers,
+            )
+
+        resolved_metadata = merge_metadata(
+            metadata,
+            {
+                'template_key': resolved_template_key,
+            },
         )
-        selected_providers = providers or template_providers
+        if NotificationProviderType.SMS in selected_providers:
+            resolved_metadata['sms_pattern'] = resolved_template_key
+
         return self.send(
-            event=event,
-            recipients=recipients,
+            event=str(event or resolved_template_key).strip(),
+            recipients=resolved_recipients,
             subject=template_subject,
             body=template_body,
             providers=selected_providers,
             context=context,
-            metadata=metadata,
+            metadata=resolved_metadata,
         )
 
     def _resolve_template(
@@ -113,12 +147,24 @@ class NotificationService:
         self,
         providers: Sequence[NotificationProviderType | str] | None,
     ) -> list[BaseNotificationProvider]:
-        provider_order = providers or tuple(NotificationProviderType)
+        provider_order = self._normalize_provider_types(providers) or tuple(NotificationProviderType)
         instances: list[BaseNotificationProvider] = []
         for provider in provider_order:
-            provider_type = provider if isinstance(provider, NotificationProviderType) else NotificationProviderType(provider)
-            instances.append(self._make_provider(provider_type))
+            instances.append(self._make_provider(provider))
         return instances
+
+    def _normalize_provider_types(
+        self,
+        providers: Sequence[NotificationProviderType | str] | None,
+    ) -> tuple[NotificationProviderType, ...] | None:
+        if providers is None:
+            return None
+        normalized: list[NotificationProviderType] = []
+        for provider in providers:
+            provider_type = provider if isinstance(provider, NotificationProviderType) else NotificationProviderType(provider)
+            if provider_type not in normalized:
+                normalized.append(provider_type)
+        return tuple(normalized)
 
     def _make_provider(self, provider_type: NotificationProviderType) -> BaseNotificationProvider:
         providers_map: dict[NotificationProviderType, type[BaseNotificationProvider]] = {
@@ -127,6 +173,40 @@ class NotificationService:
             NotificationProviderType.TELEGRAM: TelegramProvider,
         }
         return providers_map[provider_type]()
+
+    def _can_dispatch_sms_pattern_only(
+        self,
+        *,
+        template_key: str,
+        providers: Sequence[NotificationProviderType],
+    ) -> bool:
+        return (
+            bool(providers)
+            and all(provider == NotificationProviderType.SMS for provider in providers)
+        )
+
+    def _resolve_user_recipients(
+        self,
+        *,
+        user: Any | None,
+        providers: Sequence[NotificationProviderType],
+    ) -> Iterable[str] | str | None:
+        if user is None:
+            return None
+        if len(providers) != 1:
+            raise ValueError('Automatic recipient resolution from user requires exactly one provider/channel.')
+
+        provider = providers[0]
+        if provider == NotificationProviderType.SMS:
+            recipient = getattr(user, 'phone_number', None)
+        elif provider == NotificationProviderType.EMAIL:
+            recipient = getattr(user, 'email', None)
+        elif provider == NotificationProviderType.TELEGRAM:
+            recipient = getattr(user, 'telegram_id', None)
+        else:
+            recipient = None
+
+        return [recipient] if recipient else []
 
     def _store_delivery_logs(self, result: NotificationDispatchResult) -> None:
         deliveries = [
