@@ -26,6 +26,8 @@ from django.views.decorators.http import require_POST
 
 from auction.models import AuctionCartItem, Bid
 from core.emailing import normalize_email_value, send_plain_email
+from notifications.enums import NotificationProviderType
+from notifications.services import notification_service
 from .realtime import build_profile_live_context, build_profile_live_payload
 from .emails import send_verification_code_email, send_welcome_email
 from .models import CustomUser, VerificationRequest, CreditIncreaseRequest, EmailVerificationOTP
@@ -296,11 +298,11 @@ class SignupView(View):
             if ok:
                 _remember_sent_verification_code(request, user.email)
                 alert_type = "success"
-                alert_message = "کد تایید به ایمیل شما ارسال شد."
+                alert_message = "کد تایید برای شما ارسال شد."
                 if welcome_email_error:
                     alert_type = "error"
                     alert_message = (
-                        "کد تایید به ایمیل شما ارسال شد، اما ایمیل خوش‌آمدگویی ارسال نشد. "
+                        "کد تایید برای شما ارسال شد، اما ایمیل خوش‌آمدگویی ارسال نشد. "
                         f"{welcome_email_error}"
                     )
                 request.session["email_verification_alert"] = {
@@ -524,7 +526,7 @@ def _send_email_verification_code_for_user(*, user, email):
     otp = EmailVerificationOTP.generate_otp(user=user, email=email_value)
 
     try:
-        send_verification_code_email(email=email_value, code=otp.code)
+        send_verification_code_email(email=email_value, code=otp.code, user=user)
     except Exception as exc:
         otp.is_used = True
         otp.save(update_fields=["is_used"])
@@ -567,16 +569,17 @@ def _verify_email_code_for_user(*, user, email, code):
     user.is_email_verified = True
     user.save(update_fields=["email", "is_email_verified"])
 
-    send_plain_email(
+    notification_service.send(
         event='accounts.signup.verified',
         subject='ایمیل شما با موفقیت تایید شد',
-        message=(
+        body=(
             "سلام,\n\n"
             "ایمیل حساب کاربری شما با موفقیت تایید شد.\n"
             "اکنون می‌توانید از امکانات کامل حساب خود استفاده کنید."
         ),
         recipients=[email_value],
-        fail_silently=True,
+        providers=[NotificationProviderType.EMAIL],
+        context={'user': user},
         metadata={'user_id': str(user.pk)},
     )
 
@@ -602,7 +605,7 @@ class EmailVerificationView(LoginRequiredMixin, View):
                 _remember_sent_verification_code(request, email)
                 if not alert_message:
                     alert_type = "success"
-                    alert_message = "کد تایید ۶ رقمی به ایمیل شما ارسال شد."
+                    alert_message = "کد تایید ۶ رقمی برای شما ارسال شد."
             else:
                 alert_type = "error"
                 alert_message = error_message or "ارسال کد تایید با خطا مواجه شد."

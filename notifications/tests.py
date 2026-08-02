@@ -84,6 +84,8 @@ class EmailProviderIntegrationTests(TestCase):
 
 
 @override_settings(
+    EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+    DEFAULT_FROM_EMAIL='Auction Platform <sender@example.com>',
     SMS_IR_API_KEY='test-api-key',
     SMS_IR_BASE_URL='https://api.sms.ir',
     SMS_IR_VERIFY_ENDPOINT='/v1/send/verify',
@@ -96,8 +98,7 @@ class EmailProviderIntegrationTests(TestCase):
         'auction_started': {
             'code': '901013',
             'variables': (
-                'first_name',
-                'auction_name',
+                'AUCTIONNAME',
             ),
         },
     },
@@ -106,6 +107,7 @@ class SMSProviderIntegrationTests(TestCase):
     """Exercise the SMS provider against mocked sms.ir responses."""
 
     def setUp(self) -> None:
+        mail.outbox = []
         self.service = NotificationService()
 
     @patch('notifications.providers.sms.requests.post')
@@ -198,22 +200,84 @@ class SMSProviderIntegrationTests(TestCase):
             template='auction_started',
             channels=['sms'],
             user=SimpleNamespace(phone_number='09123456789'),
-            context={
-                'first_name': 'علی',
-            },
+            context={},
         )
 
         self.assertEqual(len(result.results), 1)
         provider_result = result.results[0]
         self.assertEqual(provider_result.status, NotificationStatus.FAILED)
-        self.assertIn('auction_name', provider_result.detail)
+        self.assertIn('AUCTIONNAME', provider_result.detail)
         post_mock.assert_not_called()
 
         delivery = NotificationDelivery.objects.get()
         self.assertEqual(delivery.status, 'failed')
         self.assertEqual(
             delivery.metadata['provider_response']['missing_variables'],
-            ['auction_name'],
+            ['AUCTIONNAME'],
+        )
+
+    @patch('notifications.providers.sms.requests.post')
+    def test_send_template_uses_central_registry_for_all_channels(self, post_mock) -> None:
+        """Template registry should resolve per-channel content from one template key."""
+        response = Mock()
+        response.ok = True
+        response.status_code = 200
+        response.text = '{"status": 1, "message": "موفق", "data": 778899}'
+        response.json.return_value = {
+            'status': 1,
+            'message': 'موفق',
+            'data': 778899,
+        }
+        post_mock.return_value = response
+
+        result = self.service.send_template(
+            template='auction_started',
+            user=SimpleNamespace(
+                phone_number='09123456789',
+                email='Receiver@example.com',
+                telegram_id='998877',
+            ),
+            context={
+                'auction_name': 'حراج تابستان',
+            },
+        )
+
+        self.assertEqual(len(result.results), 3)
+        self.assertEqual(
+            [item.provider for item in result.results],
+            [
+                NotificationProviderType.EMAIL,
+                NotificationProviderType.SMS,
+                NotificationProviderType.TELEGRAM,
+            ],
+        )
+        self.assertEqual(result.results[0].status, NotificationStatus.SENT)
+        self.assertEqual(result.results[1].status, NotificationStatus.SENT)
+        self.assertEqual(result.results[2].status, NotificationStatus.SKIPPED)
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ['receiver@example.com'])
+        self.assertEqual(mail.outbox[0].subject, 'زمان رقابت فرا رسید؛ مزایده حراج تابستان آغاز شد')
+        self.assertIn('مزایده حراج تابستان هم\u200cاکنون آغاز شده است.', mail.outbox[0].body)
+
+        post_mock.assert_called_once_with(
+            'https://api.sms.ir/v1/send/verify',
+            json={
+                'mobile': '9123456789',
+                'templateId': 901013,
+                'parameters': [
+                    {
+                        'name': 'AUCTIONNAME',
+                        'value': 'حراج تابستان',
+                    },
+                ],
+            },
+            headers={
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-API-KEY': 'test-api-key',
+            },
+            timeout=9,
         )
 
 

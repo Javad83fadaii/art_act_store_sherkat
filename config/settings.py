@@ -364,8 +364,7 @@ SMS_PATTERNS = {
     'auction_started': {
         'code': _get_first_setting('SMS_PATTERN_AUCTION_STARTED_CODE') or '901013',
         'variables': (
-            'first_name',
-            'auction_name',
+            'AUCTIONNAME',
         ),
     },
     'auction_starting_soon': {

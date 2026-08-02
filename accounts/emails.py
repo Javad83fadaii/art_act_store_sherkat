@@ -1,7 +1,8 @@
-from core.emailing import send_plain_email
+from notifications.enums import NotificationProviderType
+from notifications.services import notification_service
 
 
-def send_verification_code_email(*, email, code):
+def send_verification_code_email(*, email, code, user=None):
     subject = "کد تایید ایمیل شما"
     message = (
         "سلام,\n\n"
@@ -9,14 +10,34 @@ def send_verification_code_email(*, email, code):
         "این کد تا ۱۰ دقیقه معتبر است.\n\n"
         "اگر این درخواست را شما ثبت نکرده‌اید، این پیام را نادیده بگیرید."
     )
-    return send_plain_email(
+
+    email_result = notification_service.send(
         event='accounts.signup.verification_code',
         subject=subject,
-        message=message,
+        body=message,
         recipients=[email],
-        fail_silently=False,
+        providers=[NotificationProviderType.EMAIL],
+        context={'user': user} if user is not None else {},
         metadata={'code': str(code)},
     )
+
+    sms_result = None
+    if user is not None:
+        sms_result = notification_service.send_template(
+            event='accounts.signup.verification_code',
+            template_key='verification',
+            providers=[NotificationProviderType.SMS],
+            user=user,
+            context={
+                'code': str(code),
+            },
+            metadata={
+                'code': str(code),
+                'user_id': str(user.pk),
+            },
+        )
+
+    return email_result, sms_result
 
 
 def send_welcome_email(*, user):
@@ -33,11 +54,14 @@ def send_welcome_email(*, user):
         "برای استفاده کامل از امکانات سایت، لطفا ایمیل خود را با کد ارسالی تایید کنید.\n\n"
         "از همراهی شما خوشحالیم."
     )
-    return send_plain_email(
+    return notification_service.send(
         event='accounts.signup.welcome',
         subject=subject,
-        message=message,
+        body=message,
         recipients=[user.email],
-        fail_silently=False,
-        metadata={'user_id': str(user.pk)},
+        providers=[NotificationProviderType.EMAIL],
+        context={'user': user},
+        metadata={
+            'user_id': str(user.pk),
+        },
     )

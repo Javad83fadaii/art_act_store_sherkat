@@ -3,7 +3,7 @@ import json
 from django.core import mail
 from django.test import TestCase, override_settings
 from django.urls import reverse
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from accounts.forms import CustomLoginForm, PublicSignupForm
 from accounts.models import CreditIncreaseRequest, CustomUser, EmailVerificationOTP, VerificationRequest
@@ -130,7 +130,7 @@ class VerificationRequestModelTests(TestCase):
                 "phone_number": "09123335555",
                 "address_street": "خیابان تست",
                 "email": "welcome@example.com",
-                "preferred_contact_methods": [],
+                "preferred_contact_methods": ["email"],
                 "telegram_id": "",
                 "password1": "Signup@123",
                 "password2": "Signup@123",
@@ -139,7 +139,7 @@ class VerificationRequestModelTests(TestCase):
 
         self.assertEqual(response.status_code, 302)
         deliveries = list(NotificationDelivery.objects.order_by('created_at'))
-        self.assertEqual(len(deliveries), 6)
+        self.assertEqual(len(deliveries), 2)
         email_deliveries = [item for item in deliveries if item.provider == 'email']
         self.assertEqual(len(email_deliveries), 2)
         self.assertEqual(email_deliveries[0].recipients, ["welcome@example.com"])
@@ -161,7 +161,7 @@ class VerificationRequestModelTests(TestCase):
                 "phone_number": "09123336666",
                 "address_street": "خیابان تست",
                 "email": "welcome-failure@example.com",
-                "preferred_contact_methods": [],
+                "preferred_contact_methods": ["email"],
                 "telegram_id": "",
                 "password1": "Signup@123",
                 "password2": "Signup@123",
@@ -177,6 +177,112 @@ class VerificationRequestModelTests(TestCase):
         self.assertEqual(self.client.session["email_verification_alert"]["type"], "error")
         self.assertIn("ایمیل خوش‌آمدگویی", self.client.session["email_verification_alert"]["message"])
         self.assertIn("welcome failed", self.client.session["email_verification_alert"]["message"])
+
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        DEFAULT_FROM_EMAIL="Auction Platform <sender@example.com>",
+        SERVER_EMAIL="sender@example.com",
+        SMS_IR_API_KEY="test-api-key",
+        SMS_IR_BASE_URL="https://api.sms.ir",
+        SMS_IR_VERIFY_ENDPOINT="/v1/send/verify",
+        SMS_PATTERNS={
+            "verification": {
+                "code": "100001",
+                "variables": ("code",),
+            },
+        },
+    )
+    @patch("notifications.providers.sms.requests.post")
+    def test_signup_honors_sms_only_preference_for_notifications(self, post_mock):
+        response_mock = Mock()
+        response_mock.ok = True
+        response_mock.status_code = 200
+        response_mock.text = '{"status": 1, "message": "موفق", "data": 778899}'
+        response_mock.json.return_value = {
+            "status": 1,
+            "message": "موفق",
+            "data": 778899,
+        }
+        post_mock.return_value = response_mock
+
+        response = self.client.post(
+            reverse("signup"),
+            {
+                "full_name": "کاربر پیامک",
+                "phone_number": "09123337777",
+                "address_street": "خیابان تست",
+                "email": "sms-only@example.com",
+                "preferred_contact_methods": ["sms"],
+                "telegram_id": "",
+                "password1": "Signup@123",
+                "password2": "Signup@123",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        deliveries = list(NotificationDelivery.objects.order_by("created_at"))
+        self.assertEqual(len(deliveries), 1)
+        self.assertEqual(deliveries[0].provider, "sms")
+        self.assertEqual(deliveries[0].event, "accounts.signup.verification_code")
+        self.assertEqual(deliveries[0].recipients, ["9123337777"])
+        self.assertEqual(NotificationDelivery.objects.filter(provider="email").count(), 0)
+        self.assertEqual(mail.outbox, [])
+        post_mock.assert_called_once()
+
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        DEFAULT_FROM_EMAIL="Auction Platform <sender@example.com>",
+        SERVER_EMAIL="sender@example.com",
+        SMS_IR_API_KEY="test-api-key",
+        SMS_IR_BASE_URL="https://api.sms.ir",
+        SMS_IR_VERIFY_ENDPOINT="/v1/send/verify",
+        SMS_PATTERNS={
+            "verification": {
+                "code": "100001",
+                "variables": ("code",),
+            },
+        },
+    )
+    @patch("notifications.providers.sms.requests.post")
+    def test_signup_honors_email_and_sms_preferences_together(self, post_mock):
+        response_mock = Mock()
+        response_mock.ok = True
+        response_mock.status_code = 200
+        response_mock.text = '{"status": 1, "message": "موفق", "data": 778899}'
+        response_mock.json.return_value = {
+            "status": 1,
+            "message": "موفق",
+            "data": 778899,
+        }
+        post_mock.return_value = response_mock
+
+        response = self.client.post(
+            reverse("signup"),
+            {
+                "full_name": "کاربر دوکاناله",
+                "phone_number": "09123338888",
+                "address_street": "خیابان تست",
+                "email": "both@example.com",
+                "preferred_contact_methods": ["email", "sms"],
+                "telegram_id": "",
+                "password1": "Signup@123",
+                "password2": "Signup@123",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        deliveries = list(NotificationDelivery.objects.order_by("created_at"))
+        self.assertEqual(len(deliveries), 3)
+        self.assertEqual(
+            [item.provider for item in deliveries],
+            ["email", "email", "sms"],
+        )
+        self.assertEqual(
+            [item.event for item in deliveries],
+            ["accounts.signup.welcome", "accounts.signup.verification_code", "accounts.signup.verification_code"],
+        )
+        self.assertEqual(len(mail.outbox), 2)
+        post_mock.assert_called_once()
 
     def test_signup_page_renders_newsletter_opt_in_field(self):
         response = self.client.get(reverse("signup"))
