@@ -132,6 +132,9 @@ def get_default_notification_templates() -> tuple[NotificationTemplate, ...]:
             metadata={
                 'sms_pattern': 'verification',
             },
+            context_map={
+                'code': 'CODE',
+            },
         )
     )
     verification.register_channel(

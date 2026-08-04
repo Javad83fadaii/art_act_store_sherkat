@@ -98,7 +98,7 @@ class VerificationRequestModelTests(TestCase):
                 "phone_number": "09123334444",
                 "address_street": "خیابان تست",
                 "email": "fresh_signup@example.com",
-                "preferred_contact_methods": [],
+                "preferred_contact_methods": ["email"],
                 "telegram_id": "",
                 "password1": "Signup@123",
                 "password2": "Signup@123",
@@ -187,8 +187,8 @@ class VerificationRequestModelTests(TestCase):
         SMS_IR_VERIFY_ENDPOINT="/v1/send/verify",
         SMS_PATTERNS={
             "verification": {
-                "code": "100001",
-                "variables": ("code",),
+                "code": "210072",
+                "variables": ("CODE",),
             },
         },
     )
@@ -238,8 +238,8 @@ class VerificationRequestModelTests(TestCase):
         SMS_IR_VERIFY_ENDPOINT="/v1/send/verify",
         SMS_PATTERNS={
             "verification": {
-                "code": "100001",
-                "variables": ("code",),
+                "code": "210072",
+                "variables": ("CODE",),
             },
         },
     )
@@ -298,7 +298,7 @@ class VerificationRequestModelTests(TestCase):
                 "phone_number": "09120000000",
                 "address_street": "خیابان تست",
                 "email": "duplicate_phone@example.com",
-                "preferred_contact_methods": [],
+                "preferred_contact_methods": ["sms"],
                 "telegram_id": "",
                 "password1": "Signup@123",
                 "password2": "Signup@123",
@@ -307,6 +307,69 @@ class VerificationRequestModelTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "این شماره موبایل قبلاً در سیستم ثبت شده است.")
+
+    def test_signup_requires_at_least_one_contact_method(self):
+        form = PublicSignupForm(
+            data={
+                "full_name": "کاربر تست",
+                "phone_number": "09123330000",
+                "address_street": "خیابان تست",
+                "email": "",
+                "preferred_contact_methods": [],
+                "telegram_id": "",
+                "password1": "Signup@123",
+                "password2": "Signup@123",
+            }
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.errors["preferred_contact_methods"],
+            ["حداقل یکی از روش‌های ارتباطی را انتخاب کنید."],
+        )
+
+    def test_signup_requires_email_when_email_contact_method_is_selected(self):
+        form = PublicSignupForm(
+            data={
+                "full_name": "کاربر تست",
+                "phone_number": "09123330001",
+                "address_street": "خیابان تست",
+                "email": "",
+                "preferred_contact_methods": ["email"],
+                "telegram_id": "",
+                "password1": "Signup@123",
+                "password2": "Signup@123",
+            }
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.errors["email"],
+            ["در صورت انتخاب «ایمیل»، وارد کردن آدرس ایمیل الزامی است."],
+        )
+
+    def test_signup_allows_phone_only_registration_with_sms_contact_method(self):
+        response = self.client.post(
+            reverse("signup"),
+            {
+                "full_name": "کاربر موبایل",
+                "phone_number": "09123330002",
+                "address_street": "خیابان تست",
+                "email": "",
+                "preferred_contact_methods": ["sms"],
+                "telegram_id": "",
+                "password1": "Signup@123",
+                "password2": "Signup@123",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse("home"))
+
+        user = CustomUser.objects.get(phone_number="09123330002")
+        self.assertIsNone(user.email)
+        self.assertEqual(user.preferred_contact_methods, ["sms"])
+        self.assertEqual(NotificationDelivery.objects.count(), 0)
 
     def test_signup_required_field_errors_are_localized_to_persian(self):
         response = self.client.post(reverse("signup"), {})
@@ -372,6 +435,7 @@ class VerificationRequestModelTests(TestCase):
 
     def test_signup_email_name_and_password_have_full_persian_browser_messages(self):
         signup_form = PublicSignupForm()
+        self.assertFalse(signup_form.fields["email"].required)
 
         self.assertIn(
             "لطفا آدرس ایمیل را کامل کنید",

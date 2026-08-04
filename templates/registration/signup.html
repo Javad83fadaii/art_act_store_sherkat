@@ -53,7 +53,7 @@
                     <!-- نام و نام خانوادگی -->
                     <div class="flex flex-col gap-2">
                         <label for="{{ form.full_name.id_for_label }}" class="text-sm font-bold text-gray-900 dark:text-white mr-1">
-                            {{ form.full_name.label }} <span class="text-red-500">*</span>
+                            {{ form.full_name.label }}
                         </label>
                         <div class="relative">
                             {{ form.full_name }}
@@ -85,7 +85,7 @@
                     <!-- ایمیل -->
                     <div class="flex flex-col gap-2">
                         <label for="{{ form.email.id_for_label }}" class="text-sm font-bold text-gray-900 dark:text-white mr-1">
-                            {{ form.email.label }} <span id="email-required-indicator" class="text-red-500">*</span>
+                            {{ form.email.label }} <span id="email-required-indicator" class="text-red-500 hidden">*</span>
                         </label>
                         <div class="relative">
                             {{ form.email }}
@@ -418,20 +418,6 @@
         }
 
         // بررسی خطای نام و نام خانوادگی زمان Submit
-        function validateFullNameOnSubmit() {
-            if (!fullNameInput) return true;
-            fullNameInput.setAttribute("required", "required");
-            const nameVal = (fullNameInput.value || "").trim();
-            if (!nameVal) {
-                fullNameInput.setCustomValidity(REQUIRED_FULL_NAME_MESSAGE);
-                setMessage(fullNameLiveMessage, REQUIRED_FULL_NAME_MESSAGE, "error");
-                return false;
-            } else {
-                fullNameInput.setCustomValidity("");
-                return true;
-            }
-        }
-
         if (signupForm) {
             signupForm.addEventListener('submit', function(e) {
                 if (fullNameInput) fullNameInput.value = toEnglishDigits(fullNameInput.value);
@@ -452,10 +438,6 @@
                 }
 
                 // چک کردن موارد در لحظه ثبت
-                if (!validateFullNameOnSubmit()) {
-                    isFormValid = false;
-                    toastErrors.push(REQUIRED_FULL_NAME_MESSAGE);
-                }
                 if (!validateAuctionRulesOnSubmit()) {
                     isFormValid = false;
                     toastErrors.push(REQUIRED_AUCTION_MESSAGE);
@@ -540,9 +522,16 @@
 
         function syncConditionalFields() {
             const selected = getSelectedContactMethods();
+            const emailSelected = selected.includes("email");
             if (emailInput) {
-                emailInput.setAttribute("required", "required");
-                emailIndicator?.classList.remove("hidden");
+                if (emailSelected) {
+                    emailInput.setAttribute("required", "required");
+                    emailIndicator?.classList.remove("hidden");
+                } else {
+                    emailInput.removeAttribute("required");
+                    emailInput.setCustomValidity("");
+                    emailIndicator?.classList.add("hidden");
+                }
             }
             const telegramSelected = selected.includes("telegram");
             if (telegramWrapper) {
@@ -609,11 +598,9 @@
         // نمایش پیام فقط هنگام تایپ کردن و رفع ارور هنگام خالی کردن فیلد
         function syncFullNameRules() {
             if (!fullNameInput) return;
-            fullNameInput.setAttribute("required", "required");
             const nameVal = (fullNameInput.value || "").trim();
             if (!nameVal) {
-                fullNameInput.setCustomValidity(REQUIRED_FULL_NAME_MESSAGE);
-                // پیام خطا در زمان تایپ پاک می‌شود تا صرفاً موقع ثبت (Submit) دیده شود
+                fullNameInput.setCustomValidity("");
                 setMessage(fullNameLiveMessage, "", null); 
             } else {
                 fullNameInput.setCustomValidity("");

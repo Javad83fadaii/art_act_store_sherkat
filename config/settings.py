@@ -358,8 +358,8 @@ SMS_IR_TIMEOUT = int(_get_first_setting('SMS_IR_TIMEOUT') or 30)
 
 SMS_PATTERNS = {
     'verification': {
-        'code': _get_first_setting('SMS_PATTERN_VERIFICATION_CODE') or '',
-        'variables': ('code',),
+        'code': _get_first_setting('SMS_PATTERN_VERIFICATION_CODE') or '210072',
+        'variables': ('CODE',),
     },
     'auction_started': {
         'code': _get_first_setting('SMS_PATTERN_AUCTION_STARTED_CODE') or '901013',

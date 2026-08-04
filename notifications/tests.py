@@ -92,8 +92,8 @@ class EmailProviderIntegrationTests(TestCase):
     SMS_IR_TIMEOUT=9,
     SMS_PATTERNS={
         'verification': {
-            'code': '100001',
-            'variables': ('code',),
+            'code': '210072',
+            'variables': ('CODE',),
         },
         'auction_started': {
             'code': '901013',
@@ -142,10 +142,10 @@ class SMSProviderIntegrationTests(TestCase):
             'https://api.sms.ir/v1/send/verify',
             json={
                 'mobile': '9123456789',
-                'templateId': 100001,
+                'templateId': 210072,
                 'parameters': [
                     {
-                        'name': 'code',
+                        'name': 'CODE',
                         'value': '123456',
                     },
                 ],
@@ -163,11 +163,54 @@ class SMSProviderIntegrationTests(TestCase):
         self.assertEqual(delivery.status, 'sent')
         self.assertEqual(delivery.recipients, ['9123456789'])
         self.assertEqual(delivery.metadata['pattern_name'], 'verification')
-        self.assertEqual(delivery.metadata['pattern_code'], '100001')
+        self.assertEqual(delivery.metadata['pattern_code'], '210072')
         self.assertEqual(delivery.metadata['provider_message_id'], 778899)
         self.assertEqual(delivery.metadata['response_code'], 200)
         self.assertEqual(delivery.metadata['response_body']['status'], 1)
         self.assertTrue(delivery.metadata['sent_at'])
+
+    @patch('notifications.providers.sms.requests.post')
+    def test_send_template_maps_verification_code_context_to_sms_ir_code_variable(self, post_mock) -> None:
+        """Verification template should map lowercase project context to sms.ir's uppercase variable."""
+        response = Mock()
+        response.ok = True
+        response.status_code = 200
+        response.text = '{"status": 1, "message": "موفق", "data": 778899}'
+        response.json.return_value = {
+            'status': 1,
+            'message': 'موفق',
+            'data': 778899,
+        }
+        post_mock.return_value = response
+
+        self.service.send_template(
+            template='verification',
+            channels=['sms'],
+            user=SimpleNamespace(phone_number='09123456789'),
+            context={
+                'code': '123456',
+            },
+        )
+
+        post_mock.assert_called_once_with(
+            'https://api.sms.ir/v1/send/verify',
+            json={
+                'mobile': '9123456789',
+                'templateId': 210072,
+                'parameters': [
+                    {
+                        'name': 'CODE',
+                        'value': '123456',
+                    },
+                ],
+            },
+            headers={
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-API-KEY': 'test-api-key',
+            },
+            timeout=9,
+        )
 
     @patch('notifications.providers.sms.requests.post')
     def test_sms_provider_fails_when_pattern_is_missing(self, post_mock) -> None:

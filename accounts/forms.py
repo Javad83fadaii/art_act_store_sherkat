@@ -248,7 +248,7 @@ class PublicSignupForm(forms.ModelForm):
     )
     phone_number = forms.CharField(label="شماره موبایل(نام کاربری)", max_length=20, required=True)
     address_street = forms.CharField(label="آدرس", max_length=255, required=False)
-    email = forms.EmailField(label="آدرس ایمیل", required=True)
+    email = forms.EmailField(label="آدرس ایمیل", required=False)
     preferred_contact_methods = forms.MultipleChoiceField(
         label="راه ارتباطی مورد نظر",
         choices=CONTACT_METHOD_CHOICES,
@@ -377,8 +377,30 @@ class PublicSignupForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
+        preferred_contact_methods = cleaned_data.get("preferred_contact_methods") or []
+        email = cleaned_data.get("email")
+        phone_number = cleaned_data.get("phone_number")
         participate = cleaned_data.get("participate_in_auction") or False
         full_name = (cleaned_data.get("full_name") or "").strip()
+
+        if not preferred_contact_methods:
+            self.add_error(
+                "preferred_contact_methods",
+                "حداقل یکی از روش‌های ارتباطی را انتخاب کنید.",
+            )
+
+        if "email" in preferred_contact_methods and not email:
+            self.add_error(
+                "email",
+                "در صورت انتخاب «ایمیل»، وارد کردن آدرس ایمیل الزامی است.",
+            )
+
+        if "sms" in preferred_contact_methods and not phone_number:
+            self.add_error(
+                "phone_number",
+                "در صورت انتخاب «پیامک»، وارد کردن شماره موبایل الزامی است.",
+            )
+
         if participate:
             if not full_name:
                 self.add_error("full_name", "در صورت شرکت در مزایده، وارد کردن نام و نام خانوادگی الزامی است.")

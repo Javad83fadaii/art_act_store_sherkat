@@ -16,7 +16,8 @@ class EmailVerificationRequiredMiddleware:
         if path.startswith("/static/") or path.startswith("/media/") or path in VERIFICATION_EXEMPT_PATHS:
             return self.get_response(request)
 
-        if request.user.is_authenticated and not getattr(request.user, "has_verified_email", False):
+        user_email = str(getattr(request.user, "email", "") or "").strip()
+        if request.user.is_authenticated and user_email and not getattr(request.user, "has_verified_email", False):
             if (
                 path.startswith("/accounts/verification/")
                 or path.startswith("/accounts/login/")
