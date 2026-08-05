@@ -246,7 +246,7 @@ class PublicSignupForm(forms.ModelForm):
         label="تمایل به دریافت خبرنامه و کاتالوگ",
         required=False,
     )
-    phone_number = forms.CharField(label="شماره موبایل(نام کاربری)", max_length=20, required=True)
+    phone_number = forms.CharField(label="شماره موبایل(نام کاربری)", max_length=20, required=False)
     address_street = forms.CharField(label="آدرس", max_length=255, required=False)
     email = forms.EmailField(label="آدرس ایمیل", required=False)
     preferred_contact_methods = forms.MultipleChoiceField(
@@ -325,6 +325,9 @@ class PublicSignupForm(forms.ModelForm):
 
     def clean_phone_number(self):
         raw = (self.cleaned_data.get("phone_number") or "").strip()
+        if not raw:
+            return ""
+
         digit_map = str.maketrans("۰۱۲۳۴۵۶۷۸۹", "0123456789")
         normalized = raw.translate(digit_map).replace(" ", "").replace("-", "")
         normalized = "".join(ch for ch in normalized if ch.isdigit())
@@ -378,8 +381,8 @@ class PublicSignupForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
         preferred_contact_methods = cleaned_data.get("preferred_contact_methods") or []
-        email = cleaned_data.get("email")
-        phone_number = cleaned_data.get("phone_number")
+        email = (cleaned_data.get("email") or "").strip()
+        phone_number = (cleaned_data.get("phone_number") or "").strip()
         participate = cleaned_data.get("participate_in_auction") or False
         full_name = (cleaned_data.get("full_name") or "").strip()
 
@@ -395,10 +398,14 @@ class PublicSignupForm(forms.ModelForm):
                 "در صورت انتخاب «ایمیل»، وارد کردن آدرس ایمیل الزامی است.",
             )
 
-        if "sms" in preferred_contact_methods and not phone_number:
+        if not phone_number:
             self.add_error(
                 "phone_number",
-                "در صورت انتخاب «پیامک»، وارد کردن شماره موبایل الزامی است.",
+                (
+                    "در صورت انتخاب «پیامک»، وارد کردن شماره موبایل الزامی است."
+                    if "sms" in preferred_contact_methods
+                    else "برای ثبت‌نام، وارد کردن شماره موبایل الزامی است."
+                ),
             )
 
         if participate:

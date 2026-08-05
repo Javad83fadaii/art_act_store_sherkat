@@ -6,7 +6,7 @@ from django.urls import reverse
 from unittest.mock import Mock, patch
 
 from accounts.forms import CustomLoginForm, PublicSignupForm
-from accounts.models import CreditIncreaseRequest, CustomUser, EmailVerificationOTP, VerificationRequest
+from accounts.models import CreditIncreaseRequest, CustomUser, EmailVerificationOTP, SMSVerificationOTP, VerificationRequest
 from notifications.models import NotificationDelivery
 from store.models import SiteVisitLog
 
@@ -220,6 +220,7 @@ class VerificationRequestModelTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse("sms_verification"))
         deliveries = list(NotificationDelivery.objects.order_by("created_at"))
         self.assertEqual(len(deliveries), 1)
         self.assertEqual(deliveries[0].provider, "sms")
@@ -227,6 +228,9 @@ class VerificationRequestModelTests(TestCase):
         self.assertEqual(deliveries[0].recipients, ["9123337777"])
         self.assertEqual(NotificationDelivery.objects.filter(provider="email").count(), 0)
         self.assertEqual(mail.outbox, [])
+        user = CustomUser.objects.get(phone_number="09123337777")
+        self.assertFalse(user.is_active)
+        self.assertTrue(SMSVerificationOTP.objects.filter(user=user, phone_number="09123337777").exists())
         post_mock.assert_called_once()
 
     @override_settings(
@@ -271,18 +275,21 @@ class VerificationRequestModelTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse("email_verification"))
+        user = CustomUser.objects.get(phone_number="09123338888")
+        self.assertFalse(user.is_active)
         deliveries = list(NotificationDelivery.objects.order_by("created_at"))
-        self.assertEqual(len(deliveries), 3)
+        self.assertEqual(len(deliveries), 2)
         self.assertEqual(
             [item.provider for item in deliveries],
-            ["email", "email", "sms"],
+            ["email", "email"],
         )
         self.assertEqual(
             [item.event for item in deliveries],
-            ["accounts.signup.welcome", "accounts.signup.verification_code", "accounts.signup.verification_code"],
+            ["accounts.signup.welcome", "accounts.signup.verification_code"],
         )
         self.assertEqual(len(mail.outbox), 2)
-        post_mock.assert_called_once()
+        post_mock.assert_not_called()
 
     def test_signup_page_renders_newsletter_opt_in_field(self):
         response = self.client.get(reverse("signup"))
@@ -348,7 +355,77 @@ class VerificationRequestModelTests(TestCase):
             ["در صورت انتخاب «ایمیل»، وارد کردن آدرس ایمیل الزامی است."],
         )
 
-    def test_signup_allows_phone_only_registration_with_sms_contact_method(self):
+    def test_signup_requires_phone_number_when_sms_contact_method_is_selected(self):
+        form = PublicSignupForm(
+            data={
+                "full_name": "کاربر تست",
+                "phone_number": "",
+                "address_street": "خیابان تست",
+                "email": "",
+                "preferred_contact_methods": ["sms"],
+                "telegram_id": "",
+                "password1": "Signup@123",
+                "password2": "Signup@123",
+            }
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.errors["phone_number"],
+            ["در صورت انتخاب «پیامک»، وارد کردن شماره موبایل الزامی است."],
+        )
+
+    def test_signup_requires_both_email_and_phone_when_email_and_sms_are_selected(self):
+        form = PublicSignupForm(
+            data={
+                "full_name": "کاربر تست",
+                "phone_number": "",
+                "address_street": "خیابان تست",
+                "email": "",
+                "preferred_contact_methods": ["email", "sms"],
+                "telegram_id": "",
+                "password1": "Signup@123",
+                "password2": "Signup@123",
+            }
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertEqual(
+            form.errors["email"],
+            ["در صورت انتخاب «ایمیل»، وارد کردن آدرس ایمیل الزامی است."],
+        )
+        self.assertEqual(
+            form.errors["phone_number"],
+            ["در صورت انتخاب «پیامک»، وارد کردن شماره موبایل الزامی است."],
+        )
+
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        DEFAULT_FROM_EMAIL="Auction Platform <sender@example.com>",
+        SERVER_EMAIL="sender@example.com",
+        SMS_IR_API_KEY="test-api-key",
+        SMS_IR_BASE_URL="https://api.sms.ir",
+        SMS_IR_VERIFY_ENDPOINT="/v1/send/verify",
+        SMS_PATTERNS={
+            "verification": {
+                "code": "210072",
+                "variables": ("CODE",),
+            },
+        },
+    )
+    @patch("notifications.providers.sms.requests.post")
+    def test_signup_allows_phone_only_registration_with_sms_contact_method(self, post_mock):
+        response_mock = Mock()
+        response_mock.ok = True
+        response_mock.status_code = 200
+        response_mock.text = '{"status": 1, "message": "موفق", "data": 778899}'
+        response_mock.json.return_value = {
+            "status": 1,
+            "message": "موفق",
+            "data": 778899,
+        }
+        post_mock.return_value = response_mock
+
         response = self.client.post(
             reverse("signup"),
             {
@@ -364,12 +441,14 @@ class VerificationRequestModelTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse("home"))
+        self.assertRedirects(response, reverse("sms_verification"))
 
         user = CustomUser.objects.get(phone_number="09123330002")
         self.assertIsNone(user.email)
         self.assertEqual(user.preferred_contact_methods, ["sms"])
-        self.assertEqual(NotificationDelivery.objects.count(), 0)
+        self.assertFalse(user.is_active)
+        self.assertEqual(NotificationDelivery.objects.count(), 1)
+        post_mock.assert_called_once()
 
     def test_signup_required_field_errors_are_localized_to_persian(self):
         response = self.client.post(reverse("signup"), {})
@@ -522,6 +601,167 @@ class EmailVerificationFlowTests(TestCase):
             password="Test@1234",
             full_name="کاربر دیگر",
             email="used@example.com",
+        )
+
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        DEFAULT_FROM_EMAIL="Auction Platform <sender@example.com>",
+        SERVER_EMAIL="sender@example.com",
+        SMS_IR_API_KEY="test-api-key",
+        SMS_IR_BASE_URL="https://api.sms.ir",
+        SMS_IR_VERIFY_ENDPOINT="/v1/send/verify",
+        SMS_PATTERNS={
+            "verification": {
+                "code": "210072",
+                "variables": ("CODE",),
+            },
+        },
+    )
+    @patch("notifications.providers.sms.requests.post")
+    def test_sms_verification_page_auto_sends_code_once_for_user_phone(self, post_mock):
+        response_mock = Mock()
+        response_mock.ok = True
+        response_mock.status_code = 200
+        response_mock.text = '{"status": 1, "message": "موفق", "data": 778899}'
+        response_mock.json.return_value = {
+            "status": 1,
+            "message": "موفق",
+            "data": 778899,
+        }
+        post_mock.return_value = response_mock
+
+        self.user.preferred_contact_methods = ["sms"]
+        self.user.is_active = False
+        self.user.save(update_fields=["preferred_contact_methods", "is_active"])
+        self.client.force_login(self.user)
+
+        first_response = self.client.get(reverse("sms_verification"))
+        second_response = self.client.get(reverse("sms_verification"))
+
+        self.assertEqual(first_response.status_code, 200)
+        self.assertEqual(second_response.status_code, 200)
+        self.assertContains(first_response, "09121110000")
+        self.assertContains(first_response, "ارسال مجدد کد")
+        self.assertContains(first_response, "کد تایید پیامکی برای شما ارسال شد.")
+        self.assertEqual(NotificationDelivery.objects.filter(provider="sms").count(), 1)
+        post_mock.assert_called_once()
+
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        DEFAULT_FROM_EMAIL="Auction Platform <sender@example.com>",
+        SERVER_EMAIL="sender@example.com",
+        SMS_IR_API_KEY="test-api-key",
+        SMS_IR_BASE_URL="https://api.sms.ir",
+        SMS_IR_VERIFY_ENDPOINT="/v1/send/verify",
+        SMS_PATTERNS={
+            "verification": {
+                "code": "210072",
+                "variables": ("CODE",),
+            },
+        },
+    )
+    @patch("notifications.providers.sms.requests.post")
+    def test_verify_sms_code_activates_authenticated_user(self, post_mock):
+        response_mock = Mock()
+        response_mock.ok = True
+        response_mock.status_code = 200
+        response_mock.text = '{"status": 1, "message": "موفق", "data": 778899}'
+        response_mock.json.return_value = {
+            "status": 1,
+            "message": "موفق",
+            "data": 778899,
+        }
+        post_mock.return_value = response_mock
+
+        self.user.preferred_contact_methods = ["sms"]
+        self.user.is_active = False
+        self.user.save(update_fields=["preferred_contact_methods", "is_active"])
+        otp = SMSVerificationOTP.generate_otp(self.user, "09121110000")
+        self.client.force_login(self.user)
+
+        response = self.client.post(
+            reverse("sms_verification"),
+            {
+                "action": "verify_code",
+                "phone_number": "09121110000",
+                "code": otp.code,
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse("home"))
+        otp.refresh_from_db()
+        self.assertTrue(otp.is_used)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.is_active)
+
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        DEFAULT_FROM_EMAIL="Auction Platform <sender@example.com>",
+        SERVER_EMAIL="sender@example.com",
+        SMS_IR_API_KEY="test-api-key",
+        SMS_IR_BASE_URL="https://api.sms.ir",
+        SMS_IR_VERIFY_ENDPOINT="/v1/send/verify",
+        SMS_PATTERNS={
+            "verification": {
+                "code": "210072",
+                "variables": ("CODE",),
+            },
+        },
+    )
+    @patch("notifications.providers.sms.requests.post")
+    def test_email_verification_redirects_to_sms_step_when_sms_is_selected(self, post_mock):
+        response_mock = Mock()
+        response_mock.ok = True
+        response_mock.status_code = 200
+        response_mock.text = '{"status": 1, "message": "موفق", "data": 778899}'
+        response_mock.json.return_value = {
+            "status": 1,
+            "message": "موفق",
+            "data": 778899,
+        }
+        post_mock.return_value = response_mock
+
+        self.user.email = "combo@example.com"
+        self.user.preferred_contact_methods = ["email", "sms"]
+        self.user.is_active = False
+        self.user.save(update_fields=["email", "preferred_contact_methods", "is_active"])
+        self.client.force_login(self.user)
+        otp = EmailVerificationOTP.generate_otp(self.user, "combo@example.com")
+
+        response = self.client.post(
+            reverse("email_verification"),
+            {
+                "action": "verify_code",
+                "email": "combo@example.com",
+                "code": otp.code,
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse("sms_verification"))
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.is_email_verified)
+
+        sms_page = self.client.get(reverse("sms_verification"))
+        self.assertEqual(sms_page.status_code, 200)
+        self.assertContains(sms_page, "حالا کد تایید پیامکی را وارد کنید.")
+        self.assertEqual(NotificationDelivery.objects.filter(provider="sms").count(), 1)
+        post_mock.assert_called_once()
+
+    def test_middleware_redirects_pending_sms_verification_users_to_sms_page(self):
+        self.user.preferred_contact_methods = ["sms"]
+        self.user.is_active = False
+        self.user.save(update_fields=["preferred_contact_methods", "is_active"])
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("home"))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(
+            response,
+            f'{reverse("sms_verification")}?next=%2F',
+            fetch_redirect_response=False,
         )
 
     @override_settings(

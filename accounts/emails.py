@@ -21,23 +21,23 @@ def send_verification_code_email(*, email, code, user=None):
         metadata={'code': str(code)},
     )
 
-    sms_result = None
-    if user is not None:
-        sms_result = notification_service.send_template(
-            event='accounts.signup.verification_code',
-            template_key='verification',
-            providers=[NotificationProviderType.SMS],
-            user=user,
-            context={
-                'code': str(code),
-            },
-            metadata={
-                'code': str(code),
-                'user_id': str(user.pk),
-            },
-        )
+    return email_result
 
-    return email_result, sms_result
+
+def send_verification_code_sms(*, user, code):
+    return notification_service.send_template(
+        event='accounts.signup.verification_code',
+        template_key='verification',
+        providers=[NotificationProviderType.SMS],
+        user=user,
+        context={
+            'code': str(code),
+        },
+        metadata={
+            'code': str(code),
+            'user_id': str(user.pk),
+        },
+    )
 
 
 def send_welcome_email(*, user):

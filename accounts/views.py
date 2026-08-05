@@ -29,8 +29,8 @@ from core.emailing import normalize_email_value, send_plain_email
 from notifications.enums import NotificationProviderType
 from notifications.services import notification_service
 from .realtime import build_profile_live_context, build_profile_live_payload
-from .emails import send_verification_code_email, send_welcome_email
-from .models import CustomUser, VerificationRequest, CreditIncreaseRequest, EmailVerificationOTP
+from .emails import send_verification_code_email, send_verification_code_sms, send_welcome_email
+from .models import CustomUser, VerificationRequest, CreditIncreaseRequest, EmailVerificationOTP, SMSVerificationOTP
 from .forms import (
     CustomUserCreationForm, 
     PublicSignupForm, 
@@ -45,6 +45,8 @@ from auction.models import Bid
 
 logger = logging.getLogger(__name__)
 EMAIL_VERIFICATION_SENT_TO_SESSION_KEY = "email_verification_code_sent_to"
+SMS_VERIFICATION_SENT_TO_SESSION_KEY = "sms_verification_code_sent_to"
+SMS_VERIFICATION_ALERT_SESSION_KEY = "sms_verification_alert"
 
 
 class CustomLoginView(LoginView):
@@ -285,8 +287,12 @@ class SignupView(View):
 
         if form.is_valid():
             user = form.save()
+            if _user_has_sms_contact_method(user) and user.is_active:
+                user.is_active = False
+                user.save(update_fields=["is_active"])
             auth_login(request, user, backend="django.contrib.auth.backends.ModelBackend")
 
+            sms_verification_error = None
             welcome_email_error = None
             if _user_requires_email_verification(user):
                 try:
@@ -324,6 +330,22 @@ class SignupView(View):
                     }
 
                 return redirect(reverse("email_verification"))
+
+            if _user_requires_sms_verification(user):
+                ok, error_message = _send_sms_verification_code_for_user(user=user, phone_number=user.phone_number)
+                if ok:
+                    _remember_sent_sms_verification_code(request, user.phone_number)
+                    request.session[SMS_VERIFICATION_ALERT_SESSION_KEY] = {
+                        "type": "success",
+                        "message": "کد تایید پیامکی برای شما ارسال شد.",
+                    }
+                else:
+                    sms_verification_error = error_message or "ارسال کد تایید پیامکی با خطا مواجه شد."
+                    request.session[SMS_VERIFICATION_ALERT_SESSION_KEY] = {
+                        "type": "error",
+                        "message": sms_verification_error,
+                    }
+                return redirect(reverse("sms_verification"))
 
             return redirect(reverse("home"))
 
@@ -486,6 +508,21 @@ def _normalize_verification_code(code):
     return str(code or "").strip().translate(digit_map).replace(" ", "")
 
 
+def _normalize_phone_number(phone_number):
+    digit_map = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
+    normalized = str(phone_number or "").strip().translate(digit_map)
+    normalized = normalized.replace(" ", "").replace("-", "")
+    return "".join(ch for ch in normalized if ch.isdigit())
+
+
+def _user_has_sms_contact_method(user):
+    return "sms" in {method.lower() for method in user.get_enabled_notification_channels()}
+
+
+def _user_requires_sms_verification(user):
+    return _user_has_sms_contact_method(user) and not bool(getattr(user, "is_active", False))
+
+
 def _remember_sent_verification_code(request, email):
     email_value = normalize_email_value(email)
     if email_value:
@@ -501,6 +538,50 @@ def _has_sent_verification_code(request, email):
 
 def _clear_sent_verification_code(request):
     request.session.pop(EMAIL_VERIFICATION_SENT_TO_SESSION_KEY, None)
+
+
+def _remember_sent_sms_verification_code(request, phone_number):
+    phone_value = _normalize_phone_number(phone_number)
+    if phone_value:
+        request.session[SMS_VERIFICATION_SENT_TO_SESSION_KEY] = phone_value
+
+
+def _has_sent_sms_verification_code(request, phone_number):
+    phone_value = _normalize_phone_number(phone_number)
+    if not phone_value:
+        return False
+    return request.session.get(SMS_VERIFICATION_SENT_TO_SESSION_KEY) == phone_value
+
+
+def _clear_sent_sms_verification_code(request):
+    request.session.pop(SMS_VERIFICATION_SENT_TO_SESSION_KEY, None)
+
+
+def _send_sms_verification_code_for_user(*, user, phone_number=None):
+    phone_value = _normalize_phone_number(phone_number or getattr(user, "phone_number", ""))
+    user_phone_number = _normalize_phone_number(getattr(user, "phone_number", ""))
+
+    if not phone_value:
+        return False, "وارد کردن شماره موبایل الزامی است."
+    if phone_value != user_phone_number:
+        return False, "شماره موبایل واردشده با حساب کاربری مطابقت ندارد."
+
+    SMSVerificationOTP.objects.filter(
+        user=user,
+        phone_number=phone_value,
+        is_used=False,
+    ).update(is_used=True)
+
+    otp = SMSVerificationOTP.generate_otp(user=user, phone_number=phone_value)
+
+    try:
+        send_verification_code_sms(user=user, code=otp.code)
+    except Exception as exc:
+        otp.is_used = True
+        otp.save(update_fields=["is_used"])
+        return False, str(exc)
+
+    return True, None
 
 
 def _send_email_verification_code_for_user(*, user, email):
@@ -589,12 +670,53 @@ def _verify_email_code_for_user(*, user, email, code):
     return True, None
 
 
+def _verify_sms_code_for_user(*, user, phone_number, code):
+    phone_value = _normalize_phone_number(phone_number)
+    code_value = _normalize_verification_code(code)
+    user_phone_number = _normalize_phone_number(getattr(user, "phone_number", ""))
+
+    if not phone_value or not code_value:
+        return False, "وارد کردن شماره موبایل و کد الزامی است."
+    if phone_value != user_phone_number:
+        return False, "شماره موبایل واردشده با حساب کاربری مطابقت ندارد."
+    if len(code_value) != 6 or not code_value.isdigit():
+        return False, "کد تایید باید ۶ رقم باشد."
+
+    otp = (
+        SMSVerificationOTP.objects
+        .filter(user=user, phone_number=phone_value, code=code_value)
+        .order_by("-created_at")
+        .first()
+    )
+
+    if not otp:
+        return False, "کد تایید نامعتبر است."
+
+    if not otp.is_valid():
+        return False, "کد تایید منقضی شده یا قبلاً استفاده شده است."
+
+    otp.is_used = True
+    otp.save(update_fields=["is_used"])
+
+    if not user.is_active:
+        user.is_active = True
+        user.save(update_fields=["is_active"])
+
+    return True, None
+
+
 class EmailVerificationView(LoginRequiredMixin, View):
     template_name = "registration/email_verification.html"
 
     def get(self, request):
         if not _user_requires_email_verification(request.user):
             next_url = _safe_next_url(request, request.GET.get("next"))
+            if _user_requires_sms_verification(request.user):
+                sms_verification_url = reverse("sms_verification")
+                next_raw = request.GET.get("next") or ""
+                if next_raw:
+                    return redirect(f"{sms_verification_url}?{urlencode({'next': next_raw})}")
+                return redirect(sms_verification_url)
             return redirect(next_url or reverse("home"))
 
         alert = request.session.pop("email_verification_alert", None) or {}
@@ -652,6 +774,15 @@ class EmailVerificationView(LoginRequiredMixin, View):
             ok, error_message = _verify_email_code_for_user(user=request.user, email=email, code=code)
             if ok:
                 _clear_sent_verification_code(request)
+                if _user_requires_sms_verification(request.user):
+                    request.session[SMS_VERIFICATION_ALERT_SESSION_KEY] = {
+                        "type": "success",
+                        "message": "ایمیل با موفقیت تایید شد. حالا کد تایید پیامکی را وارد کنید.",
+                    }
+                    sms_verification_url = reverse("sms_verification")
+                    if next_raw:
+                        return redirect(f"{sms_verification_url}?{urlencode({'next': next_raw})}")
+                    return redirect(sms_verification_url)
                 return redirect(next_url or reverse("home"))
             return render(
                 request,
@@ -671,6 +802,110 @@ class EmailVerificationView(LoginRequiredMixin, View):
             {
                 "email": email or (getattr(request.user, "email", "") or ""),
                 "has_email": bool(email or getattr(request.user, "email", "")),
+                "next": next_raw,
+                "alert_type": "error",
+                "alert_message": "درخواست نامعتبر است.",
+            },
+        )
+
+
+class SMSVerificationView(LoginRequiredMixin, View):
+    template_name = "registration/sms_verification.html"
+
+    def get(self, request):
+        if _user_requires_email_verification(request.user):
+            email_verification_url = reverse("email_verification")
+            next_raw = request.GET.get("next") or ""
+            if next_raw:
+                return redirect(f"{email_verification_url}?{urlencode({'next': next_raw})}")
+            return redirect(email_verification_url)
+
+        if not _user_requires_sms_verification(request.user):
+            next_url = _safe_next_url(request, request.GET.get("next"))
+            return redirect(next_url or reverse("home"))
+
+        alert = request.session.pop(SMS_VERIFICATION_ALERT_SESSION_KEY, None) or {}
+        phone_number = _normalize_phone_number(getattr(request.user, "phone_number", "") or "")
+        alert_type = alert.get("type") or ""
+        alert_message = alert.get("message") or ""
+
+        if phone_number and not _has_sent_sms_verification_code(request, phone_number):
+            ok, error_message = _send_sms_verification_code_for_user(user=request.user, phone_number=phone_number)
+            if ok:
+                _remember_sent_sms_verification_code(request, phone_number)
+                if not alert_message:
+                    alert_type = "success"
+                    alert_message = "کد تایید پیامکی برای شما ارسال شد."
+            else:
+                alert_type = "error"
+                alert_message = error_message or "ارسال کد تایید پیامکی با خطا مواجه شد."
+
+        return render(
+            request,
+            self.template_name,
+            {
+                "phone_number": phone_number,
+                "has_phone_number": bool(phone_number),
+                "next": request.GET.get("next") or "",
+                "alert_type": alert_type,
+                "alert_message": alert_message,
+            },
+        )
+
+    def post(self, request):
+        action = str(request.POST.get("action") or "").strip()
+        phone_number = _normalize_phone_number(
+            request.POST.get("phone_number") or getattr(request.user, "phone_number", "") or ""
+        )
+        code = _normalize_verification_code(request.POST.get("code"))
+        next_raw = request.POST.get("next") or request.GET.get("next") or ""
+        next_url = _safe_next_url(request, next_raw)
+
+        if action == "send_code":
+            ok, error_message = _send_sms_verification_code_for_user(user=request.user, phone_number=phone_number)
+            if ok:
+                _remember_sent_sms_verification_code(request, phone_number)
+            return render(
+                request,
+                self.template_name,
+                {
+                    "phone_number": phone_number,
+                    "has_phone_number": bool(phone_number),
+                    "next": next_raw,
+                    "alert_type": "success" if ok else "error",
+                    "alert_message": "کد تایید پیامکی ارسال شد." if ok else (
+                        error_message or "ارسال کد تایید پیامکی با خطا مواجه شد."
+                    ),
+                },
+            )
+
+        if action == "verify_code":
+            ok, error_message = _verify_sms_code_for_user(
+                user=request.user,
+                phone_number=phone_number,
+                code=code,
+            )
+            if ok:
+                _clear_sent_sms_verification_code(request)
+                return redirect(next_url or reverse("home"))
+            return render(
+                request,
+                self.template_name,
+                {
+                    "phone_number": phone_number,
+                    "has_phone_number": bool(phone_number),
+                    "next": next_raw,
+                    "alert_type": "error",
+                    "alert_message": error_message or "تایید پیامک با خطا مواجه شد.",
+                },
+            )
+
+        return render(
+            request,
+            self.template_name,
+            {
+                "phone_number": phone_number,
+                "has_phone_number": bool(phone_number),
                 "next": next_raw,
                 "alert_type": "error",
                 "alert_message": "درخواست نامعتبر است.",

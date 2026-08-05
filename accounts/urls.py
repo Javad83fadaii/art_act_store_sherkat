@@ -32,6 +32,7 @@ urlpatterns = [
 
     # مسیرهای تایید ایمیل
     path('verification/email/', views.EmailVerificationView.as_view(), name='email_verification'),
+    path('verification/sms/', views.SMSVerificationView.as_view(), name='sms_verification'),
     path('verification/send-email-code/', views.send_email_verification, name='send_email_verification'),
     path('verification/verify-email-code/', views.verify_email_code, name='verify_email_code'),
 

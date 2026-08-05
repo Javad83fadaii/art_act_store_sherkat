@@ -85,6 +85,7 @@ class CustomUser(AbstractUser):
     description = models.TextField(blank=True, null=True)
     is_verified = models.IntegerField(default=0)
     is_email_verified = models.BooleanField(default=False)
+    is_sms_verified = models.BooleanField(default=True)
     
     # اعتبار کل تخصیص‌یافته به کاربر
     credit = models.DecimalField(max_digits=15, decimal_places=0, default=0)
@@ -420,3 +421,34 @@ class EmailVerificationOTP(models.Model):
         code = f"{random.randint(100000, 999999)}"
         expires_at = timezone.now() + timezone.timedelta(minutes=expire_minutes)
         return cls.objects.create(user=user, email=email, code=code, expires_at=expires_at)
+
+
+class SMSVerificationOTP(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="sms_otps"
+    )
+    phone_number = models.CharField(max_length=20)
+    code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def is_valid(self):
+        return not self.is_used and timezone.now() <= self.expires_at
+
+    @classmethod
+    def generate_otp(cls, user, phone_number, expire_minutes=10):
+        import random
+        code = f"{random.randint(100000, 999999)}"
+        expires_at = timezone.now() + timezone.timedelta(minutes=expire_minutes)
+        return cls.objects.create(
+            user=user,
+            phone_number=phone_number,
+            code=code,
+            expires_at=expires_at,
+        )

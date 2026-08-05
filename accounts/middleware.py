@@ -31,4 +31,25 @@ class EmailVerificationRequiredMiddleware:
             params = urlencode({"next": request.get_full_path()})
             return redirect(f"{verification_url}?{params}")
 
+        if request.user.is_authenticated and not getattr(request.user, "is_active", True):
+            preferred_methods = {
+                str(method).strip().lower()
+                for method in (getattr(request.user, "preferred_contact_methods", None) or [])
+                if str(method).strip()
+            }
+            requires_sms_verification = "sms" in preferred_methods
+            if requires_sms_verification:
+                if (
+                    path.startswith("/accounts/verification/")
+                    or path.startswith("/accounts/login/")
+                    or path.startswith("/accounts/signup/")
+                    or path.startswith("/accounts/logout/")
+                    or path.startswith("/admin/logout/")
+                ):
+                    return self.get_response(request)
+
+                verification_url = reverse("sms_verification")
+                params = urlencode({"next": request.get_full_path()})
+                return redirect(f"{verification_url}?{params}")
+
         return self.get_response(request)
