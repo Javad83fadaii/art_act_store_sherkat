@@ -289,7 +289,8 @@ class SignupView(View):
             user = form.save()
             if _user_has_sms_contact_method(user) and user.is_active:
                 user.is_active = False
-                user.save(update_fields=["is_active"])
+                user.is_sms_verified = False
+                user.save(update_fields=["is_active", "is_sms_verified"])
             auth_login(request, user, backend="django.contrib.auth.backends.ModelBackend")
 
             sms_verification_error = None
@@ -305,7 +306,7 @@ class SignupView(View):
                 if ok:
                     _remember_sent_verification_code(request, user.email)
                     alert_type = "success"
-                    alert_message = "کد تایید برای شما ارسال شد."
+                    alert_message = "کد تایید ۶ رقمی به ایمیل شما ارسال شد."
                     if welcome_email_error:
                         alert_type = "error"
                         alert_message = (
@@ -500,7 +501,18 @@ def _safe_next_url(request, next_url):
 
 
 def _user_requires_email_verification(user):
-    return bool(normalize_email_value(getattr(user, "email", "") or "")) and not getattr(user, "has_verified_email", False)
+    email_value = normalize_email_value(getattr(user, "email", "") or "")
+    if not email_value or getattr(user, "has_verified_email", False):
+        return False
+
+    enabled_channels = {
+        str(method).strip().lower()
+        for method in (getattr(user, "get_enabled_notification_channels", lambda: [])() or [])
+        if str(method).strip()
+    }
+    if not enabled_channels:
+        return True
+    return "email" in enabled_channels
 
 
 def _normalize_verification_code(code):
@@ -698,9 +710,17 @@ def _verify_sms_code_for_user(*, user, phone_number, code):
     otp.is_used = True
     otp.save(update_fields=["is_used"])
 
+    update_fields = []
+    if not getattr(user, "is_sms_verified", False):
+        user.is_sms_verified = True
+        update_fields.append("is_sms_verified")
+
     if not user.is_active:
         user.is_active = True
-        user.save(update_fields=["is_active"])
+        update_fields.append("is_active")
+
+    if update_fields:
+        user.save(update_fields=update_fields)
 
     return True, None
 
@@ -730,7 +750,7 @@ class EmailVerificationView(LoginRequiredMixin, View):
                 _remember_sent_verification_code(request, email)
                 if not alert_message:
                     alert_type = "success"
-                    alert_message = "کد تایید ۶ رقمی برای شما ارسال شد."
+                    alert_message = "کد تایید ۶ رقمی به ایمیل شما ارسال شد."
             else:
                 alert_type = "error"
                 alert_message = error_message or "ارسال کد تایید با خطا مواجه شد."

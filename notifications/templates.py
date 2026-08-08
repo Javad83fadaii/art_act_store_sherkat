@@ -189,7 +189,50 @@ def get_default_notification_templates() -> tuple[NotificationTemplate, ...]:
         )
     )
 
+    auction_24h = NotificationTemplate(
+        key='auction_24h',
+        default_providers=(
+            NotificationProviderType.EMAIL,
+            NotificationProviderType.SMS,
+            NotificationProviderType.TELEGRAM,
+        ),
+    )
+    auction_24h_email_body = (
+        'سلام\n\n'
+        'مزایده {auction_name} ۲۴ ساعت دیگر آغاز می‌شود.\n\n'
+        'زمان شروع: {auction_start_date}\n\n'
+        'اگر قصد شرکت در این مزایده را دارید، لطفاً از آماده بودن حساب کاربری و اعتبار خود مطمئن شوید.\n\n'
+        'با آرزوی موفقیت\n'
+        'تیم ماه آکشن'
+    )
+    auction_24h.register_channel(
+        NotificationChannelTemplate(
+            provider=NotificationProviderType.EMAIL,
+            subject_template='یادآوری: ۲۴ ساعت تا شروع مزایده {auction_name}',
+            body_template=auction_24h_email_body,
+        )
+    )
+    auction_24h.register_channel(
+        NotificationChannelTemplate(
+            provider=NotificationProviderType.SMS,
+            metadata={
+                'sms_pattern': 'auction_24h',
+            },
+            context_map={
+                'auction_name': 'AUCTIONNAME',
+                'auction_start_date': 'AUCTIONSTART_DATE',
+            },
+        )
+    )
+    auction_24h.register_channel(
+        NotificationChannelTemplate(
+            provider=NotificationProviderType.TELEGRAM,
+            body_template=auction_24h_email_body,
+        )
+    )
+
     return (
         verification,
         auction_started,
+        auction_24h,
     )

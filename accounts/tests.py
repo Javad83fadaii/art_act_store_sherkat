@@ -739,7 +739,11 @@ class EmailVerificationFlowTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse("sms_verification"))
+        self.assertRedirects(
+            response,
+            reverse("sms_verification"),
+            fetch_redirect_response=False,
+        )
         self.user.refresh_from_db()
         self.assertTrue(self.user.is_email_verified)
 

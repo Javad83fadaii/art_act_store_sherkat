@@ -174,11 +174,13 @@ class SMSProvider(BaseNotificationProvider):
                     successful_message_ids.append(provider_message_id)
                 else:
                     failed_recipients.append(recipient)
+                    provider_error_message = self._extract_response_message(response_data, response_body)
                     logger.error(
-                        'sms.ir rejected SMS for event %s to %s with status code %s.',
+                        'sms.ir rejected SMS for event %s to %s with status code %s. Response: %s',
                         payload.event,
                         recipient,
                         response_code,
+                        provider_error_message,
                     )
             except requests.RequestException as exc:
                 detail = f'{exc.__class__.__name__}: {exc}'
@@ -303,6 +305,13 @@ class SMSProvider(BaseNotificationProvider):
                 return json.loads(raw_body)
             except ValueError:
                 return raw_body
+
+    def _extract_response_message(self, response_data: Any, raw_body: str | None = None) -> str:
+        if isinstance(response_data, dict):
+            message = str(response_data.get('message') or '').strip()
+            if message:
+                return message
+        return str(raw_body or '').strip() or 'No response body returned.'
 
     def _resolve_pattern_name(self, payload: NotificationPayload) -> str:
         candidates = (

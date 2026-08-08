@@ -3,6 +3,7 @@ from datetime import datetime
 from decimal import Decimal, InvalidOperation
 import logging
 
+from django.contrib.auth import get_user_model
 try:
     from celery import shared_task
 except ImportError:
@@ -22,6 +23,8 @@ except ImportError:
 from django.utils import timezone
 
 from core.emailing import get_user_email_recipients, send_plain_email
+from notifications.enums import NotificationProviderType
+from notifications.services import notification_service
 
 from .models import Auction
 from .services import ensure_products_have_finished_winners
@@ -32,6 +35,20 @@ logger = logging.getLogger(__name__)
 
 def get_active_users_emails():
     return get_user_email_recipients()
+
+
+def get_active_users_for_notifications():
+    user_model = get_user_model()
+    return list(user_model.objects.filter(is_active=True))
+
+
+def _get_user_notification_providers(user):
+    providers = []
+    if str(getattr(user, 'email', '') or '').strip():
+        providers.append(NotificationProviderType.EMAIL)
+    if str(getattr(user, 'phone_number', '') or '').strip():
+        providers.append(NotificationProviderType.SMS)
+    return providers
 
 
 def _parse_expected_datetime(value):
@@ -112,10 +129,6 @@ def send_auction_starting_soon_email(auction_id, expected_start=None):
     if claimed_at is None:
         return
 
-    emails = get_active_users_emails()
-    if not emails:
-        return
-
     subject = f"یادآوری: ۲۴ ساعت تا شروع مزایده «{auction.name}»"
     message = f"""سلام،
 
@@ -128,14 +141,25 @@ def send_auction_starting_soon_email(auction_id, expected_start=None):
 با آرزوی موفقیت
 تیم ماه آکشن"""
     try:
-        send_plain_email(
-            event='auction.start.reminder_24h',
-            subject=subject,
-            message=message,
-            recipients=emails,
-            fail_silently=False,
-            metadata={'auction_id': str(auction.pk)},
-        )
+        users = get_active_users_for_notifications()
+        for user in users:
+            providers = _get_user_notification_providers(user)
+            if not providers:
+                continue
+            notification_service.send_template(
+                event='auction.start.reminder_24h',
+                template='auction_24h',
+                providers=providers,
+                user=user,
+                context={
+                    'auction_name': auction.name,
+                    'auction_start_date': _format_datetime(auction.start_date),
+                },
+                metadata={
+                    'auction_id': str(auction.pk),
+                    'user_id': str(user.pk),
+                },
+            )
     except Exception:
         _release_dispatch(auction.id, 'start_reminder_24h_dispatched_at', claimed_at)
         logger.exception("Starting-soon email failed for auction %s", auction.pk)
@@ -159,10 +183,6 @@ def send_auction_started_email(auction_id, expected_start=None):
     if claimed_at is None:
         return
 
-    emails = get_active_users_emails()
-    if not emails:
-        return
-
     subject = f"زمان رقابت فرا رسید؛ مزایده «{auction.name}» آغاز شد"
     message = f"""سلام،
 
@@ -173,14 +193,24 @@ def send_auction_started_email(auction_id, expected_start=None):
 با آرزوی موفقیت
 تیم ماه آکشن"""
     try:
-        send_plain_email(
-            event='auction.start.started',
-            subject=subject,
-            message=message,
-            recipients=emails,
-            fail_silently=False,
-            metadata={'auction_id': str(auction.pk)},
-        )
+        users = get_active_users_for_notifications()
+        for user in users:
+            providers = _get_user_notification_providers(user)
+            if not providers:
+                continue
+            notification_service.send_template(
+                event='auction.start.started',
+                template='auction_started',
+                providers=providers,
+                user=user,
+                context={
+                    'auction_name': auction.name,
+                },
+                metadata={
+                    'auction_id': str(auction.pk),
+                    'user_id': str(user.pk),
+                },
+            )
     except Exception:
         _release_dispatch(auction.id, 'start_notice_dispatched_at', claimed_at)
         logger.exception("Started email failed for auction %s", auction.pk)

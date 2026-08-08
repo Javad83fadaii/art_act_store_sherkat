@@ -10,8 +10,10 @@ from django.test.utils import override_settings
 from django.urls import reverse
 from django.utils import timezone
 
+from notifications.enums import NotificationChannel, NotificationProviderType, NotificationStatus
 from accounts.models import CreditIncreaseRequest, CustomUser
 from notifications.models import NotificationDelivery
+from notifications.providers import NotificationSendResult
 from store.models import Artist, Artwork, ArtworkType, PurchaseHistory
 
 from .models import Auction, AuctionCartItem, AuctionProduct, AuctionVisitHistory
@@ -513,9 +515,12 @@ class AuctionBidCreditFlowTests(TestCase):
         )
 
         email_deliveries = list(NotificationDelivery.objects.filter(provider='email'))
-        self.assertEqual(len(email_deliveries), 1)
-        self.assertIn('۲۴ ساعت تا شروع مزایده', email_deliveries[0].subject)
-        self.assertEqual(set(email_deliveries[0].recipients), {'first@example.com', 'second@example.com'})
+        self.assertEqual(len(email_deliveries), 2)
+        self.assertTrue(all('۲۴ ساعت تا شروع مزایده' in item.subject for item in email_deliveries))
+        self.assertEqual(
+            {item.recipients[0] for item in email_deliveries},
+            {'first@example.com', 'second@example.com'},
+        )
 
     @override_settings(
         EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
@@ -552,6 +557,82 @@ class AuctionBidCreditFlowTests(TestCase):
         self.assertIn('مزایده', email_deliveries[0].subject)
         self.assertIn('آغاز شد', email_deliveries[0].subject)
 
+    def test_send_auction_starting_soon_email_respects_user_preferred_contact_methods(self):
+        self.user_one.email = 'first@example.com'
+        self.user_one.preferred_contact_methods = ['email']
+        self.user_one.save(update_fields=['email', 'preferred_contact_methods'])
+
+        self.user_two.email = 'second@example.com'
+        self.user_two.preferred_contact_methods = ['sms']
+        self.user_two.save(update_fields=['email', 'preferred_contact_methods'])
+
+        self.auction.start_date = timezone.now() + timedelta(hours=24)
+        self.auction.end_date = self.auction.start_date + timedelta(hours=2)
+        self.auction.save(update_fields=['start_date', 'end_date'])
+
+        email_res = NotificationSendResult(
+            provider=NotificationProviderType.EMAIL,
+            channel=NotificationChannel.EMAIL,
+            status=NotificationStatus.SENT,
+            recipients=['first@example.com'],
+            detail='OK',
+        )
+        sms_res = NotificationSendResult(
+            provider=NotificationProviderType.SMS,
+            channel=NotificationChannel.SMS,
+            status=NotificationStatus.SENT,
+            recipients=['09120000002'],
+            detail='OK',
+        )
+
+        with patch('notifications.providers.EmailProvider.send', return_value=email_res) as mock_email_send, \
+             patch('notifications.providers.SMSProvider.send', return_value=sms_res) as mock_sms_send:
+            send_auction_starting_soon_email(
+                self.auction.id,
+                expected_start=self.auction.start_date.isoformat(),
+            )
+
+        self.assertEqual(mock_email_send.call_count, 1)
+        self.assertEqual(mock_sms_send.call_count, 1)
+
+    def test_send_auction_started_email_respects_user_preferred_contact_methods(self):
+        self.user_one.email = 'first@example.com'
+        self.user_one.preferred_contact_methods = ['email']
+        self.user_one.save(update_fields=['email', 'preferred_contact_methods'])
+
+        self.user_two.email = 'second@example.com'
+        self.user_two.preferred_contact_methods = ['sms']
+        self.user_two.save(update_fields=['email', 'preferred_contact_methods'])
+
+        self.auction.start_date = timezone.now()
+        self.auction.end_date = self.auction.start_date + timedelta(hours=2)
+        self.auction.save(update_fields=['start_date', 'end_date'])
+
+        email_res = NotificationSendResult(
+            provider=NotificationProviderType.EMAIL,
+            channel=NotificationChannel.EMAIL,
+            status=NotificationStatus.SENT,
+            recipients=['first@example.com'],
+            detail='OK',
+        )
+        sms_res = NotificationSendResult(
+            provider=NotificationProviderType.SMS,
+            channel=NotificationChannel.SMS,
+            status=NotificationStatus.SENT,
+            recipients=['09120000002'],
+            detail='OK',
+        )
+
+        with patch('notifications.providers.EmailProvider.send', return_value=email_res) as mock_email_send, \
+             patch('notifications.providers.SMSProvider.send', return_value=sms_res) as mock_sms_send:
+            send_auction_started_email(
+                self.auction.id,
+                expected_start=self.auction.start_date.isoformat(),
+            )
+
+        self.assertEqual(mock_email_send.call_count, 1)
+        self.assertEqual(mock_sms_send.call_count, 1)
+
     @override_settings(
         EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
         DEFAULT_FROM_EMAIL="Auction Platform <sender@example.com>",
@@ -573,14 +654,14 @@ class AuctionBidCreditFlowTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         email_deliveries = list(NotificationDelivery.objects.filter(provider='email'))
-        self.assertEqual(len(email_deliveries), 1)
-        self.assertIn('۲۴ ساعت تا شروع مزایده', email_deliveries[0].subject)
+        self.assertEqual(len(email_deliveries), 2)
+        self.assertTrue(all('۲۴ ساعت تا شروع مزایده' in item.subject for item in email_deliveries))
 
         cache.clear()
         second_response = self.client.get(reverse('auction:action'))
 
         self.assertEqual(second_response.status_code, 200)
-        self.assertEqual(NotificationDelivery.objects.filter(provider='email').count(), 1)
+        self.assertEqual(NotificationDelivery.objects.filter(provider='email').count(), 2)
         self.auction.refresh_from_db()
         self.assertIsNotNone(self.auction.start_reminder_24h_dispatched_at)
 

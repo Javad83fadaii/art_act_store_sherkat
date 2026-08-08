@@ -101,6 +101,13 @@ class EmailProviderIntegrationTests(TestCase):
                 'AUCTIONNAME',
             ),
         },
+        'auction_24h': {
+            'code': '962018',
+            'variables': (
+                'AUCTIONNAME',
+                'AUCTIONSTART_DATE',
+            ),
+        },
     },
 )
 class SMSProviderIntegrationTests(TestCase):
@@ -213,6 +220,95 @@ class SMSProviderIntegrationTests(TestCase):
         )
 
     @patch('notifications.providers.sms.requests.post')
+    def test_send_template_maps_auction_started_context_to_sms_pattern_variables(self, post_mock) -> None:
+        response = Mock()
+        response.ok = True
+        response.status_code = 200
+        response.text = '{"status": 1, "message": "موفق", "data": 778899}'
+        response.json.return_value = {
+            'status': 1,
+            'message': 'موفق',
+            'data': 778899,
+        }
+        post_mock.return_value = response
+
+        self.service.send_template(
+            template='auction_started',
+            channels=['sms'],
+            user=SimpleNamespace(phone_number='09123456789'),
+            context={
+                'auction_name': 'مزایده تابستان',
+            },
+        )
+
+        post_mock.assert_called_once_with(
+            'https://api.sms.ir/v1/send/verify',
+            json={
+                'mobile': '9123456789',
+                'templateId': 901013,
+                'parameters': [
+                    {
+                        'name': 'AUCTIONNAME',
+                        'value': 'مزایده تابستان',
+                    },
+                ],
+            },
+            headers={
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-API-KEY': 'test-api-key',
+            },
+            timeout=9,
+        )
+
+    @patch('notifications.providers.sms.requests.post')
+    def test_send_template_maps_auction_24h_context_to_sms_pattern_variables(self, post_mock) -> None:
+        response = Mock()
+        response.ok = True
+        response.status_code = 200
+        response.text = '{"status": 1, "message": "موفق", "data": 778899}'
+        response.json.return_value = {
+            'status': 1,
+            'message': 'موفق',
+            'data': 778899,
+        }
+        post_mock.return_value = response
+
+        self.service.send_template(
+            template='auction_24h',
+            channels=['sms'],
+            user=SimpleNamespace(phone_number='09123456789'),
+            context={
+                'auction_name': 'مزایده تابستان',
+                'auction_start_date': '1405/05/10 18:00',
+            },
+        )
+
+        post_mock.assert_called_once_with(
+            'https://api.sms.ir/v1/send/verify',
+            json={
+                'mobile': '9123456789',
+                'templateId': 962018,
+                'parameters': [
+                    {
+                        'name': 'AUCTIONNAME',
+                        'value': 'مزایده تابستان',
+                    },
+                    {
+                        'name': 'AUCTIONSTART_DATE',
+                        'value': '1405/05/10 18:00',
+                    },
+                ],
+            },
+            headers={
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-API-KEY': 'test-api-key',
+            },
+            timeout=9,
+        )
+
+    @patch('notifications.providers.sms.requests.post')
     def test_sms_provider_fails_when_pattern_is_missing(self, post_mock) -> None:
         """SMS provider should return a failed result when the requested pattern is unknown."""
         result = self.service.send_template(
@@ -258,6 +354,40 @@ class SMSProviderIntegrationTests(TestCase):
             delivery.metadata['provider_response']['missing_variables'],
             ['AUCTIONNAME'],
         )
+
+    @patch('notifications.providers.sms.logger.error')
+    @patch('notifications.providers.sms.requests.post')
+    def test_sms_provider_logs_sms_ir_response_message_on_http_failure(self, post_mock, logger_error_mock) -> None:
+        """HTTP failures should log sms.ir's response message for faster diagnosis."""
+        response = Mock()
+        response.ok = False
+        response.status_code = 401
+        response.text = '{"status": 12, "message": "کلید وب سرویس محدود به آی پی های تعریف شده می باشد"}'
+        response.json.return_value = {
+            'status': 12,
+            'message': 'کلید وب سرویس محدود به آی پی های تعریف شده می باشد',
+            'data': None,
+        }
+        post_mock.return_value = response
+
+        result = self.service.send_template(
+            template='verification',
+            channels=['sms'],
+            user=SimpleNamespace(phone_number='09123456789'),
+            context={
+                'code': '123456',
+            },
+        )
+
+        self.assertEqual(len(result.results), 1)
+        self.assertEqual(result.results[0].status, NotificationStatus.FAILED)
+        logger_error_mock.assert_called_once()
+        logged_args = logger_error_mock.call_args[0]
+        self.assertEqual(logged_args[0], 'sms.ir rejected SMS for event %s to %s with status code %s. Response: %s')
+        self.assertEqual(logged_args[1], 'verification')
+        self.assertEqual(logged_args[2], '9123456789')
+        self.assertEqual(logged_args[3], 401)
+        self.assertIn('کلید وب سرویس محدود', logged_args[4])
 
     @patch('notifications.providers.sms.requests.post')
     def test_send_template_uses_central_registry_for_all_channels(self, post_mock) -> None:
