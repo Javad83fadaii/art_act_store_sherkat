@@ -20,6 +20,7 @@ from .models import Auction, AuctionCartItem, AuctionProduct, AuctionVisitHistor
 from .signals import schedule_auction_emails
 from .tasks import (
     send_auction_ended_email,
+    send_auction_ending_soon_email,
     send_auction_started_email,
     send_auction_starting_soon_email,
 )
@@ -556,6 +557,76 @@ class AuctionBidCreditFlowTests(TestCase):
         self.assertEqual(len(email_deliveries), 1)
         self.assertIn('مزایده', email_deliveries[0].subject)
         self.assertIn('آغاز شد', email_deliveries[0].subject)
+
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        DEFAULT_FROM_EMAIL="Auction Platform <sender@example.com>",
+        SERVER_EMAIL="sender@example.com",
+    )
+    def test_send_auction_ending_soon_email_sends_only_near_12h_mark(self):
+        self.user_one.email = 'first@example.com'
+        self.user_one.save(update_fields=['email'])
+
+        self.auction.end_date = timezone.now() + timedelta(hours=12, minutes=1)
+        self.auction.save(update_fields=['end_date'])
+        NotificationDelivery.objects.all().delete()
+
+        send_auction_ending_soon_email(
+            self.auction.id,
+            expected_end=self.auction.end_date.isoformat(),
+        )
+        self.assertEqual(NotificationDelivery.objects.count(), 0)
+
+        self.auction.end_date = timezone.now() + timedelta(hours=12)
+        self.auction.save(update_fields=['end_date'])
+        NotificationDelivery.objects.all().delete()
+
+        send_auction_ending_soon_email(
+            self.auction.id,
+            expected_end=self.auction.end_date.isoformat(),
+        )
+
+        email_deliveries = list(NotificationDelivery.objects.filter(provider='email'))
+        self.assertEqual(len(email_deliveries), 1)
+        self.assertIn('۱۲ ساعت تا پایان مزایده', email_deliveries[0].subject)
+        self.assertEqual(email_deliveries[0].recipients, ['first@example.com'])
+
+    def test_send_auction_ending_soon_email_respects_user_preferred_contact_methods(self):
+        self.user_one.email = 'first@example.com'
+        self.user_one.preferred_contact_methods = ['email']
+        self.user_one.save(update_fields=['email', 'preferred_contact_methods'])
+
+        self.user_two.email = 'second@example.com'
+        self.user_two.preferred_contact_methods = ['sms']
+        self.user_two.save(update_fields=['email', 'preferred_contact_methods'])
+
+        self.auction.end_date = timezone.now() + timedelta(hours=12)
+        self.auction.save(update_fields=['end_date'])
+
+        email_res = NotificationSendResult(
+            provider=NotificationProviderType.EMAIL,
+            channel=NotificationChannel.EMAIL,
+            status=NotificationStatus.SENT,
+            recipients=['first@example.com'],
+            detail='OK',
+        )
+        sms_res = NotificationSendResult(
+            provider=NotificationProviderType.SMS,
+            channel=NotificationChannel.SMS,
+            status=NotificationStatus.SENT,
+            recipients=['09120000002'],
+            detail='OK',
+        )
+
+        with patch('notifications.providers.EmailProvider.send', return_value=email_res) as mock_email_send, \
+             patch('notifications.providers.SMSProvider.send', return_value=sms_res) as mock_sms_send:
+            send_auction_ending_soon_email(
+                self.auction.id,
+                expected_end=self.auction.end_date.isoformat(),
+            )
+
+        self.assertEqual(mock_email_send.call_count, 1)
+        self.assertEqual(mock_sms_send.call_count, 1)
 
     def test_send_auction_starting_soon_email_respects_user_preferred_contact_methods(self):
         self.user_one.email = 'first@example.com'

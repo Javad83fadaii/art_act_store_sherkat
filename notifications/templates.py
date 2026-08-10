@@ -231,8 +231,53 @@ def get_default_notification_templates() -> tuple[NotificationTemplate, ...]:
         )
     )
 
+    auction_end = NotificationTemplate(
+        key='auction_end',
+        default_providers=(
+            NotificationProviderType.EMAIL,
+            NotificationProviderType.SMS,
+            NotificationProviderType.TELEGRAM,
+        ),
+    )
+    auction_end_body = (
+        'سلام،\n'
+        '{name} گرامی\n\n'
+        'مزایده {auction_name} تنها ۱۲ ساعت دیگر به پایان می\u200cرسد.\n\n'
+        'زمان پایان: {auction_end_date}\n\n'
+        'با سپاس\n'
+        'تیم ماه آکشن\n'
+        'mahauction.com/'
+    )
+    auction_end.register_channel(
+        NotificationChannelTemplate(
+            provider=NotificationProviderType.EMAIL,
+            subject_template='یادآوری: ۱۲ ساعت تا پایان مزایده {auction_name}',
+            body_template=auction_end_body,
+        )
+    )
+    auction_end.register_channel(
+        NotificationChannelTemplate(
+            provider=NotificationProviderType.SMS,
+            metadata={
+                'sms_pattern': 'auction_end',
+            },
+            context_map={
+                'auction_name': 'AUCTIONNAME',
+                'name': 'NAME',
+                'auction_end_date': 'AUCTIONEND_DATE',
+            },
+        )
+    )
+    auction_end.register_channel(
+        NotificationChannelTemplate(
+            provider=NotificationProviderType.TELEGRAM,
+            body_template=auction_end_body,
+        )
+    )
+
     return (
         verification,
         auction_started,
         auction_24h,
+        auction_end,
     )

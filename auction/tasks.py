@@ -234,30 +234,34 @@ def send_auction_ending_soon_email(auction_id, expected_end=None):
     if claimed_at is None:
         return
 
-    emails = get_active_users_emails()
-    if not emails:
-        return
-
-    subject = f"یادآوری: ۱۲ ساعت تا پایان مزایده «{auction.name}»"
-    message = f"""سلام،
-
-مزایده «{auction.name}» تنها ۱۲ ساعت دیگر به پایان می‌رسد.
-
-زمان پایان: {_format_datetime(auction.end_date)}
-
-اگر قصد دارید پیشنهاد جدیدی ثبت کنید یا آخرین وضعیت رقابت را بررسی کنید، اکنون زمان مناسبی است.
-
-با سپاس
-تیم ماه آکشن"""
     try:
-        send_plain_email(
-            event='auction.end.reminder_12h',
-            subject=subject,
-            message=message,
-            recipients=emails,
-            fail_silently=False,
-            metadata={'auction_id': str(auction.pk)},
-        )
+        users = get_active_users_for_notifications()
+        for user in users:
+            providers = _get_user_notification_providers(user)
+            if not providers:
+                continue
+
+            display_name = (
+                getattr(user, 'get_full_name', lambda: '')()
+                or getattr(user, 'full_name', '')
+                or getattr(user, 'username', '')
+                or 'کاربر گرامی'
+            )
+            notification_service.send_template(
+                event='auction.end.reminder_12h',
+                template='auction_end',
+                providers=providers,
+                user=user,
+                context={
+                    'auction_name': auction.name,
+                    'auction_end_date': _format_datetime(auction.end_date),
+                    'name': display_name,
+                },
+                metadata={
+                    'auction_id': str(auction.pk),
+                    'user_id': str(user.pk),
+                },
+            )
     except Exception:
         _release_dispatch(auction.id, 'end_reminder_12h_dispatched_at', claimed_at)
         logger.exception("Ending-soon email failed for auction %s", auction.pk)
