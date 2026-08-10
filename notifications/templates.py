@@ -275,9 +275,56 @@ def get_default_notification_templates() -> tuple[NotificationTemplate, ...]:
         )
     )
 
+    auction_invoice = NotificationTemplate(
+        key='auction_Invoice',
+        default_providers=(
+            NotificationProviderType.EMAIL,
+            NotificationProviderType.SMS,
+            NotificationProviderType.TELEGRAM,
+        ),
+    )
+    auction_invoice_body = (
+        'سلام {name} گرامی\n\n'
+        'مزایده {auction_name} به پایان رسیده و شما برنده نهایی مورد یا موارد زیر شده\u200cاید:\n\n'
+        '{line_items_text}\n\n'
+        'جمع کل صورتحساب اولیه: {formatted_total_amount} تومان\n\n'
+        'این مبلغ بر اساس قیمت نهایی ثبت\u200cشده در مزایده محاسبه شده و فاکتور اولیه شما محسوب می\u200cشود.\n\n'
+        'با سپاس\n'
+        'تیم ماه آکشن'
+    )
+    auction_invoice.register_channel(
+        NotificationChannelTemplate(
+            provider=NotificationProviderType.EMAIL,
+            subject_template='نتیجه مزایده و صورتحساب اولیه «{auction_name}»',
+            body_template=auction_invoice_body,
+        )
+    )
+    auction_invoice.register_channel(
+        NotificationChannelTemplate(
+            provider=NotificationProviderType.SMS,
+            metadata={
+                'sms_pattern': 'auction_Invoice',
+            },
+            context_map={
+                'sms_line_items_text': 'LINE_ITEMS_TEXT',
+                'auction_name': 'AUCTIONNAME',
+                'name': 'NAME',
+                'line_items_text': 'LINE_ITEMS_TEXT',
+                'formatted_total_amount': 'FORMAT_AMOUNTTOTAL_AMOUNT',
+            },
+        )
+    )
+    auction_invoice.register_channel(
+        NotificationChannelTemplate(
+            provider=NotificationProviderType.TELEGRAM,
+            body_template=auction_invoice_body,
+        )
+    )
+
     return (
         verification,
         auction_started,
         auction_24h,
         auction_end,
+        auction_invoice,
     )

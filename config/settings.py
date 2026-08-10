@@ -382,6 +382,15 @@ SMS_PATTERNS = {
             'AUCTIONEND_DATE',
         ),
     },
+    'auction_Invoice': {
+        'code': _get_first_setting('SMS_PATTERN_AUCTION_INVOICE_CODE') or '600256',
+        'variables': (
+            'AUCTIONNAME',
+            'NAME',
+            'LINE_ITEMS_TEXT',
+            'FORMAT_AMOUNTTOTAL_AMOUNT',
+        ),
+    },
     'auction_starting_soon': {
         'code': _get_first_setting('SMS_PATTERN_AUCTION_STARTING_SOON_CODE') or '962018',
         'variables': (

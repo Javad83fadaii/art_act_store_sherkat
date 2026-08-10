@@ -116,6 +116,15 @@ class EmailProviderIntegrationTests(TestCase):
                 'AUCTIONEND_DATE',
             ),
         },
+        'auction_Invoice': {
+            'code': '600256',
+            'variables': (
+                'AUCTIONNAME',
+                'NAME',
+                'LINE_ITEMS_TEXT',
+                'FORMAT_AMOUNTTOTAL_AMOUNT',
+            ),
+        },
     },
 )
 class SMSProviderIntegrationTests(TestCase):
@@ -357,6 +366,63 @@ class SMSProviderIntegrationTests(TestCase):
                     {
                         'name': 'AUCTIONEND_DATE',
                         'value': '1405/05/10 18:00',
+                    },
+                ],
+            },
+            headers={
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-API-KEY': 'test-api-key',
+            },
+            timeout=9,
+        )
+
+    @patch('notifications.providers.sms.requests.post')
+    def test_send_template_maps_auction_invoice_context_to_sms_pattern_variables(self, post_mock) -> None:
+        response = Mock()
+        response.ok = True
+        response.status_code = 200
+        response.text = '{"status": 1, "message": "موفق", "data": 778899}'
+        response.json.return_value = {
+            'status': 1,
+            'message': 'موفق',
+            'data': 778899,
+        }
+        post_mock.return_value = response
+
+        self.service.send_template(
+            template='auction_Invoice',
+            channels=['sms'],
+            user=SimpleNamespace(phone_number='09123456789'),
+            context={
+                'auction_name': 'مزایده تابستان',
+                'name': 'علی رضایی',
+                'line_items_text': '- تابلو شماره ۱',
+                'formatted_total_amount': '12,500,000',
+            },
+        )
+
+        post_mock.assert_called_once_with(
+            'https://api.sms.ir/v1/send/verify',
+            json={
+                'mobile': '9123456789',
+                'templateId': 600256,
+                'parameters': [
+                    {
+                        'name': 'AUCTIONNAME',
+                        'value': 'مزایده تابستان',
+                    },
+                    {
+                        'name': 'NAME',
+                        'value': 'علی رضایی',
+                    },
+                    {
+                        'name': 'LINE_ITEMS_TEXT',
+                        'value': '- تابلو شماره ۱',
+                    },
+                    {
+                        'name': 'FORMAT_AMOUNTTOTAL_AMOUNT',
+                        'value': '12,500,000',
                     },
                 ],
             },

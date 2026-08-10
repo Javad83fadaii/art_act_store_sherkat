@@ -433,9 +433,11 @@ class AuctionBidCreditFlowTests(TestCase):
     )
     def test_send_auction_ended_email_sends_billing_email_to_winner(self):
         self.user_one.email = 'winner@example.com'
-        self.user_one.save(update_fields=['email'])
+        self.user_one.preferred_contact_methods = ['email']
+        self.user_one.save(update_fields=['email', 'preferred_contact_methods'])
         self.user_two.email = 'other@example.com'
-        self.user_two.save(update_fields=['email'])
+        self.user_two.preferred_contact_methods = ['email']
+        self.user_two.save(update_fields=['email', 'preferred_contact_methods'])
         self.product.place_bid(self.user_one, '200')
         self.auction.end_date = timezone.now() - timedelta(seconds=1)
         self.auction.save(update_fields=['end_date'])
@@ -454,6 +456,36 @@ class AuctionBidCreditFlowTests(TestCase):
         )
         self.assertIn('جمع کل صورتحساب اولیه', winner_mail.body)
         self.assertIn('تابلو تست', winner_mail.body)
+
+    def test_send_auction_ended_email_sends_sms_billing_for_sms_only_winner(self):
+        self.user_one.email = ''
+        self.user_one.preferred_contact_methods = ['sms']
+        self.user_one.save(update_fields=['email', 'preferred_contact_methods'])
+        self.product.place_bid(self.user_one, '200')
+        self.auction.end_date = timezone.now() - timedelta(seconds=1)
+        self.auction.save(update_fields=['end_date'])
+
+        sms_res = NotificationSendResult(
+            provider=NotificationProviderType.SMS,
+            channel=NotificationChannel.SMS,
+            status=NotificationStatus.SENT,
+            recipients=['09120000001'],
+            detail='OK',
+        )
+
+        with patch('notifications.providers.EmailProvider.send') as mock_email_send, \
+             patch('notifications.providers.SMSProvider.send', return_value=sms_res) as mock_sms_send:
+            send_auction_ended_email(self.auction.id, expected_end=self.auction.end_date.isoformat())
+
+        mock_email_send.assert_not_called()
+        mock_sms_send.assert_called_once()
+        sms_payload = mock_sms_send.call_args.args[0]
+        self.assertEqual(sms_payload.event, 'auction.winner.billing')
+        self.assertEqual(sms_payload.metadata['sms_pattern'], 'auction_Invoice')
+        self.assertEqual(sms_payload.context['AUCTIONNAME'], self.auction.name)
+        self.assertEqual(sms_payload.context['NAME'], self.user_one.full_name)
+        self.assertEqual(sms_payload.context['FORMAT_AMOUNTTOTAL_AMOUNT'], '220')
+        self.assertEqual(sms_payload.context['LINE_ITEMS_TEXT'], 'تابلو تست')
 
     @override_settings(
         EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
@@ -744,9 +776,11 @@ class AuctionBidCreditFlowTests(TestCase):
     def test_request_middleware_dispatches_due_ended_email_and_billing_once(self):
         cache.clear()
         self.user_one.email = 'winner@example.com'
-        self.user_one.save(update_fields=['email'])
+        self.user_one.preferred_contact_methods = ['email']
+        self.user_one.save(update_fields=['email', 'preferred_contact_methods'])
         self.user_two.email = 'other@example.com'
-        self.user_two.save(update_fields=['email'])
+        self.user_two.preferred_contact_methods = ['email']
+        self.user_two.save(update_fields=['email', 'preferred_contact_methods'])
         self.product.place_bid(self.user_one, '200')
         self.auction.end_date = timezone.now() - timedelta(seconds=1)
         self.auction.save(update_fields=['end_date'])

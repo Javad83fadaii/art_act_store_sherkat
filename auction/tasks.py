@@ -111,6 +111,38 @@ def _format_datetime(value):
     return localized.strftime('%Y/%m/%d %H:%M')
 
 
+def _build_sms_line_items_text(products):
+    labels = []
+    for product in products:
+        title = str(getattr(product, 'title', '') or '').strip()
+        if title and len(title) <= 25:
+            labels.append(title)
+            continue
+
+        lot = getattr(product, 'lot', None)
+        if lot:
+            labels.append(f'لات {lot}')
+            continue
+
+        product_id = str(getattr(product, 'product_id', '') or '').strip()
+        if product_id:
+            labels.append(f'کد {product_id}')
+            continue
+
+        labels.append('مورد برنده')
+
+    joined = '، '.join(labels)
+    if len(joined) <= 25:
+        return joined
+    if len(labels) == 1:
+        return labels[0][:25]
+
+    summary = f'{labels[0]} +{len(labels) - 1} مورد'
+    if len(summary) <= 25:
+        return summary
+    return f'{len(labels)} مورد برنده شده'
+
+
 @shared_task
 def send_auction_starting_soon_email(auction_id, expected_start=None):
     """Sent 24 hours before auction starts."""
@@ -361,12 +393,14 @@ def send_auction_ended_email(auction_id, expected_end=None):
     winners_map = defaultdict(list)
     for product in products:
         winner = getattr(product, 'winner', None)
-        winner_email = getattr(winner, 'email', None)
-        if winner and winner_email:
+        if winner and _get_user_notification_providers(winner):
             winners_map[winner.pk].append(product)
 
     for product_list in winners_map.values():
         winner = product_list[0].winner
+        providers = _get_user_notification_providers(winner)
+        if not providers:
+            continue
         display_name = (
             getattr(winner, 'get_full_name', lambda: '')()
             or getattr(winner, 'full_name', '')
@@ -383,26 +417,21 @@ def send_auction_ended_email(auction_id, expected_end=None):
             )
 
         line_items_text = '\n'.join(line_items)
-        subject = f"نتیجه مزایده و صورتحساب اولیه «{auction.name}»"
-        message = f"""سلام {display_name}،
-
-مزایده «{auction.name}» به پایان رسیده و شما برنده نهایی مورد یا موارد زیر شده‌اید:
-
-{line_items_text}
-
-جمع کل صورتحساب اولیه: {_format_amount(total_amount)} تومان
-
-این مبلغ بر اساس قیمت نهایی ثبت‌شده در مزایده محاسبه شده و فاکتور اولیه شما محسوب می‌شود.
-
-با سپاس
-تیم ماه آکشن"""
+        sms_line_items_text = _build_sms_line_items_text(product_list)
+        formatted_total_amount = _format_amount(total_amount)
         try:
-            send_plain_email(
+            notification_service.send_template(
                 event='auction.winner.billing',
-                subject=subject,
-                message=message,
-                recipients=[winner.email],
-                fail_silently=False,
+                template='auction_Invoice',
+                providers=providers,
+                user=winner,
+                context={
+                    'auction_name': auction.name,
+                    'name': display_name,
+                    'line_items_text': line_items_text,
+                    'sms_line_items_text': sms_line_items_text,
+                    'formatted_total_amount': formatted_total_amount,
+                },
                 metadata={
                     'auction_id': str(auction.pk),
                     'winner_id': str(winner.pk),
