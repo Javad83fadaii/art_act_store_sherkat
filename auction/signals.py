@@ -7,7 +7,8 @@ from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 
-from core.emailing import send_plain_email
+from notifications.enums import NotificationProviderType
+from notifications.services import notification_service
 
 from .models import Bid, Auction
 from .tasks import (
@@ -36,29 +37,33 @@ def _send_bid_notification_emails(bid_id):
     current_user = bid.user
     product_title = getattr(bid.product, 'title', bid.product.product_id)
 
-    if current_user.email:
-        subject = "ثبت موفق پیشنهاد قیمت"
-        message = f"""کاربر گرامی {bid.user_fullname}،
-
-پیشنهاد قیمت شما به مبلغ {bid.bid_amount:,} تومان برای اثر «{product_title}» با موفقیت ثبت شد.
-
-تا زمانی که این پیشنهاد بالاترین پیشنهاد فعال باشد، این اثر در سبد خرید مزایده شما نگه داشته می‌شود.
-
-در صورت ثبت پیشنهاد بالاتر توسط کاربر دیگر، هم از طریق سامانه و هم ایمیل شما را مطلع می‌کنیم.
-
-با سپاس از همراهی شما
-تیم ماه آکشن"""
+    providers = []
+    if str(getattr(current_user, 'email', '') or '').strip():
+        providers.append(NotificationProviderType.EMAIL)
+    if str(getattr(current_user, 'phone_number', '') or '').strip():
+        providers.append(NotificationProviderType.SMS)
+    if providers:
+        display_name = (
+            getattr(current_user, 'get_full_name', lambda: '')()
+            or getattr(current_user, 'full_name', '')
+            or bid.user_fullname
+            or 'کاربر گرامی'
+        )
         try:
-            send_plain_email(
+            notification_service.send_template(
                 event='auction.bid.confirmed',
-                subject=subject,
-                message=message,
-                recipients=[current_user.email],
-                fail_silently=True,
+                template='add_bid',
+                providers=providers,
+                user=current_user,
+                context={
+                    'name': display_name,
+                    'product_title': product_title,
+                    'formatted_bid_amount': f'{bid.bid_amount:,}',
+                },
                 metadata={'bid_id': str(bid.pk)},
             )
         except Exception:
-            logger.exception("Bid confirmation email failed for bid %s", bid.pk)
+            logger.exception("Bid confirmation notification failed for bid %s", bid.pk)
 
     previous_highest_bid = (
         Bid.objects
@@ -73,34 +78,41 @@ def _send_bid_notification_emails(bid_id):
         return
 
     previous_user = previous_highest_bid.user
-    if previous_user.id == current_user.id or not previous_user.email:
+    if previous_user.id == current_user.id:
         return
 
-    outbid_subject = "رقابت ادامه دارد؛ پیشنهاد شما دیگر بالاترین قیمت نیست"
-    outbid_message = f"""سلام {previous_highest_bid.user_fullname}،
+    providers = []
+    if str(getattr(previous_user, 'email', '') or '').strip():
+        providers.append(NotificationProviderType.EMAIL)
+    if str(getattr(previous_user, 'phone_number', '') or '').strip():
+        providers.append(NotificationProviderType.SMS)
+    if not providers:
+        return
 
-پیشنهاد قیمت شما برای اثر «{product_title}» دیگر بالاترین پیشنهاد این مزایده نیست.
-
-بالاترین پیشنهاد فعلی: {bid.bid_amount:,} تومان
-
-به همین دلیل این اثر از سبد خرید مزایده شما خارج شد. در صورت تمایل می‌توانید دوباره پیشنهاد بالاتری ثبت کنید.
-
-با سپاس
-تیم ماه آکشن"""
+    display_name = (
+        getattr(previous_user, 'get_full_name', lambda: '')()
+        or getattr(previous_user, 'full_name', '')
+        or previous_highest_bid.user_fullname
+        or 'کاربر گرامی'
+    )
     try:
-        send_plain_email(
+        notification_service.send_template(
             event='auction.bid.outbid',
-            subject=outbid_subject,
-            message=outbid_message,
-            recipients=[previous_user.email],
-            fail_silently=True,
+            template='dell_bid',
+            providers=providers,
+            user=previous_user,
+            context={
+                'name': display_name,
+                'product_title': product_title,
+                'formatted_latest_bid_amount': f'{bid.bid_amount:,}',
+            },
             metadata={
                 'previous_bid_id': str(previous_highest_bid.pk),
                 'latest_bid_id': str(bid.pk),
             },
         )
     except Exception:
-        logger.exception("Outbid email failed for bid %s", bid.pk)
+        logger.exception("Outbid notification failed for bid %s", bid.pk)
 
 
 def _enqueue_bid_notification_emails(bid_id):

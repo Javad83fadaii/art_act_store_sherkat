@@ -321,10 +321,83 @@ def get_default_notification_templates() -> tuple[NotificationTemplate, ...]:
         )
     )
 
+    add_bid = NotificationTemplate(
+        key='add_bid',
+        default_providers=(
+            NotificationProviderType.EMAIL,
+            NotificationProviderType.SMS,
+        ),
+    )
+    add_bid_body = (
+        'سلام {name} گرامی\n\n'
+        'پیشنهاد شما به مبلغ {formatted_bid_amount} تومان برای اثر {product_title} با موفقیت ثبت شد.\n'
+        'تا زمانی که بالاترین پیشنهاد را داشته باشید، این اثر در سبد مزایده شما فعال می‌ماند.\n\n'
+        'با آرزوی موفقیت.\n'
+        'mahauction.com/'
+    )
+    add_bid.register_channel(
+        NotificationChannelTemplate(
+            provider=NotificationProviderType.EMAIL,
+            subject_template='ثبت موفق پیشنهاد قیمت',
+            body_template=add_bid_body,
+        )
+    )
+    add_bid.register_channel(
+        NotificationChannelTemplate(
+            provider=NotificationProviderType.SMS,
+            metadata={
+                'sms_pattern': 'add_bid',
+            },
+            context_map={
+                'name': 'NAME',
+                'product_title': 'PRODUCT_TITLE',
+                'formatted_bid_amount': 'FORMAT_AMOUNTBIDBID_AMOUNT',
+            },
+        )
+    )
+
+    dell_bid = NotificationTemplate(
+        key='dell_bid',
+        default_providers=(
+            NotificationProviderType.EMAIL,
+            NotificationProviderType.SMS,
+        ),
+    )
+    dell_bid_body = (
+        'سلام {name} گرامی\n\n'
+        'کاربر دیگری برای اثر {product_title} پیشنهاد بالاتری ثبت کرده است.\n'
+        'به همین دلیل این اثر از سبد مزایده فعال شما خارج شد.\n'
+        'پیشنهاد جدید ثبت‌شده: {formatted_latest_bid_amount} تومان\n\n'
+        'اگر همچنان مایل هستید، می‌توانید دوباره پیشنهاد جدید ثبت کنید.\n'
+        'mahauction.com/'
+    )
+    dell_bid.register_channel(
+        NotificationChannelTemplate(
+            provider=NotificationProviderType.EMAIL,
+            subject_template='محصول از سبد مزایده شما خارج شد',
+            body_template=dell_bid_body,
+        )
+    )
+    dell_bid.register_channel(
+        NotificationChannelTemplate(
+            provider=NotificationProviderType.SMS,
+            metadata={
+                'sms_pattern': 'dell_bid',
+            },
+            context_map={
+                'name': 'NAME',
+                'product_title': 'PRODUCT_TITLE',
+                'formatted_latest_bid_amount': 'FORMAT_AMOUNTLATEST_BIDBID_AMOUNT',
+            },
+        )
+    )
+
     return (
         verification,
         auction_started,
         auction_24h,
         auction_end,
         auction_invoice,
+        add_bid,
+        dell_bid,
     )

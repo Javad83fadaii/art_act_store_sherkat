@@ -190,6 +190,10 @@ class VerificationRequestModelTests(TestCase):
                 "code": "210072",
                 "variables": ("CODE",),
             },
+            "signup_welcome": {
+                "code": "377204",
+                "variables": ("NAME",),
+            },
         },
     )
     @patch("notifications.providers.sms.requests.post")
@@ -222,16 +226,36 @@ class VerificationRequestModelTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertRedirects(response, reverse("sms_verification"))
         deliveries = list(NotificationDelivery.objects.order_by("created_at"))
-        self.assertEqual(len(deliveries), 1)
-        self.assertEqual(deliveries[0].provider, "sms")
-        self.assertEqual(deliveries[0].event, "accounts.signup.verification_code")
+        self.assertEqual(len(deliveries), 2)
+        self.assertEqual(
+            [item.provider for item in deliveries],
+            ["sms", "sms"],
+        )
+        self.assertEqual(
+            [item.event for item in deliveries],
+            ["accounts.signup.welcome_sms", "accounts.signup.verification_code"],
+        )
         self.assertEqual(deliveries[0].recipients, ["9123337777"])
+        self.assertEqual(deliveries[0].metadata["pattern_name"], "signup_welcome")
+        self.assertEqual(deliveries[1].recipients, ["9123337777"])
+        self.assertEqual(deliveries[1].metadata["pattern_name"], "verification")
         self.assertEqual(NotificationDelivery.objects.filter(provider="email").count(), 0)
         self.assertEqual(mail.outbox, [])
         user = CustomUser.objects.get(phone_number="09123337777")
         self.assertFalse(user.is_active)
         self.assertTrue(SMSVerificationOTP.objects.filter(user=user, phone_number="09123337777").exists())
-        post_mock.assert_called_once()
+        self.assertEqual(post_mock.call_count, 2)
+        sent_template_ids = [call.kwargs["json"]["templateId"] for call in post_mock.call_args_list]
+        self.assertEqual(sent_template_ids, [377204, 210072])
+        self.assertEqual(
+            post_mock.call_args_list[0].kwargs["json"]["parameters"],
+            [
+                {
+                    "name": "NAME",
+                    "value": "کاربر پیامک",
+                },
+            ],
+        )
 
     @override_settings(
         EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
@@ -244,6 +268,10 @@ class VerificationRequestModelTests(TestCase):
             "verification": {
                 "code": "210072",
                 "variables": ("CODE",),
+            },
+            "signup_welcome": {
+                "code": "377204",
+                "variables": ("NAME",),
             },
         },
     )
@@ -279,17 +307,31 @@ class VerificationRequestModelTests(TestCase):
         user = CustomUser.objects.get(phone_number="09123338888")
         self.assertFalse(user.is_active)
         deliveries = list(NotificationDelivery.objects.order_by("created_at"))
-        self.assertEqual(len(deliveries), 2)
+        self.assertEqual(len(deliveries), 3)
         self.assertEqual(
             [item.provider for item in deliveries],
-            ["email", "email"],
+            ["sms", "email", "email"],
         )
         self.assertEqual(
             [item.event for item in deliveries],
-            ["accounts.signup.welcome", "accounts.signup.verification_code"],
+            [
+                "accounts.signup.welcome_sms",
+                "accounts.signup.welcome",
+                "accounts.signup.verification_code",
+            ],
         )
         self.assertEqual(len(mail.outbox), 2)
-        post_mock.assert_not_called()
+        post_mock.assert_called_once()
+        self.assertEqual(post_mock.call_args.kwargs["json"]["templateId"], 377204)
+        self.assertEqual(
+            post_mock.call_args.kwargs["json"]["parameters"],
+            [
+                {
+                    "name": "NAME",
+                    "value": "کاربر دوکاناله",
+                },
+            ],
+        )
 
     def test_signup_page_renders_newsletter_opt_in_field(self):
         response = self.client.get(reverse("signup"))
@@ -411,6 +453,10 @@ class VerificationRequestModelTests(TestCase):
                 "code": "210072",
                 "variables": ("CODE",),
             },
+            "signup_welcome": {
+                "code": "377204",
+                "variables": ("NAME",),
+            },
         },
     )
     @patch("notifications.providers.sms.requests.post")
@@ -447,8 +493,13 @@ class VerificationRequestModelTests(TestCase):
         self.assertIsNone(user.email)
         self.assertEqual(user.preferred_contact_methods, ["sms"])
         self.assertFalse(user.is_active)
-        self.assertEqual(NotificationDelivery.objects.count(), 1)
-        post_mock.assert_called_once()
+        deliveries = list(NotificationDelivery.objects.order_by("created_at"))
+        self.assertEqual(len(deliveries), 2)
+        self.assertEqual(
+            [item.event for item in deliveries],
+            ["accounts.signup.welcome_sms", "accounts.signup.verification_code"],
+        )
+        self.assertEqual(post_mock.call_count, 2)
 
     def test_signup_required_field_errors_are_localized_to_persian(self):
         response = self.client.post(reverse("signup"), {})

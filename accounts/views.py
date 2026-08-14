@@ -29,7 +29,7 @@ from core.emailing import normalize_email_value, send_plain_email
 from notifications.enums import NotificationProviderType
 from notifications.services import notification_service
 from .realtime import build_profile_live_context, build_profile_live_payload
-from .emails import send_verification_code_email, send_verification_code_sms, send_welcome_email
+from .emails import send_verification_code_email, send_verification_code_sms, send_welcome_email, send_welcome_sms
 from .models import CustomUser, VerificationRequest, CreditIncreaseRequest, EmailVerificationOTP, SMSVerificationOTP
 from .forms import (
     CustomUserCreationForm, 
@@ -295,6 +295,11 @@ class SignupView(View):
 
             sms_verification_error = None
             welcome_email_error = None
+            if _user_has_sms_contact_method(user):
+                try:
+                    send_welcome_sms(user=user)
+                except Exception:
+                    logger.exception("Signup welcome sms exception for user %s", user.pk)
             if _user_requires_email_verification(user):
                 try:
                     send_welcome_email(user=user)

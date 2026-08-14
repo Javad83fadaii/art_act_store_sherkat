@@ -125,6 +125,22 @@ class EmailProviderIntegrationTests(TestCase):
                 'FORMAT_AMOUNTTOTAL_AMOUNT',
             ),
         },
+        'add_bid': {
+            'code': '143304',
+            'variables': (
+                'NAME',
+                'PRODUCT_TITLE',
+                'FORMAT_AMOUNTBIDBID_AMOUNT',
+            ),
+        },
+        'dell_bid': {
+            'code': '456365',
+            'variables': (
+                'NAME',
+                'PRODUCT_TITLE',
+                'FORMAT_AMOUNTLATEST_BIDBID_AMOUNT',
+            ),
+        },
     },
 )
 class SMSProviderIntegrationTests(TestCase):
@@ -422,6 +438,110 @@ class SMSProviderIntegrationTests(TestCase):
                     },
                     {
                         'name': 'FORMAT_AMOUNTTOTAL_AMOUNT',
+                        'value': '12,500,000',
+                    },
+                ],
+            },
+            headers={
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-API-KEY': 'test-api-key',
+            },
+            timeout=9,
+        )
+
+    @patch('notifications.providers.sms.requests.post')
+    def test_send_template_maps_dell_bid_context_to_sms_pattern_variables(self, post_mock) -> None:
+        response = Mock()
+        response.ok = True
+        response.status_code = 200
+        response.text = '{"status": 1, "message": "موفق", "data": 778899}'
+        response.json.return_value = {
+            'status': 1,
+            'message': 'موفق',
+            'data': 778899,
+        }
+        post_mock.return_value = response
+
+        self.service.send_template(
+            template='dell_bid',
+            channels=['sms'],
+            user=SimpleNamespace(phone_number='09123456789'),
+            context={
+                'name': 'علی رضایی',
+                'product_title': 'تابلو آبی',
+                'formatted_latest_bid_amount': '12,500,000',
+            },
+        )
+
+        post_mock.assert_called_once_with(
+            'https://api.sms.ir/v1/send/verify',
+            json={
+                'mobile': '9123456789',
+                'templateId': 456365,
+                'parameters': [
+                    {
+                        'name': 'NAME',
+                        'value': 'علی رضایی',
+                    },
+                    {
+                        'name': 'PRODUCT_TITLE',
+                        'value': 'تابلو آبی',
+                    },
+                    {
+                        'name': 'FORMAT_AMOUNTLATEST_BIDBID_AMOUNT',
+                        'value': '12,500,000',
+                    },
+                ],
+            },
+            headers={
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-API-KEY': 'test-api-key',
+            },
+            timeout=9,
+        )
+
+    @patch('notifications.providers.sms.requests.post')
+    def test_send_template_maps_add_bid_context_to_sms_pattern_variables(self, post_mock) -> None:
+        response = Mock()
+        response.ok = True
+        response.status_code = 200
+        response.text = '{"status": 1, "message": "موفق", "data": 778899}'
+        response.json.return_value = {
+            'status': 1,
+            'message': 'موفق',
+            'data': 778899,
+        }
+        post_mock.return_value = response
+
+        self.service.send_template(
+            template='add_bid',
+            channels=['sms'],
+            user=SimpleNamespace(phone_number='09123456789'),
+            context={
+                'name': 'علی رضایی',
+                'product_title': 'تابلو آبی',
+                'formatted_bid_amount': '12,500,000',
+            },
+        )
+
+        post_mock.assert_called_once_with(
+            'https://api.sms.ir/v1/send/verify',
+            json={
+                'mobile': '9123456789',
+                'templateId': 143304,
+                'parameters': [
+                    {
+                        'name': 'NAME',
+                        'value': 'علی رضایی',
+                    },
+                    {
+                        'name': 'PRODUCT_TITLE',
+                        'value': 'تابلو آبی',
+                    },
+                    {
+                        'name': 'FORMAT_AMOUNTBIDBID_AMOUNT',
                         'value': '12,500,000',
                     },
                 ],

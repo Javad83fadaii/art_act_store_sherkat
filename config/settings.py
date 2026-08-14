@@ -361,6 +361,10 @@ SMS_PATTERNS = {
         'code': _get_first_setting('SMS_PATTERN_VERIFICATION_CODE') or '210072',
         'variables': ('CODE',),
     },
+    'signup_welcome': {
+        'code': _get_first_setting('SMS_PATTERN_SIGNUP_WELCOME_CODE') or '377204',
+        'variables': ('NAME',),
+    },
     'auction_started': {
         'code': _get_first_setting('SMS_PATTERN_AUCTION_STARTED_CODE') or '901013',
         'variables': (
@@ -389,6 +393,22 @@ SMS_PATTERNS = {
             'NAME',
             'LINE_ITEMS_TEXT',
             'FORMAT_AMOUNTTOTAL_AMOUNT',
+        ),
+    },
+    'add_bid': {
+        'code': _get_first_setting('SMS_PATTERN_ADD_BID_CODE') or '143304',
+        'variables': (
+            'NAME',
+            'PRODUCT_TITLE',
+            'FORMAT_AMOUNTBIDBID_AMOUNT',
+        ),
+    },
+    'dell_bid': {
+        'code': _get_first_setting('SMS_PATTERN_DELL_BID_CODE') or '456365',
+        'variables': (
+            'NAME',
+            'PRODUCT_TITLE',
+            'FORMAT_AMOUNTLATEST_BIDBID_AMOUNT',
         ),
     },
     'auction_starting_soon': {

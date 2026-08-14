@@ -17,7 +17,7 @@ from notifications.providers import NotificationSendResult
 from store.models import Artist, Artwork, ArtworkType, PurchaseHistory
 
 from .models import Auction, AuctionCartItem, AuctionProduct, AuctionVisitHistory
-from .signals import schedule_auction_emails
+from .signals import _send_bid_notification_emails, schedule_auction_emails
 from .tasks import (
     send_auction_ended_email,
     send_auction_ending_soon_email,
@@ -213,6 +213,65 @@ class AuctionBidCreditFlowTests(TestCase):
         submitted_callable, submitted_bid_id = submit_mock.call_args.args
         self.assertEqual(submitted_callable.__name__, '_send_bid_notification_emails')
         self.assertIsInstance(submitted_bid_id, int)
+
+    def test_bid_confirmation_notifications_send_add_bid_sms_for_sms_only_user(self):
+        self.user_one.email = ''
+        self.user_one.preferred_contact_methods = ['sms']
+        self.user_one.save(update_fields=['email', 'preferred_contact_methods'])
+
+        created_bid = self.product.place_bid(self.user_one, '200')
+
+        sms_res = NotificationSendResult(
+            provider=NotificationProviderType.SMS,
+            channel=NotificationChannel.SMS,
+            status=NotificationStatus.SENT,
+            recipients=['09120000001'],
+            detail='OK',
+        )
+
+        with patch('notifications.providers.EmailProvider.send') as mock_email_send, \
+             patch('notifications.providers.SMSProvider.send', return_value=sms_res) as mock_sms_send:
+            _send_bid_notification_emails(created_bid.pk)
+
+        mock_email_send.assert_not_called()
+        mock_sms_send.assert_called_once()
+        sms_payload = mock_sms_send.call_args.args[0]
+        self.assertEqual(sms_payload.event, 'auction.bid.confirmed')
+        self.assertEqual(sms_payload.metadata['sms_pattern'], 'add_bid')
+        self.assertEqual(sms_payload.context['NAME'], self.user_one.full_name)
+        self.assertEqual(sms_payload.context['PRODUCT_TITLE'], self.product.title)
+        self.assertEqual(sms_payload.context['FORMAT_AMOUNTBIDBID_AMOUNT'], '200')
+
+    def test_outbid_notifications_send_dell_bid_sms_for_sms_only_user(self):
+        self.user_one.email = ''
+        self.user_one.preferred_contact_methods = ['sms']
+        self.user_one.save(update_fields=['email', 'preferred_contact_methods'])
+        self.user_two.email = ''
+        self.user_two.save(update_fields=['email'])
+
+        self.product.place_bid(self.user_one, '200')
+        latest_bid = self.product.place_bid(self.user_two, '250')
+
+        sms_res = NotificationSendResult(
+            provider=NotificationProviderType.SMS,
+            channel=NotificationChannel.SMS,
+            status=NotificationStatus.SENT,
+            recipients=['09120000001'],
+            detail='OK',
+        )
+
+        with patch('notifications.providers.EmailProvider.send') as mock_email_send, \
+             patch('notifications.providers.SMSProvider.send', return_value=sms_res) as mock_sms_send:
+            _send_bid_notification_emails(latest_bid.pk)
+
+        mock_email_send.assert_not_called()
+        mock_sms_send.assert_called_once()
+        sms_payload = mock_sms_send.call_args.args[0]
+        self.assertEqual(sms_payload.event, 'auction.bid.outbid')
+        self.assertEqual(sms_payload.metadata['sms_pattern'], 'dell_bid')
+        self.assertEqual(sms_payload.context['NAME'], self.user_one.full_name)
+        self.assertEqual(sms_payload.context['PRODUCT_TITLE'], self.product.title)
+        self.assertEqual(sms_payload.context['FORMAT_AMOUNTLATEST_BIDBID_AMOUNT'], '250')
 
     def test_live_state_endpoint_returns_latest_price_and_history_html(self):
         self.product.place_bid(self.user_one, '200')
