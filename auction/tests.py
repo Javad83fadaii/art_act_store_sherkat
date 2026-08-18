@@ -920,11 +920,25 @@ class AuctionVisitTrackingTests(TestCase):
         self.assertIn('data-track-visit="1"', html)
         self.assertIn('data-track-guard="auction-access"', html)
 
-    def test_auction_product_detail_page_refresh_does_not_track_visit(self):
+    def test_auction_product_detail_page_is_public_for_guest_users(self):
         response = self.client.get(reverse('auction:auction_product_detail', kwargs={'pk': self.product.pk}))
 
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'ورود جهت ثبت پیشنهاد')
         self.assertEqual(AuctionVisitHistory.objects.count(), 0)
+
+    def test_auction_product_detail_page_is_public_for_unverified_users(self):
+        unverified_user = CustomUser.objects.create_user(
+            phone_number='09120000110',
+            password='Test@1234',
+            full_name='کاربر تاییدنشد‌ه',
+        )
+        self.client.force_login(unverified_user)
+
+        response = self.client.get(reverse('auction:auction_product_detail', kwargs={'pk': self.product.pk}))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="bid-submit-form"', html=False)
 
     def test_finished_auction_product_detail_is_public_without_bid_submission(self):
         winner = CustomUser.objects.create_user(

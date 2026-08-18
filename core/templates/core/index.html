@@ -626,7 +626,7 @@
     const statePending = document.getElementById('modal-state-pending');
     const modalDynamicContent = document.getElementById('modal-dynamic-content');
     window.canTrackAuctionVisit = function() {
-        return Boolean(userIsAuthenticated && userIsVerified);
+        return true;
     };
 
     document.addEventListener('DOMContentLoaded', function() {
@@ -634,30 +634,6 @@
         if (authModal) {
             document.body.appendChild(authModal);
         }
-
-        // هندل کردن باز شدن مدال بررسی دسترسی
-        document.querySelectorAll('.check-access-btn').forEach(function(btn) {
-
-            btn.addEventListener('click', function(e) {
-
-                if (!userIsAuthenticated) {
-                    e.preventDefault();
-                    window.openLoginRequiredModal(
-                        this.getAttribute('href'),
-                        'برای ورود به سالن مزایده، لطفاً ابتدا وارد حساب کاربری خود شوید.'
-                    );
-                    return;
-                }
-
-                if (!userIsVerified) {
-                    e.preventDefault();
-                    intendedTargetUrl = this.getAttribute('href');
-                    openAuthVerificationModal();
-                }
-
-            });
-
-        });
 
         // ==========================================
         // هندل کردن دکمه "ارسال درخواست" در مدال

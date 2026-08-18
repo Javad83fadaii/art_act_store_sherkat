@@ -388,9 +388,7 @@
         }
 
         function hasAuctionAccessForNavigation() {
-            if (isAuctionNotStarted() || isAuctionEnded()) return false;
-            if (!userIsAuthenticated) return false;
-            return userIsVerified;
+            return !isAuctionNotStarted() && !isAuctionEnded();
         }
 
         function canViewAuctionProductDetails() {
@@ -402,10 +400,10 @@
             if (link && link.dataset && link.dataset.trackKind === 'auction_product') {
                 return canViewAuctionProductDetails();
             }
-            return hasAuctionAccessForNavigation();
+            return true;
         };
 
-        function ensureAuctionAccess(targetUrl, loginMessage) {
+        function ensureBidAccess(targetUrl, loginMessage) {
             if (isAuctionNotStarted() || isAuctionEnded()) {
                 showInactiveAuctionToast();
                 return false;
@@ -416,7 +414,7 @@
             if (!userIsAuthenticated) {
                 window.openLoginRequiredModal(
                     targetUrl || (window.location.pathname + window.location.search),
-                    loginMessage || 'برای مشاهده جزئیات و شرکت در مزایده، لطفاً ابتدا وارد حساب کاربری خود شوید.'
+                    loginMessage || 'برای ثبت پیشنهاد در مزایده، لطفاً ابتدا وارد حساب کاربری خود شوید.'
                 );
                 return false;
             }
@@ -429,17 +427,6 @@
             document.querySelectorAll('a[data-auction-product-link="1"]').forEach(a => {
                 if (a.dataset.guardBound === '1') return;
                 a.dataset.guardBound = '1';
-
-                a.addEventListener('click', e => {
-                    if (canViewAuctionProductDetails()) return;
-
-                    if (!ensureAuctionAccess(
-                        a.getAttribute('href'),
-                        a.getAttribute('data-login-message') || 'برای مشاهده جزئیات محصول مزایده، لطفاً ابتدا وارد حساب کاربری خود شوید.'
-                    )) {
-                        e.preventDefault();
-                    }
-                });
             });
 
             document.querySelectorAll('button[data-auction-quick-bid="1"]').forEach(btn => {
@@ -845,7 +832,7 @@
                 showInactiveAuctionToast();
                 return;
             }
-            if (!ensureAuctionAccess(
+            if (!ensureBidAccess(
                 window.location.pathname + window.location.search,
                 'برای ثبت پیشنهاد در مزایده، لطفاً ابتدا وارد حساب کاربری خود شوید.'
             )) return;

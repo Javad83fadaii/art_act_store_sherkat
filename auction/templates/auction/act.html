@@ -220,13 +220,8 @@
 
 {% block extra_js %}
 <script>
-    const userIsAuthenticated = ("{{ request.user.is_authenticated|yesno:'true,false' }}" === "true");
-    const isVerifiedContext = ("{{ is_verified|yesno:'true,false' }}" === "true");
-    const isVerifiedModel = ("{{ request.user.is_verified|default:'0' }}" === "1") || ("{{ request.user.is_verified|yesno:'true,false' }}" === "true");
-    const userIsVerified = isVerifiedContext || isVerifiedModel;
-
     window.canTrackAuctionVisit = function() {
-        return Boolean(userIsAuthenticated && userIsVerified);
+        return true;
     };
 </script>
 

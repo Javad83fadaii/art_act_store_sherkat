@@ -155,34 +155,6 @@ def auction_product_detail(request, pk: int):
             return redirect(login_url)
         return _build_inactive_auction_redirect(product)
 
-    if is_active_auction and not request.user.is_authenticated:
-        login_url = f'{reverse("login")}?{urlencode({"next": request.path})}'
-        list_url = reverse('auction:auction_products', kwargs={'pk': product.auction.pk})
-        # return redirect(
-        #     f'{list_url}?{urlencode({"toast_message": "برای مشاهده جزئیات مزایده لطفاً وارد شوید.", "toast_type": "warning", "toast_action_label": "ورود", "toast_action_href": login_url})}'
-        # )
-        return redirect(list_url)
-
-    if (
-        is_active_auction
-        and int(getattr(request.user, 'is_verified', 0) or 0) != 1
-        and not has_winner_profile_access
-    ):
-        list_url = reverse('auction:auction_products', kwargs={'pk': product.auction.pk})
-        has_opt_in = request.user.has_pending_auction_request
-
-        if not has_opt_in:
-            edit_url = f'{reverse("edit_profile")}?{urlencode({"next": list_url})}'
-            # return redirect(
-            #     f'{list_url}?{urlencode({"toast_message": "برای شرکت در مزایده، گزینه «شرکت در مزایده» را فعال کنید.", "toast_type": "warning", "toast_action_label": "ویرایش", "toast_action_href": edit_url})}'
-            # )
-            return redirect(list_url)
-
-        # return redirect(
-        #     f'{list_url}?{urlencode({"toast_message": "درخواست شما ثبت شده و در انتظار تایید مدیران است.", "toast_type": "warning"})}'
-        # )
-        return redirect(list_url)
-
     # ----------------------------------
     # Query های بهینه
     # ----------------------------------
