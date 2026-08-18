@@ -2,7 +2,10 @@ import importlib.util
 
 celery_app = None
 if importlib.util.find_spec("celery") is not None:
-    from .celery import app as celery_app
+    try:
+        from .celery import app as celery_app
+    except Exception:
+        celery_app = None
 
 __all__ = ('celery_app',)
 
