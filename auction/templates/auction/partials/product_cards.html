@@ -55,7 +55,7 @@
                     <span class="text-xs text-neutral-500 dark:text-neutral-400 font-medium">قیمت پایه</span>
                     <span class="inline-flex items-center gap-1.5 text-sm text-neutral-900 dark:text-white whitespace-nowrap" dir="rtl">
                         <span class="font-en font-bold">
-                            {{ product.base_price|intcomma|fa_digits }}
+                            {{ product.base_price|fa_price }}
                         </span>
                         <img src="{% static 'images/toman-1.svg' %}"
                              alt="تومان"
@@ -67,7 +67,7 @@
                     <span class="text-xs text-neutral-500 dark:text-neutral-400 font-medium">قیمت نهایی</span>
                     <span class="inline-flex items-center gap-1.5 text-base text-primary" data-product-price-display dir="rtl">
                         <span class="font-en font-bold" data-amount-value>
-                            {{ product.current_price|default:product.base_price|intcomma|fa_digits }}
+                            {{ product.current_price|default:product.base_price|fa_price }}
                         </span>
                         <img src="{% static 'images/toman-1.svg' %}"
                              alt="تومان"

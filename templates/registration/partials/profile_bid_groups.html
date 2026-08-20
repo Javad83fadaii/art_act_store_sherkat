@@ -65,7 +65,7 @@
                                             <div class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_5px_currentColor]"></div>
                                         {% endif %}
                                         {% endwith %}
-                                        <span class="text-sm font-black {% if forloop.first %}text-gray-900 dark:text-white drop-shadow-sm{% else %}text-gray-600 dark:text-gray-300{% endif %}">{{ bid.bid_amount|floatformat:"0"|intcomma|fa_digits }} تومان</span>
+                                        <span class="text-sm font-black {% if forloop.first %}text-gray-900 dark:text-white drop-shadow-sm{% else %}text-gray-600 dark:text-gray-300{% endif %}">{{ bid.bid_amount|fa_price }} تومان</span>
                                     </div>
                                     <span class="text-[10px] {% if forloop.first %}font-semibold text-gray-700 dark:text-gray-300{% else %}font-medium text-gray-500 dark:text-gray-400{% endif %}">{{ bid.created_at|to_jalali:'%Y/%m/%d | %H:%M'|fa_digits }}</span>
                                 </div>

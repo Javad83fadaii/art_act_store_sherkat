@@ -12,7 +12,7 @@
                 {{ auction_cart_active_total|fa_digits }} آیتم فعال
             </span>
             <span class="px-3 py-1 bg-amber-100/70 dark:bg-amber-900/30 backdrop-blur-md border border-amber-200/70 dark:border-amber-700/50 text-amber-700 dark:text-amber-300 text-xs font-bold rounded-full shadow-sm">
-                {{ auction_reserved_credit|default:"0"|floatformat:"0"|intcomma|fa_digits }} تومان
+                {{ auction_reserved_credit|default:"0"|fa_price }} تومان
             </span>
         </div>
     </div>
@@ -70,7 +70,7 @@
                                         {% endif %}
 
                                         <span class="inline-flex items-center rounded-lg {% if item.is_active %}bg-amber-100/70 dark:bg-amber-900/30 border-amber-200/80 dark:border-amber-700/40 text-amber-700 dark:text-amber-300{% else %}bg-gray-200/70 dark:bg-gray-700/40 border-gray-300/80 dark:border-gray-600/60 text-gray-700 dark:text-gray-300{% endif %} border px-3 py-1 text-[11px] font-black">
-                                            {{ item.reserved_amount|floatformat:"0"|intcomma|fa_digits }} تومان
+                                            {{ item.reserved_amount|fa_price }} تومان
                                         </span>
 
                                         <span class="inline-flex items-center rounded-lg bg-white/40 dark:bg-gray-900/40 border border-white/50 dark:border-gray-600/40 px-3 py-1 text-[11px] font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
@@ -84,7 +84,7 @@
 
                                     {% if not item.is_active %}
                                         <div class="mt-2 text-[11px] text-amber-600 dark:text-amber-400 font-bold">
-                                            پیشنهاد شما، دیگر بالاترین پیشنهاد نیست. قیمت فعلی: {{ item.product.current_price|floatformat:"0"|intcomma|fa_digits }} تومان
+                                            پیشنهاد شما، دیگر بالاترین پیشنهاد نیست. قیمت فعلی: {{ item.product.current_price|fa_price }} تومان
                                         </div>
                                     {% endif %}
                                 </div>
@@ -127,7 +127,7 @@
                                                     <div class="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_5px_currentColor] shrink-0"></div>
                                                 {% endif %}
                                             {% endwith %}
-                                            <span class="text-sm font-black {% if forloop.first %}text-gray-900 dark:text-white{% else %}text-gray-600 dark:text-gray-300{% endif %}">{{ bid.bid_amount|floatformat:"0"|intcomma|fa_digits }} تومان</span>
+                                            <span class="text-sm font-black {% if forloop.first %}text-gray-900 dark:text-white{% else %}text-gray-600 dark:text-gray-300{% endif %}">{{ bid.bid_amount|fa_price }} تومان</span>
                                         </div>
                                         <span class="text-[10px] whitespace-nowrap {% if forloop.first %}font-semibold text-gray-700 dark:text-gray-300{% else %}font-medium text-gray-500 dark:text-gray-400{% endif %}">{{ bid.created_at|to_jalali:'%Y/%m/%d | %H:%M'|fa_digits }}</span>
                                     </div>
@@ -196,10 +196,10 @@
                                     </div>
                                     <div class="mt-3 flex flex-wrap items-center gap-2">
                                         <span class="inline-flex items-center rounded-lg bg-white/40 dark:bg-gray-900/40 border border-white/50 dark:border-gray-600/40 px-3 py-1 text-[11px] font-black text-gray-800 dark:text-gray-200">
-                                            بید شما: {{ item.reserved_amount|floatformat:"0"|intcomma|fa_digits }} تومان
+                                            بید شما: {{ item.reserved_amount|fa_price }} تومان
                                         </span>
                                         <span class="inline-flex items-center rounded-lg bg-primary/10 border border-primary/20 px-3 py-1 text-[11px] font-black text-primary">
-                                            قیمت نهایی: {{ item.product.current_price|floatformat:"0"|intcomma|fa_digits }} تومان
+                                            قیمت نهایی: {{ item.product.current_price|fa_price }} تومان
                                         </span>
                                         <span class="inline-flex items-center rounded-lg bg-white/40 dark:bg-gray-900/40 border border-white/50 dark:border-gray-600/40 px-3 py-1 text-[11px] font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
                                             پایان مزایده: {{ item.auction.end_date|to_jalali:'%Y/%m/%d | %H:%M'|fa_digits }}
