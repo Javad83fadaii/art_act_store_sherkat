@@ -392,8 +392,7 @@
         }
 
         function canViewAuctionProductDetails() {
-            if (isAuctionEnded()) return true;
-            return hasAuctionAccessForNavigation();
+            return true;
         }
 
         window.canTrackAuctionVisit = function(link) {
@@ -1127,7 +1126,7 @@
                         
                         if(img) img.classList.remove('grayscale');
                         
-                        if (overlayNotStarted) { overlayNotStarted.classList.remove('hidden'); overlayNotStarted.classList.add('flex'); }
+                        if (overlayNotStarted) { overlayNotStarted.classList.add('hidden'); overlayNotStarted.classList.remove('flex'); }
                         if (overlayEnded) { overlayEnded.classList.add('hidden'); overlayEnded.classList.remove('flex'); }
                         
                         // دکمه‌ها

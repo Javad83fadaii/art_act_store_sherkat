@@ -146,10 +146,11 @@ def auction_product_detail(request, pk: int):
     product = ensure_auction_product_winner(product)
     access_token = request.GET.get('access_token', '').strip()
     has_winner_profile_access = _has_finished_winner_profile_access(request, product, access_token)
+    is_ready_auction = product.auction.status == 'ready'
     is_active_auction = product.auction.status == 'ongoing'
     is_finished_auction = product.auction.status == 'finished'
 
-    if not is_active_auction and not is_finished_auction and not has_winner_profile_access:
+    if not is_ready_auction and not is_active_auction and not is_finished_auction and not has_winner_profile_access:
         if not request.user.is_authenticated and access_token:
             login_url = f'{reverse("login")}?{urlencode({"next": request.get_full_path()})}'
             return redirect(login_url)

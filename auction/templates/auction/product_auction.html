@@ -209,6 +209,8 @@
                                     {% else %}
                                         <span class="material-symbols-outlined text-[22px] text-neutral-600">schedule</span>
                                     {% endif %}
+                                {% elif auction.auction.status == 'ready' %}
+                                    <span class="material-symbols-outlined text-[22px] text-blue-500 animate-pulse">hourglass_empty</span>
                                 {% else %}
                                     <span class="material-symbols-outlined text-[22px] text-primary animate-hourglass">hourglass_top</span>
                                 {% endif %}
@@ -216,6 +218,9 @@
                                     {% if auction.auction.status == 'finished' %}
                                         <span class="text-xs font-bold text-neutral-700">وضعیت اثر</span>
                                         <span class="text-[10px] text-neutral-400">مزایده این اثر به پایان رسیده است</span>
+                                    {% elif auction.auction.status == 'ready' %}
+                                        <span class="text-xs font-bold text-blue-600">زمان باقی‌مانده</span>
+                                        <span class="text-[10px] text-neutral-400">تا شروع مزایده</span>
                                     {% else %}
                                         <span class="text-xs font-bold text-neutral-700">زمان باقی‌مانده</span>
                                         <span class="text-[10px] text-neutral-400">تا پایان مزایده</span>
@@ -227,6 +232,28 @@
                                 <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full {% if auction.winner_id %}bg-emerald-50 text-emerald-700 border border-emerald-200{% else %}bg-neutral-100 text-neutral-700 border border-neutral-200{% endif %}">
                                     <span class="material-symbols-outlined text-[18px]">{% if auction.winner_id %}gavel{% else %}event_busy{% endif %}</span>
                                     <span class="text-sm font-black">{% if auction.winner_id %}فروخته‌شده{% else %}پایان‌یافته{% endif %}</span>
+                                </div>
+                            {% elif auction.auction.status == 'ready' %}
+                                <div class="flex items-center gap-2 text-blue-600" dir="ltr" id="linear-timer" data-endtime="{{ auction.auction.start_date|date:'Y-m-d\\TH:i:s' }}">
+                                    <div class="flex flex-col items-center">
+                                        <span class="text-lg font-bold tabular-nums leading-none" id="l-days">۰۰</span>
+                                        <span class="text-[9px] text-neutral-400 uppercase mt-0.5">روز</span>
+                                    </div>
+                                    <span class="text-neutral-300 text-lg -mt-3">:</span>
+                                    <div class="flex flex-col items-center">
+                                        <span class="text-lg font-bold tabular-nums leading-none" id="l-hours">۰۰</span>
+                                        <span class="text-[9px] text-neutral-400 uppercase mt-0.5">ساعت</span>
+                                    </div>
+                                    <span class="text-neutral-300 text-lg -mt-3">:</span>
+                                    <div class="flex flex-col items-center">
+                                        <span class="text-lg font-bold tabular-nums leading-none" id="l-minutes">۰۰</span>
+                                        <span class="text-[9px] text-neutral-400 uppercase mt-0.5">دقیقه</span>
+                                    </div>
+                                    <span class="text-neutral-300 text-lg -mt-3">:</span>
+                                    <div class="flex flex-col items-center text-blue-500">
+                                        <span class="text-lg font-bold tabular-nums leading-none" id="l-seconds">۰۰</span>
+                                        <span class="text-[9px] text-blue-400 uppercase mt-0.5">ثانیه</span>
+                                    </div>
                                 </div>
                             {% else %}
                                 <div class="flex items-center gap-2 text-neutral-800" dir="ltr" id="linear-timer" data-endtime="{{ auction.end_time|date:'Y-m-d\\TH:i:s' }}">
@@ -307,6 +334,33 @@
                                         <span class="material-symbols-outlined text-[20px]">gavel</span>
                                         <span class="text-sm font-bold"> فروخته شده</span>
                                     </div> {% endcomment %}
+                                </div>
+                            </div>
+                        {% elif auction.auction.status == 'ready' %}
+                            <div class="relative overflow-hidden rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 via-white to-blue-100 p-6 sm:p-7">
+                                <div class="relative space-y-5">
+                                    <div class="w-16 h-16 rounded-2xl bg-blue-500 shadow-lg shadow-blue-500/25 text-white flex items-center justify-center">
+                                        <span class="material-symbols-outlined text-[30px]">hourglass_empty</span>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <h3 class="text-2xl font-black text-neutral-900">پیش‌نمایش اثر قبل از شروع مزایده</h3>
+                                        <p class="text-sm leading-7 text-neutral-600">
+                                            این اثر در حال حاضر در حالت پیش‌نمایش قرار دارد. ثبت پیشنهاد با آغاز رسمی مزایده امکان‌پذیر خواهد بود.
+                                        </p>
+                                    </div>
+                                    <div class="rounded-xl border border-white/70 bg-white/80 backdrop-blur-sm p-4">
+                                        <span class="text-xs font-bold text-neutral-500">قیمت پایه مزایده</span>
+                                        <div class="mt-2 flex items-baseline gap-1">
+                                            <span class="text-3xl font-extrabold text-neutral-900">
+                                                {{ auction.base_price|intcomma|fa_digits }}
+                                            </span>
+                                            <span class="text-sm font-bold text-neutral-500">تومان</span>
+                                        </div>
+                                    </div>
+                                    <div class="w-full flex items-center justify-center gap-2 bg-blue-50 text-blue-600 border border-blue-200 text-base font-bold py-4 rounded-xl cursor-not-allowed">
+                                        <span class="material-symbols-outlined text-[20px]">hourglass_top</span>
+                                        در انتظار شروع مزایده
+                                    </div>
                                 </div>
                             </div>
                         {% else %}
