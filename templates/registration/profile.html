@@ -27,7 +27,7 @@
                 <!-- بخش سمت راست: دکمه بازگشت و عنوان صفحه -->
                 <div class="flex items-center gap-4">
                     <!-- دکمه بازگشت با استایل جدید: کوچک‌تر و شیشه‌ای‌تر -->
-                    <button type="button" onclick="history.back()" 
+                    <button type="button" onclick="window.smartGoBack('{% url \'home\' %}')" 
                        class="group flex items-center justify-center w-8 h-8 bg-white/20 dark:bg-gray-800/30 backdrop-blur-lg border border-white/40 dark:border-gray-600/30 rounded-xl shadow-[0_4px_10px_rgba(0,0,0,0.05)] hover:shadow-[0_4px_15px_rgba(0,0,0,0.1)] hover:bg-white/40 dark:hover:bg-gray-700/50 transition-all duration-300 cursor-pointer shrink-0" 
                        title="بازگشت به صفحه قبل">
                         <svg class="w-4 h-4 text-gray-700 dark:text-gray-200 transform transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -178,7 +178,7 @@
                             </form>
                         {% else %}
                             <a class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-[#4B5563] hover:text-primary hover:bg-primary/5 dark:hover:bg-gray-800 rounded-xl transition-colors font-body"
-                                href="{% url 'login' %}">
+                                href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}">
                                 <span class="material-symbols-outlined text-[20px]">login</span>ورود
                             </a>
                             <a class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-[#4B5563] hover:text-primary hover:bg-primary/5 dark:hover:bg-gray-800 rounded-xl transition-colors font-body"

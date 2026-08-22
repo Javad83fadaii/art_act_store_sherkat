@@ -380,7 +380,7 @@
                 <div class="p-2">
                     <p class="text-xs text-text-secondary mb-2 px-1">حساب کاربری</p>
                     <div class="grid grid-cols-2 gap-2">
-                        <a href="{% url 'login' %}" class="flex items-center justify-center gap-2 py-2.5 px-3 bg-primary text-white rounded-lg text-sm font-bold shadow-md shadow-primary/20 hover:bg-primary-dark transition-colors">
+                        <a href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}" class="flex items-center justify-center gap-2 py-2.5 px-3 bg-primary text-white rounded-lg text-sm font-bold shadow-md shadow-primary/20 hover:bg-primary-dark transition-colors">
                             <span class="material-symbols-outlined text-[20px]">login</span>
                             ورود
                         </a>
@@ -933,64 +933,29 @@
                 }
             });
 
-            const pageHistoryKey = `page-dirty:${window.location.pathname}${window.location.search}`;
-            const backReloadKey = `back-forward-refresh:${window.location.pathname}${window.location.search}`;
+            // Smart Go Back helper for reliable navigation
+            window.smartGoBack = function(fallbackUrl) {
+                const hasHistory = window.history.length > 1;
+                let hasSameOriginReferrer = false;
+                try {
+                    if (document.referrer) {
+                        const refUrl = new URL(document.referrer);
+                        hasSameOriginReferrer = (refUrl.origin === window.location.origin);
+                    }
+                } catch (e) {}
 
-            window.markPageDirty = function() {
-                sessionStorage.setItem(pageHistoryKey, '1');
+                if (hasHistory && hasSameOriginReferrer) {
+                    window.history.back();
+                } else if (fallbackUrl) {
+                    window.location.href = fallbackUrl;
+                } else {
+                    window.location.href = '/';
+                }
             };
 
-            window.clearPageDirty = function() {
-                sessionStorage.removeItem(pageHistoryKey);
-            };
-
-            document.addEventListener('submit', function() {
-                window.markPageDirty();
-            }, true);
-
-            document.addEventListener('change', function(event) {
-                const field = event.target;
-                if (field && field.matches('input:not([type="hidden"]), select, textarea')) {
-                    window.markPageDirty();
-                }
-            }, true);
-
-            document.addEventListener('click', function(event) {
-                const trigger = event.target.closest('[data-mark-page-dirty], button, [role="button"], summary, a[href^="#"]');
-                if (trigger) {
-                    window.markPageDirty();
-                }
-            }, true);
-
-            window.addEventListener('pageshow', function(event) {
-                const navigationEntry = performance.getEntriesByType('navigation')[0];
-                const isBackForward = event.persisted || (navigationEntry && navigationEntry.type === 'back_forward');
-
-                if (!isBackForward) {
-                    sessionStorage.removeItem(pageHistoryKey);
-                    sessionStorage.removeItem(backReloadKey);
-                    return;
-                }
-
-                if (sessionStorage.getItem(pageHistoryKey) === '1') {
-                    sessionStorage.removeItem(pageHistoryKey);
-                    sessionStorage.removeItem(backReloadKey);
-                    requestAnimationFrame(() => {
-                        if (window.history.length > 1) {
-                            window.history.back();
-                        }
-                    });
-                    return;
-                }
-
-                if (sessionStorage.getItem(backReloadKey) === '1') {
-                    sessionStorage.removeItem(backReloadKey);
-                    return;
-                }
-
-                sessionStorage.setItem(backReloadKey, '1');
-                window.location.reload();
-            });
+            // Legacy compatibility stubs
+            window.markPageDirty = function() {};
+            window.clearPageDirty = function() {};
 
             const trackVisitUrl = "{% url 'track_public_visit' %}";
 
@@ -1003,7 +968,7 @@
                 if (navigator.sendBeacon) {
                     const blob = new Blob([payload], { type: 'application/json' });
                     const sent = navigator.sendBeacon(trackVisitUrl, blob);
-                    return sent ? Promise.resolve() : Promise.reject(new Error('sendBeacon failed'));
+                    if (sent) return Promise.resolve();
                 }
 
                 return fetch(trackVisitUrl, {
@@ -1012,7 +977,7 @@
                     body: payload,
                     keepalive: true,
                     credentials: 'same-origin',
-                }).then(() => undefined);
+                }).catch(() => undefined);
             }
 
             function shouldHandleTrackedLink(event, link) {
@@ -1032,32 +997,11 @@
 
                 const kind = link.dataset.trackKind;
                 const objectId = link.dataset.trackId;
-                const href = link.getAttribute('href');
 
-                if (!kind || !objectId || !href) return;
-
-                event.preventDefault();
-
-                if (link.dataset.trackingLocked === '1') {
-                    window.location.href = href;
-                    return;
-                }
-
-                link.dataset.trackingLocked = '1';
-
-                Promise.race([
-                    sendVisit(kind, objectId),
-                    new Promise((resolve) => setTimeout(resolve, 180)),
-                ]).finally(() => {
-                    window.location.href = href;
-                });
+                if (!kind || !objectId) return;
+                sendVisit(kind, objectId);
             }, true);
-
-            window.addEventListener('pageshow', function() {
-                document.querySelectorAll('a[data-track-visit="1"][data-tracking-locked="1"]').forEach(function(link) {
-                    delete link.dataset.trackingLocked;
-                });
-            });
+        })();
         })();
     </script>
 
