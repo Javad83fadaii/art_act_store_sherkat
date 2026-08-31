@@ -12,16 +12,25 @@
         <div class="h-2 bg-gradient-to-r from-primary/30 via-primary/80 to-primary/30"></div>
         
         <div class="p-6">
-            <!-- هدر با دکمه ویرایش -->
+            <!-- هدر با دکمه ویرایش و دکمه بازگشت -->
             <div class="flex justify-between items-start mb-6">
                 <h2 class="text-xl font-black text-gray-900 dark:text-white">اطلاعات کاربر</h2>
-                <button type="button" id="open-edit-user-modal"
-                   class="inline-flex items-center gap-2 px-4 py-2 text-sm font-bold text-white bg-primary hover:bg-primary/90 rounded-xl transition-all duration-300 shadow-sm">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
-                    </svg>
-                    ویرایش اطلاعات
-                </button>
+                <div class="flex items-center gap-3">
+                    <button type="button" onclick="window.smartGoBack('{% url 'admin_panel_pages:users' %}')"
+                       class="inline-flex items-center gap-2 px-4 py-2 text-sm font-bold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 rounded-xl transition-all duration-300 shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                        </svg>
+                        بازگشت به لیست
+                    </button>
+                    <button type="button" id="open-edit-user-modal"
+                       class="inline-flex items-center gap-2 px-4 py-2 text-sm font-bold text-white bg-primary hover:bg-primary/90 rounded-xl transition-all duration-300 shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+                        </svg>
+                        ویرایش اطلاعات
+                    </button>
+                </div>
             </div>
             
             <div class="flex flex-col sm:flex-row items-center gap-6 mb-6">
@@ -59,11 +68,11 @@
                 <div class="flex gap-4">
                     <div class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-500/10 dark:to-blue-600/10 rounded-xl p-4 border border-blue-200 dark:border-blue-500/20">
                         <div class="text-xs font-bold text-blue-600 dark:text-blue-400 mb-1">اعتبار کل</div>
-                        <div id="user-total-credit-display" class="text-lg font-black text-blue-700 dark:text-blue-300">{{ user.credit|floatformat:0|default:"0" }}</div>
+                        <div id="user-total-credit-display" class="text-lg font-black text-blue-700 dark:text-blue-300">{{ user.credit|default:"0"|fa_price }}</div>
                     </div>
                     <div class="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-500/10 dark:to-green-600/10 rounded-xl p-4 border border-green-200 dark:border-green-500/20">
                         <div class="text-xs font-bold text-green-600 dark:text-green-400 mb-1">اعتبار فعلی</div>
-                        <div id="user-current-credit-display" class="text-lg font-black text-green-700 dark:text-green-300">{{ user.current_credit|floatformat:0|default:"0" }}</div>
+                        <div id="user-current-credit-display" class="text-lg font-black text-green-700 dark:text-green-300">{{ user.current_credit|default:"0"|fa_price }}</div>
                     </div>
                 </div>
             </div>
@@ -118,6 +127,17 @@
                             {% if 'telegram' in user.preferred_contact_methods %}
                                 <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-black bg-cyan-50 text-cyan-700 dark:bg-cyan-500/10 dark:text-cyan-300">تلگرام</span>
                             {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-500/10 flex items-center justify-center shrink-0">
+                        <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h18M5 7l1 11a2 2 0 002 2h8a2 2 0 002-2l1-11M10 11v6M14 11v6M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"></path></svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">خبرنامه و کاتالوگ</div>
+                        <div id="user-newsletter-display" class="text-sm font-black text-gray-900 dark:text-white">
+                            {% if user.newsletter_catalog_opt_in %}بله{% else %}خیر{% endif %}
                         </div>
                     </div>
                 </div>
@@ -404,6 +424,12 @@
                         <label class="block text-xs font-black text-text-muted mb-2">آدرس</label>
                         <input type="text" name="address_street" class="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-primary">
                     </div>
+                    <div class="md:col-span-2 xl:col-span-3 rounded-2xl border border-emerald-100 dark:border-emerald-500/20 bg-emerald-50/70 dark:bg-emerald-500/5 p-4">
+                        <label class="flex items-center gap-3 text-sm font-bold text-gray-800 dark:text-gray-200">
+                            <input type="checkbox" name="newsletter_catalog_opt_in" class="rounded border-gray-300 text-primary focus:ring-primary">
+                            کاربر مایل به دریافت خبرنامه و کاتالوگ است
+                        </label>
+                    </div>
                     <div class="md:col-span-2 xl:col-span-3 rounded-2xl border border-blue-100 dark:border-blue-500/20 bg-blue-50/70 dark:bg-blue-500/5 p-4">
                         <div class="flex flex-col gap-3">
                             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -504,12 +530,12 @@ function formatDate(isoString) {
 }
 
 function formatNumber(num) {
-    return Number(num || 0).toLocaleString('fa-IR');
+    return Number(num || 0).toLocaleString('fa-IR').replace(/٬/g, ',');
 }
 
 function formatDollar(price) {
     const raw = (price === null || price === undefined) ? '' : String(price);
-    const n = Number(raw.replace(/,/g, ''));
+    const n = Number(raw.replace(/[,\u066C]/g, ''));
     if (!Number.isFinite(n)) return raw || '-';
     return '$' + n.toLocaleString('en-US', { maximumFractionDigits: 2, minimumFractionDigits: 0 });
 }
@@ -527,7 +553,7 @@ function normalizeNumericValue(value) {
     const digitMap = { '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4', '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9' };
     const normalized = String(value ?? '')
         .replace(/[۰-۹]/g, (digit) => digitMap[digit] || digit)
-        .replace(/,/g, '')
+        .replace(/[,\u066C]/g, '')
         .trim();
     const parsed = Number(normalized);
     return Number.isFinite(parsed) ? parsed : 0;
@@ -653,6 +679,7 @@ function updatePageUserSnapshot(user) {
     updateOptionalRow('user-email-row', 'user-email-display', user.email || '');
     updateOptionalRow('user-telegram-row', 'user-telegram-display', user.telegram_id || '');
     updatePreferredContactMethods(user.preferred_contact_methods || []);
+    setTextContent('user-newsletter-display', user.newsletter_catalog_opt_in ? 'بله' : 'خیر');
     updateOptionalRow('user-address-row', 'user-address-display', addressText);
     updateOptionalRow('user-description-box', 'user-description-display', user.description || '');
 }
@@ -746,7 +773,7 @@ function populateEditForm(user) {
         input.checked = preferredContactMethods.includes(input.value);
     });
 
-    ['is_active', 'is_staff', 'is_superuser', 'clear_profile_picture'].forEach((name) => {
+    ['is_active', 'is_staff', 'is_superuser', 'clear_profile_picture', 'newsletter_catalog_opt_in'].forEach((name) => {
         if (form.elements[name]) {
             form.elements[name].checked = name === 'clear_profile_picture' ? false : Boolean(user[name]);
         }
@@ -790,6 +817,13 @@ function closeEditModal() {
     document.getElementById('edit-user-modal').classList.add('hidden');
     document.body.classList.remove('overflow-hidden');
     showEditErrors([]);
+    try {
+        const url = new URL(window.location.href);
+        if (url.searchParams.has('edit')) {
+            url.searchParams.delete('edit');
+            window.history.replaceState({}, '', url.pathname + url.search);
+        }
+    } catch (e) {}
 }
 
 function switchTab(tabName) {
@@ -1180,7 +1214,7 @@ function renderPagination(containerId, totalPages, currentPage, onPageChange) {
         pageBtn.className = i === currentPage ?
             'px-3 py-1 rounded-lg bg-primary text-white font-black' :
             'px-3 py-1 rounded-lg bg-gray-100 dark:bg-white/10 text-text-main dark:text-white hover:bg-primary hover:text-white transition-colors';
-        pageBtn.textContent = i.toLocaleString('fa-IR');
+        pageBtn.textContent = i.toLocaleString('fa-IR').replace(/٬/g, ',');
         pageBtn.onclick = () => onPageChange(i);
         container.appendChild(pageBtn);
     }

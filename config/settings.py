@@ -1,6 +1,7 @@
 from pathlib import Path
 import importlib.util
 import os
+import sys
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -82,6 +83,8 @@ ALLOWED_HOSTS = list(set(_allowed_hosts_from_env + [
     "mah.test",
     "192.168.50.242",
     "192.168.50.219",
+    "mahauction.com",
+    "www.mahauction.com",
     "mahauction.ir",          
     "www.mahauction.ir",      
 ]))
@@ -100,6 +103,7 @@ INSTALLED_APPS = [
     'store.apps.StoreConfig',
     'auction',
     'core',
+    'notifications.apps.NotificationsConfig',
     'accounts.apps.AccountsConfig',
     'admin_panel',
 ]
@@ -116,6 +120,8 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'auction.middleware.AuctionEmailDispatchMiddleware',
+    'accounts.middleware.EmailVerificationRequiredMiddleware',
     'core.middleware.ErrorLoggingMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -162,6 +168,12 @@ DATABASES = {
     }
 }
 
+if 'test' in sys.argv:
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'test_db.sqlite3',
+    }
+
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -190,40 +202,68 @@ AUTH_USER_MODEL = 'accounts.CustomUser'
 # Security Settings (HTTPS & Cookie Configs)
 # ==========================================
 # مقدار پیش‌فرض به True تغییر یافت تا تنظیمات امنیتی در سرور اعمال شوند
-USE_HTTPS = _as_bool(_get_first_setting("USE_HTTPS", "SECURE_SSL_REDIRECT"), default=True)
+# اگر DEBUG=True باشد (محیط توسعه)، HTTPS غیرفعال می‌شود.
+# اگر DEBUG=False باشد (محیط سرور)، مقدار USE_HTTPS از .env خوانده می‌شود.
+if DEBUG:
+    USE_HTTPS = False
+else:
+    USE_HTTPS = _as_bool(
+        _get_first_setting("USE_HTTPS", "SECURE_SSL_REDIRECT"),
+        default=True
+    )
 
 SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SAMESITE = "Lax"
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 SESSION_COOKIE_AGE = 86400
 
 if USE_HTTPS:
-    # این تنظیمات برای استفاده از دامنه و گواهی SSL (HTTPS) فعال خواهند شد
+    # تنظیمات محیط Production
     SECURE_SSL_REDIRECT = True
     CSRF_COOKIE_SECURE = True
     SESSION_COOKIE_SECURE = True
+
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
-    X_FRAME_OPTIONS = 'DENY'
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    X_FRAME_OPTIONS = "DENY"
+
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 else:
+    # تنظیمات محیط Development
     SECURE_SSL_REDIRECT = False
     CSRF_COOKIE_SECURE = False
-    SESSION_COOKIE_SECURE = _as_bool(_get_first_setting("SESSION_COOKIE_SECURE"), default=False)
-    X_FRAME_OPTIONS = 'SAMEORIGIN'
+    SESSION_COOKIE_SECURE = False
+
+    SECURE_BROWSER_XSS_FILTER = False
+    SECURE_CONTENT_TYPE_NOSNIFF = False
+    X_FRAME_OPTIONS = "SAMEORIGIN"
+
+    SECURE_PROXY_SSL_HEADER = None
 
 
-# بررسی خودکار دامنه‌های خوانده شده از .env و اضافه کردن https:// در صورت نیاز
-_raw_csrf_origins = _as_csv_list(_get_first_setting("DJANGO_CSRF_TRUSTED_ORIGINS", "CSRF_TRUSTED_ORIGINS"))
+# بررسی خودکار دامنه‌های CSRF
+_raw_csrf_origins = _as_csv_list(
+    _get_first_setting(
+        "DJANGO_CSRF_TRUSTED_ORIGINS",
+        "CSRF_TRUSTED_ORIGINS"
+    )
+)
+
 _processed_csrf_origins = []
+
 for origin in _raw_csrf_origins:
-    if not origin.startswith("http://") and not origin.startswith("https://"):
-        _processed_csrf_origins.append(f"https://{origin}")
-    else:
+    if origin.startswith(("http://", "https://")):
         _processed_csrf_origins.append(origin)
+    else:
+        scheme = "https" if USE_HTTPS else "http"
+        _processed_csrf_origins.append(f"{scheme}://{origin}")
+
+CSRF_TRUSTED_ORIGINS = _processed_csrf_origins
 
 # ترکیب مقادیر .env با پیش‌فرض‌ها
 CSRF_TRUSTED_ORIGINS = list(set(_processed_csrf_origins + [
+    "https://mahauction.com",
+    "https://www.mahauction.com",
     "https://mahauction.ir",
     "https://www.mahauction.ir",
     "http://127.0.0.1",
@@ -280,3 +320,102 @@ TELEGRAM_STORE_MESSAGE_THREAD_ID = 9
 TELEGRAM_AUCTION_MESSAGE_THREAD_ID = 11
 TELEGRAM_CREDIT_MESSAGE_THREAD_ID = 29
 TELEGRAM_MESSAGE_THREAD_ID = TELEGRAM_STORE_MESSAGE_THREAD_ID
+
+# ==========================================
+# Celery & Redis Configuration
+# ==========================================
+CELERY_BROKER_URL = _get_first_setting('CELERY_BROKER_URL') or 'redis://127.0.0.1:6379/0'
+CELERY_RESULT_BACKEND = _get_first_setting('CELERY_RESULT_BACKEND') or 'redis://127.0.0.1:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE
+
+# ==========================================
+# Email SMTP Configuration
+# ==========================================
+EMAIL_BACKEND = _get_first_setting('EMAIL_BACKEND') or 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = _get_first_setting('EMAIL_HOST') or 'smtp.gmail.com'
+EMAIL_PORT = int(_get_first_setting('EMAIL_PORT') or 587)
+EMAIL_USE_TLS = _as_bool(_get_first_setting('EMAIL_USE_TLS'), default=True)
+EMAIL_USE_SSL = _as_bool(_get_first_setting('EMAIL_USE_SSL'), default=False)
+EMAIL_HOST_USER = _get_first_setting('EMAIL_HOST_USER') or ''
+EMAIL_HOST_PASSWORD = _get_first_setting('EMAIL_HOST_PASSWORD') or ''
+DEFAULT_FROM_EMAIL = _get_first_setting('DEFAULT_FROM_EMAIL') or EMAIL_HOST_USER
+SERVER_EMAIL = _get_first_setting('SERVER_EMAIL') or DEFAULT_FROM_EMAIL
+EMAIL_TIMEOUT = int(_get_first_setting('EMAIL_TIMEOUT') or 30)
+
+if EMAIL_USE_TLS and EMAIL_USE_SSL:
+    raise RuntimeError("EMAIL_USE_TLS and EMAIL_USE_SSL cannot both be enabled at the same time.")
+
+# ==========================================
+# SMS.ir Configuration
+# ==========================================
+SMS_IR_API_KEY = _get_first_setting('SMS_IR_API_KEY') or ''
+SMS_IR_BASE_URL = (_get_first_setting('SMS_IR_BASE_URL') or 'https://api.sms.ir').rstrip('/')
+SMS_IR_VERIFY_ENDPOINT = _get_first_setting('SMS_IR_VERIFY_ENDPOINT') or '/v1/send/verify'
+SMS_IR_TIMEOUT = int(_get_first_setting('SMS_IR_TIMEOUT') or 30)
+
+SMS_PATTERNS = {
+    'verification': {
+        'code': _get_first_setting('SMS_PATTERN_VERIFICATION_CODE') or '210072',
+        'variables': ('CODE',),
+    },
+    'signup_welcome': {
+        'code': _get_first_setting('SMS_PATTERN_SIGNUP_WELCOME_CODE') or '377204',
+        'variables': ('NAME',),
+    },
+    'auction_started': {
+        'code': _get_first_setting('SMS_PATTERN_AUCTION_STARTED_CODE') or '901013',
+        'variables': (
+            'AUCTIONNAME',
+        ),
+    },
+    'auction_24h': {
+        'code': _get_first_setting('SMS_PATTERN_AUCTION_24H_CODE') or '962018',
+        'variables': (
+            'AUCTIONNAME',
+            'AUCTIONSTART_DATE',
+        ),
+    },
+    'auction_end': {
+        'code': _get_first_setting('SMS_PATTERN_AUCTION_END_CODE') or '174933',
+        'variables': (
+            'AUCTIONNAME',
+            'NAME',
+            'AUCTIONEND_DATE',
+        ),
+    },
+    'auction_Invoice': {
+        'code': _get_first_setting('SMS_PATTERN_AUCTION_INVOICE_CODE') or '600256',
+        'variables': (
+            'AUCTIONNAME',
+            'NAME',
+            'LINE_ITEMS_TEXT',
+            'FORMAT_AMOUNTTOTAL_AMOUNT',
+        ),
+    },
+    'add_bid': {
+        'code': _get_first_setting('SMS_PATTERN_ADD_BID_CODE') or '143304',
+        'variables': (
+            'NAME',
+            'PRODUCT_TITLE',
+            'FORMAT_AMOUNTBIDBID_AMOUNT',
+        ),
+    },
+    'dell_bid': {
+        'code': _get_first_setting('SMS_PATTERN_DELL_BID_CODE') or '456365',
+        'variables': (
+            'NAME',
+            'PRODUCT_TITLE',
+            'FORMAT_AMOUNTLATEST_BIDBID_AMOUNT',
+        ),
+    },
+    'auction_starting_soon': {
+        'code': _get_first_setting('SMS_PATTERN_AUCTION_STARTING_SOON_CODE') or '962018',
+        'variables': (
+            'auction_name',
+            'auctionstart_date',
+        ),
+    },
+}

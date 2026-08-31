@@ -50,12 +50,7 @@
                     {% endif %}
                 </div>
 
-                {% if auction.auction.status == 'finished' and auction.winner_id %}
-                    <div class="absolute top-4 left-4 z-20 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-600/95 text-white shadow-lg border border-white/20 backdrop-blur-sm">
-                        <span class="material-symbols-outlined text-[18px]">check_circle</span>
-                        <span class="text-xs sm:text-sm font-black">فروخته شد</span>
-                    </div>
-                {% endif %}
+                
 
                 <button id="next-slide" class="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white/80 hover:bg-white backdrop-blur-md border border-white/50 rounded-full flex items-center justify-center text-neutral-700 hover:text-primary shadow-md transition-all opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0 duration-300" type="button">
                     <span class="material-symbols-outlined">chevron_left</span>
@@ -168,15 +163,16 @@
                 
                 <!-- بخش هدر: عنوان و مشخصات -->
                 <div class="border-b border-neutral-200 pb-6 animate-fadeIn" style="animation-delay: 0.1s;">
+
                     <h1 class="text-4xl lg:text-5xl font-bold text-neutral-900 mb-3 tracking-tight leading-tight">
-                        {{ auction.display_title|fa_digits }}
+                        {% include 'partials/lot_badge_title.html' with lot=auction.lot title=auction.title %}
                     </h1>
                     <h2 class="text-2xl lg:text-3xl text-neutral-600 font-medium mb-6">
                     {{ auction.artist.name|fa_digits }}
-                    </h2>
+                    </h2> 
                     
                     <div class="flex flex-wrap gap-y-3 gap-x-6 text-sm text-secondary-text font-medium">
-                        {% if auction.creation_year %}
+                        {% comment %} {% if auction.creation_year %}
                         <div class="flex items-center gap-2">
                             <span class="material-symbols-outlined text-[20px] text-neutral-400">calendar_month</span>
                             <span>{{ auction.creation_year|fa_digits }}</span>
@@ -185,7 +181,7 @@
                         <div class="flex items-center gap-2">
                             <span class="material-symbols-outlined text-[20px] text-neutral-400">square_foot</span>
                             <span id="product-dimensions">{{ auction.dimensions|default:"—"|fa_digits }}</span>
-                        </div>
+                        </div> {% endcomment %}
                         {% comment %} {% if auction.authenticity_status == 0 %}
                             <div class="flex items-center gap-2 text-primary bg-primary/10 px-2.5 py-1 rounded-full border border-primary/20">
                                 <span class="material-symbols-outlined text-[18px] filled">verified</span>
@@ -207,15 +203,24 @@
                     <div class="px-6 sm:px-8 py-5 border-b border-neutral-100 bg-neutral-50/30">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-2.5">
-                                {% if auction.auction.status == 'finished' and auction.winner_id %}
-                                    <span class="material-symbols-outlined text-[22px] text-emerald-600">verified</span>
+                                {% if auction.auction.status == 'finished' %}
+                                    {% if auction.winner_id %}
+                                        <span class="material-symbols-outlined text-[22px] text-emerald-600">verified</span>
+                                    {% else %}
+                                        <span class="material-symbols-outlined text-[22px] text-neutral-600">schedule</span>
+                                    {% endif %}
+                                {% elif auction.auction.status == 'ready' %}
+                                    <span class="material-symbols-outlined text-[22px] text-blue-500 animate-pulse">hourglass_empty</span>
                                 {% else %}
                                     <span class="material-symbols-outlined text-[22px] text-primary animate-hourglass">hourglass_top</span>
                                 {% endif %}
                                 <div class="flex flex-col">
-                                    {% if auction.auction.status == 'finished' and auction.winner_id %}
+                                    {% if auction.auction.status == 'finished' %}
                                         <span class="text-xs font-bold text-neutral-700">وضعیت اثر</span>
                                         <span class="text-[10px] text-neutral-400">مزایده این اثر به پایان رسیده است</span>
+                                    {% elif auction.auction.status == 'ready' %}
+                                        <span class="text-xs font-bold text-blue-600">زمان باقی‌مانده</span>
+                                        <span class="text-[10px] text-neutral-400">تا شروع مزایده</span>
                                     {% else %}
                                         <span class="text-xs font-bold text-neutral-700">زمان باقی‌مانده</span>
                                         <span class="text-[10px] text-neutral-400">تا پایان مزایده</span>
@@ -223,10 +228,32 @@
                                 </div>
                             </div>
 
-                            {% if auction.auction.status == 'finished' and auction.winner_id %}
-                                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                    <span class="material-symbols-outlined text-[18px]">gavel</span>
-                                    <span class="text-sm font-black">فروخته‌شده</span>
+                            {% if auction.auction.status == 'finished' %}
+                                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full {% if auction.winner_id %}bg-emerald-50 text-emerald-700 border border-emerald-200{% else %}bg-neutral-100 text-neutral-700 border border-neutral-200{% endif %}">
+                                    <span class="material-symbols-outlined text-[18px]">{% if auction.winner_id %}gavel{% else %}event_busy{% endif %}</span>
+                                    <span class="text-sm font-black">{% if auction.winner_id %}فروخته‌شده{% else %}پایان‌یافته{% endif %}</span>
+                                </div>
+                            {% elif auction.auction.status == 'ready' %}
+                                <div class="flex items-center gap-2 text-blue-600" dir="ltr" id="linear-timer" data-endtime="{{ auction.auction.start_date|date:'Y-m-d\\TH:i:s' }}">
+                                    <div class="flex flex-col items-center">
+                                        <span class="text-lg font-bold tabular-nums leading-none" id="l-days">۰۰</span>
+                                        <span class="text-[9px] text-neutral-400 uppercase mt-0.5">روز</span>
+                                    </div>
+                                    <span class="text-neutral-300 text-lg -mt-3">:</span>
+                                    <div class="flex flex-col items-center">
+                                        <span class="text-lg font-bold tabular-nums leading-none" id="l-hours">۰۰</span>
+                                        <span class="text-[9px] text-neutral-400 uppercase mt-0.5">ساعت</span>
+                                    </div>
+                                    <span class="text-neutral-300 text-lg -mt-3">:</span>
+                                    <div class="flex flex-col items-center">
+                                        <span class="text-lg font-bold tabular-nums leading-none" id="l-minutes">۰۰</span>
+                                        <span class="text-[9px] text-neutral-400 uppercase mt-0.5">دقیقه</span>
+                                    </div>
+                                    <span class="text-neutral-300 text-lg -mt-3">:</span>
+                                    <div class="flex flex-col items-center text-blue-500">
+                                        <span class="text-lg font-bold tabular-nums leading-none" id="l-seconds">۰۰</span>
+                                        <span class="text-[9px] text-blue-400 uppercase mt-0.5">ثانیه</span>
+                                    </div>
                                 </div>
                             {% else %}
                                 <div class="flex items-center gap-2 text-neutral-800" dir="ltr" id="linear-timer" data-endtime="{{ auction.end_time|date:'Y-m-d\\TH:i:s' }}">
@@ -259,25 +286,29 @@
                          data-current-price="{{ auction.current_price|default:auction.base_price }}" 
                          data-min-next="{{ auction.get_min_next_bid }}" 
                          data-bid-value="{{ auction.bid_value }}">
-                        {% if auction.auction.status == 'finished' and auction.winner_id %}
-                            <div class="relative overflow-hidden rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-100 p-6 sm:p-7">
-                                <div class="absolute -top-10 -left-10 w-32 h-32 rounded-full bg-emerald-200/40 blur-2xl"></div>
-                                <div class="absolute -bottom-12 -right-10 w-36 h-36 rounded-full bg-emerald-300/30 blur-3xl"></div>
+                        {% if auction.auction.status == 'finished' %}
+                            <div class="relative overflow-hidden rounded-2xl {% if auction.winner_id %}border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-100{% else %}border border-neutral-200 bg-gradient-to-br from-neutral-50 via-white to-neutral-100{% endif %} p-6 sm:p-7">
+                                <div class="absolute -top-10 -left-10 w-32 h-32 rounded-full {% if auction.winner_id %}bg-emerald-200/40{% else %}bg-neutral-200/50{% endif %} blur-2xl"></div>
+                                <div class="absolute -bottom-12 -right-10 w-36 h-36 rounded-full {% if auction.winner_id %}bg-emerald-300/30{% else %}bg-neutral-300/40{% endif %} blur-3xl"></div>
                                 <div class="relative space-y-5">
-                                    <div class="w-16 h-16 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-600/25">
-                                        <span class="material-symbols-outlined text-[30px]">workspace_premium</span>
+                                    <div class="w-16 h-16 rounded-2xl {% if auction.winner_id %}bg-emerald-600 shadow-lg shadow-emerald-600/25{% else %}bg-neutral-800 shadow-lg shadow-neutral-800/20{% endif %} text-white flex items-center justify-center">
+                                        <span class="material-symbols-outlined text-[30px]">{% if auction.winner_id %}workspace_premium{% else %}event_busy{% endif %}</span>
                                     </div>
                                     <div class="space-y-2">
-                                        <h3 class="text-2xl font-black text-neutral-900">این اثر فروخته شد</h3>
+                                        <h3 class="text-2xl font-black text-neutral-900">{% if auction.winner_id %}این اثر فروخته شد{% else %}مزایده این اثر پایان یافت{% endif %}</h3>
                                         <p class="text-sm leading-7 text-neutral-600">
-                                            این مزایده به پایان رسیده و این اثر با بالاترین پیشنهاد نهایی شده است.
+                                            {% if auction.winner_id %}
+                                                این مزایده به پایان رسیده و این اثر با بالاترین پیشنهاد نهایی شده است.
+                                            {% else %}
+                                                این مزایده به پایان رسیده است و دیگر امکان ثبت پیشنهاد جدید برای این اثر وجود ندارد.
+                                            {% endif %}
                                         </p>
                                     </div>
                                     <div class="rounded-xl border border-white/70 bg-white/80 backdrop-blur-sm p-4">
-                                        <span class="text-xs font-bold text-neutral-500">قیمت نهایی فروش</span>
+                                        <span class="text-xs font-bold text-neutral-500">{% if auction.winner_id %}قیمت نهایی فروش{% else %}آخرین قیمت ثبت‌شده{% endif %}</span>
                                         <div class="mt-2 flex items-baseline gap-1">
                                             <span class="text-3xl font-extrabold text-neutral-900">
-                                                {{ auction.current_price|default:auction.base_price|intcomma|fa_digits }}
+                                                {{ auction.current_price|default:auction.base_price|fa_price }}
                                             </span>
                                             <span class="text-sm font-bold text-neutral-500">تومان</span>
                                         </div>
@@ -286,11 +317,13 @@
                                                 {{ auction.price_description|fa_digits }}
                                             </div>
                                         {% endif %}
-                                        <div class="mt-4 border-t border-emerald-100 pt-4">
+                                        <div class="mt-4 border-t {% if auction.winner_id %}border-emerald-100{% else %}border-neutral-200{% endif %} pt-4">
                                             <span class="text-xs font-bold text-neutral-500">وضعیت دسترسی</span>
-                                            <div class="mt-2 text-sm font-bold text-emerald-700 leading-7">
+                                            <div class="mt-2 text-sm font-bold {% if auction.winner_id %}text-emerald-700{% else %}text-neutral-700{% endif %} leading-7">
                                                 {% if has_winner_profile_access %}
                                                     شما برنده این اثر هستید و جزئیات آن برای شما فعال است.
+                                                {% elif not auction.winner_id %}
+                                                    این صفحه برای مشاهده عمومی باز است و ثبت بید غیرفعال شده است.
                                                 {% else %}
                                                     این اثر دارای برنده نهایی است.
                                                 {% endif %}
@@ -303,18 +336,45 @@
                                     </div> {% endcomment %}
                                 </div>
                             </div>
+                        {% elif auction.auction.status == 'ready' %}
+                            <div class="relative overflow-hidden rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 via-white to-blue-100 p-6 sm:p-7">
+                                <div class="relative space-y-5">
+                                    <div class="w-16 h-16 rounded-2xl bg-blue-500 shadow-lg shadow-blue-500/25 text-white flex items-center justify-center">
+                                        <span class="material-symbols-outlined text-[30px]">hourglass_empty</span>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <h3 class="text-2xl font-black text-neutral-900">پیش‌نمایش اثر قبل از شروع مزایده</h3>
+                                        <p class="text-sm leading-7 text-neutral-600">
+                                            این اثر در حال حاضر در حالت پیش‌نمایش قرار دارد. ثبت پیشنهاد با آغاز رسمی مزایده امکان‌پذیر خواهد بود.
+                                        </p>
+                                    </div>
+                                    <div class="rounded-xl border border-white/70 bg-white/80 backdrop-blur-sm p-4">
+                                        <span class="text-xs font-bold text-neutral-500">قیمت محصول</span>
+                                        <div class="mt-2 flex items-baseline gap-1">
+                                            <span class="text-3xl font-extrabold text-neutral-900">
+                                                {{ auction.current_price|default:auction.base_price|fa_price }}
+                                            </span>
+                                            <span class="text-sm font-bold text-neutral-500">تومان</span>
+                                        </div>
+                                    </div>
+                                    <div class="w-full flex items-center justify-center gap-2 bg-blue-50 text-blue-600 border border-blue-200 text-base font-bold py-4 rounded-xl cursor-not-allowed">
+                                        <span class="material-symbols-outlined text-[20px]">hourglass_top</span>
+                                        در انتظار شروع مزایده
+                                    </div>
+                                </div>
+                            </div>
                         {% else %}
                             <!-- نمایش قیمت -->
                             <div class="space-y-3 text-center sm:text-right">
                                 <div class="flex justify-between items-center">
                                     <span class="text-sm text-neutral-500 font-bold bg-neutral-100 px-2 py-1 rounded">آخرین پیشنهاد </span>
                                     <span class="dir-ltr inline-flex items-center gap-1 rounded-lg bg-neutral-100 px-3 py-1.5 text-sm font-extrabold text-neutral-800 border border-neutral-200">
-                                        قیمت پایه: {{ auction.base_price|intcomma|fa_digits }}
+                                        قیمت پایه: {{ auction.base_price|fa_price }}
                                     </span>
                                 </div>
                                 <div class="flex items-start justify-center sm:justify-start gap-1">
                                     <span id="current-price-text" class="text-5xl font-extrabold text-neutral-900 tracking-tight leading-none">
-                                        {{ auction.current_price|default:auction.base_price|intcomma|fa_digits }}
+                                        {{ auction.current_price|default:auction.base_price|fa_price }}
                                     </span>
                                     <span class="text-lg font-bold text-neutral-500 mt-1.5">تومان</span>
                                 </div>
@@ -499,20 +559,6 @@
             </div>
 
             <!-- حالت دوم: درخواست ثبت شده و در انتظار تایید -->
-            <div id="credit-modal-success" class="hidden">
-                <div class="w-20 h-20 mx-auto bg-indigo-50 dark:bg-indigo-900/20 text-indigo-500 rounded-full flex items-center justify-center mb-6 border border-indigo-100 dark:border-indigo-900/30">
-                    <span class="material-symbols-outlined text-4xl animate-pulse">hourglass_top</span>
-                </div>
-                <h3 class="font-bold text-xl text-text-main dark:text-white mb-3">درخواست در حال بررسی</h3>
-                <p class="text-gray-500 dark:text-gray-400 text-sm leading-relaxed mb-8" id="credit-success-message">
-                    درخواست شما با موفقیت ثبت شده و هم‌اکنون در انتظار بررسی و تایید توسط مدیران سیستم می‌باشد.
-                </p>
-                <div class="space-y-3">
-                    <!-- دکمه مشاهده پروفایل (آیکون جابه‌جا شد و در سمت راست متن قرار گرفت) -->
-                    <a href="{% url 'profile' %}" id="btn-profile-link" class="w-full flex flex-row items-center justify-center gap-2 bg-gray-50 hover:bg-gray-100 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-zinc-600 py-3.5 px-6 rounded-xl font-bold text-sm transition-all">
-                        <span class="material-symbols-outlined text-lg">person</span>
-                        <span>مشاهده پروفایل</span>
-                    </a>
                 </div>
             </div>
 
@@ -540,8 +586,8 @@
     window.addEventListener('pageshow', function(event) {
         const dirtyInput = document.getElementById('page_is_dirty');
         
-        if (event.persisted || (dirtyInput && dirtyInput.value === '1')) {
-            window.location.replace(window.location.href);
+        if (false) {
+            // Disabled location.replace
         } else if (dirtyInput) {
             dirtyInput.value = '1';
         }
@@ -586,7 +632,7 @@
 
         function formatFaNumber(value) {
             try {
-                return Number(value).toLocaleString('fa-IR');
+                return Number(value).toLocaleString('fa-IR').replace(/٬/g, ',');
             } catch {
                 return toPersianNum(String(value));
             }
@@ -806,15 +852,13 @@
                         if (btnProfileLink && data.profile_url) {
                             btnProfileLink.href = data.profile_url;
                         }
-                    } else {
-                        alert(data.message || productAuctionNotifications.requestSubmitError);
                     }
                 })
                 .catch(err => {
                     console.error('Error submitting credit request:', err);
                     btnSubmitCredit.innerHTML = originalText;
                     btnSubmitCredit.disabled = false;
-                    alert(window.getNotificationMessage('common.server_retry_error'));
+                    // alert(window.getNotificationMessage('common.server_retry_error'));
                 });
             });
         }
@@ -1050,7 +1094,7 @@
             }
         }, 10);
 
-        modalCountEl.innerText = Number(allGalleryImages.length).toLocaleString('fa-IR');
+        modalCountEl.innerText = Number(allGalleryImages.length).toLocaleString('fa-IR').replace(/٬/g, ',');
         updateModalImage();
         if (window.syncGalleryDownload) window.syncGalleryDownload(allGalleryImages[currentGalleryIndex]);
         if (window.resetGalleryZoom) window.resetGalleryZoom();
@@ -1081,7 +1125,7 @@
     function updateModalImage() {
         if (!modalImg || !modalIndexEl) return;
         modalImg.src = allGalleryImages[currentGalleryIndex];
-        modalIndexEl.innerText = Number(currentGalleryIndex + 1).toLocaleString('fa-IR');
+        modalIndexEl.innerText = Number(currentGalleryIndex + 1).toLocaleString('fa-IR').replace(/٬/g, ',');
         if (window.syncGalleryDownload) window.syncGalleryDownload(allGalleryImages[currentGalleryIndex]);
         if (window.resetGalleryZoom) window.resetGalleryZoom();
     }

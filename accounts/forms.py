@@ -1,7 +1,11 @@
 from django import forms
-from django.contrib.auth.forms import UserCreationForm, UserChangeForm, AuthenticationForm
+from django.contrib.auth.forms import UserCreationForm, UserChangeForm, AuthenticationForm, PasswordResetForm
 from django.core.exceptions import ValidationError
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
 from decimal import Decimal, InvalidOperation
+
+from core.emailing import send_plain_email
 
 # ایمپورت CreditIncreaseRequest حذف شد چون دیگر در این فایل استفاده نمی‌شود
 from .models import CustomUser, VerificationRequest
@@ -131,6 +135,36 @@ class CustomLoginForm(AuthenticationForm):
         self.fields['password'].label = "رمز عبور"
 
 
+class CustomPasswordResetForm(PasswordResetForm):
+    """Password reset form that routes delivery through NotificationService."""
+
+    def send_mail(
+        self,
+        subject_template_name,
+        email_template_name,
+        context,
+        from_email,
+        to_email,
+        html_email_template_name=None,
+    ):
+        subject = render_to_string(subject_template_name, context)
+        subject = "".join(subject.splitlines()).strip()
+        body = render_to_string(email_template_name, context)
+        plain_body = strip_tags(body).strip() or body.strip()
+        send_plain_email(
+            event='accounts.password.reset_requested',
+            subject=subject,
+            message=plain_body,
+            recipients=[to_email],
+            fail_silently=False,
+            metadata={
+                'user_id': str(getattr(context.get('user'), 'pk', '') or ''),
+                'reset_url': context.get('protocol', '') + '://' + context.get('domain', ''),
+            },
+            context=context,
+        )
+
+
 class CustomUserCreationForm(UserCreationForm):
     email = forms.EmailField(label="آدرس ایمیل", required=True)
     full_name = forms.CharField(label="نام و نام خانوادگی", max_length=150, required=False)
@@ -163,10 +197,20 @@ class CustomUserChangeForm(UserChangeForm):
     email = forms.EmailField(label="آدرس ایمیل", required=True)
     full_name = forms.CharField(label="نام و نام خانوادگی", max_length=150, required=False)
     phone_number = forms.CharField(label="شماره موبایل", max_length=15, required=True)
+    preferred_contact_methods = forms.MultipleChoiceField(
+        label="تنظیمات دریافت اطلاعیه‌ها",
+        choices=[
+            ("email", "دریافت ایمیل"),
+            ("sms", "دریافت پیامک"),
+            ("telegram", "دریافت تلگرام"),
+        ],
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+    )
 
     class Meta:
         model = CustomUser
-        fields = ("username", "email", "full_name", "phone_number")
+        fields = ("username", "email", "full_name", "phone_number", "preferred_contact_methods")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -181,17 +225,16 @@ class CustomUserChangeForm(UserChangeForm):
         self.fields['username'].label = "نام کاربری"
 
         for field_name, field in self.fields.items():
-            field.widget.attrs['class'] = input_style
-            field.widget.attrs['placeholder'] = f"{field.label}..."
+            if field_name != "preferred_contact_methods":
+                field.widget.attrs['class'] = input_style
+                field.widget.attrs['placeholder'] = f"{field.label}..."
 
 
 class PublicSignupForm(forms.ModelForm):
     CONTACT_METHOD_CHOICES = [
-        ("call", "تماس تلفنی"),
-        ("sms", "پیامک"),
-        ("email", "ایمیل"),
-        ("whatsapp", "واتساپ"),
-        ("telegram", "تلگرام"),
+        ("email", "دریافت ایمیل"),
+        ("sms", "دریافت پیامک"),
+        ("telegram", "دریافت تلگرام"),
     ]
 
     full_name = forms.CharField(label="نام و نام خانوادگی", max_length=150, required=False)
@@ -199,7 +242,11 @@ class PublicSignupForm(forms.ModelForm):
         label="شرکت در مزایده",
         required=False,
     )
-    phone_number = forms.CharField(label="شماره موبایل(نام کاربری)", max_length=20, required=True)
+    newsletter_catalog_opt_in = forms.BooleanField(
+        label="تمایل به دریافت خبرنامه و کاتالوگ",
+        required=False,
+    )
+    phone_number = forms.CharField(label="شماره موبایل(نام کاربری)", max_length=20, required=False)
     address_street = forms.CharField(label="آدرس", max_length=255, required=False)
     email = forms.EmailField(label="آدرس ایمیل", required=False)
     preferred_contact_methods = forms.MultipleChoiceField(
@@ -278,6 +325,9 @@ class PublicSignupForm(forms.ModelForm):
 
     def clean_phone_number(self):
         raw = (self.cleaned_data.get("phone_number") or "").strip()
+        if not raw:
+            return ""
+
         digit_map = str.maketrans("۰۱۲۳۴۵۶۷۸۹", "0123456789")
         normalized = raw.translate(digit_map).replace(" ", "").replace("-", "")
         normalized = "".join(ch for ch in normalized if ch.isdigit())
@@ -294,8 +344,12 @@ class PublicSignupForm(forms.ModelForm):
         return normalized
 
     def clean_email(self):
-        email = (self.cleaned_data.get("email") or "").strip()
-        return email or None
+        email = (self.cleaned_data.get("email") or "").strip().lower()
+        if not email:
+            return email
+        if CustomUser.objects.filter(email__iexact=email).exists():
+            raise ValidationError("این آدرس ایمیل قبلاً در سیستم ثبت شده است.")
+        return email
 
     def clean_telegram_id(self):
         telegram_id = (self.cleaned_data.get("telegram_id") or "").strip()
@@ -326,14 +380,34 @@ class PublicSignupForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
-        preferred = cleaned_data.get("preferred_contact_methods") or []
-        email = cleaned_data.get("email")
-
-        if "email" in preferred and not email:
-            self.add_error("email", "در صورت انتخاب «ایمیل»، وارد کردن آدرس ایمیل الزامی است.")
-
+        preferred_contact_methods = cleaned_data.get("preferred_contact_methods") or []
+        email = (cleaned_data.get("email") or "").strip()
+        phone_number = (cleaned_data.get("phone_number") or "").strip()
         participate = cleaned_data.get("participate_in_auction") or False
         full_name = (cleaned_data.get("full_name") or "").strip()
+
+        if not preferred_contact_methods:
+            self.add_error(
+                "preferred_contact_methods",
+                "حداقل یکی از روش‌های ارتباطی را انتخاب کنید.",
+            )
+
+        if "email" in preferred_contact_methods and not email:
+            self.add_error(
+                "email",
+                "در صورت انتخاب «ایمیل»، وارد کردن آدرس ایمیل الزامی است.",
+            )
+
+        if not phone_number:
+            self.add_error(
+                "phone_number",
+                (
+                    "در صورت انتخاب «پیامک»، وارد کردن شماره موبایل الزامی است."
+                    if "sms" in preferred_contact_methods
+                    else "برای ثبت‌نام، وارد کردن شماره موبایل الزامی است."
+                ),
+            )
+
         if participate:
             if not full_name:
                 self.add_error("full_name", "در صورت شرکت در مزایده، وارد کردن نام و نام خانوادگی الزامی است.")
@@ -357,7 +431,11 @@ class PublicSignupForm(forms.ModelForm):
         user.address_street = address or None
 
         user.email = self.cleaned_data.get("email")
+        user.is_email_verified = False
         user.preferred_contact_methods = self.cleaned_data.get("preferred_contact_methods") or []
+        user.newsletter_catalog_opt_in = bool(
+            self.cleaned_data.get("newsletter_catalog_opt_in")
+        )
         user.telegram_id = self.cleaned_data.get("telegram_id")
 
         # رمزنگاری و ثبت پسورد
@@ -365,7 +443,7 @@ class PublicSignupForm(forms.ModelForm):
 
         if commit:
             user.save()
-            
+
             # در صورت انتخاب شرکت در مزایده، درخواست وریفای ثبت می‌شود
             participate = self.cleaned_data.get("participate_in_auction")
             if participate and int(getattr(user, "is_verified", 0) or 0) != 1:
@@ -381,8 +459,14 @@ class PublicSignupForm(forms.ModelForm):
                         status=VerificationRequest.RequestStatus.PENDING,
                         is_verified=0,
                     )
-                
+
         return user
+
+
+class SendCustomEmailForm(forms.Form):
+    _selected_action = forms.CharField(widget=forms.MultipleHiddenInput)
+    subject = forms.CharField(max_length=255, label="موضوع (Subject)")
+    message = forms.CharField(widget=forms.Textarea, label="پیام (Message)")
 
 
 class PublicProfileUpdateForm(forms.ModelForm):
@@ -395,7 +479,7 @@ class PublicProfileUpdateForm(forms.ModelForm):
     )
     phone_number = forms.CharField(label="شماره موبایل(نام کاربری)", max_length=20, required=True)
     address_street = forms.CharField(label="آدرس", max_length=255, required=False)
-    email = forms.EmailField(label="آدرس ایمیل", required=False)
+    email = forms.EmailField(label="آدرس ایمیل", required=True)
     preferred_contact_methods = forms.MultipleChoiceField(
         label="راه ارتباطی مورد نظر",
         choices=CONTACT_METHOD_CHOICES,
@@ -494,8 +578,15 @@ class PublicProfileUpdateForm(forms.ModelForm):
         return normalized
 
     def clean_email(self):
-        email = (self.cleaned_data.get("email") or "").strip()
-        return email or None
+        email = (self.cleaned_data.get("email") or "").strip().lower()
+        if not email:
+            return email
+        qs = CustomUser.objects.filter(email__iexact=email)
+        if self.instance and getattr(self.instance, "pk", None):
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise ValidationError("این آدرس ایمیل قبلاً در سیستم ثبت شده است.")
+        return email
 
     def clean_telegram_id(self):
         telegram_id = (self.cleaned_data.get("telegram_id") or "").strip()
@@ -552,6 +643,16 @@ class PublicProfileUpdateForm(forms.ModelForm):
         return cleaned_data
 
     def save(self, commit=True):
+        previous_email = ""
+        if self.instance and getattr(self.instance, "pk", None):
+            previous_email = (
+                CustomUser.objects
+                .filter(pk=self.instance.pk)
+                .values_list("email", flat=True)
+                .first()
+                or ""
+            )
+
         user = super().save(commit=False)
 
         user.full_name = (self.cleaned_data.get("full_name") or "").strip()
@@ -562,6 +663,8 @@ class PublicProfileUpdateForm(forms.ModelForm):
         user.address_street = address or None
 
         user.email = self.cleaned_data.get("email")
+        if (previous_email or "").strip().lower() != (user.email or "").strip().lower():
+            user.is_email_verified = False
         user.preferred_contact_methods = self.cleaned_data.get("preferred_contact_methods") or []
         user.telegram_id = self.cleaned_data.get("telegram_id")
 
@@ -618,6 +721,7 @@ class AdminUserEditForm(forms.ModelForm):
             "phone_number",
             "email",
             "preferred_contact_methods",
+            "newsletter_catalog_opt_in",
             "telegram_id",
             "address_country",
             "address_city",
@@ -857,6 +961,15 @@ class AdminUserEditForm(forms.ModelForm):
                 .first()
                 or 0
             )
+        previous_email = ""
+        if self.instance and getattr(self.instance, "pk", None):
+            previous_email = (
+                CustomUser.objects
+                .filter(pk=self.instance.pk)
+                .values_list("email", flat=True)
+                .first()
+                or ""
+            )
         user = super().save(commit=False)
         normalized_full_name = " ".join((self.cleaned_data.get("full_name") or "").split())
         first_name, last_name = _split_full_name_parts(normalized_full_name)
@@ -867,6 +980,8 @@ class AdminUserEditForm(forms.ModelForm):
         user.full_name = normalized_full_name
         user.phone_number = self.cleaned_data["phone_number"]
         user.email = self.cleaned_data.get("email")
+        if (previous_email or "").strip().lower() != (user.email or "").strip().lower():
+            user.is_email_verified = False
         user.preferred_contact_methods = self.cleaned_data.get("preferred_contact_methods") or []
         user.telegram_id = self.cleaned_data.get("telegram_id")
         user.address_country = (self.cleaned_data.get("address_country") or "").strip() or None

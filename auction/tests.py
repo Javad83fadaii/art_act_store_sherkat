@@ -1,15 +1,29 @@
 from decimal import Decimal
 from datetime import timedelta
 import json
+from unittest.mock import patch
 
+from django.core.cache import cache
+from django.core import mail
 from django.test import Client, TestCase
+from django.test.utils import override_settings
 from django.urls import reverse
 from django.utils import timezone
 
+from notifications.enums import NotificationChannel, NotificationProviderType, NotificationStatus
 from accounts.models import CreditIncreaseRequest, CustomUser
+from notifications.models import NotificationDelivery
+from notifications.providers import NotificationSendResult
 from store.models import Artist, Artwork, ArtworkType, PurchaseHistory
 
 from .models import Auction, AuctionCartItem, AuctionProduct, AuctionVisitHistory
+from .signals import _send_bid_notification_emails, schedule_auction_emails
+from .tasks import (
+    send_auction_ended_email,
+    send_auction_ending_soon_email,
+    send_auction_started_email,
+    send_auction_starting_soon_email,
+)
 
 
 class AuctionBidCreditFlowTests(TestCase):
@@ -189,6 +203,76 @@ class AuctionBidCreditFlowTests(TestCase):
         self.assertEqual(payload['my_bids_count'], 1)
         self.assertIn('200', payload['my_bids_html'])
 
+    @patch('auction.signals._BID_EMAIL_EXECUTOR.submit')
+    def test_bid_email_notifications_are_enqueued_after_commit(self, submit_mock):
+        with self.captureOnCommitCallbacks(execute=True) as callbacks:
+            self.product.place_bid(self.user_one, '200')
+
+        self.assertEqual(len(callbacks), 1)
+        submit_mock.assert_called_once()
+        submitted_callable, submitted_bid_id = submit_mock.call_args.args
+        self.assertEqual(submitted_callable.__name__, '_send_bid_notification_emails')
+        self.assertIsInstance(submitted_bid_id, int)
+
+    def test_bid_confirmation_notifications_send_add_bid_sms_for_sms_only_user(self):
+        self.user_one.email = ''
+        self.user_one.preferred_contact_methods = ['sms']
+        self.user_one.save(update_fields=['email', 'preferred_contact_methods'])
+
+        created_bid = self.product.place_bid(self.user_one, '200')
+
+        sms_res = NotificationSendResult(
+            provider=NotificationProviderType.SMS,
+            channel=NotificationChannel.SMS,
+            status=NotificationStatus.SENT,
+            recipients=['09120000001'],
+            detail='OK',
+        )
+
+        with patch('notifications.providers.EmailProvider.send') as mock_email_send, \
+             patch('notifications.providers.SMSProvider.send', return_value=sms_res) as mock_sms_send:
+            _send_bid_notification_emails(created_bid.pk)
+
+        mock_email_send.assert_not_called()
+        mock_sms_send.assert_called_once()
+        sms_payload = mock_sms_send.call_args.args[0]
+        self.assertEqual(sms_payload.event, 'auction.bid.confirmed')
+        self.assertEqual(sms_payload.metadata['sms_pattern'], 'add_bid')
+        self.assertEqual(sms_payload.context['NAME'], self.user_one.full_name)
+        self.assertEqual(sms_payload.context['PRODUCT_TITLE'], self.product.title)
+        self.assertEqual(sms_payload.context['FORMAT_AMOUNTBIDBID_AMOUNT'], '200')
+
+    def test_outbid_notifications_send_dell_bid_sms_for_sms_only_user(self):
+        self.user_one.email = ''
+        self.user_one.preferred_contact_methods = ['sms']
+        self.user_one.save(update_fields=['email', 'preferred_contact_methods'])
+        self.user_two.email = ''
+        self.user_two.save(update_fields=['email'])
+
+        self.product.place_bid(self.user_one, '200')
+        latest_bid = self.product.place_bid(self.user_two, '250')
+
+        sms_res = NotificationSendResult(
+            provider=NotificationProviderType.SMS,
+            channel=NotificationChannel.SMS,
+            status=NotificationStatus.SENT,
+            recipients=['09120000001'],
+            detail='OK',
+        )
+
+        with patch('notifications.providers.EmailProvider.send') as mock_email_send, \
+             patch('notifications.providers.SMSProvider.send', return_value=sms_res) as mock_sms_send:
+            _send_bid_notification_emails(latest_bid.pk)
+
+        mock_email_send.assert_not_called()
+        mock_sms_send.assert_called_once()
+        sms_payload = mock_sms_send.call_args.args[0]
+        self.assertEqual(sms_payload.event, 'auction.bid.outbid')
+        self.assertEqual(sms_payload.metadata['sms_pattern'], 'dell_bid')
+        self.assertEqual(sms_payload.context['NAME'], self.user_one.full_name)
+        self.assertEqual(sms_payload.context['PRODUCT_TITLE'], self.product.title)
+        self.assertEqual(sms_payload.context['FORMAT_AMOUNTLATEST_BIDBID_AMOUNT'], '250')
+
     def test_live_state_endpoint_returns_latest_price_and_history_html(self):
         self.product.place_bid(self.user_one, '200')
         self.client.force_login(self.user_one)
@@ -205,6 +289,25 @@ class AuctionBidCreditFlowTests(TestCase):
         self.assertEqual(payload['bid_count'], 1)
         self.assertEqual(payload['my_bids_count'], 1)
         self.assertIn('تاریخچه بیدهای شما', payload['my_bids_html'])
+
+    def test_finished_live_state_endpoint_is_public_for_compact_product_cards(self):
+        self.product.place_bid(self.user_one, '200')
+        self.auction.end_date = timezone.now() - timedelta(seconds=1)
+        self.auction.save(update_fields=['end_date'])
+
+        response = self.client.get(
+            reverse('auction:auction_product_live_state', kwargs={'pk': self.product.pk}),
+            {'compact': '1'},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload['success'])
+        self.assertEqual(payload['current_price'], 220)
+        self.assertEqual(payload['bid_count'], 1)
+        self.assertTrue(payload['has_winner'])
 
     def test_profile_shows_active_auction_cart_items(self):
         self.product.place_bid(self.user_one, '200')
@@ -366,6 +469,406 @@ class AuctionBidCreditFlowTests(TestCase):
             ['محصول لات 3', 'تابلو تست', 'محصول بدون لات'],
         )
 
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        DEFAULT_FROM_EMAIL="Auction Platform <sender@example.com>",
+        SERVER_EMAIL="sender@example.com",
+    )
+    @patch('auction.tasks.send_auction_extended_email.delay')
+    def test_extending_auction_sends_extension_email_notification(self, extended_email_mock):
+        original_end = self.auction.end_date
+        self.auction.end_date = original_end + timedelta(hours=2)
+        self.auction.save(update_fields=['end_date'])
+
+        extended_email_mock.assert_called_once()
+        _, kwargs = extended_email_mock.call_args
+        self.assertEqual(kwargs['previous_end'], original_end.isoformat())
+        self.assertEqual(kwargs['expected_end'], self.auction.end_date.isoformat())
+
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        DEFAULT_FROM_EMAIL="Auction Platform <sender@example.com>",
+        SERVER_EMAIL="sender@example.com",
+    )
+    def test_send_auction_ended_email_sends_billing_email_to_winner(self):
+        self.user_one.email = 'winner@example.com'
+        self.user_one.preferred_contact_methods = ['email']
+        self.user_one.save(update_fields=['email', 'preferred_contact_methods'])
+        self.user_two.email = 'other@example.com'
+        self.user_two.preferred_contact_methods = ['email']
+        self.user_two.save(update_fields=['email', 'preferred_contact_methods'])
+        self.product.place_bid(self.user_one, '200')
+        self.auction.end_date = timezone.now() - timedelta(seconds=1)
+        self.auction.save(update_fields=['end_date'])
+
+        send_auction_ended_email(self.auction.id, expected_end=self.auction.end_date.isoformat())
+
+        email_deliveries = list(NotificationDelivery.objects.filter(provider='email'))
+        subjects = [item.subject for item in email_deliveries]
+        self.assertIn(f"مزایده «{self.auction.name}» به پایان رسید", subjects)
+        self.assertIn(f"نتیجه مزایده و صورتحساب اولیه «{self.auction.name}»", subjects)
+        winner_messages = [item for item in email_deliveries if item.recipients == ['winner@example.com']]
+        self.assertTrue(winner_messages)
+        winner_mail = next(
+            item for item in winner_messages
+            if item.subject == f"نتیجه مزایده و صورتحساب اولیه «{self.auction.name}»"
+        )
+        self.assertIn('جمع کل صورتحساب اولیه', winner_mail.body)
+        self.assertIn('تابلو تست', winner_mail.body)
+
+    def test_send_auction_ended_email_sends_sms_billing_for_sms_only_winner(self):
+        self.user_one.email = ''
+        self.user_one.preferred_contact_methods = ['sms']
+        self.user_one.save(update_fields=['email', 'preferred_contact_methods'])
+        self.product.place_bid(self.user_one, '200')
+        self.auction.end_date = timezone.now() - timedelta(seconds=1)
+        self.auction.save(update_fields=['end_date'])
+
+        sms_res = NotificationSendResult(
+            provider=NotificationProviderType.SMS,
+            channel=NotificationChannel.SMS,
+            status=NotificationStatus.SENT,
+            recipients=['09120000001'],
+            detail='OK',
+        )
+
+        with patch('notifications.providers.EmailProvider.send') as mock_email_send, \
+             patch('notifications.providers.SMSProvider.send', return_value=sms_res) as mock_sms_send:
+            send_auction_ended_email(self.auction.id, expected_end=self.auction.end_date.isoformat())
+
+        mock_email_send.assert_not_called()
+        mock_sms_send.assert_called_once()
+        sms_payload = mock_sms_send.call_args.args[0]
+        self.assertEqual(sms_payload.event, 'auction.winner.billing')
+        self.assertEqual(sms_payload.metadata['sms_pattern'], 'auction_Invoice')
+        self.assertEqual(sms_payload.context['AUCTIONNAME'], self.auction.name)
+        self.assertEqual(sms_payload.context['NAME'], self.user_one.full_name)
+        self.assertEqual(sms_payload.context['FORMAT_AMOUNTTOTAL_AMOUNT'], '220')
+        self.assertEqual(sms_payload.context['LINE_ITEMS_TEXT'], 'تابلو تست')
+
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        DEFAULT_FROM_EMAIL="Auction Platform <sender@example.com>",
+        SERVER_EMAIL="sender@example.com",
+    )
+    @patch('auction.tasks.send_auction_starting_soon_email.apply_async')
+    @patch('auction.tasks.send_auction_started_email.apply_async')
+    def test_schedule_auction_emails_queues_start_notifications(self, started_mock, starting_soon_mock):
+        future_start = timezone.now() + timedelta(hours=30)
+        future_end = future_start + timedelta(hours=12)
+
+        auction = Auction.objects.create(
+            name='مزایده آینده',
+            start_date=future_start,
+            end_date=future_end,
+            products_count=1,
+        )
+
+        starting_soon_mock.assert_called_once()
+        _, starting_kwargs = starting_soon_mock.call_args
+        self.assertEqual(starting_kwargs['kwargs']['expected_start'], auction.start_date.isoformat())
+        self.assertEqual(starting_kwargs['eta'], future_start - timedelta(hours=24))
+
+        started_mock.assert_called_once()
+        _, started_kwargs = started_mock.call_args
+        self.assertEqual(started_kwargs['kwargs']['expected_start'], auction.start_date.isoformat())
+        self.assertEqual(started_kwargs['eta'], future_start)
+
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        DEFAULT_FROM_EMAIL="Auction Platform <sender@example.com>",
+        SERVER_EMAIL="sender@example.com",
+    )
+    def test_send_auction_starting_soon_email_sends_only_near_24h_mark(self):
+        self.user_one.email = 'first@example.com'
+        self.user_one.save(update_fields=['email'])
+        self.user_two.email = 'second@example.com'
+        self.user_two.save(update_fields=['email'])
+
+        self.auction.start_date = timezone.now() + timedelta(hours=24, minutes=1)
+        self.auction.end_date = self.auction.start_date + timedelta(hours=2)
+        self.auction.save(update_fields=['start_date', 'end_date'])
+        NotificationDelivery.objects.all().delete()
+
+        send_auction_starting_soon_email(
+            self.auction.id,
+            expected_start=self.auction.start_date.isoformat(),
+        )
+        self.assertEqual(NotificationDelivery.objects.count(), 0)
+
+        self.auction.start_date = timezone.now() + timedelta(hours=24)
+        self.auction.end_date = self.auction.start_date + timedelta(hours=2)
+        self.auction.save(update_fields=['start_date', 'end_date'])
+        NotificationDelivery.objects.all().delete()
+
+        send_auction_starting_soon_email(
+            self.auction.id,
+            expected_start=self.auction.start_date.isoformat(),
+        )
+
+        email_deliveries = list(NotificationDelivery.objects.filter(provider='email'))
+        self.assertEqual(len(email_deliveries), 2)
+        self.assertTrue(all('۲۴ ساعت تا شروع مزایده' in item.subject for item in email_deliveries))
+        self.assertEqual(
+            {item.recipients[0] for item in email_deliveries},
+            {'first@example.com', 'second@example.com'},
+        )
+
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        DEFAULT_FROM_EMAIL="Auction Platform <sender@example.com>",
+        SERVER_EMAIL="sender@example.com",
+    )
+    def test_send_auction_started_email_sends_only_close_to_start_time(self):
+        self.user_one.email = 'first@example.com'
+        self.user_one.save(update_fields=['email'])
+
+        self.auction.start_date = timezone.now() + timedelta(minutes=10)
+        self.auction.end_date = self.auction.start_date + timedelta(hours=2)
+        self.auction.save(update_fields=['start_date', 'end_date'])
+        NotificationDelivery.objects.all().delete()
+
+        send_auction_started_email(
+            self.auction.id,
+            expected_start=self.auction.start_date.isoformat(),
+        )
+        self.assertEqual(NotificationDelivery.objects.count(), 0)
+
+        self.auction.start_date = timezone.now()
+        self.auction.end_date = self.auction.start_date + timedelta(hours=2)
+        self.auction.save(update_fields=['start_date', 'end_date'])
+        NotificationDelivery.objects.all().delete()
+
+        send_auction_started_email(
+            self.auction.id,
+            expected_start=self.auction.start_date.isoformat(),
+        )
+
+        email_deliveries = list(NotificationDelivery.objects.filter(provider='email'))
+        self.assertEqual(len(email_deliveries), 1)
+        self.assertIn('مزایده', email_deliveries[0].subject)
+        self.assertIn('آغاز شد', email_deliveries[0].subject)
+
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        DEFAULT_FROM_EMAIL="Auction Platform <sender@example.com>",
+        SERVER_EMAIL="sender@example.com",
+    )
+    def test_send_auction_ending_soon_email_sends_only_near_12h_mark(self):
+        self.user_one.email = 'first@example.com'
+        self.user_one.save(update_fields=['email'])
+
+        self.auction.end_date = timezone.now() + timedelta(hours=12, minutes=1)
+        self.auction.save(update_fields=['end_date'])
+        NotificationDelivery.objects.all().delete()
+
+        send_auction_ending_soon_email(
+            self.auction.id,
+            expected_end=self.auction.end_date.isoformat(),
+        )
+        self.assertEqual(NotificationDelivery.objects.count(), 0)
+
+        self.auction.end_date = timezone.now() + timedelta(hours=12)
+        self.auction.save(update_fields=['end_date'])
+        NotificationDelivery.objects.all().delete()
+
+        send_auction_ending_soon_email(
+            self.auction.id,
+            expected_end=self.auction.end_date.isoformat(),
+        )
+
+        email_deliveries = list(NotificationDelivery.objects.filter(provider='email'))
+        self.assertEqual(len(email_deliveries), 1)
+        self.assertIn('۱۲ ساعت تا پایان مزایده', email_deliveries[0].subject)
+        self.assertEqual(email_deliveries[0].recipients, ['first@example.com'])
+
+    def test_send_auction_ending_soon_email_respects_user_preferred_contact_methods(self):
+        self.user_one.email = 'first@example.com'
+        self.user_one.preferred_contact_methods = ['email']
+        self.user_one.save(update_fields=['email', 'preferred_contact_methods'])
+
+        self.user_two.email = 'second@example.com'
+        self.user_two.preferred_contact_methods = ['sms']
+        self.user_two.save(update_fields=['email', 'preferred_contact_methods'])
+
+        self.auction.end_date = timezone.now() + timedelta(hours=12)
+        self.auction.save(update_fields=['end_date'])
+
+        email_res = NotificationSendResult(
+            provider=NotificationProviderType.EMAIL,
+            channel=NotificationChannel.EMAIL,
+            status=NotificationStatus.SENT,
+            recipients=['first@example.com'],
+            detail='OK',
+        )
+        sms_res = NotificationSendResult(
+            provider=NotificationProviderType.SMS,
+            channel=NotificationChannel.SMS,
+            status=NotificationStatus.SENT,
+            recipients=['09120000002'],
+            detail='OK',
+        )
+
+        with patch('notifications.providers.EmailProvider.send', return_value=email_res) as mock_email_send, \
+             patch('notifications.providers.SMSProvider.send', return_value=sms_res) as mock_sms_send:
+            send_auction_ending_soon_email(
+                self.auction.id,
+                expected_end=self.auction.end_date.isoformat(),
+            )
+
+        self.assertEqual(mock_email_send.call_count, 1)
+        self.assertEqual(mock_sms_send.call_count, 1)
+
+    def test_send_auction_starting_soon_email_respects_user_preferred_contact_methods(self):
+        self.user_one.email = 'first@example.com'
+        self.user_one.preferred_contact_methods = ['email']
+        self.user_one.save(update_fields=['email', 'preferred_contact_methods'])
+
+        self.user_two.email = 'second@example.com'
+        self.user_two.preferred_contact_methods = ['sms']
+        self.user_two.save(update_fields=['email', 'preferred_contact_methods'])
+
+        self.auction.start_date = timezone.now() + timedelta(hours=24)
+        self.auction.end_date = self.auction.start_date + timedelta(hours=2)
+        self.auction.save(update_fields=['start_date', 'end_date'])
+
+        email_res = NotificationSendResult(
+            provider=NotificationProviderType.EMAIL,
+            channel=NotificationChannel.EMAIL,
+            status=NotificationStatus.SENT,
+            recipients=['first@example.com'],
+            detail='OK',
+        )
+        sms_res = NotificationSendResult(
+            provider=NotificationProviderType.SMS,
+            channel=NotificationChannel.SMS,
+            status=NotificationStatus.SENT,
+            recipients=['09120000002'],
+            detail='OK',
+        )
+
+        with patch('notifications.providers.EmailProvider.send', return_value=email_res) as mock_email_send, \
+             patch('notifications.providers.SMSProvider.send', return_value=sms_res) as mock_sms_send:
+            send_auction_starting_soon_email(
+                self.auction.id,
+                expected_start=self.auction.start_date.isoformat(),
+            )
+
+        self.assertEqual(mock_email_send.call_count, 1)
+        self.assertEqual(mock_sms_send.call_count, 1)
+
+    def test_send_auction_started_email_respects_user_preferred_contact_methods(self):
+        self.user_one.email = 'first@example.com'
+        self.user_one.preferred_contact_methods = ['email']
+        self.user_one.save(update_fields=['email', 'preferred_contact_methods'])
+
+        self.user_two.email = 'second@example.com'
+        self.user_two.preferred_contact_methods = ['sms']
+        self.user_two.save(update_fields=['email', 'preferred_contact_methods'])
+
+        self.auction.start_date = timezone.now()
+        self.auction.end_date = self.auction.start_date + timedelta(hours=2)
+        self.auction.save(update_fields=['start_date', 'end_date'])
+
+        email_res = NotificationSendResult(
+            provider=NotificationProviderType.EMAIL,
+            channel=NotificationChannel.EMAIL,
+            status=NotificationStatus.SENT,
+            recipients=['first@example.com'],
+            detail='OK',
+        )
+        sms_res = NotificationSendResult(
+            provider=NotificationProviderType.SMS,
+            channel=NotificationChannel.SMS,
+            status=NotificationStatus.SENT,
+            recipients=['09120000002'],
+            detail='OK',
+        )
+
+        with patch('notifications.providers.EmailProvider.send', return_value=email_res) as mock_email_send, \
+             patch('notifications.providers.SMSProvider.send', return_value=sms_res) as mock_sms_send:
+            send_auction_started_email(
+                self.auction.id,
+                expected_start=self.auction.start_date.isoformat(),
+            )
+
+        self.assertEqual(mock_email_send.call_count, 1)
+        self.assertEqual(mock_sms_send.call_count, 1)
+
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        DEFAULT_FROM_EMAIL="Auction Platform <sender@example.com>",
+        SERVER_EMAIL="sender@example.com",
+    )
+    def test_request_middleware_dispatches_due_starting_soon_email_once(self):
+        cache.clear()
+        self.user_one.email = 'first@example.com'
+        self.user_one.save(update_fields=['email'])
+        self.user_two.email = 'second@example.com'
+        self.user_two.save(update_fields=['email'])
+
+        self.auction.start_date = timezone.now() + timedelta(hours=24)
+        self.auction.end_date = self.auction.start_date + timedelta(hours=2)
+        self.auction.save(update_fields=['start_date', 'end_date'])
+        NotificationDelivery.objects.all().delete()
+
+        response = self.client.get(reverse('auction:action'))
+
+        self.assertEqual(response.status_code, 200)
+        email_deliveries = list(NotificationDelivery.objects.filter(provider='email'))
+        self.assertEqual(len(email_deliveries), 2)
+        self.assertTrue(all('۲۴ ساعت تا شروع مزایده' in item.subject for item in email_deliveries))
+
+        cache.clear()
+        second_response = self.client.get(reverse('auction:action'))
+
+        self.assertEqual(second_response.status_code, 200)
+        self.assertEqual(NotificationDelivery.objects.filter(provider='email').count(), 2)
+        self.auction.refresh_from_db()
+        self.assertIsNotNone(self.auction.start_reminder_24h_dispatched_at)
+
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        DEFAULT_FROM_EMAIL="Auction Platform <sender@example.com>",
+        SERVER_EMAIL="sender@example.com",
+    )
+    def test_request_middleware_dispatches_due_ended_email_and_billing_once(self):
+        cache.clear()
+        self.user_one.email = 'winner@example.com'
+        self.user_one.preferred_contact_methods = ['email']
+        self.user_one.save(update_fields=['email', 'preferred_contact_methods'])
+        self.user_two.email = 'other@example.com'
+        self.user_two.preferred_contact_methods = ['email']
+        self.user_two.save(update_fields=['email', 'preferred_contact_methods'])
+        self.product.place_bid(self.user_one, '200')
+        self.auction.end_date = timezone.now() - timedelta(seconds=1)
+        self.auction.save(update_fields=['end_date'])
+        NotificationDelivery.objects.all().delete()
+
+        response = self.client.get(reverse('auction:action'))
+
+        self.assertEqual(response.status_code, 200)
+        email_deliveries = list(NotificationDelivery.objects.filter(provider='email'))
+        subjects = [item.subject for item in email_deliveries]
+        self.assertIn(f"مزایده «{self.auction.name}» به پایان رسید", subjects)
+        self.assertIn(f"نتیجه مزایده و صورتحساب اولیه «{self.auction.name}»", subjects)
+
+        cache.clear()
+        second_response = self.client.get(reverse('auction:action'))
+
+        self.assertEqual(second_response.status_code, 200)
+        self.assertEqual(
+            len([item for item in NotificationDelivery.objects.filter(provider='email') if item.subject == f"مزایده «{self.auction.name}» به پایان رسید"]),
+            1,
+        )
+        self.assertEqual(
+            len([item for item in NotificationDelivery.objects.filter(provider='email') if item.subject == f"نتیجه مزایده و صورتحساب اولیه «{self.auction.name}»"]),
+            1,
+        )
+        self.auction.refresh_from_db()
+        self.assertIsNotNone(self.auction.end_notice_dispatched_at)
+        self.assertIsNotNone(self.auction.winner_billing_dispatched_at)
+
 
 class AuctionVisitTrackingTests(TestCase):
     def setUp(self):
@@ -417,14 +920,58 @@ class AuctionVisitTrackingTests(TestCase):
         self.assertIn('data-track-visit="1"', html)
         self.assertIn('data-track-guard="auction-access"', html)
 
-    def test_auction_product_detail_page_refresh_does_not_track_visit(self):
+    def test_auction_product_detail_page_is_public_for_guest_users(self):
         response = self.client.get(reverse('auction:auction_product_detail', kwargs={'pk': self.product.pk}))
 
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'ورود جهت ثبت پیشنهاد')
         self.assertEqual(AuctionVisitHistory.objects.count(), 0)
 
+    def test_auction_product_detail_page_is_public_for_unverified_users(self):
+        unverified_user = CustomUser.objects.create_user(
+            phone_number='09120000110',
+            password='Test@1234',
+            full_name='کاربر تاییدنشد‌ه',
+        )
+        self.client.force_login(unverified_user)
+
+        response = self.client.get(reverse('auction:auction_product_detail', kwargs={'pk': self.product.pk}))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="bid-submit-form"', html=False)
+
+    def test_finished_auction_product_detail_is_public_without_bid_submission(self):
+        winner = CustomUser.objects.create_user(
+            phone_number='09120000111',
+            password='Test@1234',
+            full_name='برنده مزایده',
+        )
+        winner.is_verified = 1
+        winner.credit = Decimal('1000')
+        winner.current_credit = Decimal('1000')
+        winner.save()
+
+        self.product.place_bid(winner, '200')
+        self.auction.end_date = timezone.now() - timedelta(seconds=1)
+        self.auction.save(update_fields=['end_date'])
+
+        response = self.client.get(
+            reverse('auction:auction_product_detail', kwargs={'pk': self.product.pk}),
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'مزایده این اثر به پایان رسیده است')
+        self.assertContains(response, 'این اثر دارای برنده نهایی است.')
+        self.assertNotContains(response, 'این صفحه برای مشاهده عمومی باز است و ثبت بید غیرفعال شده است.')
+        self.assertNotContains(response, 'id="bid-submit-form"', html=False)
+        self.assertNotContains(response, 'ورود جهت ثبت پیشنهاد')
+
     def test_auction_products_page_marks_product_detail_links_for_guarded_visit_tracking(self):
-        response = self.client.get(reverse('auction:auction_products', kwargs={'pk': self.auction.pk}))
+        response = self.client.get(
+            reverse('auction:auction_products', kwargs={'pk': self.auction.pk}),
+            follow=True,
+        )
 
         self.assertEqual(response.status_code, 200)
         html = response.content.decode()
@@ -434,6 +981,111 @@ class AuctionVisitTrackingTests(TestCase):
         self.assertIn('data-login-message="برای مشاهده جزئیات محصول مزایده، لطفاً ابتدا وارد حساب کاربری خود شوید."', html)
         self.assertIn('data-track-kind="auction_product"', html)
         self.assertIn('data-track-guard="auction-access"', html)
+        self.assertIn('data-product-image-link="1"', html)
+
+    def test_finished_auction_products_page_allows_public_product_navigation_script(self):
+        winner = CustomUser.objects.create_user(
+            phone_number='09120000112',
+            password='Test@1234',
+            full_name='برنده مزایده عمومی',
+        )
+        winner.is_verified = 1
+        winner.credit = Decimal('1000')
+        winner.current_credit = Decimal('1000')
+        winner.save()
+
+        self.product.place_bid(winner, '200')
+        self.auction.end_date = timezone.now() - timedelta(seconds=1)
+        self.auction.save(update_fields=['end_date'])
+
+        response = self.client.get(
+            reverse('auction:auction_products', kwargs={'pk': self.auction.pk}),
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        self.assertIn('window.canTrackAuctionVisit = function(link)', html)
+        self.assertIn("link.dataset.trackKind === 'auction_product'", html)
+        self.assertIn('return canViewAuctionProductDetails();', html)
+
+    def test_track_visit_endpoint_creates_auction_product_visit_only_on_click(self):
+        response = self.client.post(
+            reverse('track_public_visit'),
+            data=json.dumps({'kind': 'auction_product', 'object_id': self.product.pk}),
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_finished_auction_product_detail_is_public_without_bid_submission(self):
+        winner = CustomUser.objects.create_user(
+            phone_number='09120000111',
+            password='Test@1234',
+            full_name='برنده مزایده',
+        )
+        winner.is_verified = 1
+        winner.credit = Decimal('1000')
+        winner.current_credit = Decimal('1000')
+        winner.save()
+
+        self.product.place_bid(winner, '200')
+        self.auction.end_date = timezone.now() - timedelta(seconds=1)
+        self.auction.save(update_fields=['end_date'])
+
+        response = self.client.get(
+            reverse('auction:auction_product_detail', kwargs={'pk': self.product.pk}),
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'مزایده این اثر به پایان رسیده است')
+        self.assertContains(response, 'این اثر دارای برنده نهایی است.')
+        self.assertNotContains(response, 'این صفحه برای مشاهده عمومی باز است و ثبت بید غیرفعال شده است.')
+        self.assertNotContains(response, 'id="bid-submit-form"', html=False)
+        self.assertNotContains(response, 'ورود جهت ثبت پیشنهاد')
+
+    def test_auction_products_page_marks_product_detail_links_for_guarded_visit_tracking(self):
+        response = self.client.get(
+            reverse('auction:auction_products', kwargs={'pk': self.auction.pk}),
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        self.assertIn(reverse('auction:auction_product_detail', kwargs={'pk': self.product.pk}), html)
+        self.assertIn('data-auction-product-link="1"', html)
+        self.assertIn('data-auction-quick-bid="1"', html)
+        self.assertIn('data-login-message="برای مشاهده جزئیات محصول مزایده، لطفاً ابتدا وارد حساب کاربری خود شوید."', html)
+        self.assertIn('data-track-kind="auction_product"', html)
+        self.assertIn('data-track-guard="auction-access"', html)
+        self.assertIn('data-product-image-link="1"', html)
+
+    def test_finished_auction_products_page_allows_public_product_navigation_script(self):
+        winner = CustomUser.objects.create_user(
+            phone_number='09120000112',
+            password='Test@1234',
+            full_name='برنده مزایده عمومی',
+        )
+        winner.is_verified = 1
+        winner.credit = Decimal('1000')
+        winner.current_credit = Decimal('1000')
+        winner.save()
+
+        self.product.place_bid(winner, '200')
+        self.auction.end_date = timezone.now() - timedelta(seconds=1)
+        self.auction.save(update_fields=['end_date'])
+
+        response = self.client.get(
+            reverse('auction:auction_products', kwargs={'pk': self.auction.pk}),
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        self.assertIn('window.canTrackAuctionVisit = function(link)', html)
+        self.assertIn("link.dataset.trackKind === 'auction_product'", html)
+        self.assertIn('return canViewAuctionProductDetails();', html)
 
     def test_track_visit_endpoint_creates_auction_product_visit_only_on_click(self):
         response = self.client.post(
@@ -455,3 +1107,25 @@ class AuctionVisitTrackingTests(TestCase):
         html = response.content.decode()
         self.assertIn(reverse('auction:auction_products', kwargs={'pk': self.auction.pk}), html)
         self.assertIn('data-track-guard="auction-access"', html)
+
+    def test_product_detail_page_accessible_when_auction_not_started(self):
+        ready_auction = Auction.objects.create(
+            name='مزایده به زودی',
+            start_date=timezone.now() + timedelta(days=1),
+            end_date=timezone.now() + timedelta(days=2),
+            products_count=1,
+        )
+        ready_product = AuctionProduct.objects.create(
+            auction=ready_auction,
+            product_id='A-9999',
+            title='اثر پیش‌نمایش',
+            artist=self.artist,
+            artwork_type=self.artwork_type,
+            base_price=Decimal('500'),
+            bid_value=Decimal('10'),
+        )
+        response = self.client.get(reverse('auction:auction_product_detail', kwargs={'pk': ready_product.pk}))
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        self.assertIn('اثر پیش‌نمایش', html)
+        self.assertIn('در انتظار شروع مزایده', html)

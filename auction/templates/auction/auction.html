@@ -76,7 +76,7 @@
                 {% elif auctions %}
                     {% for auction in auctions %}
                         <div class="group bg-white dark:bg-zinc-900 rounded-[1.5rem] overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 border border-neutral-200 dark:border-zinc-800 p-2 pb-5">
-                            <div class="relative w-full aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-neutral-100 dark:bg-zinc-800">
+                            <div class="relative w-full aspect-[112/135] rounded-xl overflow-hidden mb-4 bg-neutral-100 dark:bg-zinc-800">
                                 <img alt="{{ auction.name|default:auction }}"
                                      class="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
                                      src="{% static 'images/action/' %}{{ auction.pk }}.webp"/>
@@ -337,9 +337,9 @@
         }
 
         function showInactiveAuctionToast() {
-            if (window.showToast) {
-                window.showToast('مزایده فعال نیست', 'warning', 'bottom-left');
-            }
+            // if (window.showToast) {
+            //     window.showToast('مزایده فعال نیست', 'warning', 'bottom-left');
+            // }
         }
 
         function setAuthModalState() {
@@ -388,16 +388,21 @@
         }
 
         function hasAuctionAccessForNavigation() {
-            if (isAuctionNotStarted() || isAuctionEnded()) return false;
-            if (!userIsAuthenticated) return false;
-            return userIsVerified;
+            return !isAuctionNotStarted() && !isAuctionEnded();
         }
 
-        window.canTrackAuctionVisit = function() {
-            return hasAuctionAccessForNavigation();
+        function canViewAuctionProductDetails() {
+            return true;
+        }
+
+        window.canTrackAuctionVisit = function(link) {
+            if (link && link.dataset && link.dataset.trackKind === 'auction_product') {
+                return canViewAuctionProductDetails();
+            }
+            return true;
         };
 
-        function ensureAuctionAccess(targetUrl, loginMessage) {
+        function ensureBidAccess(targetUrl, loginMessage) {
             if (isAuctionNotStarted() || isAuctionEnded()) {
                 showInactiveAuctionToast();
                 return false;
@@ -408,7 +413,7 @@
             if (!userIsAuthenticated) {
                 window.openLoginRequiredModal(
                     targetUrl || (window.location.pathname + window.location.search),
-                    loginMessage || 'برای مشاهده جزئیات و شرکت در مزایده، لطفاً ابتدا وارد حساب کاربری خود شوید.'
+                    loginMessage || 'برای ثبت پیشنهاد در مزایده، لطفاً ابتدا وارد حساب کاربری خود شوید.'
                 );
                 return false;
             }
@@ -421,15 +426,6 @@
             document.querySelectorAll('a[data-auction-product-link="1"]').forEach(a => {
                 if (a.dataset.guardBound === '1') return;
                 a.dataset.guardBound = '1';
-
-                a.addEventListener('click', e => {
-                    if (!ensureAuctionAccess(
-                        a.getAttribute('href'),
-                        a.getAttribute('data-login-message') || 'برای مشاهده جزئیات محصول مزایده، لطفاً ابتدا وارد حساب کاربری خود شوید.'
-                    )) {
-                        e.preventDefault();
-                    }
-                });
             });
 
             document.querySelectorAll('button[data-auction-quick-bid="1"]').forEach(btn => {
@@ -444,7 +440,7 @@
 
         function formatFaNumber(value) {
             try {
-                return Number(value).toLocaleString('fa-IR');
+                return Number(value).toLocaleString('fa-IR').replace(/٬/g, ',');
             } catch {
                 return String(value);
             }
@@ -583,11 +579,11 @@
                 setInfiniteScrollStatus({ loading: false, hasNext });
             } catch (error) {
                 setInfiniteScrollStatus({ loading: false, hasNext: true });
-                if (window.showToast) {
-                    window.showToast(error.message || 'خطا در بارگذاری محصولات بیشتر.', 'error', 'bottom-left');
-                } else {
-                    console.error(error);
-                }
+                // if (window.showToast) {
+                //     window.showToast(error.message || 'خطا در بارگذاری محصولات بیشتر.', 'error', 'bottom-left');
+                // } else {
+                console.error(error);
+                // }
             } finally {
                 isLoadingMoreProducts = false;
             }
@@ -624,57 +620,44 @@
             infiniteScrollObserver.observe(infiniteScrollSentinel);
         }
 
-        async function syncAuctionData() {
-            try {
-                const response = await fetch(window.location.href, { 
-                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Cache-Control': 'no-cache' } 
+        async function syncAuctionData({ productIds = null } = {}) {
+            const cards = Array.from(document.querySelectorAll('[data-product-card]'));
+            const targetIds = Array.isArray(productIds) && productIds.length
+                ? new Set(productIds.map(String))
+                : null;
+            const targetCards = targetIds
+                ? cards.filter(card => targetIds.has(String(card.getAttribute('data-product-card') || '')))
+                : cards;
+
+            if (!targetCards.length) return;
+
+            const requests = targetCards.map(async (card) => {
+                const productId = card.getAttribute('data-product-card');
+                const liveStateUrl = card.getAttribute('data-live-state-url');
+                if (!productId || !liveStateUrl) return;
+
+                const response = await fetch(liveStateUrl, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Cache-Control': 'no-cache' }
                 });
-                const html = await response.text();
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-
-                document.querySelectorAll('[data-product-card]').forEach(card => {
-                    const pid = card.getAttribute('data-product-card');
-                    const freshCard = doc.querySelector(`[data-product-card="${pid}"]`);
-                    
-                    if (freshCard) {
-                        const priceEl = card.querySelector('[data-product-price-display]');
-                        const freshPriceEl = freshCard.querySelector('[data-product-price-display]');
-                        if (priceEl && freshPriceEl) priceEl.innerHTML = freshPriceEl.innerHTML;
-
-                        const bidsEl = card.querySelector('[data-product-bids-display]');
-                        const freshBidsEl = freshCard.querySelector('[data-product-bids-display]');
-                        if (bidsEl && freshBidsEl) bidsEl.textContent = freshBidsEl.textContent;
-
-                        const btn = card.querySelector('button[data-product-id]');
-                        const freshBtn = freshCard.querySelector('button[data-product-id]');
-                        if (btn && freshBtn) {
-                            ['data-current-price', 'data-min-next', 'data-bid-count'].forEach(attr => {
-                                btn.setAttribute(attr, freshBtn.getAttribute(attr));
-                            });
-                        }
-
-                        if (freshCard.hasAttribute('data-has-winner')) {
-                            card.setAttribute('data-has-winner', freshCard.getAttribute('data-has-winner') || '0');
-                        }
-                        if (freshCard.hasAttribute('data-is-user-winner')) {
-                            card.setAttribute('data-is-user-winner', freshCard.getAttribute('data-is-user-winner') || '0');
-                        }
-                    }
-                });
-
-                const freshCreditStatus = doc.querySelector('#credit-request-status');
-                if (creditRequestStatus && freshCreditStatus) {
-                    creditRequestStatus.dataset.status = freshCreditStatus.dataset.status || '';
+                if (!response.ok) {
+                    throw new Error(`sync_failed_${productId}`);
                 }
-            } catch (err) {
-                console.error("Sync failed:", err);
+
+                const data = await response.json();
+                if (data && data.success) {
+                    applyProductLiveState(productId, data);
+                }
+            });
+
+            const results = await Promise.allSettled(requests);
+            if (results.some(result => result.status === 'rejected')) {
+                console.error('Sync failed for some auction cards.');
             }
         }
 
-        let liveSockets = [];
+        let liveSockets = new Map();
         let livePollingTimer = null;
-        let liveReconnectTimer = null;
+        let liveReconnectTimers = new Map();
 
         function stopLivePolling() {
             if (!livePollingTimer) return;
@@ -688,17 +671,45 @@
             livePollingTimer = window.setInterval(syncAuctionData, 5000);
         }
 
+        function clearLiveReconnectTimer(productId) {
+            const timer = liveReconnectTimers.get(String(productId));
+            if (!timer) return;
+            window.clearTimeout(timer);
+            liveReconnectTimers.delete(String(productId));
+        }
+
         function closeLiveSockets() {
             liveSockets.forEach((socket) => {
                 try {
                     socket.close();
                 } catch {}
             });
-            liveSockets = [];
+            liveSockets.clear();
+            liveReconnectTimers.forEach((timer) => {
+                window.clearTimeout(timer);
+            });
+            liveReconnectTimers.clear();
         }
 
-        function connectAuctionLiveUpdates() {
-            const cards = Array.from(document.querySelectorAll('[data-product-card]'));
+        function scheduleLiveReconnect(productId) {
+            const normalizedProductId = String(productId || '');
+            if (!normalizedProductId || liveReconnectTimers.has(normalizedProductId)) return;
+
+            const timer = window.setTimeout(() => {
+                liveReconnectTimers.delete(normalizedProductId);
+                const card = document.querySelector(`[data-product-card="${normalizedProductId}"]`);
+                if (card) {
+                    connectAuctionLiveUpdates([card]);
+                }
+            }, 3000);
+
+            liveReconnectTimers.set(normalizedProductId, timer);
+        }
+
+        function connectAuctionLiveUpdates(cardsInput = null) {
+            const cards = Array.isArray(cardsInput) && cardsInput.length
+                ? cardsInput
+                : Array.from(document.querySelectorAll('[data-product-card]'));
             if (!cards.length) return;
 
             if (!('WebSocket' in window)) {
@@ -706,15 +717,18 @@
                 return;
             }
 
-            closeLiveSockets();
+            stopLivePolling();
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 
             cards.forEach((card) => {
                 const productId = card.getAttribute('data-product-card');
                 if (!productId) return;
+                if (liveSockets.has(String(productId))) return;
 
-                const socket = new WebSocket(`${protocol}//${window.location.host}/ws/auction/product/${productId}/`);
-                liveSockets.push(socket);
+                clearLiveReconnectTimer(productId);
+
+                const socket = new WebSocket(`${protocol}//${window.location.host}/ws/auction/product/${productId}/?compact=1`);
+                liveSockets.set(String(productId), socket);
 
                 socket.addEventListener('open', function() {
                     stopLivePolling();
@@ -736,11 +750,13 @@
                 });
 
                 socket.addEventListener('close', function() {
-                    startLivePolling();
-                    if (liveReconnectTimer) {
-                        window.clearTimeout(liveReconnectTimer);
+                    if (liveSockets.get(String(productId)) === socket) {
+                        liveSockets.delete(String(productId));
                     }
-                    liveReconnectTimer = window.setTimeout(connectAuctionLiveUpdates, 3000);
+                    if (liveSockets.size === 0) {
+                        startLivePolling();
+                    }
+                    scheduleLiveReconnect(productId);
                 });
             });
         }
@@ -748,7 +764,7 @@
         window.addEventListener('pageshow', (event) => { syncAuctionData(); });
         document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') syncAuctionData(); });
 
-        const formatToman = (value) => Number(value).toLocaleString('fa-IR');
+        const formatToman = (value) => Number(value).toLocaleString('fa-IR').replace(/٬/g, ',');
         const ceilInt = (n) => Math.ceil(Number(n));
 
         const qbModal = document.getElementById('quick-bid-modal');
@@ -815,7 +831,7 @@
                 showInactiveAuctionToast();
                 return;
             }
-            if (!ensureAuctionAccess(
+            if (!ensureBidAccess(
                 window.location.pathname + window.location.search,
                 'برای ثبت پیشنهاد در مزایده، لطفاً ابتدا وارد حساب کاربری خود شوید.'
             )) return;
@@ -887,23 +903,28 @@
                 const response = await fetch(qbForm.action, {
                     method: 'POST',
                     body: formData,
-                    headers: { 'X-CSRFToken': formData.get('csrfmiddlewaretoken'), 'X-Requested-With': 'XMLHttpRequest' }
+                    headers: {
+                        'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-Auction-Quick-Bid': '1'
+                    }
                 });
                 
                 const data = await response.json();
                 if (data.success) {
+                    const submittedProductId = currentBidButton?.getAttribute('data-product-id');
+                    if (submittedProductId) {
+                        applyProductLiveState(submittedProductId, data);
+                    }
                     closeQuickBidModal();
-                    if(window.showToast) window.showToast(data.message || 'پیشنهاد با موفقیت ثبت شد.', 'success', 'bottom-left');
-                    syncAuctionData(); 
+                    // if(window.showToast) window.showToast(data.message || 'پیشنهاد با موفقیت ثبت شد.', 'success', 'bottom-left');
                 } else {
                     if (data.needs_credit_increase) {
                         setQuickBidModalState(data.credit_request_state === 'pending' ? 'pending' : 'credit');
-                    } else if(window.showToast) {
-                        window.showToast(data.message || 'خطایی رخ داده است.', 'error', 'bottom-left');
                     }
                 }
             } catch (error) {
-                if(window.showToast) window.showToast('خطا در ارتباط با سرور.', 'error', 'bottom-left');
+                // if(window.showToast) window.showToast('خطا در ارتباط با سرور.', 'error', 'bottom-left');
             } finally {
                 qbSubmitBtn.disabled = false;
                 qbSubmitBtn.querySelector('.btn-text').classList.remove('hidden');
@@ -964,16 +985,16 @@
 
                         setAuthModalState();
 
-                        if (window.showToast && data.toast_message) {
-                            window.showToast(
-                                data.toast_message,
-                                data.toast_type || 'info',
-                                'bottom-left',
-                                data.toast_action_label
-                                    ? { actionLabel: data.toast_action_label, actionHref: data.toast_action_href || '#' }
-                                    : undefined
-                            );
-                        }
+                        // if (window.showToast && data.toast_message) {
+                        //     window.showToast(
+                        //         data.toast_message,
+                        //         data.toast_type || 'info',
+                        //         'bottom-left',
+                        //         data.toast_action_label
+                        //             ? { actionLabel: data.toast_action_label, actionHref: data.toast_action_href || '#' }
+                        //             : undefined
+                        //     );
+                        // }
 
                         if (data.request_state === 'incomplete_profile' && data.toast_action_href) {
                             window.location.href = data.toast_action_href;
@@ -982,11 +1003,11 @@
                     .catch(error => {
                         this.disabled = false;
                         this.innerHTML = originalHtml;
-                        if (window.showToast) {
-                            window.showToast(error.message || 'خطا در ثبت درخواست', 'error', 'bottom-left');
-                        } else {
-                            alert(error.message || 'خطا در ثبت درخواست');
-                        }
+                        // if (window.showToast) {
+                        //     window.showToast(error.message || 'خطا در ثبت درخواست', 'error', 'bottom-left');
+                        // } else {
+                        //     alert(error.message || 'خطا در ثبت درخواست');
+                        // }
                     });
                 });
             }
@@ -1025,19 +1046,15 @@
                             if (btnProfileLink && data.profile_url) {
                                 btnProfileLink.href = data.profile_url;
                             }
-                        } else if (window.showToast) {
-                            window.showToast(data.message || 'خطا در ثبت درخواست.', 'error', 'bottom-left');
-                        } else {
-                            alert(data.message || 'خطا در ثبت درخواست.');
                         }
                     } catch (error) {
                         btnSubmitCredit.innerHTML = originalText;
                         btnSubmitCredit.disabled = false;
-                        if (window.showToast) {
-                            window.showToast('خطا در ارتباط با سرور. لطفاً مجدداً تلاش کنید.', 'error', 'bottom-left');
-                        } else {
-                            alert('خطا در ارتباط با سرور. لطفاً مجدداً تلاش کنید.');
-                        }
+                        // if (window.showToast) {
+                        //     window.showToast('خطا در ارتباط با سرور. لطفاً مجدداً تلاش کنید.', 'error', 'bottom-left');
+                        // } else {
+                        //     alert('خطا در ارتباط با سرور. لطفاً مجدداً تلاش کنید.');
+                        // }
                     }
                 });
             }
@@ -1053,9 +1070,6 @@
 
         window.addEventListener('beforeunload', () => {
             stopLivePolling();
-            if (liveReconnectTimer) {
-                window.clearTimeout(liveReconnectTimer);
-            }
             closeLiveSockets();
         });
     </script>
@@ -1112,7 +1126,7 @@
                         
                         if(img) img.classList.remove('grayscale');
                         
-                        if (overlayNotStarted) { overlayNotStarted.classList.remove('hidden'); overlayNotStarted.classList.add('flex'); }
+                        if (overlayNotStarted) { overlayNotStarted.classList.add('hidden'); overlayNotStarted.classList.remove('flex'); }
                         if (overlayEnded) { overlayEnded.classList.add('hidden'); overlayEnded.classList.remove('flex'); }
                         
                         // دکمه‌ها
@@ -1146,9 +1160,7 @@
                                 } else {
                                     soldBadge.classList.add('border-emerald-300/70', 'bg-emerald-500/90', 'shadow-emerald-500/20');
                                 }
-                                if (soldBadgeIcon) {
-                                    soldBadgeIcon.textContent = isUserWinner ? 'military_tech' : 'sell';
-                                }
+                               
                                 if (soldBadgeText) {
                                     soldBadgeText.textContent = isUserWinner ? 'شما برنده شدید' : 'به فروش رسید';
                                 }

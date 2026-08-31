@@ -3,18 +3,20 @@ from datetime import timedelta
 from decimal import Decimal
 
 from django.core.cache import cache
-from django.test import TestCase
+from django.core import mail
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import CustomUser, VerificationRequest, CreditIncreaseRequest
 from auction.models import Auction, AuctionProduct, AuctionVisitHistory, AuctionCartItem, Bid
 from core.models import ActivityLog
+from notifications.models import NotificationDelivery
 from store.models import Artist, Artwork, ArtworkType, SiteVisitLog, VisitHistory, PurchaseHistory, TelegramPurchaseRequest
 
 
 class AdminRequestManagementTests(TestCase):
-    MIN_ADMIN_CREDIT_AMOUNT = Decimal('500000000')
+    MIN_ADMIN_CREDIT_AMOUNT = Decimal('1000000000')
 
     def setUp(self):
         cache.clear()
@@ -1351,3 +1353,125 @@ class AdminRequestManagementTests(TestCase):
         self.assertIn('اثر فروشگاه', payload['html'])
         self.assertIn('اثر مزایده', payload['html'])
         self.assertIn('برنده مزایده', payload['html'])
+
+    def test_settings_page_requires_superuser(self):
+        response = self.client.get(reverse('admin_panel_pages:settings'))
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_superuser_can_open_settings_page(self):
+        self.client.force_login(self.super_user)
+
+        response = self.client.get(reverse('admin_panel_pages:settings'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'ارسال ایمیل تست')
+        self.assertContains(response, 'ارسال ایمیل سفارشی')
+        self.assertContains(response, 'انتخاب کاربران دارای ایمیل')
+        self.assertContains(response, 'another@example.com')
+
+    @override_settings(
+        EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+        DEFAULT_FROM_EMAIL='Auction Platform <sender@example.com>',
+        SERVER_EMAIL='sender@example.com',
+        EMAIL_HOST_USER='sender@example.com',
+        EMAIL_HOST_PASSWORD='dummy-secret',
+    )
+    def test_superuser_can_send_test_email_from_settings_page(self):
+        self.client.force_login(self.super_user)
+
+        response = self.client.post(
+            reverse('admin_panel_pages:settings'),
+            {
+                'action': 'send_test_email',
+                'test_recipient': 'receiver@example.com',
+                'test_subject': 'تست پنل',
+                'test_message': 'متن تست پنل سفارشی',
+            },
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        email_deliveries = list(NotificationDelivery.objects.filter(provider='email'))
+        self.assertEqual(len(email_deliveries), 1)
+        self.assertEqual(email_deliveries[0].subject, 'تست پنل')
+        self.assertEqual(email_deliveries[0].body, 'متن تست پنل سفارشی')
+        self.assertEqual(email_deliveries[0].metadata.get('from_email'), 'Auction Platform <sender@example.com>')
+        self.assertEqual(email_deliveries[0].recipients, ['receiver@example.com'])
+        self.assertContains(response, 'ایمیل تست با موفقیت')
+
+    @override_settings(
+        EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+        DEFAULT_FROM_EMAIL='sender@example.com',
+        SERVER_EMAIL='sender@example.com',
+    )
+    def test_settings_page_custom_email_rejects_invalid_recipient(self):
+        self.client.force_login(self.super_user)
+
+        response = self.client.post(
+            reverse('admin_panel_pages:settings'),
+            {
+                'action': 'send_custom_email',
+                'custom_recipients': 'not-an-email, valid@example.com',
+                'custom_subject': 'موضوع تست',
+                'custom_message': 'پیام تست',
+            },
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(NotificationDelivery.objects.count(), 0)
+        self.assertContains(response, 'این آدرس‌های ایمیل معتبر نیستند')
+
+    @override_settings(
+        EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+        DEFAULT_FROM_EMAIL='sender@example.com',
+        SERVER_EMAIL='sender@example.com',
+    )
+    def test_settings_page_custom_email_can_send_to_selected_users(self):
+        self.client.force_login(self.super_user)
+        extra_user = CustomUser.objects.create_user(
+            phone_number="09120000005",
+            password="User@1234",
+            full_name="گیرنده دوم",
+            email="second@example.com",
+        )
+
+        response = self.client.post(
+            reverse('admin_panel_pages:settings'),
+            {
+                'action': 'send_custom_email',
+                'selected_user_ids': [str(self.other_user.pk), str(extra_user.pk)],
+                'custom_subject': 'اعلان مهم',
+                'custom_message': 'متن اعلان برای کاربران انتخاب‌شده',
+            },
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        email_deliveries = list(NotificationDelivery.objects.filter(provider='email'))
+        self.assertEqual(len(email_deliveries), 1)
+        self.assertEqual(email_deliveries[0].subject, 'اعلان مهم')
+        self.assertEqual(email_deliveries[0].body, 'متن اعلان برای کاربران انتخاب‌شده')
+        self.assertCountEqual(email_deliveries[0].recipients, ['another@example.com', 'second@example.com'])
+        self.assertContains(response, 'ایمیل با موفقیت برای 2 گیرنده ارسال شد.')
+
+    @override_settings(
+        EMAIL_BACKEND='django.core.mail.backends.smtp.EmailBackend',
+        EMAIL_HOST='smtp.gmail.com',
+        EMAIL_PORT=587,
+        EMAIL_USE_TLS=True,
+        EMAIL_USE_SSL=False,
+        EMAIL_HOST_USER='',
+        EMAIL_HOST_PASSWORD='',
+        DEFAULT_FROM_EMAIL='',
+    )
+    def test_settings_page_reports_missing_smtp_credentials(self):
+        self.client.force_login(self.super_user)
+
+        response = self.client.get(reverse('admin_panel_pages:settings'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'EMAIL_HOST_USER تنظیم نشده')
+        self.assertContains(response, 'EMAIL_HOST_PASSWORD تنظیم نشده')
+        self.assertContains(response, 'DEFAULT_FROM_EMAIL تنظیم نشده')

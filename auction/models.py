@@ -11,11 +11,22 @@ from django.db import models, transaction
 from django.utils import timezone
 
 
+def _fa_digits(value):
+    if value is None:
+        return ''
+    return str(value).translate(str.maketrans('0123456789', '۰۱۲۳۴۵۶۷۸۹'))
+
+
 class Auction(models.Model):
     name = models.CharField(max_length=255, blank=True, null=True)
     start_date = models.DateTimeField()
     end_date = models.DateTimeField()
     products_count = models.PositiveIntegerField()
+    start_reminder_24h_dispatched_at = models.DateTimeField(null=True, blank=True)
+    start_notice_dispatched_at = models.DateTimeField(null=True, blank=True)
+    end_reminder_12h_dispatched_at = models.DateTimeField(null=True, blank=True)
+    end_notice_dispatched_at = models.DateTimeField(null=True, blank=True)
+    winner_billing_dispatched_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -37,6 +48,100 @@ class Auction(models.Model):
             return 'ongoing'
         return 'finished'
 
+    @staticmethod
+    def _image_extensions():
+        return ('.webp', '.png', '.jpg', '.jpeg')
+
+    @staticmethod
+    def _main_image_extensions():
+        return ('.webp',)
+
+    @staticmethod
+    def _gallery_image_extensions():
+        return ('.jpg', '.jpeg')
+
+    def _get_priority_image_names(self):
+        if not self.pk:
+            return ('main', 'cover', 'primary', 'first')
+        pk_text = str(self.pk).lower()
+        return (pk_text, 'main', 'cover', 'primary', 'first')
+
+    def _get_static_root(self):
+        try:
+            if settings.STATICFILES_DIRS:
+                return Path(settings.STATICFILES_DIRS[0])
+        except AttributeError:
+            pass
+        return Path(settings.BASE_DIR) / 'static'
+
+    def _get_image_dir(self):
+        if not self.pk:
+            return None
+        return self._get_static_root() / 'images' / 'action' / str(self.pk)
+
+    def _image_sort_key(self, file_path):
+        stem = file_path.stem.lower()
+        priority_names = self._get_priority_image_names()
+
+        for index, priority_name in enumerate(priority_names):
+            if stem == priority_name:
+                return (index, 0, file_path.name.lower())
+            if stem.startswith(f'{priority_name}-') or stem.startswith(f'{priority_name}_') or stem.startswith(f'{priority_name} '):
+                return (index, 1, file_path.name.lower())
+
+        return (len(priority_names), 2, file_path.name.lower())
+
+    def _get_image_files(self, allowed_extensions=None):
+        image_dir = self._get_image_dir()
+        if not image_dir or not (image_dir.exists() and image_dir.is_dir()):
+            return []
+
+        allowed_extensions = tuple(
+            ext.lower() for ext in (allowed_extensions or self._image_extensions())
+        )
+        image_files = [
+            file_path
+            for file_path in image_dir.iterdir()
+            if file_path.is_file() and file_path.suffix.lower() in allowed_extensions
+        ]
+        image_files.sort(key=self._image_sort_key)
+        return image_files
+
+    def _get_legacy_image_url(self, extensions):
+        if not self.pk:
+            return None
+
+        static_root = self._get_static_root()
+        for ext in extensions:
+            legacy_file = static_root / 'images' / 'action' / f'{self.pk}{ext}'
+            if legacy_file.exists() and legacy_file.is_file():
+                return f"{settings.STATIC_URL}images/action/{legacy_file.name}"
+        return None
+
+    def _get_legacy_main_image_url(self):
+        return self._get_legacy_image_url(self._main_image_extensions())
+
+    @property
+    def main_image_url(self):
+        if not self.pk:
+            return ''
+
+        image_files = self._get_image_files(self._main_image_extensions())
+        if image_files:
+            return f"{settings.STATIC_URL}images/action/{self.pk}/{image_files[0].name}"
+
+        legacy_main_image_url = self._get_legacy_main_image_url()
+        if legacy_main_image_url:
+            return legacy_main_image_url
+
+        return ''
+
+    @property
+    def catalog_url(self):
+        if not self.pk:
+            return ''
+        return f'{settings.STATIC_URL}catalogs/auctions/{self.pk}.pdf'
+
 
 class AuctionProduct(models.Model):
     class AuthenticityStatus(models.IntegerChoices):
@@ -45,19 +150,30 @@ class AuctionProduct(models.Model):
 
     auction = models.ForeignKey(Auction, on_delete=models.CASCADE, related_name='products')
     product_id = models.CharField(max_length=64, unique=True)
+    lot = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        db_column='lot',
+        verbose_name='شماره لات',
+    )
     title = models.CharField(max_length=255)
     authenticity_status = models.SmallIntegerField(
         choices=AuthenticityStatus.choices,
         default=AuthenticityStatus.CONFIRMED,
         verbose_name='وضعیت اصالت',
     )
-    lot = models.PositiveIntegerField(blank=True, null=True, verbose_name='لات')
     description = models.TextField(blank=True, null=True)
     dimensions = models.CharField(max_length=255, blank=True, null=True)
     creation_year = models.PositiveIntegerField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    artist = models.ForeignKey('store.Artist', on_delete=models.PROTECT, related_name='auction_products')
+    artist = models.ForeignKey(
+        'store.Artist',
+        on_delete=models.PROTECT,
+        related_name='auction_products',
+        null=True,
+        blank=True,
+    )
     artwork_type = models.ForeignKey(
         'store.ArtworkType',
         on_delete=models.PROTECT,
@@ -103,37 +219,38 @@ class AuctionProduct(models.Model):
 
     class Meta:
         db_table = 'auction_product'
-        ordering = [
-            models.F('lot').asc(nulls_last=True),
-            'created_at',
-            'pk',
-        ]
-        constraints = [
-            models.UniqueConstraint(
-                fields=['auction', 'lot'],
-                condition=models.Q(lot__isnull=False),
-                name='uniq_auctionproduct_lot_per_auction',
-            ),
-        ]
+        ordering = ['-created_at']
 
     def save(self, *args, **kwargs):
         if self.current_price is None:
             self.current_price = self.base_price
         return super().save(*args, **kwargs)
 
-    @property
-    def display_title(self) -> str:
-        if self.lot is not None:
-            return f'{self.lot} — {self.title}'.strip()
-        return (self.title or '').strip()
-
     def __str__(self) -> str:
-        return self.display_title
-
+        return f'{self.product_id} - {self.title}'
 
     @staticmethod
     def _image_extensions():
-        return ('.webp', '.jpg', '.jpeg', '.png')
+        return ('.webp', '.png', '.jpg', '.jpeg')
+
+    @staticmethod
+    def _main_image_extensions():
+        return ('.webp',)
+
+    @staticmethod
+    def _gallery_image_extensions():
+        return ('.jpg', '.jpeg')
+
+    def _get_priority_image_names(self):
+        if not self.product_id:
+            return ('main', 'cover', 'primary', 'first')
+        return (
+            self.product_id.lower(),
+            'main',
+            'cover',
+            'primary',
+            'first',
+        )
 
     def _get_static_root(self):
         try:
@@ -148,60 +265,76 @@ class AuctionProduct(models.Model):
             return None
         return self._get_static_root() / 'images' / 'action' / self.product_id
 
-    def _get_product_image_files(self):
+    def _get_product_image_files(self, allowed_extensions=None):
         image_dir = self._get_product_image_dir()
         if not image_dir or not (image_dir.exists() and image_dir.is_dir()):
             return []
 
+        allowed_extensions = tuple(
+            ext.lower() for ext in (allowed_extensions or self._image_extensions())
+        )
         image_files = [
             file_path
             for file_path in image_dir.iterdir()
-            if file_path.is_file() and file_path.suffix.lower() in self._image_extensions()
+            if file_path.is_file() and file_path.suffix.lower() in allowed_extensions
         ]
-        image_files.sort(key=lambda p: p.name.lower())
+        image_files.sort(key=self._image_sort_key)
         return image_files
+
+    def _get_legacy_image_url(self, extensions):
+        if not self.product_id:
+            return None
+
+        static_root = self._get_static_root()
+        for ext in extensions:
+            legacy_file = static_root / 'images' / 'action' / f'{self.product_id}{ext}'
+            if legacy_file.exists() and legacy_file.is_file():
+                return f"{settings.STATIC_URL}images/action/{legacy_file.name}"
+        return None
+
+    def _get_legacy_main_image_url(self):
+        return self._get_legacy_image_url(self._main_image_extensions())
+
+    def _image_sort_key(self, file_path):
+        stem = file_path.stem.lower()
+        priority_names = self._get_priority_image_names()
+
+        for index, priority_name in enumerate(priority_names):
+            if stem == priority_name:
+                return (index, 0, file_path.name.lower())
+            if stem.startswith(f'{priority_name}-') or stem.startswith(f'{priority_name}_') or stem.startswith(f'{priority_name} '):
+                return (index, 1, file_path.name.lower())
+
+        return (len(priority_names), 2, file_path.name.lower())
 
     @property
     def main_image_url(self):
         if not self.product_id:
-            return f'{settings.STATIC_URL}images/no-image.jpg'
+            return ''
 
-        image_files = self._get_product_image_files()
+        image_files = self._get_product_image_files(self._main_image_extensions())
         if not image_files:
-            return f'{settings.STATIC_URL}images/no-image.jpg'
+            legacy_main_image_url = self._get_legacy_main_image_url()
+            if legacy_main_image_url:
+                return legacy_main_image_url
+            return ''
 
-        main_file = None
-        for ext in self._image_extensions():
-            candidate_name = f'{self.product_id}{ext}'
-            main_file = next((file_path for file_path in image_files if file_path.name.lower() == candidate_name), None)
-            if main_file:
-                break
-
-        selected = main_file or image_files[0]
+        selected = image_files[0]
         file_name = selected.name
         if file_name:
             return f'{settings.STATIC_URL}images/action/{self.product_id}/{file_name}'
-        return f'{settings.STATIC_URL}images/no-image.jpg'
+        return ''
 
     @property
     def gallery_images(self):
         if not self.product_id:
             return []
 
-        image_files = self._get_product_image_files()
+        image_files = self._get_product_image_files(self._gallery_image_extensions())
         if not image_files:
             return []
 
-        file_names = [file_path.name for file_path in image_files]
-
-        for ext in self._image_extensions():
-            main_name = f'{self.product_id}{ext}'
-            if main_name in file_names:
-                file_names.remove(main_name)
-                file_names.insert(0, main_name)
-                break
-
-        images_urls = [f"{settings.STATIC_URL}images/action/{self.product_id}/{name}" for name in file_names]
+        images_urls = [f"{settings.STATIC_URL}images/action/{self.product_id}/{file_path.name}" for file_path in image_files]
         return images_urls
 
     @property
@@ -330,7 +463,7 @@ class AuctionProduct(models.Model):
             min_next = Decimal(str(product.get_min_next_bid()))
             if bid_amount < min_next:
                 # تغییر متن ارور از دلار به تومان
-                raise ValidationError(f'حداقل پیشنهاد بعدی {int(min_next):,} تومان است.')
+                raise ValidationError(f'حداقل پیشنهاد بعدی {_fa_digits(f"{int(min_next):,}")} تومان است.')
 
             bidder = user_model.objects.select_for_update().get(pk=user.pk)
             bidder.refresh_current_credit()
@@ -405,21 +538,9 @@ class AuctionProduct(models.Model):
             product.winner = bidder
             product.save(update_fields=['current_price', 'winner'])
 
-            bidder_id = bidder.pk
-            previous_bidder_id = previous_bidder.pk if previous_bidder is not None else None
-
             bidder.refresh_current_credit()
             if previous_bidder is not None:
                 previous_bidder.refresh_current_credit()
-
-            def _broadcast_profile_updates():
-                from accounts.realtime import broadcast_profile_update
-
-                broadcast_profile_update(bidder_id)
-                if previous_bidder_id and previous_bidder_id != bidder_id:
-                    broadcast_profile_update(previous_bidder_id)
-
-            transaction.on_commit(_broadcast_profile_updates)
 
             return bid
 

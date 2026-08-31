@@ -99,6 +99,7 @@
                             </div>
                         </th>
                         
+                        
                         <!-- بخش ادغام شده بازدیدها -->
                         <th class="py-2 px-4 text-center border-x border-gray-200/50 dark:border-white/5 bg-white/50 dark:bg-transparent">
                             <div class="flex flex-col items-center gap-2">
@@ -321,7 +322,8 @@
         } catch (error) {
             if (error.name !== 'AbortError') {
                 console.error('Error fetching users:', error);
-                document.getElementById('users-tbody').innerHTML = `<tr><td colspan="8" class="py-8 text-center text-red-500 font-bold">خطا در دریافت لیست کاربران.</td></tr>`;
+                document.getElementById('users-tbody').innerHTML = `<tr><td colspan="9" class="py-8 text-center text-red-500 font-bold">خطا در دریافت لیست کاربران.</td></tr>`;
+
             }
         } finally {
             loading.classList.add('opacity-0', 'pointer-events-none');

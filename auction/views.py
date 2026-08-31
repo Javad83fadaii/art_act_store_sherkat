@@ -42,9 +42,10 @@ def _split_seconds(total_seconds: int) -> tuple[int, int, int, int]:
 
 def _build_inactive_auction_redirect(product: AuctionProduct):
     list_url = reverse('auction:auction_products', kwargs={'pk': product.auction.pk})
-    return redirect(
-        f'{list_url}?{urlencode({"toast_message": "مزایده فعال نیست.", "toast_type": "warning"})}'
-    )
+    # return redirect(
+    #     f'{list_url}?{urlencode({"toast_message": "مزایده فعال نیست.", "toast_type": "warning"})}'
+    # )
+    return redirect(list_url)
 
 
 def _has_finished_winner_profile_access(request, product: AuctionProduct, access_token: str) -> bool:
@@ -145,71 +146,67 @@ def auction_product_detail(request, pk: int):
     product = ensure_auction_product_winner(product)
     access_token = request.GET.get('access_token', '').strip()
     has_winner_profile_access = _has_finished_winner_profile_access(request, product, access_token)
+    is_ready_auction = product.auction.status == 'ready'
     is_active_auction = product.auction.status == 'ongoing'
+    is_finished_auction = product.auction.status == 'finished'
 
-    if not is_active_auction and not has_winner_profile_access:
+    if not is_ready_auction and not is_active_auction and not is_finished_auction and not has_winner_profile_access:
         if not request.user.is_authenticated and access_token:
             login_url = f'{reverse("login")}?{urlencode({"next": request.get_full_path()})}'
             return redirect(login_url)
         return _build_inactive_auction_redirect(product)
 
-    if not request.user.is_authenticated:
-        login_url = f'{reverse("login")}?{urlencode({"next": request.path})}'
-        list_url = reverse('auction:auction_products', kwargs={'pk': product.auction.pk})
-        return redirect(
-            f'{list_url}?{urlencode({"toast_message": "برای مشاهده جزئیات مزایده لطفاً وارد شوید.", "toast_type": "warning", "toast_action_label": "ورود", "toast_action_href": login_url})}'
-        )
-
-    if int(getattr(request.user, 'is_verified', 0) or 0) != 1 and not has_winner_profile_access:
-        list_url = reverse('auction:auction_products', kwargs={'pk': product.auction.pk})
-        has_opt_in = request.user.has_pending_auction_request
-
-        if not has_opt_in:
-            edit_url = f'{reverse("edit_profile")}?{urlencode({"next": list_url})}'
-            return redirect(
-                f'{list_url}?{urlencode({"toast_message": "برای شرکت در مزایده، گزینه «شرکت در مزایده» را فعال کنید.", "toast_type": "warning", "toast_action_label": "ویرایش", "toast_action_href": edit_url})}'
-            )
-
-        return redirect(
-            f'{list_url}?{urlencode({"toast_message": "درخواست شما ثبت شده و در انتظار تایید مدیران است.", "toast_type": "warning"})}'
-        )
-
     # ----------------------------------
     # Query های بهینه
     # ----------------------------------
 
-    user_bids_qs = Bid.objects.filter(
-        user=request.user,
-        product_id=product.product_id
-    )
+    my_bids = []
+    my_bids_count = 0
+    latest_credit_request_status = ''
+    highest_user_bid = None
+    latest_user_bid_id = None
 
-    my_bids = list(
-        user_bids_qs
-        .order_by('-created_at', '-pk')[:50]
-    )
+    if request.user.is_authenticated:
+        user_bids_qs = Bid.objects.filter(
+            user=request.user,
+            product_id=product.product_id
+        )
 
-    my_bids_count = user_bids_qs.count()
+        my_bids = list(
+            user_bids_qs
+            .order_by('-created_at', '-pk')[:50]
+        )
+
+        my_bids_count = user_bids_qs.count()
+
+        # بالاترین بید کاربر
+        highest_user_bid = (
+            user_bids_qs
+            .aggregate(max_bid=Max('bid_amount'))
+            .get('max_bid')
+        )
+
+        # آخرین بید کاربر
+        latest_user_bid_id = (
+            user_bids_qs
+            .order_by('-created_at', '-pk')
+            .values_list('id', flat=True)
+            .first()
+        )
+
+        latest_credit_request_status = (
+            CreditIncreaseRequest.objects
+            .filter(user=request.user)
+            .order_by('-updated_at', '-created_at', '-pk')
+            .values_list('status', flat=True)
+            .first() or ''
+        )
 
     # بالاترین بید کل مزایده
     highest_auction_bid = (
         Bid.objects.filter(product_id=product.product_id)
         .aggregate(max_bid=Max('bid_amount'))
         .get('max_bid')
-    )
-
-    # بالاترین بید کاربر
-    highest_user_bid = (
-        user_bids_qs
-        .aggregate(max_bid=Max('bid_amount'))
-        .get('max_bid')
-    )
-
-    # آخرین بید کاربر
-    latest_user_bid_id = (
-        user_bids_qs
-        .order_by('-created_at', '-pk')
-        .values_list('id', flat=True)
-        .first()
     )
 
     # ----------------------------------
@@ -244,13 +241,7 @@ def auction_product_detail(request, pk: int):
         'my_bids_count': my_bids_count,
         'bid_success': request.session.pop('bid_success', None),
         'bid_error': request.session.pop('bid_error', None),
-        'latest_credit_request_status': (
-            CreditIncreaseRequest.objects
-            .filter(user=request.user)
-            .order_by('-updated_at', '-created_at', '-pk')
-            .values_list('status', flat=True)
-            .first() or ''
-        ),
+        'latest_credit_request_status': latest_credit_request_status,
     }
 
     context['bid_error'] = request.GET.get('bid_error', '') or context['bid_error']
@@ -263,14 +254,20 @@ def auction_product_live_state(request, pk: int):
     product = get_object_or_404(AuctionProduct, pk=pk)
     product = ensure_auction_product_winner(product)
     access_token = request.GET.get('access_token', '').strip()
+    include_user_history = request.GET.get('compact') != '1'
     is_active_auction = product.auction.status == 'ongoing'
+    is_finished_auction = product.auction.status == 'finished'
     has_winner_profile_access = _has_finished_winner_profile_access(request, product, access_token)
-    if not is_active_auction and not has_winner_profile_access:
+    if not is_active_auction and not is_finished_auction and not has_winner_profile_access:
         return JsonResponse({'success': False, 'message': 'مزایده فعال نیست.'}, status=403)
     return JsonResponse(
         {
             'success': True,
-            **build_bid_live_payload(product, request.user),
+            **build_bid_live_payload(
+                product,
+                request.user,
+                include_user_history=include_user_history,
+            ),
         }
     )
 
@@ -281,6 +278,7 @@ def place_bid(request, pk: int):
     
     # بررسی اینکه آیا درخواست از نوع AJAX (Fetch) است یا خیر
     is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.content_type == 'application/json'
+    is_quick_bid_request = request.headers.get('x-auction-quick-bid') == '1'
 
     if request.method != 'POST':
         if is_ajax:
@@ -298,16 +296,18 @@ def place_bid(request, pk: int):
                 return JsonResponse({'success': False, 'message': msg})
                 
             edit_url = f'{reverse("edit_profile")}?{urlencode({"next": next_url})}'
-            return redirect(
-                f'{next_url}?{urlencode({"toast_message": msg, "toast_type": "warning", "toast_action_label": "ویرایش", "toast_action_href": edit_url})}'
-            )
+            # return redirect(
+            #     f'{next_url}?{urlencode({"toast_message": msg, "toast_type": "warning", "toast_action_label": "ویرایش", "toast_action_href": edit_url})}'
+            # )
+            return redirect(next_url)
             
         msg_pending = "درخواست شما ثبت شده و در انتظار تایید مدیران است."
         if is_ajax:
             return JsonResponse({'success': False, 'message': msg_pending})
-        return redirect(
-            f'{next_url}?{urlencode({"toast_message": msg_pending, "toast_type": "warning"})}'
-        )
+        # return redirect(
+        #     f'{next_url}?{urlencode({"toast_message": msg_pending, "toast_type": "warning"})}'
+        # )
+        return redirect(next_url)
 
     raw = (amount or "").strip() if isinstance(amount, str) else amount
     try:
@@ -352,16 +352,17 @@ def place_bid(request, pk: int):
                     status=400,
                 )
             
-            toast_payload = {"toast_message": msg_credit, "toast_type": "error"}
-            if not pending_credit_request:
-                credit_url = reverse("credit_increase_requests")
-                toast_payload.update({
-                    "toast_action_label": "درخواست افزایش اعتبار",
-                    "toast_action_href": credit_url,
-                })
-            return redirect(
-                f'{next_url}?{urlencode(toast_payload)}'
-            )
+            # toast_payload = {"toast_message": msg_credit, "toast_type": "error"}
+            # if not pending_credit_request:
+            #     credit_url = reverse("credit_increase_requests")
+            #     toast_payload.update({
+            #         "toast_action_label": "درخواست افزایش اعتبار",
+            #         "toast_action_href": credit_url,
+            #     })
+            # return redirect(
+            #     f'{next_url}?{urlencode(toast_payload)}'
+            # )
+            return redirect(next_url)
 
     try:
         auction.place_bid(request.user, amount)
@@ -369,7 +370,8 @@ def place_bid(request, pk: int):
         message = exc.messages[0] if getattr(exc, 'messages', None) else str(exc)
         if is_ajax:
             return JsonResponse({'success': False, 'message': message})
-        return redirect(f'{next_url}?{urlencode({"toast_message": message, "toast_type": "error"})}')
+        # return redirect(f'{next_url}?{urlencode({"toast_message": message, "toast_type": "error"})}')
+        return redirect(next_url)
 
     if is_ajax:
         auction.refresh_from_db()
@@ -377,13 +379,18 @@ def place_bid(request, pk: int):
             {
                 'success': True,
                 'message': 'پیشنهاد شما با موفقیت ثبت شد.',
-                **build_bid_live_payload(auction, request.user),
+                **build_bid_live_payload(
+                    auction,
+                    request.user,
+                    include_user_history=not is_quick_bid_request,
+                ),
             }
         )
 
-    return redirect(
-        f'{next_url}?{urlencode({"toast_message": "بید شما با موفقیت ثبت شد.", "toast_type": "success"})}'
-    )
+    # return redirect(
+    #     f'{next_url}?{urlencode({"toast_message": "بید شما با موفقیت ثبت شد.", "toast_type": "success"})}'
+    # )
+    return redirect(next_url)
 
 
 class AuctionGridView(ListView):
