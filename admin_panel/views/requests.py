@@ -11,6 +11,7 @@ from django.views.decorators.http import require_http_methods
 
 from accounts.models import CreditIncreaseRequest, VerificationRequest
 from core.decorators import log_admin_action, staff_required
+from core.logging_service import format_user_display, record_admin_activity
 from core.models import TemplateMessage
 from core.utils import cache_response, invalidate_cache, broadcast_admin_panel_refresh
 from store.models import TelegramPurchaseRequest, Artwork
@@ -467,22 +468,56 @@ def detail_view(request, request_type, pk):
         action = payload.get('action')
 
         if request_type == 'purchase':
+            user_repr = format_user_display(obj.user)
+            artwork_title = obj.artwork.title if obj.artwork else 'اثر نامشخص'
+            price_val = getattr(obj.artwork, 'price', 0) if obj.artwork else 0
+
             if action == 'approve':
                 if obj.artwork:
                     obj.artwork.is_sold = Artwork.IsSoldStatus.SOLD
                     obj.artwork.save(update_fields=['is_sold', 'updated_at'])
                 obj.status = 'confirmed'
                 obj.save(update_fields=['status', 'updated_at'])
+
+                record_admin_activity(
+                    admin_user=request.user,
+                    action='purchase_request_approve',
+                    description=f"تایید نهایی درخواست خرید اثر «{artwork_title}» توسط کاربر «{user_repr}» (وضعیت: فروخته شد)",
+                    target_type='درخواست خرید',
+                    target_id=str(obj.pk),
+                    target_repr=f"{artwork_title} - {user_repr}",
+                    changes={'status': {'old': 'pending', 'new': 'confirmed'}, 'price': str(price_val)},
+                    request=request,
+                    content_object=obj,
+                )
+                request._admin_log_recorded = True
+
             elif action == 'reject':
                 obj.status = 'rejected'
                 obj.save(update_fields=['status', 'updated_at'])
                 if obj.artwork:
                     obj.artwork.is_sold = Artwork.IsSoldStatus.AVAILABLE
                     obj.artwork.save(update_fields=['is_sold', 'updated_at'])
+
+                record_admin_activity(
+                    admin_user=request.user,
+                    action='purchase_request_reject',
+                    description=f"رد درخواست خرید اثر «{artwork_title}» کاربر «{user_repr}»",
+                    target_type='درخواست خرید',
+                    target_id=str(obj.pk),
+                    target_repr=f"{artwork_title} - {user_repr}",
+                    changes={'status': {'old': 'pending', 'new': 'rejected'}},
+                    request=request,
+                    content_object=obj,
+                )
+                request._admin_log_recorded = True
                 
         elif request_type == 'verification':
+            user_repr = format_user_display(obj.user) if obj.user else (obj.full_name or obj.phone_number or 'نامشخص')
+
             if action == 'approve':
                 amount = payload.get('amount')
+                amount_value = None
                 if amount not in (None, ''):
                     amount_value, error_response = _parse_admin_credit_amount(amount, required=False)
                     if error_response is not None:
@@ -495,6 +530,20 @@ def detail_view(request, request_type, pk):
                 except ValidationError as exc:
                     return _validation_error_response(exc)
 
+                credit_text = f" با سقف اعتبار {int(amount_value):,} ریال" if amount_value else ""
+                record_admin_activity(
+                    admin_user=request.user,
+                    action='verification_request_approve',
+                    description=f"تایید درخواست احراز هویت شرکت در مزایده کاربر «{user_repr}»{credit_text}",
+                    target_type='درخواست احراز هویت',
+                    target_id=str(obj.pk),
+                    target_repr=user_repr,
+                    changes={'status': {'old': 'pending', 'new': 'approved'}, 'granted_credit': str(amount_value) if amount_value else None},
+                    request=request,
+                    content_object=obj,
+                )
+                request._admin_log_recorded = True
+
             elif action == 'reject':
                 obj.status = VerificationRequest.RequestStatus.REJECTED
                 try:
@@ -502,7 +551,22 @@ def detail_view(request, request_type, pk):
                 except ValidationError as exc:
                     return _validation_error_response(exc)
 
+                record_admin_activity(
+                    admin_user=request.user,
+                    action='verification_request_reject',
+                    description=f"رد درخواست احراز هویت شرکت در مزایده کاربر «{user_repr}»",
+                    target_type='درخواست احراز هویت',
+                    target_id=str(obj.pk),
+                    target_repr=user_repr,
+                    changes={'status': {'old': 'pending', 'new': 'rejected'}},
+                    request=request,
+                    content_object=obj,
+                )
+                request._admin_log_recorded = True
+
         elif request_type == 'credit':
+            user_repr = format_user_display(obj.user) if obj.user else 'کاربر نامشخص'
+
             if action == 'approve':
                 amount = payload.get('amount')
                 amount, error_response = _parse_admin_credit_amount(amount, required=True)
@@ -513,6 +577,7 @@ def detail_view(request, request_type, pk):
                 if int(obj.user.is_verified or 0) == 0:
                     return JsonResponse({'error': 'نمی‌توانید درخواست افزایش اعتبار را برای کاربری که وریفای نشده (وضعیت 0) تایید کنید.'}, status=400)
 
+                old_credit = obj.user.credit if obj.user else 0
                 try:
                     # تنظیم مبلغ و وضعیت، مدل هنگام save موجودی کاربر را آپدیت می‌کند
                     obj.current_credit = amount
@@ -523,6 +588,25 @@ def detail_view(request, request_type, pk):
                     return _validation_error_response(exc)
                 except Exception as e:
                     return JsonResponse({'error': f'خطای سرور: {str(e)}'}, status=500)
+
+                if obj.user:
+                    obj.user.refresh_from_db(fields=['credit', 'current_credit'])
+                    new_credit = obj.user.credit
+                else:
+                    new_credit = amount
+
+                record_admin_activity(
+                    admin_user=request.user,
+                    action='credit_request_approve',
+                    description=f"تایید درخواست افزایش اعتبار کاربر «{user_repr}» به مبلغ {int(amount):,} ریال (اعتبار کاربر: {int(old_credit):,} -> {int(new_credit):,} ریال)",
+                    target_type='درخواست افزایش اعتبار',
+                    target_id=str(obj.pk),
+                    target_repr=user_repr,
+                    changes={'amount': str(amount), 'old_credit': str(old_credit), 'new_credit': str(new_credit), 'status': {'old': 'pending', 'new': 'approved'}},
+                    request=request,
+                    content_object=obj,
+                )
+                request._admin_log_recorded = True
                 
             elif action == 'reject':
                 obj.status = 2  # REJECTED
@@ -530,6 +614,19 @@ def detail_view(request, request_type, pk):
                     obj.save(update_fields=['status'])
                 except ValidationError as exc:
                     return _validation_error_response(exc)
+
+                record_admin_activity(
+                    admin_user=request.user,
+                    action='credit_request_reject',
+                    description=f"رد درخواست افزایش اعتبار کاربر «{user_repr}»",
+                    target_type='درخواست افزایش اعتبار',
+                    target_id=str(obj.pk),
+                    target_repr=user_repr,
+                    changes={'status': {'old': 'pending', 'new': 'rejected'}},
+                    request=request,
+                    content_object=obj,
+                )
+                request._admin_log_recorded = True
 
         invalidate_cache('admin_requests*')
         invalidate_cache('admin_request_detail*')

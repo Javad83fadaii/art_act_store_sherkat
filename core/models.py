@@ -19,30 +19,30 @@ class ActivityLog(models.Model):
 
 
 class AdminActivityLog(models.Model):
-    ACTION_CHOICES = [
-        ('create', 'Create'),
-        ('update', 'Update'),
-        ('delete', 'Delete'),
-        ('approve', 'Approve'),
-        ('reject', 'Reject'),
-        ('ban', 'Ban'),
-        ('unban', 'Unban'),
-    ]
-
-    admin_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    action = models.CharField(max_length=1000, choices=ACTION_CHOICES)
-    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
-    object_id = models.PositiveIntegerField()
-    content_object = GenericForeignKey('content_type', 'object_id')
-    changes = models.JSONField(default=dict)
-    ip_address = models.GenericIPAddressField()
-    timestamp = models.DateTimeField(auto_now_add=True)
+    admin_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name='کاربر مدیر')
+    action = models.CharField(max_length=100, verbose_name='نوع عملیات')
+    description = models.TextField(blank=True, verbose_name='شرح عملیات')
+    target_type = models.CharField(max_length=100, blank=True, null=True, verbose_name='نوع هدف')
+    target_id = models.CharField(max_length=255, blank=True, null=True, verbose_name='شناسه هدف')
+    target_repr = models.CharField(max_length=255, blank=True, null=True, verbose_name='عنوان هدف')
+    content_type = models.ForeignKey(ContentType, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='نوع مدل')
+    object_id = models.PositiveIntegerField(null=True, blank=True, verbose_name='شناسه عددی مدل')
+    changes = models.JSONField(default=dict, blank=True, verbose_name='تغییرات')
+    ip_address = models.GenericIPAddressField(null=True, blank=True, verbose_name='آدرس IP')
+    timestamp = models.DateTimeField(auto_now_add=True, verbose_name='زمان ثبت')
 
     class Meta:
+        verbose_name = 'لاگ فعالیت ادمین'
+        verbose_name_plural = 'لاگ‌های فعالیت ادمین‌ها'
+        ordering = ['-timestamp']
         indexes = [
             models.Index(fields=['admin_user', 'timestamp']),
-            models.Index(fields=['content_type', 'object_id']),
+            models.Index(fields=['action', 'timestamp']),
+            models.Index(fields=['target_type', 'timestamp']),
         ]
+
+    def __str__(self):
+        return f"{self.admin_user} - {self.action} - {self.timestamp}"
 
 
 class ErrorLog(models.Model):

@@ -15,6 +15,7 @@ from django.views.decorators.http import require_http_methods
 from accounts.models import CustomUser
 from core.emailing import send_plain_email
 from core.decorators import log_admin_action, superuser_required
+from core.logging_service import record_admin_activity
 from core.models import NotificationPreference, SavedFilter
 
 
@@ -241,6 +242,17 @@ def page_view(request):
                     fail_silently=False,
                     metadata={'sender_admin_id': str(request.user.pk)},
                 )
+
+                record_admin_activity(
+                    admin_user=request.user,
+                    action='settings_send_email',
+                    description=f"ارسال ایمیل با موضوع «{subject}» برای {len(recipients)} گیرنده",
+                    target_type='ایمیل',
+                    target_repr=subject,
+                    changes={'subject': subject, 'recipients_count': len(recipients), 'recipients_sample': recipients[:5]},
+                    request=request,
+                )
+
                 messages.success(request, f"ایمیل با موفقیت برای {len(recipients)} گیرنده ارسال شد.")
                 return redirect('admin_panel_pages:settings')
 
@@ -305,6 +317,18 @@ def notifications(request):
             preference.new_bid_panel = browser_enabled
             preference.new_purchase_panel = browser_enabled
         preference.save()
+
+        record_admin_activity(
+            admin_user=request.user,
+            action='settings_notification_update',
+            description="به‌روزرسانی تنظیمات دریافت اعلانات پنل مدیریت",
+            target_type='تنظیمات',
+            target_repr='تنظیمات اعلانات',
+            changes={'email': payload.get('email'), 'browser': payload.get('browser')},
+            request=request,
+            content_object=preference,
+        )
+        request._admin_log_recorded = True
 
     return JsonResponse(
         {

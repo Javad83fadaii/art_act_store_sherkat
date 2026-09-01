@@ -14,6 +14,7 @@ from auction.models import AuctionProduct, Auction, AuctionVisitHistory, Bid
 from auction.models import Bid as AuctionBid
 from auction.ranking import get_product_rankings, get_top_unique_bid_amounts
 from core.decorators import log_admin_action, superuser_required
+from core.logging_service import compute_field_diff, record_admin_activity
 from core.utils import cache_response, invalidate_cache
 from store.models import Artwork, ArtworkType, Artist, Material, Subject, Usage, VisitHistory
 
@@ -262,6 +263,20 @@ def store_list(request):
             )
             invalidate_cache('admin_dashboard*')
             invalidate_cache('admin_store_products*')
+
+            record_admin_activity(
+                admin_user=request.user,
+                action='product_create',
+                description=f"ایجاد محصول جدید در فروشگاه: «{product.title}» (کد: {product.product_id}) به قیمت {int(product.price or 0):,} ریال",
+                target_type='محصول فروشگاه',
+                target_id=str(product.pk),
+                target_repr=product.title,
+                changes={'product_id': product.product_id, 'title': product.title, 'price': str(product.price)},
+                request=request,
+                content_object=product,
+            )
+            request._admin_log_recorded = True
+
             return JsonResponse({'success': True, 'id': product.id}, status=201)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
@@ -328,6 +343,19 @@ def store_detail(request, pk):
 
     if request.method == 'PUT':
         data = _request_payload(request)
+        old_data = {
+            'title': product.title,
+            'price': product.price,
+            'is_sold': product.is_sold,
+            'authenticity_status': product.authenticity_status,
+            'description': product.description,
+            'dimensions': product.dimensions,
+            'creation_year': product.creation_year,
+            'provenance': product.provenance,
+            'product_id': product.product_id,
+            'artist_id': product.artist_id,
+        }
+
         editable_fields = {
             'title', 'description', 'price', 'dimensions',
             'creation_year', 'provenance', 'is_sold', 'authenticity_status',
@@ -351,13 +379,53 @@ def store_detail(request, pk):
                     setattr(product, key, value)
         product.save()
 
+        fields_map = {
+            'title': 'عنوان اثر',
+            'price': 'قیمت',
+            'is_sold': 'وضعیت فروش',
+            'authenticity_status': 'اصالت اثر',
+            'product_id': 'کد محصول',
+            'description': 'توضیحات',
+            'dimensions': 'ابعاد',
+            'creation_year': 'سال خلق',
+        }
+        changes, diff_descriptions = compute_field_diff(old_data, product, fields_map)
+        if changes:
+            desc_text = f"ویرایش محصول فروشگاه «{product.title}»: " + ' | '.join(diff_descriptions)
+            record_admin_activity(
+                admin_user=request.user,
+                action='product_update',
+                description=desc_text,
+                target_type='محصول فروشگاه',
+                target_id=str(product.pk),
+                target_repr=product.title,
+                changes=changes,
+                request=request,
+                content_object=product,
+            )
+            request._admin_log_recorded = True
+
         invalidate_cache('admin_dashboard*')
         invalidate_cache('admin_store_products*')
         invalidate_cache(f'admin_store_product_detail_{pk}')
         return JsonResponse({'success': True})
 
     elif request.method == 'DELETE':
+        prod_title = product.title
+        prod_id = product.pk
         product.delete()
+
+        record_admin_activity(
+            admin_user=request.user,
+            action='product_delete',
+            description=f"حذف محصول از فروشگاه: «{prod_title}» (شناسه: {prod_id})",
+            target_type='محصول فروشگاه',
+            target_id=str(prod_id),
+            target_repr=prod_title,
+            request=request,
+        )
+        request._admin_log_recorded = True
+
         invalidate_cache('admin_dashboard*')
         invalidate_cache('admin_store_products*')
         return JsonResponse({'success': True, 'message': 'محصول با موفقیت حذف شد'})
@@ -398,15 +466,38 @@ def store_bulk(request):
         return JsonResponse({'error': 'اطلاعات ارسالی نامعتبر است'}, status=400)
 
     queryset = Artwork.objects.filter(pk__in=ids)
+    products_list = list(queryset)
+
+    if not products_list:
+        return JsonResponse({'error': 'محصولی یافت نشد'}, status=404)
+
+    target_names = [p.title for p in products_list[:4]]
+    extra_count = len(products_list) - len(target_names)
+    names_summary = '، '.join(target_names) + (f' و {extra_count} محصول دیگر' if extra_count > 0 else '')
 
     if action == 'mark_sold':
         queryset.update(is_sold=Artwork.IsSoldStatus.SOLD, updated_at=timezone.now())
+        desc_text = f"تغییر وضعیت دسته‌جمعی {len(products_list)} محصول فروشگاه به «فروخته شده» ({names_summary})"
     elif action == 'mark_available':
         queryset.update(is_sold=Artwork.IsSoldStatus.AVAILABLE, updated_at=timezone.now())
+        desc_text = f"تغییر وضعیت دسته‌جمعی {len(products_list)} محصول فروشگاه به «موجود» ({names_summary})"
     elif action == 'delete':
         queryset.delete()
+        desc_text = f"حذف دسته‌جمعی {len(products_list)} محصول فروشگاه ({names_summary})"
     else:
         return JsonResponse({'error': 'عملیات ناشناخته'}, status=400)
+
+    record_admin_activity(
+        admin_user=request.user,
+        action=f'product_bulk_{action}',
+        description=desc_text,
+        target_type='محصولات فروشگاه (گروهی)',
+        target_id=','.join([str(p.pk) for p in products_list[:10]]),
+        target_repr=names_summary,
+        changes={'action': action, 'product_ids': [p.pk for p in products_list], 'count': len(products_list)},
+        request=request,
+    )
+    request._admin_log_recorded = True
 
     invalidate_cache('admin_dashboard*')
     invalidate_cache('admin_store_products*')
@@ -460,6 +551,20 @@ def auction_main_list(request):
                 products_count=data.get('products_count', 0),
             )
             invalidate_cache('admin_auctions*')
+
+            record_admin_activity(
+                admin_user=request.user,
+                action='auction_create',
+                description=f"ایجاد مزایده جدید: «{auction.name or f'مزایده {auction.id}'}»",
+                target_type='مزایده',
+                target_id=str(auction.id),
+                target_repr=auction.name or f'مزایده {auction.id}',
+                changes={'name': auction.name, 'start_date': str(auction.start_date), 'end_date': str(auction.end_date)},
+                request=request,
+                content_object=auction,
+            )
+            request._admin_log_recorded = True
+
             return JsonResponse({'success': True, 'id': auction.id}, status=201)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
@@ -523,15 +628,58 @@ def auction_main_detail(request, pk):
 
     if request.method == 'PUT':
         data = _request_payload(request)
+        old_data = {
+            'name': auction.name,
+            'start_date': auction.start_date,
+            'end_date': auction.end_date,
+            'products_count': auction.products_count,
+        }
         for key in ['name', 'start_date', 'end_date', 'products_count']:
             if key in data and hasattr(auction, key):
                 setattr(auction, key, data[key])
         auction.save()
+
+        fields_map = {
+            'name': 'عنوان مزایده',
+            'start_date': 'تاریخ شروع',
+            'end_date': 'تاریخ پایان',
+            'products_count': 'تعداد آیتم‌ها',
+        }
+        changes, diff_descriptions = compute_field_diff(old_data, auction, fields_map)
+        if changes:
+            desc_text = f"ویرایش مزایده «{auction.name or f'مزایده {auction.pk}'}»: " + ' | '.join(diff_descriptions)
+            record_admin_activity(
+                admin_user=request.user,
+                action='auction_update',
+                description=desc_text,
+                target_type='مزایده',
+                target_id=str(auction.pk),
+                target_repr=auction.name or f'مزایده {auction.pk}',
+                changes=changes,
+                request=request,
+                content_object=auction,
+            )
+            request._admin_log_recorded = True
+
         invalidate_cache('admin_auctions*')
         return JsonResponse({'success': True})
 
     elif request.method == 'DELETE':
+        auc_title = auction.name or f'مزایده {auction.pk}'
+        auc_id = auction.pk
         auction.delete()
+
+        record_admin_activity(
+            admin_user=request.user,
+            action='auction_delete',
+            description=f"حذف مزایده: «{auc_title}» (شناسه: {auc_id})",
+            target_type='مزایده',
+            target_id=str(auc_id),
+            target_repr=auc_title,
+            request=request,
+        )
+        request._admin_log_recorded = True
+
         invalidate_cache('admin_auctions*')
         return JsonResponse({'success': True})
 
@@ -618,6 +766,20 @@ def auction_list(request):
                 winner_id=winner_id,
             )
             invalidate_cache('admin_auction_products*')
+
+            record_admin_activity(
+                admin_user=request.user,
+                action='auction_product_create',
+                description=f"افزودن آیتم جدید به مزایده: «{ap.title}» (لات: {ap.lot or 'بدون لات'}، قیمت پایه: {int(ap.base_price or 0):,} ریال)",
+                target_type='آیتم مزایده',
+                target_id=str(ap.pk),
+                target_repr=ap.title,
+                changes={'product_id': ap.product_id, 'lot': ap.lot, 'base_price': str(ap.base_price)},
+                request=request,
+                content_object=ap,
+            )
+            request._admin_log_recorded = True
+
             return JsonResponse({'success': True, 'id': ap.id}, status=201)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
@@ -698,6 +860,19 @@ def auction_detail(request, pk):
 
     if request.method == 'PUT':
         data = _request_payload(request)
+        old_data = {
+            'title': ap.title,
+            'base_price': ap.base_price,
+            'lot': ap.lot,
+            'authenticity_status': ap.authenticity_status,
+            'product_id': ap.product_id,
+            'description': ap.description,
+            'dimensions': ap.dimensions,
+            'creation_year': ap.creation_year,
+            'current_price': ap.current_price,
+            'bid_value': ap.bid_value,
+        }
+
         if 'artwork_title' in data:
             ap.title = data['artwork_title']
         if 'reserve_price' in data:
@@ -741,11 +916,52 @@ def auction_detail(request, pk):
             if key in data and hasattr(ap, key):
                 setattr(ap, key, data[key])
         ap.save()
+
+        fields_map = {
+            'title': 'عنوان اثر',
+            'base_price': 'قیمت پایه',
+            'lot': 'شماره لات',
+            'authenticity_status': 'اصالت اثر',
+            'product_id': 'کد آیتم',
+            'description': 'توضیحات',
+            'current_price': 'قیمت جاری',
+            'bid_value': 'گام بید',
+        }
+        changes, diff_descriptions = compute_field_diff(old_data, ap, fields_map)
+        if changes:
+            desc_text = f"ویرایش آیتم مزایده «{ap.title}»: " + ' | '.join(diff_descriptions)
+            record_admin_activity(
+                admin_user=request.user,
+                action='auction_product_update',
+                description=desc_text,
+                target_type='آیتم مزایده',
+                target_id=str(ap.pk),
+                target_repr=ap.title,
+                changes=changes,
+                request=request,
+                content_object=ap,
+            )
+            request._admin_log_recorded = True
+
         invalidate_cache('admin_auction_products*')
         return JsonResponse({'success': True})
 
     elif request.method == 'DELETE':
+        item_title = ap.title
+        item_id = ap.pk
         ap.delete()
+
+        record_admin_activity(
+            admin_user=request.user,
+            action='auction_product_delete',
+            description=f"حذف آیتم از مزایده: «{item_title}» (شناسه: {item_id})",
+            target_type='آیتم مزایده',
+            target_id=str(item_id),
+            target_repr=item_title,
+            request=request,
+        )
+        request._admin_log_recorded = True
+
         invalidate_cache('admin_auction_products*')
         return JsonResponse({'success': True})
 
@@ -794,13 +1010,26 @@ def auction_bulk(request):
         return JsonResponse({'error': 'اطلاعات ارسالی نامعتبر است'}, status=400)
 
     queryset = AuctionProduct.objects.filter(pk__in=ids)
+    items_list = list(queryset)
 
     if action == 'delete':
+        target_names = [p.title for p in items_list[:4]]
+        extra_count = len(items_list) - len(target_names)
+        names_summary = '، '.join(target_names) + (f' و {extra_count} آیتم دیگر' if extra_count > 0 else '')
+
         queryset.delete()
-    else:
-        # تغییر وضعیت محصول در مدل جدید بی‌معنی است زیرا وضعیت از مزایده به ارث می‌رسد
-        # این بخش را برای جلوگیری از خطای سمت فرانت‌اند فقط با موفقیت برمی‌گردانیم
-        pass 
+
+        record_admin_activity(
+            admin_user=request.user,
+            action='auction_product_bulk_delete',
+            description=f"حذف دسته‌جمعی {len(items_list)} آیتم مزایده ({names_summary})",
+            target_type='آیتم‌های مزایده (گروهی)',
+            target_id=','.join([str(p.pk) for p in items_list[:10]]),
+            target_repr=names_summary,
+            changes={'action': action, 'item_ids': [p.pk for p in items_list], 'count': len(items_list)},
+            request=request,
+        )
+        request._admin_log_recorded = True
 
     invalidate_cache('admin_auction_products*')
     return JsonResponse({'success': True})

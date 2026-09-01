@@ -31,8 +31,7 @@ urlpatterns = [
     path('saved-filters/', saved_filters.list_view, name='saved_filters_list'),
 
 
-    # Requests / Reports / Settings
+    # Requests / Settings
     path('requests/', requests.page_view, name='requests'),
-    path('reports/', reports.page_view, name='reports'),
     path('settings/', settings.page_view, name='settings'),
 ]

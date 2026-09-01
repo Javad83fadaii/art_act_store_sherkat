@@ -18,6 +18,7 @@ from accounts.models import CustomUser
 from core.models import SavedFilter
 from auction.models import AuctionCartItem, AuctionVisitHistory, Bid
 from core.decorators import log_admin_action, staff_required, superuser_required
+from core.logging_service import compute_field_diff, format_user_display, record_admin_activity
 from core.models import ActivityLog
 from core.utils import cache_response, invalidate_cache
 from store.models import SiteVisitLog, VisitHistory, PurchaseHistory, TelegramPurchaseRequest
@@ -601,7 +602,7 @@ def list_view(request):
 @log_admin_action('update')
 def detail_view(request, pk):
     """
-    دریافت (GET) و به‌روزرسانی (PUT/POST) اطلاعات یک کاربر خاص.
+    دریافت (GET) و به‌روزرسانی (PUT/POST) اطلاعات یک کاربر خاص به همراه ثبت لاگ تغییرات.
     """
     user = get_object_or_404(CustomUser, pk=pk)
 
@@ -615,8 +616,69 @@ def detail_view(request, pk):
         if not form.is_valid():
             return JsonResponse({'success': False, 'errors': form.errors.get_json_data()}, status=400)
 
+        # ذخیره مقادیر قبلی برای مقایسه و محاسبه تفاوت‌ها (Diff)
+        old_data = {
+            'is_active': user.is_active,
+            'credit': user.credit,
+            'current_credit': user.current_credit,
+            'is_verified': user.is_verified,
+            'is_staff': user.is_staff,
+            'is_superuser': user.is_superuser,
+            'full_name': user.full_name,
+            'phone_number': user.phone_number,
+            'email': user.email,
+            'address_country': user.address_country,
+            'address_city': user.address_city,
+            'address_street': user.address_street,
+            'description': user.description,
+            'newsletter_catalog_opt_in': user.newsletter_catalog_opt_in,
+        }
+
         user = form.save()
         invalidate_cache('admin_users*')
+
+        # برچسب‌های فارسی برای تغییرات فیلدها
+        fields_map = {
+            'is_active': 'وضعیت فعال‌سازی',
+            'credit': 'اعتبار کل',
+            'current_credit': 'اعتبار جاری',
+            'is_verified': 'وضعیت احراز هویت',
+            'is_staff': 'دسترسی مدیریت (Staff)',
+            'is_superuser': 'دسترسی مدیر ارشد (Superuser)',
+            'full_name': 'نام کامل',
+            'phone_number': 'شماره موبایل',
+            'email': 'ایمیل',
+            'address_city': 'شهر',
+            'address_street': 'آدرس',
+            'description': 'توضیحات',
+            'newsletter_catalog_opt_in': 'دریافت خبرنامه',
+        }
+
+        changes, diff_descriptions = compute_field_diff(old_data, user, fields_map)
+        user_repr = format_user_display(user)
+
+        if changes:
+            # تشخیص نوع عملیات بر اساس مهم‌ترین فیلدهای تغییریافته
+            action_code = 'user_update'
+            if 'is_active' in changes:
+                action_code = 'user_activate' if user.is_active else 'user_deactivate'
+            elif 'credit' in changes or 'current_credit' in changes:
+                action_code = 'user_credit_update'
+
+            desc_text = f"ویرایش اطلاعات کاربر «{user_repr}»: " + ' | '.join(diff_descriptions)
+
+            record_admin_activity(
+                admin_user=request.user,
+                action=action_code,
+                description=desc_text,
+                target_type='کاربر',
+                target_id=str(user.pk),
+                target_repr=user_repr,
+                changes=changes,
+                request=request,
+                content_object=user,
+            )
+            request._admin_log_recorded = True
 
         return JsonResponse({'success': True, 'user': _serialize_user_detail(user)})
 
@@ -629,7 +691,7 @@ def detail_view(request, pk):
 @log_admin_action('update')
 def bulk_action(request):
     """
-    انجام عملیات گروهی روی چند کاربر (مانند فعال/غیرفعال سازی دسته‌جمعی).
+    انجام عملیات گروهی روی چند کاربر (مانند فعال/غیرفعال سازی دسته‌جمعی) با ثبت لاگ تفصیلی.
     """
     data = _request_payload(request)
     ids = data.get('ids', [])
@@ -639,13 +701,37 @@ def bulk_action(request):
         return JsonResponse({'error': 'Invalid payload'}, status=400)
 
     queryset = CustomUser.objects.filter(pk__in=ids)
+    users_list = list(queryset)
+
+    if not users_list:
+        return JsonResponse({'error': 'No users found for given IDs'}, status=404)
+
+    target_names = [format_user_display(u) for u in users_list[:4]]
+    extra_count = len(users_list) - len(target_names)
+    names_summary = '، '.join(target_names) + (f' و {extra_count} کاربر دیگر' if extra_count > 0 else '')
 
     if action == 'activate':
         queryset.update(is_active=True)
+        action_code = 'user_bulk_activate'
+        desc_text = f"فعال‌سازی دسته‌جمعی {len(users_list)} کاربر ({names_summary})"
     elif action == 'deactivate':
         queryset.update(is_active=False)
+        action_code = 'user_bulk_deactivate'
+        desc_text = f"غیرفعال‌سازی دسته‌جمعی {len(users_list)} کاربر ({names_summary})"
     else:
         return JsonResponse({'error': 'Unknown action'}, status=400)
+
+    record_admin_activity(
+        admin_user=request.user,
+        action=action_code,
+        description=desc_text,
+        target_type='کاربران (گروهی)',
+        target_id=','.join([str(u.pk) for u in users_list[:10]]),
+        target_repr=names_summary,
+        changes={'action': action, 'affected_user_ids': [str(u.pk) for u in users_list], 'count': len(users_list)},
+        request=request,
+    )
+    request._admin_log_recorded = True
 
     invalidate_cache('admin_users*')
     return JsonResponse({'success': True})

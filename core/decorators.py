@@ -8,6 +8,9 @@ from .models import AdminActivityLog
 from .utils import broadcast_admin_panel_refresh
 
 
+from .logging_service import record_admin_activity
+
+
 def _admin_forbidden_response(message='Unauthorized'):
     return JsonResponse({'error': message}, status=403)
 
@@ -40,27 +43,15 @@ def log_admin_action(action_type):
 
             is_success = getattr(response, 'status_code', 500) < 400
             is_staff_user = request.user.is_authenticated and request.user.is_staff
-            if is_success and is_staff_user:
-                raw_object_id = kwargs.get('pk', 0)
-                object_id = raw_object_id if isinstance(raw_object_id, int) else 0
-
-                AdminActivityLog.objects.create(
-                    admin_user=request.user,
-                    action=action_type,
-                    ip_address=request.META.get('REMOTE_ADDR') or '127.0.0.1',
-                    content_type=ContentType.objects.get_for_model(request.user),
-                    object_id=object_id,
-                    changes={},
-                )
-
-                if request.method in {'POST', 'PUT', 'PATCH', 'DELETE'}:
-                    transaction.on_commit(
-                        lambda: broadcast_admin_panel_refresh(
-                            actor=request.user,
-                            action_type=action_type,
-                            path=request.path,
-                            object_id=object_id,
-                        )
+            if is_success and is_staff_user and request.method in {'POST', 'PUT', 'PATCH', 'DELETE'}:
+                target_id = kwargs.get('pk') or kwargs.get('id') or ''
+                # اگر در متد ویو لاگ اختصاصی ثبت نشده باشد، لاگ جنریک ثبت می‌شود
+                if not getattr(request, '_admin_log_recorded', False):
+                    record_admin_activity(
+                        admin_user=request.user,
+                        action=action_type,
+                        target_id=str(target_id) if target_id else '',
+                        request=request,
                     )
 
             return response
