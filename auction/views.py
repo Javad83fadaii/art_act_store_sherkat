@@ -293,17 +293,14 @@ def place_bid(request, pk: int):
         if not has_opt_in:
             msg = "برای ثبت پیشنهاد، گزینه «شرکت در مزایده» را فعال کنید."
             if is_ajax:
-                return JsonResponse({'success': False, 'message': msg})
+                return JsonResponse({'success': False, 'message': msg, 'needs_credit_increase': True, 'credit_request_state': 'request'}, status=400)
                 
             edit_url = f'{reverse("edit_profile")}?{urlencode({"next": next_url})}'
-            # return redirect(
-            #     f'{next_url}?{urlencode({"toast_message": msg, "toast_type": "warning", "toast_action_label": "ویرایش", "toast_action_href": edit_url})}'
-            # )
             return redirect(next_url)
             
         msg_pending = "درخواست شما ثبت شده و در انتظار تایید مدیران است."
         if is_ajax:
-            return JsonResponse({'success': False, 'message': msg_pending})
+            return JsonResponse({'success': False, 'message': msg_pending, 'needs_credit_increase': True, 'credit_request_state': 'pending'}, status=400)
         # return redirect(
         #     f'{next_url}?{urlencode({"toast_message": msg_pending, "toast_type": "warning"})}'
         # )
