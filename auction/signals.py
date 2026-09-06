@@ -59,6 +59,8 @@ def _send_bid_notification_emails(bid_id):
                     'name': display_name,
                     'product_title': product_title,
                     'formatted_bid_amount': f'{bid.bid_amount:,}',
+                    'lot_number': getattr(bid.product, 'lot', '') or getattr(bid.product, 'product_id', '') or '',
+                    'auction_name': getattr(getattr(bid.product, 'auction', None), 'name', '') or '',
                 },
                 metadata={'bid_id': str(bid.pk)},
             )

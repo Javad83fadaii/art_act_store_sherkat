@@ -143,7 +143,7 @@ class VerificationRequestModelTests(TestCase):
         email_deliveries = [item for item in deliveries if item.provider == 'email']
         self.assertEqual(len(email_deliveries), 2)
         self.assertEqual(email_deliveries[0].recipients, ["welcome@example.com"])
-        self.assertIn("خوش آمدید", email_deliveries[0].subject)
+        self.assertIn("خوش آمد", email_deliveries[0].subject)
         self.assertEqual(email_deliveries[1].recipients, ["welcome@example.com"])
         self.assertIn("کد تایید ایمیل", email_deliveries[1].subject)
 

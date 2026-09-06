@@ -408,7 +408,7 @@ class EmailVerificationOTP(models.Model):
     is_used = models.BooleanField(default=False)
 
     class Meta:
-        ordering = ["-created_at"]
+        ordering = ["-created_at", "-pk"]
 
     def is_valid(self):
         # Checks if the OTP is unused and hasn't expired yet

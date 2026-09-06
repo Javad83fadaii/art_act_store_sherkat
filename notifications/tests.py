@@ -676,8 +676,8 @@ class SMSProviderIntegrationTests(TestCase):
 
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, ['receiver@example.com'])
-        self.assertEqual(mail.outbox[0].subject, 'زمان رقابت فرا رسید؛ مزایده حراج تابستان آغاز شد')
-        self.assertIn('مزایده حراج تابستان هم\u200cاکنون آغاز شده است.', mail.outbox[0].body)
+        self.assertEqual(mail.outbox[0].subject, 'شروع مزایده')
+        self.assertIn('مزایده حراج تابستان هم‌اکنون آغاز شده است', mail.outbox[0].body)
 
         post_mock.assert_called_once_with(
             'https://api.sms.ir/v1/send/verify',

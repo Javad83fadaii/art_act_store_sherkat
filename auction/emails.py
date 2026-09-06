@@ -16,14 +16,23 @@ def send_bid_confirmation_email(*, bid):
     if not user or not getattr(user, "email", None):
         return 0
 
-    product_title = getattr(getattr(bid, "product", None), "title", "") or getattr(bid, "product_id", "")
-    display_name = (getattr(user, "get_full_name", lambda: "")() or getattr(user, "full_name", "") or "کاربر گرامی")
-    subject = "پیشنهاد شما ثبت شد"
+    product = getattr(bid, "product", None)
+    product_title = getattr(product, "title", "") or getattr(bid, "product_id", "")
+    lot_number = getattr(product, "lot", "") or ""
+    auction = getattr(product, "auction", None)
+    auction_name = getattr(auction, "name", "") or ""
+
+    subject = "ثبت پیشنهاد قیمت"
     message = (
-        f"{display_name} عزیز،\n\n"
-        f"پیشنهاد شما به مبلغ {_format_amount(bid.bid_amount)} تومان برای اثر «{product_title}» با موفقیت ثبت شد.\n"
-        "تا زمانی که بالاترین پیشنهاد را داشته باشید، این اثر در سبد مزایده شما فعال می‌ماند.\n\n"
-        "با آرزوی موفقیت."
+        "با درود و احترام\n\n"
+        f"پیشنهاد قیمت شما برای اثر {product_title} با موفقیت ثبت شد.\n"
+        f"مبلغ پیشنهاد: {_format_amount(bid.bid_amount)}\n"
+        f"شماره اثر: {lot_number}\n"
+        f"مزایده: {auction_name}\n\n"
+        "این پیشنهاد تا زمان ثبت پیشنهاد بالاتر، در رقابت معتبر خواهد بود.\n\n"
+        "با احترام\n"
+        "حراج هنری ماه\n"
+        "Mahauction.com"
     )
     return send_plain_email(
         event='auction.bid.confirmed',
@@ -41,18 +50,14 @@ def send_outbid_email(*, previous_bid, latest_bid):
         return 0
 
     product_title = getattr(getattr(latest_bid, "product", None), "title", "") or getattr(latest_bid, "product_id", "")
-    display_name = (
-        getattr(previous_user, "get_full_name", lambda: "")()
-        or getattr(previous_user, "full_name", "")
-        or "کاربر گرامی"
-    )
-    subject = "محصول از سبد مزایده شما خارج شد"
+    subject = "خروج اثر از سبد مزایده"
     message = (
-        f"{display_name} عزیز،\n\n"
-        f"کاربر دیگری برای اثر «{product_title}» پیشنهاد بالاتری ثبت کرده است.\n"
-        "به همین دلیل این اثر از سبد مزایده فعال شما خارج شد.\n"
-        f"پیشنهاد جدید ثبت‌شده: {_format_amount(latest_bid.bid_amount)} تومان\n\n"
-        "اگر همچنان مایل هستید، می‌توانید دوباره پیشنهاد جدید ثبت کنید."
+        "با درود و احترام\n\n"
+        f"پیشنهاد بالاتری برای اثر {product_title} ثبت شده است و اثر از سبد مزایده شما خارج شده است.\n"
+        "در صورت تمایل، می‌توانید با ثبت پیشنهاد جدید، مجدداً در رقابت این اثر شرکت کنید.\n\n"
+        "با احترام\n"
+        "حراج هنری ماه\n"
+        "Mahauction.com"
     )
     return send_plain_email(
         event='auction.bid.outbid',
@@ -74,10 +79,12 @@ def build_auction_reminder_email(*, auction, reminder_type):
         return (
             f"یادآوری شروع مزایده «{auction_name}»",
             (
-                "سلام,\n\n"
-                f"مزایده «{auction_name}» تا ۲۴ ساعت دیگر آغاز می‌شود.\n"
-                "اگر قصد شرکت دارید، از قبل حساب کاربری و موجودی خود را بررسی کنید.\n\n"
-                "با آرزوی موفقیت."
+                "با درود و احترام\n\n"
+                f"تنها ۲۴ ساعت تا آغاز مزایده {auction_name} باقی مانده است.\n"
+                "پیشنهاد می‌کنیم پیش از آغاز مزایده، آثار موردنظر خود را بررسی کرده و برای شرکت در رقابت آماده باشید.\n\n"
+                "با احترام\n"
+                "حراج هنری ماه\n"
+                "Mahauction.com"
             ),
         )
 
@@ -85,10 +92,11 @@ def build_auction_reminder_email(*, auction, reminder_type):
         return (
             f"یادآوری پایان مزایده «{auction_name}»",
             (
-                "سلام,\n\n"
-                f"تنها ۱۲ ساعت تا پایان مزایده «{auction_name}» باقی مانده است.\n"
-                "اگر روی آثار این مزایده پیشنهاد فعال دارید، وضعیت آن‌ها را دوباره بررسی کنید.\n\n"
-                "با آرزوی موفقیت."
+                "با درود و احترام\n\n"
+                f"تنها ۱۲ ساعت تا پایان مزایده {auction_name} باقی مانده است.\n"
+                "اگر اثر موردنظر خود را انتخاب کرده‌اید، فرصت ثبت یا افزایش پیشنهاد قیمت تا پایان مزایده همچنان برقرار است.\n\n"
+                "با احترام\n"
+                "حراج هنری ماه"
             ),
         )
 

@@ -11,12 +11,13 @@ def _resolve_display_name(user) -> str:
 
 
 def send_verification_code_email(*, email, code, user=None):
-    subject = "کد تایید ایمیل شما"
+    subject = "کد تایید ایمیل"
     message = (
-        "سلام,\n\n"
-        f"کد تایید ۶ رقمی شما: {code}\n"
-        "این کد تا ۱۰ دقیقه معتبر است.\n\n"
-        "اگر این درخواست را شما ثبت نکرده‌اید، این پیام را نادیده بگیرید."
+        "سلام\n\n"
+        f"کد تایید شما: {code}\n"
+        "این کد بعد از 10 دقیقه منقضی می شود.\n\n"
+        "حراج هنری ماه\n"
+        "Mahauction.com"
     )
 
     email_result = notification_service.send(
@@ -53,12 +54,13 @@ def send_welcome_email(*, user):
         return 0
 
     display_name = _resolve_display_name(user)
-    subject = "خوش آمدید"
+    subject = "خوش آمد گویی ثبت نام"
     message = (
-        f"{display_name} عزیز،\n\n"
-        "ثبت نام شما در سایت با موفقیت انجام شد.\n"
-        "برای استفاده کامل از امکانات سایت، لطفا ایمیل خود را با کد ارسالی تایید کنید.\n\n"
-        "از همراهی شما خوشحالیم."
+        f"{display_name} عزیز\n\n"
+        "ثبت نام شما با موفقیت انجام شد.\n"
+        "لطفاً ایمیل خود را تأیید و فرآیند ثبت‌نام را تکمیل کنید.\n"
+        "از حضور و همراهی شما سپاسگزاریم.\n\n"
+        "Mahauction.com"
     )
     return notification_service.send(
         event='accounts.signup.welcome',

@@ -47,9 +47,11 @@ class NotificationChannelTemplate:
 
     def _build_context(self, context: Mapping[str, Any] | None = None) -> dict[str, Any]:
         resolved_context = dict(context or {})
-        for source_key, target_key in self.context_map.items():
-            if source_key in resolved_context and target_key not in resolved_context:
-                resolved_context[target_key] = resolved_context[source_key]
+        for source_key, target_keys in self.context_map.items():
+            targets = (target_keys,) if isinstance(target_keys, str) else tuple(target_keys)
+            for target_key in targets:
+                if source_key in resolved_context and target_key not in resolved_context:
+                    resolved_context[target_key] = resolved_context[source_key]
         return resolved_context
 
 
@@ -114,16 +116,17 @@ def get_default_notification_templates() -> tuple[NotificationTemplate, ...]:
             NotificationProviderType.TELEGRAM,
         ),
     )
+    verification_body = (
+        'سلام\n\n'
+        'کد تایید ثبت نام شما: {code}\n\n'
+        'حراج هنری ماه\n'
+        'Mahauction.com'
+    )
     verification.register_channel(
         NotificationChannelTemplate(
             provider=NotificationProviderType.EMAIL,
             subject_template='کد تایید ثبت نام',
-            body_template=(
-                'سلام\n\n'
-                'کد تایید ثبت نام شما: {code}\n\n'
-                'در صورت عدم درخواست، این پیام را نادیده بگیرید.\n'
-                'تیم ماه آکشن'
-            ),
+            body_template=verification_body,
         )
     )
     verification.register_channel(
@@ -140,12 +143,56 @@ def get_default_notification_templates() -> tuple[NotificationTemplate, ...]:
     verification.register_channel(
         NotificationChannelTemplate(
             provider=NotificationProviderType.TELEGRAM,
-            body_template=(
-                'سلام\n\n'
-                'کد تایید ثبت نام شما: {code}\n\n'
-                'در صورت عدم درخواست، این پیام را نادیده بگیرید.\n'
-                'تیم ماه آکشن'
-            ),
+            body_template=verification_body,
+        )
+    )
+
+    signup_welcome = NotificationTemplate(
+        key='signup_welcome',
+        default_providers=(
+            NotificationProviderType.EMAIL,
+            NotificationProviderType.SMS,
+            NotificationProviderType.TELEGRAM,
+        ),
+    )
+    signup_welcome_email_body = (
+        '{name} عزیز\n\n'
+        'ثبت نام شما با موفقیت انجام شد.\n'
+        'لطفاً ایمیل خود را تأیید و فرآیند ثبت‌نام را تکمیل کنید.\n'
+        'از حضور و همراهی شما سپاسگزاریم.\n\n'
+        'Mahauction.com'
+    )
+    signup_welcome_sms_body = (
+        'خوش آمد گویی ثبت نام\n'
+        '{name} عزیز\n'
+        'ثبت نام شما با موفقیت انجام شد\n'
+        'لطفاً شماره خود را تأیید و فرآیند ثبت‌نام را تکمیل کنید.\n'
+        'از حضور و همراهی شما سپاسگزاریم\n'
+        'Mahauction.com'
+    )
+    signup_welcome.register_channel(
+        NotificationChannelTemplate(
+            provider=NotificationProviderType.EMAIL,
+            subject_template='خوش آمد گویی ثبت نام',
+            body_template=signup_welcome_email_body,
+        )
+    )
+    signup_welcome.register_channel(
+        NotificationChannelTemplate(
+            provider=NotificationProviderType.SMS,
+            metadata={
+                'sms_pattern': 'signup_welcome',
+            },
+            context_map={
+                'name': 'NAME',
+            },
+            body_template=signup_welcome_sms_body,
+        )
+    )
+    signup_welcome.register_channel(
+        NotificationChannelTemplate(
+            provider=NotificationProviderType.TELEGRAM,
+            body_template=signup_welcome_email_body,
         )
     )
 
@@ -158,16 +205,18 @@ def get_default_notification_templates() -> tuple[NotificationTemplate, ...]:
         ),
     )
     auction_started_email_body = (
-        'سلام\n\n'
-        'مزایده {auction_name} هم‌اکنون آغاز شده است.\n\n'
+        'با درود و احترام\n'
+        '{name} عزیز\n\n'
+        'مزایده {auction_name} هم‌اکنون آغاز شده است\n'
         'از این لحظه امکان ثبت پیشنهاد قیمت و شرکت در رقابت برای آثار این مزایده فعال است.\n\n'
         'با آرزوی موفقیت\n'
-        'تیم ماه آکشن'
+        'حراج هنری ماه\n'
+        'Mahauction.com'
     )
     auction_started.register_channel(
         NotificationChannelTemplate(
             provider=NotificationProviderType.EMAIL,
-            subject_template='زمان رقابت فرا رسید؛ مزایده {auction_name} آغاز شد',
+            subject_template='شروع مزایده',
             body_template=auction_started_email_body,
         )
     )
@@ -178,6 +227,7 @@ def get_default_notification_templates() -> tuple[NotificationTemplate, ...]:
                 'sms_pattern': 'auction_started',
             },
             context_map={
+                'name': 'NAME',
                 'auction_name': 'AUCTIONNAME',
             },
         )
@@ -198,17 +248,17 @@ def get_default_notification_templates() -> tuple[NotificationTemplate, ...]:
         ),
     )
     auction_24h_email_body = (
-        'سلام\n\n'
-        'مزایده {auction_name} ۲۴ ساعت دیگر آغاز می‌شود.\n\n'
-        'زمان شروع: {auction_start_date}\n\n'
-        'اگر قصد شرکت در این مزایده را دارید، لطفاً از آماده بودن حساب کاربری و اعتبار خود مطمئن شوید.\n\n'
-        'با آرزوی موفقیت\n'
-        'تیم ماه آکشن'
+        'با درود و احترام\n\n'
+        'تنها ۲۴ ساعت تا آغاز مزایده {auction_name} باقی مانده است.\n'
+        'پیشنهاد می‌کنیم پیش از آغاز مزایده، آثار موردنظر خود را بررسی کرده و برای شرکت در رقابت آماده باشید.\n\n'
+        'با احترام\n'
+        'حراج هنری ماه\n'
+        'Mahauction.com'
     )
     auction_24h.register_channel(
         NotificationChannelTemplate(
             provider=NotificationProviderType.EMAIL,
-            subject_template='یادآوری: ۲۴ ساعت تا شروع مزایده {auction_name}',
+            subject_template='یادآوری شروع مزایده',
             body_template=auction_24h_email_body,
         )
     )
@@ -219,8 +269,8 @@ def get_default_notification_templates() -> tuple[NotificationTemplate, ...]:
                 'sms_pattern': 'auction_24h',
             },
             context_map={
-                'auction_name': 'AUCTIONNAME',
-                'auction_start_date': 'AUCTIONSTART_DATE',
+                'auction_name': ('AUCTION_NAME', 'AUCTIONNAME'),
+                'auction_start_date': ('AUCTIONSTART_DATE', 'AUCTION_START_DATE'),
             },
         )
     )
@@ -240,18 +290,16 @@ def get_default_notification_templates() -> tuple[NotificationTemplate, ...]:
         ),
     )
     auction_end_body = (
-        'سلام،\n'
-        '{name} گرامی\n\n'
-        'مزایده {auction_name} تنها ۱۲ ساعت دیگر به پایان می\u200cرسد.\n\n'
-        'زمان پایان: {auction_end_date}\n\n'
-        'با سپاس\n'
-        'تیم ماه آکشن\n'
-        'mahauction.com/'
+        'با درود و احترام\n\n'
+        'تنها ۱۲ ساعت تا پایان مزایده {auction_name} باقی مانده است.\n'
+        'اگر اثر موردنظر خود را انتخاب کرده‌اید، فرصت ثبت یا افزایش پیشنهاد قیمت تا پایان مزایده همچنان برقرار است.\n\n'
+        'با احترام\n'
+        'حراج هنری ماه'
     )
     auction_end.register_channel(
         NotificationChannelTemplate(
             provider=NotificationProviderType.EMAIL,
-            subject_template='یادآوری: ۱۲ ساعت تا پایان مزایده {auction_name}',
+            subject_template='یادآوری پایان مزایده',
             body_template=auction_end_body,
         )
     )
@@ -262,9 +310,9 @@ def get_default_notification_templates() -> tuple[NotificationTemplate, ...]:
                 'sms_pattern': 'auction_end',
             },
             context_map={
-                'auction_name': 'AUCTIONNAME',
+                'auction_name': ('AUCTIONNAME', 'AUCTION_NAME'),
                 'name': 'NAME',
-                'auction_end_date': 'AUCTIONEND_DATE',
+                'auction_end_date': ('AUCTIONEND_DATE', 'AUCTION_END_DATE'),
             },
         )
     )
@@ -284,18 +332,21 @@ def get_default_notification_templates() -> tuple[NotificationTemplate, ...]:
         ),
     )
     auction_invoice_body = (
-        'سلام {name} گرامی\n\n'
-        'مزایده {auction_name} به پایان رسیده و شما برنده نهایی مورد یا موارد زیر شده\u200cاید:\n\n'
-        '{line_items_text}\n\n'
-        'جمع کل صورتحساب اولیه: {formatted_total_amount} تومان\n\n'
-        'این مبلغ بر اساس قیمت نهایی ثبت\u200cشده در مزایده محاسبه شده و فاکتور اولیه شما محسوب می\u200cشود.\n\n'
-        'با سپاس\n'
-        'تیم ماه آکشن'
+        'با درود و احترام\n\n'
+        'با خرسندی، به اطلاع می‌رساند پیشنهاد شما برای اثر {product_title} در مزایده {auction_name} به‌عنوان بالاترین پیشنهاد ثبت شده و این اثر به شما تعلق گرفته است.\n\n'
+        'مشخصات خرید\n'
+        'شماره اثر: {lot_number}\n'
+        'مبلغ نهایی پیشنهاد: {formatted_total_amount}\n\n'
+        'صورتحساب اولیه خرید شما صادر شده است. لطفاً برای مشاهده جزئیات صورتحساب و تکمیل فرآیند پرداخت، به حساب کاربری خود مراجعه کنید.\n\n'
+        'از اعتماد و همراهی شما با حراج هنری ماه سپاسگزاریم.\n\n'
+        'با احترام\n'
+        'حراج هنری ماه\n'
+        'Mahauction.com'
     )
     auction_invoice.register_channel(
         NotificationChannelTemplate(
             provider=NotificationProviderType.EMAIL,
-            subject_template='نتیجه مزایده و صورتحساب اولیه «{auction_name}»',
+            subject_template='نتیجه مزایده و صورتحساب اولیه',
             body_template=auction_invoice_body,
         )
     )
@@ -306,11 +357,13 @@ def get_default_notification_templates() -> tuple[NotificationTemplate, ...]:
                 'sms_pattern': 'auction_Invoice',
             },
             context_map={
-                'sms_line_items_text': 'LINE_ITEMS_TEXT',
-                'auction_name': 'AUCTIONNAME',
+                'product_title': 'PRODUCT_TITLE',
+                'auction_name': ('AUCTION_NAME', 'AUCTIONNAME'),
                 'name': 'NAME',
+                'lot_number': 'LOT_NUMBER',
+                'formatted_total_amount': ('FINAL_BID_AMOUNT', 'FORMAT_AMOUNTTOTAL_AMOUNT'),
                 'line_items_text': 'LINE_ITEMS_TEXT',
-                'formatted_total_amount': 'FORMAT_AMOUNTTOTAL_AMOUNT',
+                'sms_line_items_text': 'LINE_ITEMS_TEXT',
             },
         )
     )
@@ -329,16 +382,20 @@ def get_default_notification_templates() -> tuple[NotificationTemplate, ...]:
         ),
     )
     add_bid_body = (
-        'سلام {name} گرامی\n\n'
-        'پیشنهاد شما به مبلغ {formatted_bid_amount} تومان برای اثر {product_title} با موفقیت ثبت شد.\n'
-        'تا زمانی که بالاترین پیشنهاد را داشته باشید، این اثر در سبد مزایده شما فعال می‌ماند.\n\n'
-        'با آرزوی موفقیت.\n'
-        'mahauction.com/'
+        'با درود و احترام\n\n'
+        'پیشنهاد قیمت شما برای اثر {product_title} با موفقیت ثبت شد.\n'
+        'مبلغ پیشنهاد: {formatted_bid_amount}\n'
+        'شماره اثر: {lot_number}\n'
+        'مزایده: {auction_name}\n\n'
+        'این پیشنهاد تا زمان ثبت پیشنهاد بالاتر، در رقابت معتبر خواهد بود.\n\n'
+        'با احترام\n'
+        'حراج هنری ماه\n'
+        'Mahauction.com'
     )
     add_bid.register_channel(
         NotificationChannelTemplate(
             provider=NotificationProviderType.EMAIL,
-            subject_template='ثبت موفق پیشنهاد قیمت',
+            subject_template='ثبت پیشنهاد قیمت',
             body_template=add_bid_body,
         )
     )
@@ -352,6 +409,8 @@ def get_default_notification_templates() -> tuple[NotificationTemplate, ...]:
                 'name': 'NAME',
                 'product_title': 'PRODUCT_TITLE',
                 'formatted_bid_amount': 'FORMAT_AMOUNTBIDBID_AMOUNT',
+                'lot_number': 'LOT_NUMBER',
+                'auction_name': 'AUCTION_NAME',
             },
         )
     )
@@ -364,17 +423,17 @@ def get_default_notification_templates() -> tuple[NotificationTemplate, ...]:
         ),
     )
     dell_bid_body = (
-        'سلام {name} گرامی\n\n'
-        'کاربر دیگری برای اثر {product_title} پیشنهاد بالاتری ثبت کرده است.\n'
-        'به همین دلیل این اثر از سبد مزایده فعال شما خارج شد.\n'
-        'پیشنهاد جدید ثبت‌شده: {formatted_latest_bid_amount} تومان\n\n'
-        'اگر همچنان مایل هستید، می‌توانید دوباره پیشنهاد جدید ثبت کنید.\n'
-        'mahauction.com/'
+        'با درود و احترام\n\n'
+        'پیشنهاد بالاتری برای اثر {product_title} ثبت شده است و اثر از سبد مزایده شما خارج شده است.\n'
+        'در صورت تمایل، می‌توانید با ثبت پیشنهاد جدید، مجدداً در رقابت این اثر شرکت کنید.\n\n'
+        'با احترام\n'
+        'حراج هنری ماه\n'
+        'Mahauction.com'
     )
     dell_bid.register_channel(
         NotificationChannelTemplate(
             provider=NotificationProviderType.EMAIL,
-            subject_template='محصول از سبد مزایده شما خارج شد',
+            subject_template='خروج اثر از سبد مزایده',
             body_template=dell_bid_body,
         )
     )
@@ -394,6 +453,7 @@ def get_default_notification_templates() -> tuple[NotificationTemplate, ...]:
 
     return (
         verification,
+        signup_welcome,
         auction_started,
         auction_24h,
         auction_end,

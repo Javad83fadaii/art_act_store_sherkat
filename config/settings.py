@@ -368,14 +368,14 @@ SMS_PATTERNS = {
     'auction_started': {
         'code': _get_first_setting('SMS_PATTERN_AUCTION_STARTED_CODE') or '901013',
         'variables': (
+            'NAME',
             'AUCTIONNAME',
         ),
     },
     'auction_24h': {
         'code': _get_first_setting('SMS_PATTERN_AUCTION_24H_CODE') or '962018',
         'variables': (
-            'AUCTIONNAME',
-            'AUCTIONSTART_DATE',
+            'AUCTION_NAME',
         ),
     },
     'auction_end': {
@@ -389,33 +389,31 @@ SMS_PATTERNS = {
     'auction_Invoice': {
         'code': _get_first_setting('SMS_PATTERN_AUCTION_INVOICE_CODE') or '600256',
         'variables': (
-            'AUCTIONNAME',
-            'NAME',
-            'LINE_ITEMS_TEXT',
-            'FORMAT_AMOUNTTOTAL_AMOUNT',
+            'PRODUCT_TITLE',
+            'AUCTION_NAME',
+            'LOT_NUMBER',
+            'FINAL_BID_AMOUNT',
         ),
     },
     'add_bid': {
         'code': _get_first_setting('SMS_PATTERN_ADD_BID_CODE') or '143304',
         'variables': (
-            'NAME',
             'PRODUCT_TITLE',
             'FORMAT_AMOUNTBIDBID_AMOUNT',
+            'LOT_NUMBER',
+            'AUCTION_NAME',
         ),
     },
     'dell_bid': {
         'code': _get_first_setting('SMS_PATTERN_DELL_BID_CODE') or '456365',
         'variables': (
-            'NAME',
             'PRODUCT_TITLE',
-            'FORMAT_AMOUNTLATEST_BIDBID_AMOUNT',
         ),
     },
     'auction_starting_soon': {
         'code': _get_first_setting('SMS_PATTERN_AUCTION_STARTING_SOON_CODE') or '962018',
         'variables': (
-            'auction_name',
-            'auctionstart_date',
+            'AUCTION_NAME',
         ),
     },
 }

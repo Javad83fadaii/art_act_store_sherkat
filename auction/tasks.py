@@ -230,12 +230,19 @@ def send_auction_started_email(auction_id, expected_start=None):
             providers = _get_user_notification_providers(user)
             if not providers:
                 continue
+            display_name = (
+                getattr(user, 'get_full_name', lambda: '')()
+                or getattr(user, 'full_name', '')
+                or getattr(user, 'username', '')
+                or 'کاربر گرامی'
+            )
             notification_service.send_template(
                 event='auction.start.started',
                 template='auction_started',
                 providers=providers,
                 user=user,
                 context={
+                    'name': display_name,
                     'auction_name': auction.name,
                 },
                 metadata={
@@ -419,6 +426,9 @@ def send_auction_ended_email(auction_id, expected_end=None):
         line_items_text = '\n'.join(line_items)
         sms_line_items_text = _build_sms_line_items_text(product_list)
         formatted_total_amount = _format_amount(total_amount)
+        first_product = product_list[0]
+        first_title = first_product.title if len(product_list) == 1 else f"{first_product.title} و {len(product_list)-1} اثر دیگر"
+        lot_number = str(first_product.lot or first_product.product_id or '')
         try:
             notification_service.send_template(
                 event='auction.winner.billing',
@@ -428,6 +438,8 @@ def send_auction_ended_email(auction_id, expected_end=None):
                 context={
                     'auction_name': auction.name,
                     'name': display_name,
+                    'product_title': first_title,
+                    'lot_number': lot_number,
                     'line_items_text': line_items_text,
                     'sms_line_items_text': sms_line_items_text,
                     'formatted_total_amount': formatted_total_amount,
