@@ -511,8 +511,7 @@
                             <!-- آکاردئون بیدهای کاربر -->
                             {% if user.is_authenticated %}
                             <div id="my-bid-history-container">
-                                {% include 'auction/partials/my_bid_history.html' with my_bids=my_bids
-                                my_bids_count=my_bids_count user=user %}
+                                {% include 'auction/partials/my_bid_history.html' with my_bids=my_bids my_bids_count=my_bids_count user=user %}
                             </div>
 
                             <style>
