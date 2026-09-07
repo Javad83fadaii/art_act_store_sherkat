@@ -229,6 +229,10 @@ class AuctionProduct(models.Model):
     def __str__(self) -> str:
         return f'{self.product_id} - {self.title}'
 
+    @property
+    def display_title(self) -> str:
+        return self.title or ''
+
     @staticmethod
     def _image_extensions():
         return ('.webp', '.png', '.jpg', '.jpeg')

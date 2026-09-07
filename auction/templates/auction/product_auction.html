@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static humanize fa_digits %}
 
-{% block title %}جزئیات مزایده - {{ auction.display_title|fa_digits }}{% endblock %}
+{% block title %}جزئیات مزایده - {{ auction.title|fa_digits }}{% endblock %}
 
 {% block extra_head %}
 <!-- جلوگیری از کش شدن در سطح هدر HTTP -->
@@ -71,7 +71,7 @@
                     </button>
 
                     <div class="w-full h-full bg-cover bg-center transition-transform duration-700 ease-in-out hover:scale-110 cursor-pointer"
-                        id="product-main-image" data-alt="{{ auction.display_title|fa_digits }}"
+                        id="product-main-image" data-alt="{{ auction.title|fa_digits }}"
                         style="background-image: url('{{ auction.main_image_url }}');"
                         onclick="openGalleryModal(currentGalleryIndex)">
                     </div>
@@ -590,8 +590,7 @@
                             </summary>
                             <div class="text-secondary-text text-sm leading-7 mt-4 pl-4 font-medium">
                                 <ul class="list-disc pr-4 space-y-2 marker:text-primary">
-                                    <li>{{ auction.provenance|default:"اطلاعاتی در دسترس نیست."|linebreaksbr|fa_digits
-                                        }}</li>
+                                    <li>{{ auction.provenance|default:"اطلاعاتی در دسترس نیست."|linebreaksbr|fa_digits }}</li>
                                 </ul>
                             </div>
                         </details>
@@ -710,8 +709,7 @@
                         <span class="material-symbols-outlined text-[16px]">palette</span>
                         اثر:
                     </span>
-                    <span class="font-bold text-neutral-800 dark:text-neutral-200 truncate max-w-[200px]">{{
-                        auction.display_title|fa_digits }}</span>
+                    <span id="confirm-modal-title" class="font-bold text-neutral-800 dark:text-neutral-200 truncate max-w-[220px]">{% if auction.lot %}لات {{ auction.lot|fa_digits }} - {% endif %}{{ auction.title|fa_digits }}</span>
                 </div>
 
                 <div
@@ -821,6 +819,7 @@
             const confirmBidModalBox = document.getElementById('confirm-bid-modal-box');
             const confirmModalAmount = document.getElementById('confirm-modal-amount');
             const confirmModalSteps = document.getElementById('confirm-modal-steps');
+            const confirmModalTitle = document.getElementById('confirm-modal-title');
             const btnCloseConfirmBidModal = document.getElementById('btn-close-confirm-bid-modal');
             const btnCancelConfirmBid = document.getElementById('btn-cancel-confirm-bid');
             const btnExecuteBidSubmit = document.getElementById('btn-execute-bid-submit');
@@ -1079,6 +1078,12 @@
                 if (confirmModalSteps && stepInput) {
                     const stepsVal = parseInt(stepInput.value) || 1;
                     confirmModalSteps.textContent = toPersianNum(stepsVal) + ' گام';
+                }
+                if (confirmModalTitle && (!confirmModalTitle.textContent || !confirmModalTitle.textContent.trim())) {
+                    const h1Title = document.querySelector('h1');
+                    if (h1Title) {
+                        confirmModalTitle.textContent = h1Title.textContent.replace(/\s+/g, ' ').trim();
+                    }
                 }
 
                 confirmBidModal.classList.remove('opacity-0', 'pointer-events-none');
