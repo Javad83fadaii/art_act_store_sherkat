@@ -985,6 +985,8 @@
                 if (event.button !== 0) return false;
                 if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return false;
                 if ((link.getAttribute('target') || '').toLowerCase() === '_blank') return false;
+                const href = String(link.getAttribute('href') || '').trim().toLowerCase();
+                if (!href || href === '#' || href.startsWith('javascript:')) return false;
                 if (link.dataset.trackGuard === 'auction-access' && typeof window.canTrackAuctionVisit === 'function') {
                     return !!window.canTrackAuctionVisit(link);
                 }
@@ -1001,7 +1003,6 @@
                 if (!kind || !objectId) return;
                 sendVisit(kind, objectId);
             }, true);
-        })();
         })();
     </script>
 

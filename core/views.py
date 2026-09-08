@@ -105,7 +105,7 @@ def track_public_visit(request):
     user = request.user if request.user.is_authenticated else None
     ip_address = _get_client_ip(request)
 
-    if visit_kind == 'store_product':
+    if visit_kind in {'product', 'store_product'}:
         product = get_object_or_404(Artwork, pk=object_id)
         VisitHistory.objects.create(
             user=user,
