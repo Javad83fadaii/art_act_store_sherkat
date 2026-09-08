@@ -292,9 +292,10 @@ def get_default_notification_templates() -> tuple[NotificationTemplate, ...]:
     auction_end_body = (
         'با درود و احترام\n\n'
         'تنها ۱۲ ساعت تا پایان مزایده {auction_name} باقی مانده است.\n'
-        'اگر اثر موردنظر خود را انتخاب کرده‌اید، فرصت ثبت یا افزایش پیشنهاد قیمت تا پایان مزایده همچنان برقرار است.\n\n'
+        'اگر اثر موردنظر خود را انتخاب کردهاید، فرصت ثبت یا افزایش پیشنهاد قیمت تا پایان مزایده همچنان برقرار است.\n\n'
         'با احترام\n'
-        'حراج هنری ماه'
+        'حراج هنری ماه\n'
+        'Mahauction.com'
     )
     auction_end.register_channel(
         NotificationChannelTemplate(
@@ -310,7 +311,7 @@ def get_default_notification_templates() -> tuple[NotificationTemplate, ...]:
                 'sms_pattern': 'auction_end',
             },
             context_map={
-                'auction_name': ('AUCTIONNAME', 'AUCTION_NAME'),
+                'auction_name': ('AUCTION_NAME', 'AUCTIONNAME', 'auction_name'),
                 'name': 'NAME',
                 'auction_end_date': ('AUCTIONEND_DATE', 'AUCTION_END_DATE'),
             },

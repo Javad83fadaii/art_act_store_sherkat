@@ -109,11 +109,9 @@ class EmailProviderIntegrationTests(TestCase):
             ),
         },
         'auction_end': {
-            'code': '174933',
+            'code': '965581',
             'variables': (
-                'AUCTIONNAME',
-                'NAME',
-                'AUCTIONEND_DATE',
+                'AUCTION_NAME',
             ),
         },
         'auction_Invoice': {
@@ -369,19 +367,11 @@ class SMSProviderIntegrationTests(TestCase):
             'https://api.sms.ir/v1/send/verify',
             json={
                 'mobile': '9123456789',
-                'templateId': 174933,
+                'templateId': 965581,
                 'parameters': [
                     {
-                        'name': 'AUCTIONNAME',
+                        'name': 'AUCTION_NAME',
                         'value': 'مزایده تابستان',
-                    },
-                    {
-                        'name': 'NAME',
-                        'value': 'علی رضایی',
-                    },
-                    {
-                        'name': 'AUCTIONEND_DATE',
-                        'value': '1405/05/10 18:00',
                     },
                 ],
             },

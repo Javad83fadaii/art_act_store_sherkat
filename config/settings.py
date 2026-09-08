@@ -379,11 +379,9 @@ SMS_PATTERNS = {
         ),
     },
     'auction_end': {
-        'code': _get_first_setting('SMS_PATTERN_AUCTION_END_CODE') or '174933',
-        'variables': (
-            'AUCTIONNAME',
-            'NAME',
-            'AUCTIONEND_DATE',
+        'code': _get_first_setting('SMS_PATTERN_AUCTION_END_CODE') or '965581',
+        'variables': tuple(
+            v.strip() for v in (_get_first_setting('SMS_PATTERN_AUCTION_END_VARIABLES') or 'AUCTION_NAME').split(',') if v.strip()
         ),
     },
     'auction_Invoice': {
