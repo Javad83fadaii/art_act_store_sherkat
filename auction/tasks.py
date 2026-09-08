@@ -255,56 +255,6 @@ def send_auction_started_email(auction_id, expected_start=None):
         logger.exception("Started email failed for auction %s", auction.pk)
 
 
-@shared_task
-def send_auction_ending_soon_email(auction_id, expected_end=None):
-    """Sent 12 hours before auction ends."""
-    try:
-        auction = Auction.objects.get(id=auction_id)
-    except Auction.DoesNotExist:
-        return
-
-    if not _scheduled_datetime_matches(auction.end_date, expected_end):
-        return
-
-    if not _is_within_delivery_window(auction.end_date - timezone.timedelta(hours=12)):
-        return
-
-    claimed_at = _claim_dispatch(auction.id, 'end_reminder_12h_dispatched_at')
-    if claimed_at is None:
-        return
-
-    try:
-        users = get_active_users_for_notifications()
-        for user in users:
-            providers = _get_user_notification_providers(user)
-            if not providers:
-                continue
-
-            display_name = (
-                getattr(user, 'get_full_name', lambda: '')()
-                or getattr(user, 'full_name', '')
-                or getattr(user, 'username', '')
-                or 'کاربر گرامی'
-            )
-            notification_service.send_template(
-                event='auction.end.reminder_12h',
-                template='auction_end',
-                providers=providers,
-                user=user,
-                context={
-                    'auction_name': auction.name,
-                    'auction_end_date': _format_datetime(auction.end_date),
-                    'name': display_name,
-                },
-                metadata={
-                    'auction_id': str(auction.pk),
-                    'user_id': str(user.pk),
-                },
-            )
-    except Exception:
-        _release_dispatch(auction.id, 'end_reminder_12h_dispatched_at', claimed_at)
-        logger.exception("Ending-soon email failed for auction %s", auction.pk)
-
 
 @shared_task
 def send_auction_extended_email(auction_id, previous_end=None, expected_end=None):

@@ -281,49 +281,6 @@ def get_default_notification_templates() -> tuple[NotificationTemplate, ...]:
         )
     )
 
-    auction_end = NotificationTemplate(
-        key='auction_end',
-        default_providers=(
-            NotificationProviderType.EMAIL,
-            NotificationProviderType.SMS,
-            NotificationProviderType.TELEGRAM,
-        ),
-    )
-    auction_end_body = (
-        'با درود و احترام\n\n'
-        'تنها ۱۲ ساعت تا پایان مزایده {auction_name} باقی مانده است.\n'
-        'اگر اثر موردنظر خود را انتخاب کردهاید، فرصت ثبت یا افزایش پیشنهاد قیمت تا پایان مزایده همچنان برقرار است.\n\n'
-        'با احترام\n'
-        'حراج هنری ماه\n'
-        'Mahauction.com'
-    )
-    auction_end.register_channel(
-        NotificationChannelTemplate(
-            provider=NotificationProviderType.EMAIL,
-            subject_template='یادآوری پایان مزایده',
-            body_template=auction_end_body,
-        )
-    )
-    auction_end.register_channel(
-        NotificationChannelTemplate(
-            provider=NotificationProviderType.SMS,
-            metadata={
-                'sms_pattern': 'auction_end',
-            },
-            context_map={
-                'auction_name': ('AUCTION_NAME', 'AUCTIONNAME', 'auction_name'),
-                'name': 'NAME',
-                'auction_end_date': ('AUCTIONEND_DATE', 'AUCTION_END_DATE'),
-            },
-        )
-    )
-    auction_end.register_channel(
-        NotificationChannelTemplate(
-            provider=NotificationProviderType.TELEGRAM,
-            body_template=auction_end_body,
-        )
-    )
-
     auction_invoice = NotificationTemplate(
         key='auction_Invoice',
         default_providers=(
@@ -491,7 +448,6 @@ def get_default_notification_templates() -> tuple[NotificationTemplate, ...]:
         signup_welcome,
         auction_started,
         auction_24h,
-        auction_end,
         auction_invoice,
         add_bid,
         dell_bid,

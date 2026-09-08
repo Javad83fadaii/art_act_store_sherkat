@@ -108,12 +108,6 @@ class EmailProviderIntegrationTests(TestCase):
                 'AUCTIONSTART_DATE',
             ),
         },
-        'auction_end': {
-            'code': '965581',
-            'variables': (
-                'AUCTION_NAME',
-            ),
-        },
         'auction_Invoice': {
             'code': '600256',
             'variables': (
@@ -339,49 +333,6 @@ class SMSProviderIntegrationTests(TestCase):
             timeout=9,
         )
 
-    @patch('notifications.providers.sms.requests.post')
-    def test_send_template_maps_auction_end_context_to_sms_pattern_variables(self, post_mock) -> None:
-        response = Mock()
-        response.ok = True
-        response.status_code = 200
-        response.text = '{"status": 1, "message": "موفق", "data": 778899}'
-        response.json.return_value = {
-            'status': 1,
-            'message': 'موفق',
-            'data': 778899,
-        }
-        post_mock.return_value = response
-
-        self.service.send_template(
-            template='auction_end',
-            channels=['sms'],
-            user=SimpleNamespace(phone_number='09123456789'),
-            context={
-                'auction_name': 'مزایده تابستان',
-                'name': 'علی رضایی',
-                'auction_end_date': '1405/05/10 18:00',
-            },
-        )
-
-        post_mock.assert_called_once_with(
-            'https://api.sms.ir/v1/send/verify',
-            json={
-                'mobile': '9123456789',
-                'templateId': 965581,
-                'parameters': [
-                    {
-                        'name': 'AUCTION_NAME',
-                        'value': 'مزایده تابستان',
-                    },
-                ],
-            },
-            headers={
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'X-API-KEY': 'test-api-key',
-            },
-            timeout=9,
-        )
 
     @patch('notifications.providers.sms.requests.post')
     def test_send_template_maps_auction_invoice_context_to_sms_pattern_variables(self, post_mock) -> None:

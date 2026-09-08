@@ -88,17 +88,4 @@ def build_auction_reminder_email(*, auction, reminder_type):
             ),
         )
 
-    if reminder_type == "end_12h":
-        return (
-            f"یادآوری پایان مزایده «{auction_name}»",
-            (
-                "با درود و احترام\n\n"
-                f"تنها ۱۲ ساعت تا پایان مزایده {auction_name} باقی مانده است.\n"
-                "اگر اثر موردنظر خود را انتخاب کردهاید، فرصت ثبت یا افزایش پیشنهاد قیمت تا پایان مزایده همچنان برقرار است.\n\n"
-                "با احترام\n"
-                "حراج هنری ماه\n"
-                "Mahauction.com"
-            ),
-        )
-
     raise ValueError("Unknown auction reminder type.")

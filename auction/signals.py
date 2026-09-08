@@ -14,7 +14,6 @@ from .models import Bid, Auction
 from .tasks import (
     send_auction_starting_soon_email,
     send_auction_started_email,
-    send_auction_ending_soon_email,
     send_auction_extended_email,
     send_auction_ended_email,
 )
@@ -166,22 +165,13 @@ def schedule_auction_emails(sender, instance, created, **kwargs):
                 eta=instance.start_date,
             )
 
-    # 3. Email: 12 hours before the auction ends
-    if instance.end_date:
-        end_minus_12h = instance.end_date - datetime.timedelta(hours=12)
-        if end_minus_12h > now:
-            send_auction_ending_soon_email.apply_async(
-                args=(instance.id,),
-                kwargs={'expected_end': expected_end},
-                eta=end_minus_12h,
-            )
-
-        if instance.end_date > now:
-            send_auction_ended_email.apply_async(
-                args=(instance.id,),
-                kwargs={'expected_end': expected_end},
-                eta=instance.end_date,
-            )
+    # 3. Email: Exactly when the auction ends
+    if instance.end_date and instance.end_date > now:
+        send_auction_ended_email.apply_async(
+            args=(instance.id,),
+            kwargs={'expected_end': expected_end},
+            eta=instance.end_date,
+        )
 
     previous_end_date = getattr(instance, '_previous_end_date', None)
     if (
