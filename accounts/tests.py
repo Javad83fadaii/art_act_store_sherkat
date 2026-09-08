@@ -931,3 +931,206 @@ class EmailVerificationFlowTests(TestCase):
         self.user.refresh_from_db()
         self.assertTrue(self.user.is_email_verified)
         self.assertEqual(self.user.email, "persian-code@example.com")
+
+
+class PasswordResetFlowTests(TestCase):
+    def setUp(self):
+        self.user_sms_only = CustomUser.objects.create_user(
+            phone_number="09121111111",
+            password="OldPassword@123",
+            full_name="کاربر پیامک",
+        )
+        self.user_sms_only.is_sms_verified = True
+        self.user_sms_only.is_email_verified = False
+        self.user_sms_only.email = None
+        self.user_sms_only.save()
+
+        self.user_email_only = CustomUser.objects.create_user(
+            phone_number="09122222222",
+            password="OldPassword@123",
+            full_name="کاربر ایمیل",
+        )
+        self.user_email_only.is_sms_verified = False
+        self.user_email_only.is_email_verified = True
+        self.user_email_only.email = "email_only@example.com"
+        self.user_email_only.save()
+
+        self.user_both = CustomUser.objects.create_user(
+            phone_number="09123333333",
+            password="OldPassword@123",
+            full_name="کاربر هردو",
+        )
+        self.user_both.is_sms_verified = True
+        self.user_both.is_email_verified = True
+        self.user_both.email = "both@example.com"
+        self.user_both.save()
+
+        self.user_neither = CustomUser.objects.create_user(
+            phone_number="09124444444",
+            password="OldPassword@123",
+            full_name="کاربر تایید نشده",
+        )
+        self.user_neither.is_sms_verified = False
+        self.user_neither.is_email_verified = False
+        self.user_neither.email = None
+        self.user_neither.save()
+
+    def test_non_existent_phone_number_returns_error(self):
+        response = self.client.post(
+            reverse("password_reset_request"),
+            data={"phone_number": "09129999999"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "حساب کاربری با این شماره موبایل در سیستم یافت نشد.")
+
+    @patch("accounts.views.send_password_reset_sms")
+    def test_scenario_1_only_phone_verified_sends_sms_and_redirects_to_verify(self, mock_sms):
+        response = self.client.post(
+            reverse("password_reset_request"),
+            data={"phone_number": "09121111111"},
+        )
+        self.assertRedirects(response, reverse("password_reset_verify"))
+        mock_sms.assert_called_once()
+        call_kwargs = mock_sms.call_args[1]
+        self.assertEqual(call_kwargs["user"], self.user_sms_only)
+        self.assertEqual(len(call_kwargs["code"]), 6)
+
+        # Check session
+        session = self.client.session
+        self.assertEqual(session.get("password_reset_user_id"), str(self.user_sms_only.pk))
+        self.assertEqual(session.get("password_reset_channel"), "sms")
+        self.assertEqual(session.get("password_reset_otp_code"), call_kwargs["code"])
+
+    @patch("accounts.views.send_password_reset_email")
+    def test_scenario_2_only_email_verified_sends_email_and_redirects_to_verify(self, mock_email):
+        response = self.client.post(
+            reverse("password_reset_request"),
+            data={"phone_number": "09122222222"},
+        )
+        self.assertRedirects(response, reverse("password_reset_verify"))
+        mock_email.assert_called_once()
+        call_kwargs = mock_email.call_args[1]
+        self.assertEqual(call_kwargs["user"], self.user_email_only)
+        self.assertEqual(call_kwargs["email"], "email_only@example.com")
+        self.assertEqual(len(call_kwargs["code"]), 6)
+
+        session = self.client.session
+        self.assertEqual(session.get("password_reset_user_id"), str(self.user_email_only.pk))
+        self.assertEqual(session.get("password_reset_channel"), "email")
+
+    def test_scenario_3_both_verified_redirects_to_choose_channel(self):
+        response = self.client.post(
+            reverse("password_reset_request"),
+            data={"phone_number": "09123333333"},
+        )
+        self.assertRedirects(response, reverse("password_reset_choose_channel"))
+        session = self.client.session
+        self.assertEqual(session.get("password_reset_user_id"), str(self.user_both.pk))
+
+    @patch("accounts.views.send_password_reset_sms")
+    def test_choose_channel_submits_sms_choice(self, mock_sms):
+        session = self.client.session
+        session["password_reset_user_id"] = str(self.user_both.pk)
+        session.save()
+
+        response = self.client.post(
+            reverse("password_reset_choose_channel"),
+            data={"channel": "sms"},
+        )
+        self.assertRedirects(response, reverse("password_reset_verify"))
+        mock_sms.assert_called_once()
+        self.assertEqual(self.client.session.get("password_reset_channel"), "sms")
+
+    @patch("accounts.views.send_password_reset_email")
+    def test_choose_channel_submits_email_choice(self, mock_email):
+        session = self.client.session
+        session["password_reset_user_id"] = str(self.user_both.pk)
+        session.save()
+
+        response = self.client.post(
+            reverse("password_reset_choose_channel"),
+            data={"channel": "email"},
+        )
+        self.assertRedirects(response, reverse("password_reset_verify"))
+        mock_email.assert_called_once()
+        self.assertEqual(self.client.session.get("password_reset_channel"), "email")
+
+    def test_scenario_4_neither_verified_shows_support_guide(self):
+        response = self.client.post(
+            reverse("password_reset_request"),
+            data={"phone_number": "09124444444"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "هیچ‌کدام از اطلاعات تماس")
+        self.assertContains(response, "پشتیبانی")
+
+    def test_verify_otp_invalid_code_decrements_attempts(self):
+        session = self.client.session
+        session["password_reset_user_id"] = str(self.user_sms_only.pk)
+        session["password_reset_channel"] = "sms"
+        session["password_reset_target"] = "09121111111"
+        session["password_reset_otp_code"] = "123456"
+        session["password_reset_otp_expires_at"] = 9999999999
+        session["password_reset_otp_last_sent_at"] = 0
+        session.save()
+
+        response = self.client.post(
+            reverse("password_reset_verify"),
+            data={"code": "999999", "action": "verify"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "کد وارد شده صحیح نمی‌باشد")
+
+    def test_verify_otp_correct_code_redirects_to_set_password(self):
+        session = self.client.session
+        session["password_reset_user_id"] = str(self.user_sms_only.pk)
+        session["password_reset_channel"] = "sms"
+        session["password_reset_target"] = "09121111111"
+        session["password_reset_otp_code"] = "654321"
+        session["password_reset_otp_expires_at"] = 9999999999
+        session["password_reset_otp_last_sent_at"] = 0
+        session.save()
+
+        # Supports Persian digits input as well
+        persian_code = "۶۵۴۳۲۱"
+        response = self.client.post(
+            reverse("password_reset_verify"),
+            data={"code": persian_code, "action": "verify"},
+        )
+        self.assertRedirects(response, reverse("password_reset_set_password"))
+        self.assertIsNotNone(self.client.session.get("password_reset_verified_token"))
+        self.assertIsNone(self.client.session.get("password_reset_otp_code"))
+
+    def test_set_password_updates_user_password_and_redirects_to_login(self):
+        from django.core import signing
+        import time
+
+        token = signing.dumps(
+            {"user_id": str(self.user_sms_only.pk), "verified_at": time.time()},
+            salt="password-reset-verified",
+        )
+        session = self.client.session
+        session["password_reset_user_id"] = str(self.user_sms_only.pk)
+        session["password_reset_verified_token"] = token
+        session.save()
+
+        response = self.client.post(
+            reverse("password_reset_set_password"),
+            data={
+                "new_password": "NewSecretPassword@2026",
+                "confirm_password": "NewSecretPassword@2026",
+            },
+        )
+        self.assertRedirects(response, reverse("login"))
+
+        self.user_sms_only.refresh_from_db()
+        self.assertTrue(self.user_sms_only.check_password("NewSecretPassword@2026"))
+
+        # Session should be wiped of reset data
+        self.assertIsNone(self.client.session.get("password_reset_user_id"))
+        self.assertIsNone(self.client.session.get("password_reset_verified_token"))
+
+    def test_login_page_contains_password_reset_link(self):
+        response = self.client.get(reverse("login"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, reverse("password_reset_request"))

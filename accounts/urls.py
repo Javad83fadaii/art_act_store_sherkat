@@ -7,13 +7,12 @@ urlpatterns = [
     # مسیرهای ورود و خروج
     path('login/', views.CustomLoginView.as_view(), name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='home'), name='logout'),
-    path(
-        'password_reset/',
-        auth_views.PasswordResetView.as_view(
-            form_class=views.CustomPasswordResetForm,
-        ),
-        name='password_reset',
-    ),
+    # مسیرهای بازیابی رمز عبور
+    path('password_reset/', views.PasswordResetRequestView.as_view(), name='password_reset'),
+    path('password-reset/', views.PasswordResetRequestView.as_view(), name='password_reset_request'),
+    path('password-reset/choose-channel/', views.PasswordResetChooseChannelView.as_view(), name='password_reset_choose_channel'),
+    path('password-reset/verify/', views.PasswordResetVerifyView.as_view(), name='password_reset_verify'),
+    path('password-reset/set-password/', views.PasswordResetSetPasswordView.as_view(), name='password_reset_set_password'),
     path(
         'password_change/',
         views.CustomPasswordChangeView.as_view(),

@@ -414,4 +414,8 @@ SMS_PATTERNS = {
             'AUCTION_NAME',
         ),
     },
+    'password_reset': {
+        'code': _get_first_setting('SMS_PATTERN_PASSWORD_RESET_CODE') or '331368',
+        'variables': ('CODE',),
+    },
 }

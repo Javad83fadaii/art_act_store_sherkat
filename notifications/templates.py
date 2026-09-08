@@ -452,6 +452,40 @@ def get_default_notification_templates() -> tuple[NotificationTemplate, ...]:
         )
     )
 
+    password_reset = NotificationTemplate(
+        key='password_reset',
+        default_providers=(
+            NotificationProviderType.SMS,
+            NotificationProviderType.EMAIL,
+        ),
+    )
+    password_reset_body = (
+        'بازیابی رمز عبور\n'
+        'با درود و احترام\n'
+        'کد بازیابی رمز عبور شما {code} :\n'
+        'حراج هنری ماه\n'
+        'Mahauction.com'
+    )
+    password_reset.register_channel(
+        NotificationChannelTemplate(
+            provider=NotificationProviderType.EMAIL,
+            subject_template='بازیابی رمز عبور',
+            body_template=password_reset_body,
+        )
+    )
+    password_reset.register_channel(
+        NotificationChannelTemplate(
+            provider=NotificationProviderType.SMS,
+            metadata={
+                'sms_pattern': 'password_reset',
+            },
+            context_map={
+                'code': 'CODE',
+            },
+            body_template=password_reset_body,
+        )
+    )
+
     return (
         verification,
         signup_welcome,
@@ -461,4 +495,5 @@ def get_default_notification_templates() -> tuple[NotificationTemplate, ...]:
         auction_invoice,
         add_bid,
         dell_bid,
+        password_reset,
     )

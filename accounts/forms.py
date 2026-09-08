@@ -1006,3 +1006,124 @@ class AdminUserEditForm(forms.ModelForm):
             self._sync_user_verification_request(user, previous_is_verified)
 
         return user
+
+
+class PasswordResetMobileForm(forms.Form):
+    phone_number = forms.CharField(
+        max_length=20,
+        label="شماره موبایل",
+        required=True,
+        widget=forms.TextInput(
+            attrs={
+                "class": "w-full px-4 py-3 bg-white/40 dark:bg-gray-900/50 backdrop-blur-md border border-white/60 dark:border-gray-600/40 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all duration-300 outline-none shadow-sm text-left dir-ltr",
+                "placeholder": "۰۹۱۲۳۴۵۶۷۸۹",
+                "inputmode": "tel",
+                "autocomplete": "tel",
+            }
+        ),
+    )
+
+    def clean_phone_number(self):
+        digit_map = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
+        phone = str(self.cleaned_data.get("phone_number") or "").strip().translate(digit_map)
+        phone = phone.replace(" ", "").replace("-", "")
+        if not phone.isdigit():
+            raise ValidationError("لطفاً شماره موبایل معتبر وارد کنید.")
+        if phone.startswith("98") and len(phone) == 12:
+            phone = "0" + phone[2:]
+        elif len(phone) == 10 and phone.startswith("9"):
+            phone = "0" + phone
+        if len(phone) != 11 or not phone.startswith("09"):
+            raise ValidationError("شماره موبایل باید ۱۱ رقمی و با ۰۹ شروع شود.")
+        return phone
+
+
+class PasswordResetChannelForm(forms.Form):
+    CHANNEL_CHOICES = (
+        ("sms", "ارسال پیامک"),
+        ("email", "ارسال ایمیل"),
+    )
+    channel = forms.ChoiceField(
+        choices=CHANNEL_CHOICES,
+        widget=forms.RadioSelect,
+        required=True,
+        error_messages={"required": "لطفاً یکی از روش‌های دریافت کد را انتخاب کنید."},
+    )
+
+
+class PasswordResetVerifyOTPForm(forms.Form):
+    code = forms.CharField(
+        max_length=6,
+        min_length=6,
+        label="کد تایید ۶ رقمی",
+        required=True,
+        widget=forms.TextInput(
+            attrs={
+                "class": "w-full h-14 px-4 text-center tracking-[0.5em] font-mono text-2xl rounded-xl border border-white/60 dark:border-gray-600/40 bg-white/40 dark:bg-gray-900/50 backdrop-blur-md text-gray-900 dark:text-white focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all duration-300 outline-none shadow-sm",
+                "placeholder": "••••••",
+                "inputmode": "numeric",
+                "autocomplete": "one-time-code",
+                "pattern": "[0-9۰-۹٠-٩]{6}",
+            }
+        ),
+        error_messages={
+            "required": "وارد کردن کد تایید الزامی است.",
+            "min_length": "کد تایید باید ۶ رقم باشد.",
+            "max_length": "کد تایید باید ۶ رقم باشد.",
+        },
+    )
+
+    def clean_code(self):
+        digit_map = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
+        raw_code = str(self.cleaned_data.get("code") or "").strip().translate(digit_map).replace(" ", "")
+        if len(raw_code) != 6 or not raw_code.isdigit():
+            raise ValidationError("کد تایید باید دقیقاً ۶ رقم عددی باشد.")
+        return raw_code
+
+
+class PasswordResetSetNewPasswordForm(forms.Form):
+    new_password = forms.CharField(
+        label="رمز عبور جدید",
+        widget=forms.PasswordInput(
+            attrs={
+                "class": "w-full px-4 py-3 bg-white/40 dark:bg-gray-900/50 backdrop-blur-md border border-white/60 dark:border-gray-600/40 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all duration-300 outline-none shadow-sm text-left dir-ltr",
+                "placeholder": "••••••••",
+                "autocomplete": "new-password",
+            }
+        ),
+        required=True,
+        error_messages={"required": "وارد کردن رمز عبور جدید الزامی است."},
+    )
+    confirm_password = forms.CharField(
+        label="تکرار رمز عبور جدید",
+        widget=forms.PasswordInput(
+            attrs={
+                "class": "w-full px-4 py-3 bg-white/40 dark:bg-gray-900/50 backdrop-blur-md border border-white/60 dark:border-gray-600/40 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all duration-300 outline-none shadow-sm text-left dir-ltr",
+                "placeholder": "••••••••",
+                "autocomplete": "new-password",
+            }
+        ),
+        required=True,
+        error_messages={"required": "وارد کردن تکرار رمز عبور جدید الزامی است."},
+    )
+
+    def __init__(self, *args, user=None, **kwargs):
+        self.user = user
+        super().__init__(*args, **kwargs)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        new_password = cleaned_data.get("new_password")
+        confirm_password = cleaned_data.get("confirm_password")
+
+        if new_password and confirm_password:
+            if new_password != confirm_password:
+                self.add_error("confirm_password", "رمز عبور جدید با تکرار آن یکسان نیست.")
+            else:
+                from django.contrib.auth.password_validation import validate_password
+                try:
+                    validate_password(new_password, self.user)
+                except ValidationError as error:
+                    self.add_error("new_password", error)
+
+        return cleaned_data

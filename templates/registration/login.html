@@ -41,6 +41,20 @@
             <form id="loginForm" method="post" class="space-y-5 m-0 p-0 bg-transparent shadow-none border-none">
                 {% csrf_token %}
 
+                <!-- نمایش پیام‌های سیستم (Toast/Flash messages) -->
+                {% if messages %}
+                    <div class="space-y-2 mb-6">
+                        {% for message in messages %}
+                            <div class="{% if message.tags == 'success' %}bg-green-500/15 border-green-500/40 text-green-900 dark:text-green-200{% elif message.tags == 'error' %}bg-red-500/15 border-red-500/40 text-red-900 dark:text-red-200{% else %}bg-primary/15 border-primary/40 text-primary dark:text-white{% endif %} border rounded-2xl p-4 text-sm flex items-start gap-2.5 shadow-sm">
+                                <span class="material-symbols-outlined text-lg shrink-0 mt-0.5">
+                                    {% if message.tags == 'success' %}check_circle{% elif message.tags == 'error' %}error{% else %}info{% endif %}
+                                </span>
+                                <p class="leading-relaxed font-bold">{{ message|fa_digits }}</p>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
                 <!-- نمایش خطاهای کلی فرم -->
                 {% if form.non_field_errors %}
                     <div class="bg-red-50 dark:bg-red-900/20 border border-red-200/70 dark:border-red-800/40 rounded-xl p-4 text-sm text-red-700 dark:text-red-300 mb-6">
@@ -76,7 +90,7 @@
                                 رمز عبور <span class="text-red-500">*</span>
                             </label>
                             <!-- لینک فراموشی رمز عبور -->
-                            <a class="text-xs font-bold text-primary hover:text-primary/80 transition-colors" href="#">
+                            <a class="text-xs font-bold text-primary hover:text-primary/80 transition-colors" href="{% url 'password_reset_request' %}">
                                 فراموشی رمز عبور؟
                             </a>
                         </div>

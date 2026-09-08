@@ -1,7 +1,9 @@
 import json
 import logging
+import random
 import smtplib
 import socket
+import time
 from urllib.parse import urlencode
 from decimal import Decimal
 
@@ -17,6 +19,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserChangeForm
 from django.contrib import messages
+from django.core import signing
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -29,7 +32,14 @@ from core.emailing import normalize_email_value, send_plain_email
 from notifications.enums import NotificationProviderType
 from notifications.services import notification_service
 from .realtime import build_profile_live_context, build_profile_live_payload
-from .emails import send_verification_code_email, send_verification_code_sms, send_welcome_email, send_welcome_sms
+from .emails import (
+    send_verification_code_email,
+    send_verification_code_sms,
+    send_welcome_email,
+    send_welcome_sms,
+    send_password_reset_sms,
+    send_password_reset_email,
+)
 from .models import CustomUser, VerificationRequest, CreditIncreaseRequest, EmailVerificationOTP, SMSVerificationOTP
 from .forms import (
     CustomUserCreationForm, 
@@ -38,10 +48,11 @@ from .forms import (
     CustomUserChangeForm, 
     CustomPasswordResetForm,
     PublicProfileUpdateForm,
+    PasswordResetMobileForm,
+    PasswordResetChannelForm,
+    PasswordResetVerifyOTPForm,
+    PasswordResetSetNewPasswordForm,
 )
-
-from auction.models import Bid
-
 
 logger = logging.getLogger(__name__)
 EMAIL_VERIFICATION_SENT_TO_SESSION_KEY = "email_verification_code_sent_to"
@@ -989,10 +1000,395 @@ def verify_email_code(request):
         validate_email(email)
     except ValidationError:
         return JsonResponse({"error": "A valid email address is required."}, status=400)
-
     ok, error_message = _verify_email_code_for_user(user=request.user, email=email, code=code)
     if not ok:
         return JsonResponse({"error": error_message or "Email verification failed."}, status=400)
 
     _clear_sent_verification_code(request)
     return JsonResponse({"message": "Email verified successfully."})
+
+
+# ==============================================================================
+# Password Reset (بازیابی رمز عبور) Flow & Views
+# ==============================================================================
+
+PASSWORD_RESET_USER_ID_KEY = "password_reset_user_id"
+PASSWORD_RESET_CHANNEL_KEY = "password_reset_channel"
+PASSWORD_RESET_TARGET_KEY = "password_reset_target"
+PASSWORD_RESET_OTP_CODE_KEY = "password_reset_otp_code"
+PASSWORD_RESET_OTP_EXPIRES_KEY = "password_reset_otp_expires_at"
+PASSWORD_RESET_OTP_LAST_SENT_KEY = "password_reset_otp_last_sent_at"
+PASSWORD_RESET_OTP_ATTEMPTS_KEY = "password_reset_otp_attempts"
+PASSWORD_RESET_TOKEN_KEY = "password_reset_verified_token"
+
+PASSWORD_RESET_OTP_EXPIRY_SECONDS = 600
+PASSWORD_RESET_RESEND_COOLDOWN_SECONDS = 120
+PASSWORD_RESET_MAX_ATTEMPTS = 5
+
+
+def _mask_phone_number(phone_number: str) -> str:
+    phone = str(phone_number or "").strip()
+    if len(phone) >= 7:
+        return f"{phone[:4]}***{phone[-4:]}"
+    return phone
+
+
+def _mask_email(email: str) -> str:
+    raw_email = str(email or "").strip()
+    if "@" not in raw_email:
+        return raw_email
+    name, domain = raw_email.split("@", 1)
+    if len(name) <= 2:
+        masked_name = (name[0] if name else "") + "***"
+    else:
+        masked_name = f"{name[0]}***{name[-1]}"
+    return f"{masked_name}@{domain}"
+
+
+def _clear_password_reset_session(request):
+    keys = [
+        PASSWORD_RESET_USER_ID_KEY,
+        PASSWORD_RESET_CHANNEL_KEY,
+        PASSWORD_RESET_TARGET_KEY,
+        PASSWORD_RESET_OTP_CODE_KEY,
+        PASSWORD_RESET_OTP_EXPIRES_KEY,
+        PASSWORD_RESET_OTP_LAST_SENT_KEY,
+        PASSWORD_RESET_OTP_ATTEMPTS_KEY,
+        PASSWORD_RESET_TOKEN_KEY,
+    ]
+    for key in keys:
+        request.session.pop(key, None)
+
+
+def _send_password_reset_otp(request, user, channel: str) -> tuple[bool, str | None]:
+    code = f"{random.randint(100000, 999999)}"
+    now = time.time()
+    expires_at = now + PASSWORD_RESET_OTP_EXPIRY_SECONDS
+
+    if channel == "sms":
+        phone_number = getattr(user, "phone_number", "")
+        if not phone_number:
+            return False, "شماره موبایل برای این حساب کاربری یافت نشد."
+        try:
+            send_password_reset_sms(user=user, code=code)
+        except Exception as exc:
+            logger.exception("Error sending password reset SMS to user %s", user.pk)
+            return False, f"خطا در ارسال پیامک: {exc}"
+        target = phone_number
+
+    elif channel == "email":
+        email = getattr(user, "email", "")
+        if not email:
+            return False, "آدرس ایمیل برای این حساب کاربری یافت نشد."
+        try:
+            send_password_reset_email(user=user, email=email, code=code)
+        except Exception as exc:
+            logger.exception("Error sending password reset Email to user %s", user.pk)
+            return False, f"خطا در ارسال ایمیل: {exc}"
+        target = email
+    else:
+        return False, "کانال ارتباطی نامعتبر است."
+
+    request.session[PASSWORD_RESET_CHANNEL_KEY] = channel
+    request.session[PASSWORD_RESET_TARGET_KEY] = target
+    request.session[PASSWORD_RESET_OTP_CODE_KEY] = code
+    request.session[PASSWORD_RESET_OTP_EXPIRES_KEY] = expires_at
+    request.session[PASSWORD_RESET_OTP_LAST_SENT_KEY] = now
+    request.session[PASSWORD_RESET_OTP_ATTEMPTS_KEY] = 0
+    return True, None
+
+
+class PasswordResetRequestView(View):
+    template_name = "registration/password_reset_request.html"
+
+    def get(self, request):
+        form = PasswordResetMobileForm()
+        return render(request, self.template_name, {"form": form})
+
+    def post(self, request):
+        form = PasswordResetMobileForm(request.POST)
+        if not form.is_valid():
+            return render(request, self.template_name, {"form": form})
+
+        phone_number = form.cleaned_data["phone_number"]
+        user = CustomUser.objects.filter(phone_number=phone_number).first()
+
+        if not user:
+            form.add_error("phone_number", "حساب کاربری با این شماره موبایل در سیستم یافت نشد.")
+            return render(request, self.template_name, {"form": form})
+
+        has_verified_phone = bool(user.phone_number and getattr(user, "is_sms_verified", False))
+        has_verified_email = bool(user.email and getattr(user, "is_email_verified", False))
+
+        # سناریوی ۳: هم موبایل و هم ایمیل تایید شده‌اند -> کاربر کانال را انتخاب می‌کند
+        if has_verified_phone and has_verified_email:
+            _clear_password_reset_session(request)
+            request.session[PASSWORD_RESET_USER_ID_KEY] = str(user.pk)
+            return redirect("password_reset_choose_channel")
+
+        # سناریوی ۱: فقط موبایل تایید شده است -> ارسال پیامک
+        elif has_verified_phone and not has_verified_email:
+            _clear_password_reset_session(request)
+            request.session[PASSWORD_RESET_USER_ID_KEY] = str(user.pk)
+            ok, error_msg = _send_password_reset_otp(request, user, "sms")
+            if not ok:
+                messages.error(request, error_msg or "خطا در ارسال پیامک بازیابی رمز عبور.")
+                return render(request, self.template_name, {"form": form})
+            return redirect("password_reset_verify")
+
+        # سناریوی ۲: فقط ایمیل تایید شده است -> ارسال ایمیل
+        elif has_verified_email and not has_verified_phone:
+            _clear_password_reset_session(request)
+            request.session[PASSWORD_RESET_USER_ID_KEY] = str(user.pk)
+            ok, error_msg = _send_password_reset_otp(request, user, "email")
+            if not ok:
+                messages.error(request, error_msg or "خطا در ارسال ایمیل بازیابی رمز عبور.")
+                return render(request, self.template_name, {"form": form})
+            return redirect("password_reset_verify")
+
+        # سناریوی ۴: هیچ‌کدام تایید نشده‌اند -> نمایش راهنما و توقف
+        else:
+            unverified_account_error = (
+                "هیچ‌کدام از اطلاعات تماس (شماره موبایل یا ایمیل) برای این حساب کاربری تأیید نشده است. "
+                "لطفاً جهت بازیابی رمز عبور با پشتیبانی حراجی تماس حاصل فرمایید."
+            )
+            return render(
+                request,
+                self.template_name,
+                {
+                    "form": form,
+                    "unverified_account_error": unverified_account_error,
+                },
+            )
+
+
+class PasswordResetChooseChannelView(View):
+    template_name = "registration/password_reset_choose_channel.html"
+
+    def _get_user_or_redirect(self, request):
+        user_id = request.session.get(PASSWORD_RESET_USER_ID_KEY)
+        if not user_id:
+            return None
+        user = CustomUser.objects.filter(pk=user_id).first()
+        if not user:
+            return None
+        has_verified_phone = bool(user.phone_number and getattr(user, "is_sms_verified", False))
+        has_verified_email = bool(user.email and getattr(user, "is_email_verified", False))
+        if not (has_verified_phone and has_verified_email):
+            return None
+        return user
+
+    def get(self, request):
+        user = self._get_user_or_redirect(request)
+        if not user:
+            _clear_password_reset_session(request)
+            return redirect("password_reset_request")
+
+        form = PasswordResetChannelForm()
+        context = {
+            "form": form,
+            "masked_phone": _mask_phone_number(user.phone_number),
+            "masked_email": _mask_email(user.email),
+        }
+        return render(request, self.template_name, context)
+
+    def post(self, request):
+        user = self._get_user_or_redirect(request)
+        if not user:
+            _clear_password_reset_session(request)
+            return redirect("password_reset_request")
+
+        form = PasswordResetChannelForm(request.POST)
+        if not form.is_valid():
+            context = {
+                "form": form,
+                "masked_phone": _mask_phone_number(user.phone_number),
+                "masked_email": _mask_email(user.email),
+            }
+            return render(request, self.template_name, context)
+
+        channel = form.cleaned_data["channel"]
+        ok, error_msg = _send_password_reset_otp(request, user, channel)
+        if not ok:
+            messages.error(request, error_msg or "خطا در ارسال کد تایید.")
+            context = {
+                "form": form,
+                "masked_phone": _mask_phone_number(user.phone_number),
+                "masked_email": _mask_email(user.email),
+            }
+            return render(request, self.template_name, context)
+
+        return redirect("password_reset_verify")
+
+
+class PasswordResetVerifyView(View):
+    template_name = "registration/password_reset_verify.html"
+
+    def _get_user_or_redirect(self, request):
+        user_id = request.session.get(PASSWORD_RESET_USER_ID_KEY)
+        otp_code = request.session.get(PASSWORD_RESET_OTP_CODE_KEY)
+        if not user_id or not otp_code:
+            return None
+        user = CustomUser.objects.filter(pk=user_id).first()
+        return user
+
+    def _build_context(self, request, user, form=None):
+        channel = request.session.get(PASSWORD_RESET_CHANNEL_KEY, "sms")
+        target = request.session.get(PASSWORD_RESET_TARGET_KEY, "")
+        masked_target = _mask_phone_number(target) if channel == "sms" else _mask_email(target)
+        last_sent_at = request.session.get(PASSWORD_RESET_OTP_LAST_SENT_KEY, 0)
+        now = time.time()
+        cooldown_remaining = max(0, int(PASSWORD_RESET_RESEND_COOLDOWN_SECONDS - (now - last_sent_at)))
+
+        return {
+            "form": form or PasswordResetVerifyOTPForm(),
+            "channel": channel,
+            "masked_target": masked_target,
+            "cooldown_seconds": cooldown_remaining,
+            "can_resend": cooldown_remaining == 0,
+        }
+
+    def get(self, request):
+        user = self._get_user_or_redirect(request)
+        if not user:
+            _clear_password_reset_session(request)
+            return redirect("password_reset_request")
+
+        context = self._build_context(request, user)
+        return render(request, self.template_name, context)
+
+    def post(self, request):
+        user = self._get_user_or_redirect(request)
+        if not user:
+            _clear_password_reset_session(request)
+            return redirect("password_reset_request")
+
+        action = request.POST.get("action", "verify")
+
+        # ارسال مجدد کد
+        if action == "resend":
+            last_sent_at = request.session.get(PASSWORD_RESET_OTP_LAST_SENT_KEY, 0)
+            now = time.time()
+            cooldown_remaining = max(0, int(PASSWORD_RESET_RESEND_COOLDOWN_SECONDS - (now - last_sent_at)))
+            if cooldown_remaining > 0:
+                messages.warning(
+                    request,
+                    f"لطفاً تا پایان زمان انتظار ({cooldown_remaining} ثانیه دیگر) شکیبا باشید.",
+                )
+                context = self._build_context(request, user)
+                return render(request, self.template_name, context)
+
+            channel = request.session.get(PASSWORD_RESET_CHANNEL_KEY, "sms")
+            ok, error_msg = _send_password_reset_otp(request, user, channel)
+            if ok:
+                messages.success(request, "کد تایید جدید برای شما ارسال گردید.")
+            else:
+                messages.error(request, error_msg or "خطا در ارسال مجدد کد.")
+
+            context = self._build_context(request, user)
+            return render(request, self.template_name, context)
+
+        # اعتبارسنجی کد وارد شده
+        form = PasswordResetVerifyOTPForm(request.POST)
+        if not form.is_valid():
+            context = self._build_context(request, user, form=form)
+            return render(request, self.template_name, context)
+
+        # بررسی سقف تلاش‌ها
+        attempts = request.session.get(PASSWORD_RESET_OTP_ATTEMPTS_KEY, 0) + 1
+        request.session[PASSWORD_RESET_OTP_ATTEMPTS_KEY] = attempts
+        if attempts > PASSWORD_RESET_MAX_ATTEMPTS:
+            _clear_password_reset_session(request)
+            messages.error(
+                request,
+                "تعداد تلاش‌های ناموفق شما بیش از حد مجاز بود. فرآیند بازیابی رمز عبور را از ابتدا آغاز فرمایید.",
+            )
+            return redirect("password_reset_request")
+
+        # بررسی زمان انقضا
+        expires_at = request.session.get(PASSWORD_RESET_OTP_EXPIRES_KEY, 0)
+        if time.time() > expires_at:
+            form.add_error("code", "کد تایید منقضی شده است. لطفاً کد جدید دریافت کنید.")
+            context = self._build_context(request, user, form=form)
+            return render(request, self.template_name, context)
+
+        # بررسی تطابق کد
+        saved_code = request.session.get(PASSWORD_RESET_OTP_CODE_KEY)
+        entered_code = form.cleaned_data["code"]
+
+        if entered_code != saved_code:
+            remaining_attempts = max(0, PASSWORD_RESET_MAX_ATTEMPTS - attempts)
+            form.add_error(
+                "code",
+                f"کد وارد شده صحیح نمی‌باشد. ({remaining_attempts} تلاش دیگر باقی مانده است)",
+            )
+            context = self._build_context(request, user, form=form)
+            return render(request, self.template_name, context)
+
+        # کد تایید صحیح است -> ایجاد توکن امضاشده موقت
+        token = signing.dumps(
+            {"user_id": str(user.pk), "verified_at": time.time()},
+            salt="password-reset-verified",
+        )
+        request.session[PASSWORD_RESET_TOKEN_KEY] = token
+        request.session.pop(PASSWORD_RESET_OTP_CODE_KEY, None)
+
+        return redirect("password_reset_set_password")
+
+
+class PasswordResetSetPasswordView(View):
+    template_name = "registration/password_reset_set_password.html"
+
+    def _get_verified_user_or_redirect(self, request):
+        user_id = request.session.get(PASSWORD_RESET_USER_ID_KEY)
+        token = request.session.get(PASSWORD_RESET_TOKEN_KEY)
+        if not user_id or not token:
+            return None
+
+        try:
+            data = signing.loads(token, salt="password-reset-verified", max_age=900)
+            if data.get("user_id") != user_id:
+                return None
+        except Exception:
+            return None
+
+        user = CustomUser.objects.filter(pk=user_id).first()
+        return user
+
+    def get(self, request):
+        user = self._get_verified_user_or_redirect(request)
+        if not user:
+            messages.error(
+                request,
+                "جلسه بازیابی رمز عبور نامعتبر یا منقضی شده است. لطفاً مجدداً اقدام فرمایید.",
+            )
+            _clear_password_reset_session(request)
+            return redirect("password_reset_request")
+
+        form = PasswordResetSetNewPasswordForm(user=user)
+        return render(request, self.template_name, {"form": form})
+
+    def post(self, request):
+        user = self._get_verified_user_or_redirect(request)
+        if not user:
+            messages.error(
+                request,
+                "جلسه بازیابی رمز عبور نامعتبر یا منقضی شده است. لطفاً مجدداً اقدام فرمایید.",
+            )
+            _clear_password_reset_session(request)
+            return redirect("password_reset_request")
+
+        form = PasswordResetSetNewPasswordForm(request.POST, user=user)
+        if not form.is_valid():
+            return render(request, self.template_name, {"form": form})
+
+        new_password = form.cleaned_data["new_password"]
+        user.set_password(new_password)
+        user.save()
+
+        _clear_password_reset_session(request)
+        messages.success(
+            request,
+            "رمز عبور شما با موفقیت تغییر یافت. اکنون می‌توانید با رمز عبور جدید وارد شوید.",
+        )
+        return redirect("login")

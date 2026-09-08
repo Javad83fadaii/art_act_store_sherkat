@@ -91,3 +91,37 @@ def send_welcome_sms(*, user):
             'user_id': str(user.pk),
         },
     )
+
+
+def send_password_reset_sms(*, user, code):
+    return notification_service.send_template(
+        event='accounts.password_reset.sms',
+        template_key='password_reset',
+        providers=[NotificationProviderType.SMS],
+        user=user,
+        context={
+            'code': str(code),
+            'CODE': str(code),
+        },
+        metadata={
+            'code': str(code),
+            'user_id': str(user.pk),
+        },
+    )
+
+
+def send_password_reset_email(*, user, email, code):
+    return notification_service.send_template(
+        event='accounts.password_reset.email',
+        template_key='password_reset',
+        providers=[NotificationProviderType.EMAIL],
+        user=user,
+        recipients=[email],
+        context={
+            'code': str(code),
+        },
+        metadata={
+            'code': str(code),
+            'user_id': str(user.pk),
+        },
+    )
