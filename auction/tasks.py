@@ -333,13 +333,12 @@ def send_auction_ended_email(auction_id, expected_end=None):
                     subject=subject,
                     message=message,
                     recipients=emails,
-                    fail_silently=False,
+                    fail_silently=True,
                     metadata={'auction_id': str(auction.pk)},
                 )
             except Exception:
                 _release_dispatch(auction.id, 'end_notice_dispatched_at', end_notice_claimed_at)
                 logger.exception("Ended email failed for auction %s", auction.pk)
-                return
 
     products = ensure_products_have_finished_winners(
         auction.products.select_related('winner').all()
