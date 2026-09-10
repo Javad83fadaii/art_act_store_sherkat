@@ -4,7 +4,9 @@ class Utils {
     }
 
     static formatCurrency(amount) {
-        return `${new Intl.NumberFormat('fa-IR').format(amount)} تومان`;
+        const n = Number(amount);
+        if (!Number.isFinite(n)) return '';
+        return `${new Intl.NumberFormat('fa-IR').format(n).replace(/٬/g, ',')} تومان`;
     }
 
     static showModal(title, content) {

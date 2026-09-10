@@ -1,0 +1,1 @@
+"""Notification application package."""

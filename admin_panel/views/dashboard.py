@@ -227,13 +227,15 @@ def new_users_view(request):
 
 
 @staff_required
-@cache_response(timeout=120, key_prefix='admin_dashboard_activities')
+@cache_response(timeout=60, key_prefix='admin_dashboard_activities')
 def activities_view(request):
     logs = AdminActivityLog.objects.select_related('admin_user').order_by('-timestamp')[:50]
     activities = [
         {
             'admin': log.admin_user.get_full_name() or str(log.admin_user),
-            'action': log.action,
+            'action': log.description or log.action,
+            'action_code': log.action,
+            'target': log.target_repr or log.target_type or '',
             'timestamp': log.timestamp.isoformat(),
         }
         for log in logs

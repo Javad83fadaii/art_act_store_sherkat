@@ -465,7 +465,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return gradient;
     };
 
-    const formatNumber = (num) => new Intl.NumberFormat('fa-IR').format(num);
+    const formatNumber = (num) => new Intl.NumberFormat('fa-IR').format(num).replace(/٬/g, ',');
     const formatPrice = (num) => formatNumber(num) + ' دلار';
     const persianDateFormatter = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
         year: 'numeric',
