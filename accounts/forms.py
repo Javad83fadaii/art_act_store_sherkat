@@ -9,6 +9,7 @@ from core.emailing import send_plain_email
 
 # ایمپورت CreditIncreaseRequest حذف شد چون دیگر در این فایل استفاده نمی‌شود
 from .models import CustomUser, VerificationRequest
+from .validators import validate_not_test_name
 
 
 PERSIAN_REQUIRED_MESSAGE = "لطفا این فیلد را کامل کنید"
@@ -174,6 +175,12 @@ class CustomUserCreationForm(UserCreationForm):
         model = CustomUser
         fields = ("username", "email", "full_name", "phone_number")
 
+    def clean_full_name(self):
+        full_name = (self.cleaned_data.get("full_name") or "").strip()
+        if full_name:
+            validate_not_test_name(full_name)
+        return full_name
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         _apply_persian_error_messages(self)
@@ -322,6 +329,12 @@ class PublicSignupForm(forms.ModelForm):
 
         self.fields["password2"].widget.attrs["class"] = password_style
         self.fields["password2"].widget.attrs["placeholder"] = "••••••••"
+
+    def clean_full_name(self):
+        full_name = (self.cleaned_data.get("full_name") or "").strip()
+        if full_name:
+            validate_not_test_name(full_name)
+        return full_name
 
     def clean_phone_number(self):
         raw = (self.cleaned_data.get("phone_number") or "").strip()

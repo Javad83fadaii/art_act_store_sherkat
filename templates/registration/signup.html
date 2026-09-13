@@ -443,6 +443,18 @@
                     toastErrors.push(REQUIRED_AUCTION_MESSAGE);
                 }
 
+                if (fullNameInput) {
+                    const nameVal = (fullNameInput.value || "").trim();
+                    if (isTestName(nameVal)) {
+                        fullNameInput.setCustomValidity(INVALID_NAME_MESSAGE);
+                        setInputErrorState(fullNameInput, true);
+                        setMessage(fullNameLiveMessage, INVALID_NAME_MESSAGE, "error");
+                        updateSubmitButtonState(true);
+                        toastErrors.push(INVALID_NAME_MESSAGE);
+                        isFormValid = false;
+                    }
+                }
+
                 if (phoneInput) {
                     const phoneDigits = normalizeDigits(phoneInput.value || "");
                     if (!phoneDigits) {
@@ -595,16 +607,94 @@
             }
         }
 
+        const INVALID_NAME_MESSAGE = "نام کاربری نامعتبر است؛ لطفاً آن را عوض کنید";
+
+        function normalizeTestName(text) {
+            if (!text) return "";
+            let s = String(text).trim().toLowerCase();
+            const digitMap = {
+                '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4',
+                '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9',
+                '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4',
+                '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9'
+            };
+            s = s.replace(/[۰-۹٠-٩]/g, function (ch) { return digitMap[ch] || ch; });
+            s = s.replace(/[\u064B-\u065F\u0670]/g, '');
+            s = s.replace(/[\u0640\u200c\u200b\ufeff]/g, '');
+            const charMap = {
+                'ي': 'ی', 'ك': 'ک', 'ة': 'ه', 'ئ': 'ی', 'ؤ': 'و',
+                'آ': 'ا', 'أ': 'ا', 'إ': 'ا', 'ٱ': 'ا'
+            };
+            s = s.replace(/[يكةئؤآأإٱ]/g, function (ch) { return charMap[ch] || ch; });
+            return s;
+        }
+
+        function isTestName(text) {
+            if (!text) return false;
+            const norm = normalizeTestName(text);
+            if (!norm) return false;
+
+            const englishTestRegex = /t+[\W_\d]*e+[\W_\d]*s+[\W_\d]*t+/i;
+            const persianTestRegex = /ت+[\W_\d\u0640]*س+[\W_\d\u0640]*ت+/;
+            const persianAzmayeshRegex = /ا+[\W_\d]*ز+[\W_\d]*م+[\W_\d]*ا+[\W_\d]*ی+[\W_\d]*ش+/;
+
+            if (englishTestRegex.test(norm) || persianTestRegex.test(norm) || persianAzmayeshRegex.test(norm)) {
+                return true;
+            }
+
+            const cleanChars = norm.replace(/[\W_\d\u0640]+/g, '');
+            if (cleanChars) {
+                const compressed = cleanChars.replace(/(.)\1+/g, '$1');
+                if (cleanChars.includes('test') || compressed.includes('test')) return true;
+                if (cleanChars.includes('تست') || compressed.includes('تست')) return true;
+                if (cleanChars.includes('ازمایش') || compressed.includes('ازمایش')) return true;
+            }
+
+            return false;
+        }
+
+        function setInputErrorState(input, isError) {
+            if (!input) return;
+            if (isError) {
+                input.classList.add("!border-red-500", "!focus:border-red-500", "!focus:ring-red-500/20");
+                input.classList.remove("border-gray-300", "focus:border-primary");
+            } else {
+                input.classList.remove("!border-red-500", "!focus:border-red-500", "!focus:ring-red-500/20");
+                input.classList.add("border-gray-300", "focus:border-primary");
+            }
+        }
+
+        function updateSubmitButtonState(hasNameError) {
+            const submitBtn = signupForm ? signupForm.querySelector('button[type="submit"]') : null;
+            if (!submitBtn) return;
+            if (hasNameError) {
+                submitBtn.disabled = true;
+                submitBtn.classList.add("opacity-50", "cursor-not-allowed", "pointer-events-none");
+            } else {
+                submitBtn.disabled = false;
+                submitBtn.classList.remove("opacity-50", "cursor-not-allowed", "pointer-events-none");
+            }
+        }
+
         // نمایش پیام فقط هنگام تایپ کردن و رفع ارور هنگام خالی کردن فیلد
         function syncFullNameRules() {
             if (!fullNameInput) return;
             const nameVal = (fullNameInput.value || "").trim();
             if (!nameVal) {
                 fullNameInput.setCustomValidity("");
+                setInputErrorState(fullNameInput, false);
                 setMessage(fullNameLiveMessage, "", null); 
+                updateSubmitButtonState(false);
+            } else if (isTestName(nameVal)) {
+                fullNameInput.setCustomValidity(INVALID_NAME_MESSAGE);
+                setInputErrorState(fullNameInput, true);
+                setMessage(fullNameLiveMessage, INVALID_NAME_MESSAGE, "error");
+                updateSubmitButtonState(true);
             } else {
                 fullNameInput.setCustomValidity("");
+                setInputErrorState(fullNameInput, false);
                 setMessage(fullNameLiveMessage, "نام معتبر است.", "ok");
+                updateSubmitButtonState(false);
             }
         }
 
@@ -688,6 +778,7 @@
         phoneInput?.addEventListener("input", syncPhoneAndEmail);
         emailInput?.addEventListener("input", syncPhoneAndEmail);
         fullNameInput?.addEventListener("input", syncFullNameRules);
+        fullNameInput?.addEventListener("blur", syncFullNameRules);
         
     })();
 </script>

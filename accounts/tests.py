@@ -1134,3 +1134,163 @@ class PasswordResetFlowTests(TestCase):
         response = self.client.get(reverse("login"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, reverse("password_reset_request"))
+
+
+class TestNameValidationTests(TestCase):
+    """
+    تست‌های اعتبارسنجی نام کاربر برای جلوگیری از وارد کردن نام‌های تستی
+    در هر دو زبان فارسی و انگلیسی همراه با حالات دور زدن کاراکتری.
+    """
+
+    def test_is_test_name_detects_all_variations(self):
+        from accounts.validators import is_test_name
+
+        forbidden_names = [
+            # انگلیسی - پایه‌ای و بزرگ/کوچک
+            "test",
+            "Test",
+            "TEST",
+            "tEsT",
+            "  test  ",
+            # انگلیسی - تکرار کاراکتر و علائم نگارشی
+            "teeeest",
+            "t-e-s-t",
+            "t.e.s.t",
+            "t_e_s_t",
+            "t e s t",
+            # انگلیسی - مشتقات و ترکیبات
+            "testing",
+            "tester",
+            "user_test",
+            "test1234",
+            "test_user",
+            # فارسی - پایه‌ای
+            "تست",
+            "  تست  ",
+            # فارسی - کشیدگی حروف (تطویل) و تکرار
+            "تـــست",
+            "تتتتست",
+            "تسسست",
+            # فارسی - علائم نگارشی و جداکننده
+            "ت-س-ت",
+            "ت.س.ت",
+            "ت س ت",
+            "ت_س_ت",
+            # فارسی - ارقام و ترکیبات
+            "تست ۱",
+            "تست123",
+            "کاربر تست",
+            "کاربر_تست",
+            "تستینگ",
+            "تستر",
+            # فارسی - آزمایش و آزمایشی
+            "آزمایشی",
+            "ازمایشی",
+            "آزمایش",
+            "ازمایش",
+            "آ-ز-م-ا-ی-ش",
+            "آزماااایشی",
+            "آزمایشی ۱",
+            "کاربر آزمایشی",
+        ]
+
+        for name in forbidden_names:
+            with self.subTest(name=name):
+                self.assertTrue(
+                    is_test_name(name),
+                    f"عبارت '{name}' باید به عنوان نام تستی شناسایی شود اما نشد!",
+                )
+
+    def test_legitimate_real_names_are_allowed(self):
+        from accounts.validators import is_test_name
+
+        valid_names = [
+            "علی رضایی",
+            "محمد احمدی",
+            "سارا تهرانی",
+            "امیر ستوده",
+            "رستم فرخزاد",
+            "جان اسمیت",
+            "John Doe",
+            "Sarah Miller",
+            "Justin Case",
+        ]
+
+        for name in valid_names:
+            with self.subTest(name=name):
+                self.assertFalse(
+                    is_test_name(name),
+                    f"نام واقعی '{name}' به اشتباه تستی تشخیص داده شد!",
+                )
+
+    def test_validate_not_test_name_raises_expected_validation_error(self):
+        from django.core.exceptions import ValidationError
+        from accounts.validators import INVALID_TEST_NAME_MESSAGE, validate_not_test_name
+
+        expected_msg = (
+            "نام وارد شده نامعتبر است. لطفاً از وارد کردن نام‌های تستی خودداری کرده و نام واقعی خود را وارد کنید."
+        )
+        self.assertEqual(INVALID_TEST_NAME_MESSAGE, expected_msg)
+
+        with self.assertRaises(ValidationError) as ctx:
+            validate_not_test_name("تست")
+        self.assertIn(expected_msg, ctx.exception.messages)
+
+        with self.assertRaises(ValidationError) as ctx:
+            validate_not_test_name("teeeest")
+        self.assertIn(expected_msg, ctx.exception.messages)
+
+        # نام واقعی نباید استثنا پرتاب کند
+        try:
+            validate_not_test_name("محمد محمدی")
+        except ValidationError:
+            self.fail("validate_not_test_name نباید برای نام معتبر خطا پرتاب کند.")
+
+    def test_public_signup_form_rejects_test_name(self):
+        form = PublicSignupForm(
+            data={
+                "full_name": "user_test",
+                "phone_number": "09129998877",
+                "address_street": "تهران",
+                "password1": "Signup@123",
+                "password2": "Signup@123",
+                "preferred_contact_methods": ["sms"],
+            }
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn("full_name", form.errors)
+        self.assertIn(
+            "نام وارد شده نامعتبر است. لطفاً از وارد کردن نام‌های تستی خودداری کرده و نام واقعی خود را وارد کنید.",
+            form.errors["full_name"],
+        )
+
+    def test_signup_view_post_with_test_name_returns_error(self):
+        response = self.client.post(
+            reverse("signup"),
+            {
+                "full_name": "تـــست",
+                "phone_number": "09128887766",
+                "address_street": "خیابان اصلی",
+                "preferred_contact_methods": ["sms"],
+                "password1": "Signup@123",
+                "password2": "Signup@123",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("form", response.context)
+        form = response.context["form"]
+        self.assertIn("full_name", form.errors)
+        self.assertIn(
+            "نام وارد شده نامعتبر است. لطفاً از وارد کردن نام‌های تستی خودداری کرده و نام واقعی خود را وارد کنید.",
+            form.errors["full_name"],
+        )
+
+    def test_signup_template_contains_frontend_validation(self):
+        response = self.client.get(reverse("signup"))
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode("utf-8")
+        self.assertIn("نام کاربری نامعتبر است؛ لطفاً آن را عوض کنید", content)
+        self.assertIn("isTestName", content)
+        self.assertIn("normalizeTestName", content)
+        self.assertIn("setInputErrorState", content)
+
