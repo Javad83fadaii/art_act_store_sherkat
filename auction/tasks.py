@@ -389,6 +389,8 @@ def send_auction_ended_email(auction_id, expected_end=None):
                     'name': display_name,
                     'product_title': first_title,
                     'lot_number': lot_number,
+                    'number_of_products': str(len(product_list)),
+                    'final_bid_amount': formatted_total_amount,
                     'line_items_text': line_items_text,
                     'sms_line_items_text': sms_line_items_text,
                     'formatted_total_amount': formatted_total_amount,

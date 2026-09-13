@@ -290,12 +290,11 @@ def get_default_notification_templates() -> tuple[NotificationTemplate, ...]:
         ),
     )
     auction_invoice_body = (
-        'با درود و احترام\n\n'
-        'با خرسندی، به اطلاع می‌رساند پیشنهاد شما برای اثر {product_title} در مزایده {auction_name} به‌عنوان بالاترین پیشنهاد ثبت شده و این اثر به شما تعلق گرفته است.\n\n'
+        'درود و احترام\n\n'
+        'با خرسندی، به اطلاع می‌رساند پیشنهاد شما برای {number_of_products} اثر در مزایده {auction_name} به‌عنوان بالاترین پیشنهاد ثبت شده و این اثر/آثار به شما تعلق گرفته است.\n\n'
         'مشخصات خرید\n'
-        'شماره اثر: {lot_number}\n'
-        'مبلغ نهایی پیشنهاد: {formatted_total_amount}\n\n'
-        'صورتحساب اولیه خرید شما صادر شده است. لطفاً برای مشاهده جزئیات صورتحساب و تکمیل فرآیند پرداخت، به حساب کاربری خود مراجعه کنید.\n\n'
+        'جمع مبلغ نهایی پیشنهاد: {final_bid_amount}\n\n'
+        'صورتحساب خرید شما صادر شده است. لطفاً برای مشاهده جزئیات صورتحساب و تکمیل فرآیند پرداخت، به حساب کاربری خود مراجعه کنید.\n\n'
         'از اعتماد و همراهی شما با حراج هنری ماه سپاسگزاریم.\n\n'
         'با احترام\n'
         'حراج هنری ماه\n'
@@ -304,8 +303,15 @@ def get_default_notification_templates() -> tuple[NotificationTemplate, ...]:
     auction_invoice.register_channel(
         NotificationChannelTemplate(
             provider=NotificationProviderType.EMAIL,
-            subject_template='نتیجه مزایده و صورتحساب اولیه',
+            subject_template='نتیجه مزایده و صورتحساب خرید',
             body_template=auction_invoice_body,
+            context_map={
+                'NUMBER_OF_PRODUCTS': 'number_of_products',
+                'AUCTION_NAME': 'auction_name',
+                'FINAL_BID_AMOUNT': ('final_bid_amount', 'formatted_total_amount'),
+                'formatted_total_amount': 'final_bid_amount',
+                'final_bid_amount': 'formatted_total_amount',
+            },
         )
     )
     auction_invoice.register_channel(
@@ -315,11 +321,15 @@ def get_default_notification_templates() -> tuple[NotificationTemplate, ...]:
                 'sms_pattern': 'auction_Invoice',
             },
             context_map={
-                'product_title': 'PRODUCT_TITLE',
+                'number_of_products': 'NUMBER_OF_PRODUCTS',
+                'NUMBER_OF_PRODUCTS': 'NUMBER_OF_PRODUCTS',
                 'auction_name': ('AUCTION_NAME', 'AUCTIONNAME'),
+                'AUCTION_NAME': 'AUCTIONNAME',
+                'final_bid_amount': ('FINAL_BID_AMOUNT', 'FORMAT_AMOUNTTOTAL_AMOUNT'),
+                'formatted_total_amount': ('FINAL_BID_AMOUNT', 'FORMAT_AMOUNTTOTAL_AMOUNT'),
+                'product_title': 'PRODUCT_TITLE',
                 'name': 'NAME',
                 'lot_number': 'LOT_NUMBER',
-                'formatted_total_amount': ('FINAL_BID_AMOUNT', 'FORMAT_AMOUNTTOTAL_AMOUNT'),
                 'line_items_text': 'LINE_ITEMS_TEXT',
                 'sms_line_items_text': 'LINE_ITEMS_TEXT',
             },
@@ -329,6 +339,13 @@ def get_default_notification_templates() -> tuple[NotificationTemplate, ...]:
         NotificationChannelTemplate(
             provider=NotificationProviderType.TELEGRAM,
             body_template=auction_invoice_body,
+            context_map={
+                'NUMBER_OF_PRODUCTS': 'number_of_products',
+                'AUCTION_NAME': 'auction_name',
+                'FINAL_BID_AMOUNT': ('final_bid_amount', 'formatted_total_amount'),
+                'formatted_total_amount': 'final_bid_amount',
+                'final_bid_amount': 'formatted_total_amount',
+            },
         )
     )
 

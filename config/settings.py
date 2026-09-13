@@ -381,9 +381,8 @@ SMS_PATTERNS = {
     'auction_Invoice': {
         'code': _get_first_setting('SMS_PATTERN_AUCTION_INVOICE_CODE') or '600256',
         'variables': (
-            'PRODUCT_TITLE',
+            'NUMBER_OF_PRODUCTS',
             'AUCTION_NAME',
-            'LOT_NUMBER',
             'FINAL_BID_AMOUNT',
         ),
     },

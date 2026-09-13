@@ -525,15 +525,15 @@ class AuctionBidCreditFlowTests(TestCase):
         email_deliveries = list(NotificationDelivery.objects.filter(provider='email'))
         subjects = [item.subject for item in email_deliveries]
         self.assertIn(f"مزایده «{self.auction.name}» به پایان رسید", subjects)
-        self.assertIn(f"نتیجه مزایده و صورتحساب اولیه «{self.auction.name}»", subjects)
+        self.assertIn("نتیجه مزایده و صورتحساب خرید", subjects)
         winner_messages = [item for item in email_deliveries if item.recipients == ['winner@example.com']]
         self.assertTrue(winner_messages)
         winner_mail = next(
             item for item in winner_messages
-            if item.subject == f"نتیجه مزایده و صورتحساب اولیه «{self.auction.name}»"
+            if item.subject == "نتیجه مزایده و صورتحساب خرید"
         )
-        self.assertIn('جمع کل صورتحساب اولیه', winner_mail.body)
-        self.assertIn('تابلو تست', winner_mail.body)
+        self.assertIn('صورتحساب خرید شما صادر شده است', winner_mail.body)
+        self.assertIn('جمع مبلغ نهایی پیشنهاد', winner_mail.body)
 
     def test_send_auction_ended_email_sends_sms_billing_for_sms_only_winner(self):
         self.user_one.email = ''
@@ -562,8 +562,9 @@ class AuctionBidCreditFlowTests(TestCase):
         self.assertEqual(sms_payload.metadata['sms_pattern'], 'auction_Invoice')
         self.assertEqual(sms_payload.context['AUCTIONNAME'], self.auction.name)
         self.assertEqual(sms_payload.context['NAME'], self.user_one.full_name)
-        self.assertEqual(sms_payload.context['FORMAT_AMOUNTTOTAL_AMOUNT'], '220')
-        self.assertEqual(sms_payload.context['LINE_ITEMS_TEXT'], 'تابلو تست')
+        self.assertEqual(sms_payload.context['FORMAT_AMOUNTTOTAL_AMOUNT'], '200')
+        self.assertEqual(sms_payload.context['NUMBER_OF_PRODUCTS'], '1')
+        self.assertEqual(sms_payload.context['FINAL_BID_AMOUNT'], '200')
 
     @override_settings(
         EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
@@ -800,7 +801,7 @@ class AuctionBidCreditFlowTests(TestCase):
         email_deliveries = list(NotificationDelivery.objects.filter(provider='email'))
         subjects = [item.subject for item in email_deliveries]
         self.assertIn(f"مزایده «{self.auction.name}» به پایان رسید", subjects)
-        self.assertIn(f"نتیجه مزایده و صورتحساب اولیه «{self.auction.name}»", subjects)
+        self.assertIn("نتیجه مزایده و صورتحساب خرید", subjects)
 
         cache.clear()
         second_response = self.client.get(reverse('auction:action'))
@@ -811,7 +812,7 @@ class AuctionBidCreditFlowTests(TestCase):
             1,
         )
         self.assertEqual(
-            len([item for item in NotificationDelivery.objects.filter(provider='email') if item.subject == f"نتیجه مزایده و صورتحساب اولیه «{self.auction.name}»"]),
+            len([item for item in NotificationDelivery.objects.filter(provider='email') if item.subject == "نتیجه مزایده و صورتحساب خرید"]),
             1,
         )
         self.auction.refresh_from_db()
