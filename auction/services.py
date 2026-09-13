@@ -19,13 +19,10 @@ def ensure_auction_product_winner(product: AuctionProduct) -> AuctionProduct:
 
     expected_winner_id = latest_bid.user_id if latest_bid is not None else None
     
-    # قیمت نهایی شامل ۱۰ درصد مالیات و ارزش افزوده برای برنده
+    # مبلغ خالص فروش بر اساس آخرین پیشنهاد (بدون افزودن مالیات به فیلد current_price)
     if latest_bid is not None:
-        raw_price = latest_bid.bid_amount
-        # اضافه کردن ۱۰ درصد به قیمت
-        from decimal import Decimal, ROUND_CEILING
-        expected_price = (raw_price * Decimal('1.1')).to_integral_value(rounding=ROUND_CEILING)
-        price_desc =  "مبلغ آخرین پیشنهاد به علاوه ۱۰ درصد کمیسون و هزینه "
+        expected_price = latest_bid.bid_amount
+        price_desc = None
     else:
         expected_price = product.current_price or product.base_price
         price_desc = None

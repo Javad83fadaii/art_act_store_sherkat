@@ -76,6 +76,8 @@ def build_bid_live_payload(
     product = ensure_auction_product_winner(product)
     payload = {
         'current_price': _as_int_price(product.current_price or product.base_price),
+        'tax_amount': _as_int_price(product.tax_amount),
+        'total_with_tax': _as_int_price(product.final_price_with_tax),
         'bid_count': product.bids.count(),
         'min_next_bid': product.get_min_next_bid(),
         'has_winner': bool(product.winner_id),

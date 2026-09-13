@@ -197,6 +197,8 @@ class AuctionBidCreditFlowTests(TestCase):
         payload = response.json()
         self.assertTrue(payload['success'])
         self.assertEqual(payload['current_price'], 200)
+        self.assertEqual(payload['tax_amount'], 20)
+        self.assertEqual(payload['total_with_tax'], 220)
         self.assertEqual(payload['bid_count'], 1)
         self.assertEqual(payload['min_next_bid'], 220)
         self.assertEqual(payload['my_bids_count'], 1)
@@ -285,9 +287,25 @@ class AuctionBidCreditFlowTests(TestCase):
         payload = response.json()
         self.assertTrue(payload['success'])
         self.assertEqual(payload['current_price'], 200)
+        self.assertEqual(payload['tax_amount'], 20)
+        self.assertEqual(payload['total_with_tax'], 220)
         self.assertEqual(payload['bid_count'], 1)
         self.assertEqual(payload['my_bids_count'], 1)
         self.assertIn('تاریخچه بیدهای شما', payload['my_bids_html'])
+
+    def test_auction_product_pure_price_tax_amount_and_final_price_with_tax(self):
+        # بررسی مقادیر بدون بید (بر پایه base_price = 100)
+        self.assertEqual(self.product.pure_price, Decimal('100'))
+        self.assertEqual(self.product.tax_amount, Decimal('10'))
+        self.assertEqual(self.product.final_price_with_tax, Decimal('110'))
+
+        # بررسی با ثبت بید 255 (سقف گرد کردن محاسبه)
+        self.product.place_bid(self.user_one, '255')
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.current_price, Decimal('255'))
+        self.assertEqual(self.product.pure_price, Decimal('255'))
+        self.assertEqual(self.product.tax_amount, Decimal('26'))
+        self.assertEqual(self.product.final_price_with_tax, Decimal('281'))
 
     def test_finished_live_state_endpoint_is_public_for_compact_product_cards(self):
         self.product.place_bid(self.user_one, '200')
@@ -304,7 +322,9 @@ class AuctionBidCreditFlowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertTrue(payload['success'])
-        self.assertEqual(payload['current_price'], 220)
+        self.assertEqual(payload['current_price'], 200)
+        self.assertEqual(payload['tax_amount'], 20)
+        self.assertEqual(payload['total_with_tax'], 220)
         self.assertEqual(payload['bid_count'], 1)
         self.assertTrue(payload['has_winner'])
 

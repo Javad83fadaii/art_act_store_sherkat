@@ -232,6 +232,26 @@ class AuctionProduct(models.Model):
     def display_title(self) -> str:
         return self.title or ''
 
+    @property
+    def pure_price(self) -> Decimal:
+        price = self.current_price if self.current_price is not None else self.base_price
+        try:
+            return Decimal(str(price or 0))
+        except (InvalidOperation, TypeError, ValueError):
+            return Decimal('0')
+
+    @property
+    def tax_amount(self) -> Decimal:
+        pure = self.pure_price
+        tax = pure * Decimal('0.10')
+        return tax.to_integral_value(rounding=ROUND_CEILING)
+
+    @property
+    def final_price_with_tax(self) -> Decimal:
+        pure = self.pure_price
+        total = pure * Decimal('1.10')
+        return total.to_integral_value(rounding=ROUND_CEILING)
+
     @staticmethod
     def _image_extensions():
         return ('.webp', '.png', '.jpg', '.jpeg')

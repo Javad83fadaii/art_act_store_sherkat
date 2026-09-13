@@ -308,6 +308,8 @@
                         <!-- بخش 2: قیمت‌ها و محاسبه -->
                         <div class="p-6 sm:p-8 space-y-8" id="bid-calc"
                             data-current-price="{{ auction.current_price|default:auction.base_price }}"
+                            data-tax-amount="{{ auction.tax_amount }}"
+                            data-total-with-tax="{{ auction.final_price_with_tax }}"
                             data-min-next="{{ auction.get_min_next_bid }}" data-bid-value="{{ auction.bid_value }}">
                             {% if auction.auction.status == 'finished' %}
                                 {% if auction.winner_id %}
@@ -324,20 +326,35 @@
                                                     این مزایده به پایان رسیده و این اثر با بالاترین پیشنهاد نهایی شده است.
                                                 </p>
                                             </div>
-                                            <div class="rounded-xl border border-white/70 bg-white/80 backdrop-blur-sm p-4">
-                                                <span class="text-xs font-bold text-neutral-500">قیمت نهایی فروش</span>
-                                                <div class="mt-2 flex items-baseline gap-1">
-                                                    <span class="text-3xl font-extrabold text-neutral-900">
-                                                        {{ auction.current_price|default:auction.base_price|fa_price }}
-                                                    </span>
-                                                    <span class="text-sm font-bold text-neutral-500">تومان</span>
+                                            <div class="rounded-xl border border-white/70 bg-white/80 backdrop-blur-sm p-4 space-y-3.5">
+                                                <div>
+                                                    <span class="text-xs font-bold text-neutral-500">مبلغ قابل پرداخت (قیمت نهایی کل با احتساب ۱۰٪ مالیات)</span>
+                                                    <div class="mt-2 flex items-baseline gap-1">
+                                                        <span class="text-3xl font-extrabold text-emerald-700">
+                                                            {{ auction.final_price_with_tax|fa_price }}
+                                                        </span>
+                                                        <span class="text-sm font-bold text-neutral-500">تومان</span>
+                                                    </div>
                                                 </div>
+
+                                                <!-- تفکیک شفاف مبلغ خالص برنده و مالیات -->
+                                                <div class="rounded-xl bg-emerald-50/80 border border-emerald-200/60 p-3 space-y-2 text-xs">
+                                                    <div class="flex items-center justify-between text-neutral-600 font-medium">
+                                                        <span>مبلغ خالص برنده (پیشنهاد نهایی):</span>
+                                                        <span class="font-bold text-neutral-900">{{ auction.current_price|default:auction.base_price|fa_price }} تومان</span>
+                                                    </div>
+                                                    <div class="flex items-center justify-between text-neutral-600 font-medium">
+                                                        <span>۱۰٪ مالیات بر ارزش افزوده و کمیسیون:</span>
+                                                        <span class="font-bold text-neutral-900">{{ auction.tax_amount|fa_price }} تومان</span>
+                                                    </div>
+                                                </div>
+
                                                 {% if auction.price_description %}
                                                     <div class="mt-1 text-[10px] font-medium text-neutral-400">
                                                         {{ auction.price_description|fa_digits }}
                                                     </div>
                                                 {% endif %}
-                                                <div class="mt-4 border-t border-emerald-100 pt-4">
+                                                <div class="border-t border-emerald-100 pt-3">
                                                     <span class="text-xs font-bold text-neutral-500">وضعیت دسترسی</span>
                                                     <div class="mt-2 text-sm font-bold text-emerald-700 leading-7">
                                                         {% if has_winner_profile_access %}
@@ -364,20 +381,28 @@
                                                     این مزایده به پایان رسیده است و دیگر امکان ثبت پیشنهاد جدید برای این اثر وجود ندارد.
                                                 </p>
                                             </div>
-                                            <div class="rounded-xl border border-white/70 bg-white/80 backdrop-blur-sm p-4">
-                                                <span class="text-xs font-bold text-neutral-500">آخرین قیمت ثبت‌شده</span>
-                                                <div class="mt-2 flex items-baseline gap-1">
-                                                    <span class="text-3xl font-extrabold text-neutral-900">
-                                                        {{ auction.current_price|default:auction.base_price|fa_price }}
-                                                    </span>
-                                                    <span class="text-sm font-bold text-neutral-500">تومان</span>
+                                            <div class="rounded-xl border border-white/70 bg-white/80 backdrop-blur-sm p-4 space-y-3.5">
+                                                <div>
+                                                    <span class="text-xs font-bold text-neutral-500">آخرین پیشنهاد ثبت‌شده (مبلغ خالص)</span>
+                                                    <div class="mt-2 flex items-baseline gap-1">
+                                                        <span class="text-3xl font-extrabold text-neutral-900">
+                                                            {{ auction.current_price|default:auction.base_price|fa_price }}
+                                                        </span>
+                                                        <span class="text-sm font-bold text-neutral-500">تومان</span>
+                                                    </div>
+                                                </div>
+                                                <div class="rounded-xl bg-neutral-100/80 border border-neutral-200/60 p-3 space-y-2 text-xs">
+                                                    <div class="flex items-center justify-between text-neutral-600 font-medium">
+                                                        <span>مبلغ با احتساب ۱۰٪ مالیات:</span>
+                                                        <span class="font-bold text-neutral-900">{{ auction.final_price_with_tax|fa_price }} تومان</span>
+                                                    </div>
                                                 </div>
                                                 {% if auction.price_description %}
                                                     <div class="mt-1 text-[10px] font-medium text-neutral-400">
                                                         {{ auction.price_description|fa_digits }}
                                                     </div>
                                                 {% endif %}
-                                                <div class="mt-4 border-t border-neutral-200 pt-4">
+                                                <div class="border-t border-neutral-200 pt-3">
                                                     <span class="text-xs font-bold text-neutral-500">وضعیت دسترسی</span>
                                                     <div class="mt-2 text-sm font-bold text-neutral-700 leading-7">
                                                         این صفحه برای مشاهده عمومی باز است و ثبت بید غیرفعال شده است.
@@ -400,16 +425,19 @@
                                             مزایده</h3>
                                         <p class="text-sm leading-7 text-neutral-600">
                                             این اثر در حال حاضر در حالت پیش‌نمایش قرار دارد. ثبت پیشنهاد با آغاز رسمی
-                                            مزایده امکان‌پذیر خواهد بود.
+                                             مزایده امکان‌پذیر خواهد بود.
                                         </p>
                                     </div>
-                                    <div class="rounded-xl border border-white/70 bg-white/80 backdrop-blur-sm p-4">
-                                        <span class="text-xs font-bold text-neutral-500">قیمت محصول</span>
-                                        <div class="mt-2 flex items-baseline gap-1">
+                                    <div class="rounded-xl border border-white/70 bg-white/80 backdrop-blur-sm p-4 space-y-2">
+                                        <span class="text-xs font-bold text-neutral-500">قیمت پایه (خالص)</span>
+                                        <div class="flex items-baseline gap-1">
                                             <span class="text-3xl font-extrabold text-neutral-900">
                                                 {{ auction.current_price|default:auction.base_price|fa_price }}
                                             </span>
                                             <span class="text-sm font-bold text-neutral-500">تومان</span>
+                                        </div>
+                                        <div class="text-xs text-neutral-500 pt-1">
+                                            مبلغ با احتساب ۱۰٪ مالیات: <span class="font-bold text-neutral-800">{{ auction.final_price_with_tax|fa_price }} تومان</span>
                                         </div>
                                     </div>
                                     <div
@@ -424,8 +452,7 @@
                             <div class="space-y-3 text-center sm:text-right">
                                 <div class="flex justify-between items-center">
                                     <span
-                                        class="text-sm text-neutral-500 font-bold bg-neutral-100 px-2 py-1 rounded">آخرین
-                                        پیشنهاد </span>
+                                        class="text-sm text-neutral-500 font-bold bg-neutral-100 px-2 py-1 rounded">آخرین پیشنهاد (خالص)</span>
                                     <span
                                         class="dir-ltr inline-flex items-center gap-1 rounded-lg bg-neutral-100 px-3 py-1.5 text-sm font-extrabold text-neutral-800 border border-neutral-200">
                                         قیمت پایه: {{ auction.base_price|fa_price }}
@@ -437,6 +464,17 @@
                                         {{ auction.current_price|default:auction.base_price|fa_price }}
                                     </span>
                                     <span class="text-lg font-bold text-neutral-500 mt-1.5">تومان</span>
+                                </div>
+                                <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+                                    <div class="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 border border-amber-200/80 px-3 py-1.5 text-xs text-amber-900">
+                                        <span class="material-symbols-outlined text-[15px] text-amber-600">receipt_long</span>
+                                        <span class="font-medium">مبلغ با احتساب ۱۰٪ مالیات:</span>
+                                        <span class="font-extrabold" id="current-total-with-tax-text">{{ auction.final_price_with_tax|fa_price }}</span>
+                                        <span class="text-[10px] font-bold">تومان</span>
+                                    </div>
+                                    <div class="text-[11px] text-neutral-400">
+                                        ۱۰٪ مالیات: <span id="current-tax-text">{{ auction.tax_amount|fa_price }}</span> تومان
+                                    </div>
                                 </div>
                             </div>
 
@@ -470,11 +508,20 @@
                             </div>
 
                             <!-- نمایش قیمت نهایی و دکمه -->
-                            <div class="space-y-4 pt-2">
-                                <div class="flex items-baseline justify-between px-1">
-                                    <span class="text-sm text-neutral-500 font-medium">مبلغ نهایی پیشنهاد شما:</span>
-                                    <span class="text-xl sm:text-2xl font-black text-primary"
-                                        id="final-bid-text">تومان</span>
+                            <div class="space-y-3 pt-2">
+                                <div class="rounded-xl bg-neutral-50 border border-neutral-200/70 p-4 space-y-2.5">
+                                    <div class="flex items-center justify-between text-xs text-neutral-600">
+                                        <span class="font-bold">مبلغ پیشنهاد شما (خالص):</span>
+                                        <span class="text-base font-extrabold text-neutral-900" id="final-bid-text">-- تومان</span>
+                                    </div>
+                                    <div class="flex items-center justify-between text-xs text-neutral-500 border-t border-neutral-200/60 pt-2">
+                                        <span>۱۰٪ مالیات و ارزش افزوده:</span>
+                                        <span class="font-bold text-neutral-700" id="final-tax-text">-- تومان</span>
+                                    </div>
+                                    <div class="flex items-baseline justify-between border-t border-neutral-200/60 pt-2 text-primary">
+                                        <span class="text-sm font-black">مبلغ کل قابل پرداخت:</span>
+                                        <span class="text-xl sm:text-2xl font-black" id="final-bid-with-tax-text">-- تومان</span>
+                                    </div>
                                 </div>
 
                                 {% if user.is_authenticated %}
@@ -720,13 +767,28 @@
                     <span id="confirm-modal-steps" class="font-bold text-neutral-800 dark:text-neutral-200">۱ گام</span>
                 </div>
 
-                <div class="flex items-center justify-between pt-1">
-                    <span class="text-xs font-bold text-neutral-600 dark:text-neutral-300 flex items-center gap-1.5">
-                        <span class="material-symbols-outlined text-[16px] text-primary">payments</span>
-                        مبلغ نهایی پیشنهاد:
+                <div class="flex items-center justify-between text-xs text-neutral-600 dark:text-neutral-300 pb-2 border-b border-neutral-200/60 dark:border-zinc-700/60">
+                    <span class="flex items-center gap-1.5 font-bold">
+                        <span class="material-symbols-outlined text-[16px] text-primary">gavel</span>
+                        مبلغ پیشنهاد شما (خالص):
                     </span>
-                    <span id="confirm-modal-amount" class="text-lg sm:text-xl font-black text-primary dir-rtl">--
-                        تومان</span>
+                    <span id="confirm-modal-amount" class="text-sm sm:text-base font-extrabold text-neutral-800 dark:text-neutral-200 dir-rtl">-- تومان</span>
+                </div>
+
+                <div class="flex items-center justify-between text-xs text-neutral-500 dark:text-neutral-400 pb-2 border-b border-neutral-200/60 dark:border-zinc-700/60">
+                    <span class="flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[16px] text-amber-500">percent</span>
+                        ۱۰٪ مالیات و ارزش افزوده:
+                    </span>
+                    <span id="confirm-modal-tax" class="font-bold text-neutral-700 dark:text-neutral-300 dir-rtl">-- تومان</span>
+                </div>
+
+                <div class="flex items-center justify-between pt-1 text-primary">
+                    <span class="text-xs font-black flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[16px]">payments</span>
+                        مبلغ کل قابل پرداخت:
+                    </span>
+                    <span id="confirm-modal-total" class="text-lg sm:text-xl font-black dir-rtl">-- تومان</span>
                 </div>
             </div>
 
@@ -795,6 +857,8 @@
             const alertAction = document.getElementById('bid-alert-action');
             const bidCountEl = document.getElementById('bid-count-number');
             const currentPriceEl = document.getElementById('current-price-text');
+            const currentTotalWithTaxEl = document.getElementById('current-total-with-tax-text');
+            const currentTaxEl = document.getElementById('current-tax-text');
             const bidCalcBox = document.getElementById('bid-calc');
             const creditRequestStatus = document.getElementById('credit-request-status');
             const liveConfig = document.getElementById('auction-live-config');
@@ -817,6 +881,8 @@
             const confirmBidModal = document.getElementById('confirm-bid-modal');
             const confirmBidModalBox = document.getElementById('confirm-bid-modal-box');
             const confirmModalAmount = document.getElementById('confirm-modal-amount');
+            const confirmModalTax = document.getElementById('confirm-modal-tax');
+            const confirmModalTotal = document.getElementById('confirm-modal-total');
             const confirmModalSteps = document.getElementById('confirm-modal-steps');
             const confirmModalTitle = document.getElementById('confirm-modal-title');
             const btnCloseConfirmBidModal = document.getElementById('btn-close-confirm-bid-modal');
@@ -842,16 +908,30 @@
                     currentPriceEl.textContent = formatFaNumber(data.current_price);
                 }
 
-                if (bidCalcBox && typeof data.current_price !== 'undefined') {
-                    bidCalcBox.dataset.currentPrice = String(data.current_price);
+                const currentPrice = typeof data.current_price !== 'undefined' ? Number(data.current_price) : Number(bidCalcBox?.dataset.currentPrice || 0);
+                const taxAmount = typeof data.tax_amount !== 'undefined' ? Number(data.tax_amount) : Math.ceil(currentPrice * 0.10);
+                const totalWithTax = typeof data.total_with_tax !== 'undefined' ? Number(data.total_with_tax) : (currentPrice + taxAmount);
+
+                if (currentTotalWithTaxEl) {
+                    currentTotalWithTaxEl.textContent = formatFaNumber(totalWithTax);
+                }
+                if (currentTaxEl) {
+                    currentTaxEl.textContent = formatFaNumber(taxAmount);
+                }
+
+                if (bidCalcBox) {
+                    if (typeof data.current_price !== 'undefined') {
+                        bidCalcBox.dataset.currentPrice = String(data.current_price);
+                    }
+                    bidCalcBox.dataset.taxAmount = String(taxAmount);
+                    bidCalcBox.dataset.totalWithTax = String(totalWithTax);
+                    if (typeof data.min_next_bid !== 'undefined') {
+                        bidCalcBox.dataset.minNext = String(data.min_next_bid);
+                    }
                 }
 
                 if (bidCountEl && typeof data.bid_count !== 'undefined') {
                     bidCountEl.textContent = formatFaNumber(data.bid_count);
-                }
-
-                if (bidCalcBox && typeof data.min_next_bid !== 'undefined') {
-                    bidCalcBox.dataset.minNext = String(data.min_next_bid);
                 }
 
                 if (myBidHistoryContainer && typeof data.my_bids_html === 'string') {
@@ -1073,6 +1153,14 @@
 
                 if (confirmModalAmount && finalBidText) {
                     confirmModalAmount.textContent = finalBidText.textContent;
+                }
+                const finalTaxEl = document.getElementById('final-tax-text');
+                const finalTotalEl = document.getElementById('final-bid-with-tax-text');
+                if (confirmModalTax && finalTaxEl) {
+                    confirmModalTax.textContent = finalTaxEl.textContent;
+                }
+                if (confirmModalTotal && finalTotalEl) {
+                    confirmModalTotal.textContent = finalTotalEl.textContent;
                 }
                 if (confirmModalSteps && stepInput) {
                     const stepsVal = parseInt(stepInput.value) || 1;
@@ -1530,6 +1618,8 @@
 
         const bidCalc = document.getElementById('bid-calc');
         const finalBidText = document.getElementById('final-bid-text');
+        const finalTaxText = document.getElementById('final-tax-text');
+        const finalBidWithTaxText = document.getElementById('final-bid-with-tax-text');
         const bidAmountInput = document.getElementById('bid-amount');
 
         const stepInput = document.getElementById('step-input');
@@ -1580,10 +1670,18 @@
             if (!Number.isNaN(minNext) && minNext > 0 && computed < minNext) computed = ceilInt(minNext);
             if (computed < 0) computed = 0;
 
+            const tax = ceilInt(computed * 0.10);
+            const totalWithTax = computed + tax;
+
             finalBidText.textContent = formatToman(computed);
-            // دقت کنید که اتریبیوت فرم که به سرور ارسال می‌شود (value) باید عدد انگلیسی بماند
+            if (finalTaxText) finalTaxText.textContent = formatToman(tax);
+            if (finalBidWithTaxText) finalBidWithTaxText.textContent = formatToman(totalWithTax);
+
+            // دقت کنید که اتریبیوت فرم که به سرور ارسال می‌شود (value) باید عدد انگلیسی بماند و مبلغ خالص است
             if (bidAmountInput) bidAmountInput.value = String(computed);
         };
+
+        window.recalcBid = recalcBid;
 
         if (stepInput) {
             stepInput.addEventListener('input', () => {

@@ -260,14 +260,18 @@ def auction_product_live_state(request, pk: int):
     has_winner_profile_access = _has_finished_winner_profile_access(request, product, access_token)
     if not is_active_auction and not is_finished_auction and not has_winner_profile_access:
         return JsonResponse({'success': False, 'message': 'مزایده فعال نیست.'}, status=403)
+    live_payload = build_bid_live_payload(
+        product,
+        request.user,
+        include_user_history=include_user_history,
+    )
+    live_payload.setdefault('tax_amount', int(product.tax_amount))
+    live_payload.setdefault('total_with_tax', int(product.final_price_with_tax))
+
     return JsonResponse(
         {
             'success': True,
-            **build_bid_live_payload(
-                product,
-                request.user,
-                include_user_history=include_user_history,
-            ),
+            **live_payload,
         }
     )
 
