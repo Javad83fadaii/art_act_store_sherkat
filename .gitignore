@@ -25,7 +25,7 @@ staticfiles/
 # مسیر خاص تصاویر محصولات
 # ======================
 static/images/artwork/
-
+static/catalogs/
 # اگر مسیر کامل پروژه هم خواستی امن‌تر باشه:
 # art_act_stor/static/images/artwork/
 
