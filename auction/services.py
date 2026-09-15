@@ -1,9 +1,50 @@
 from __future__ import annotations
 
+from decimal import Decimal, InvalidOperation, ROUND_CEILING
 from django.core import signing
 from django.utils import timezone
 
 from .models import AuctionProduct, Bid
+
+
+# جدول پله‌های افزایش قیمت مزایده (به تومان)
+# مبالغ تا سقف هر پله مشمول افزایش همان پله هستند و با رسیدن به سقف وارد پله بعدی می‌شوند
+TIERED_BID_INCREMENTS: tuple[tuple[Decimal, Decimal], ...] = (
+    (Decimal('50000000'), Decimal('5000000')),      # تا سقف ۵۰,۰۰۰,۰۰۰ تومان: ۵,۰۰۰,۰۰۰
+    (Decimal('200000000'), Decimal('10000000')),    # از ۵۰,۰۰۰,۰۰۰ تا ۲۰۰,۰۰۰,۰۰۰ تومان: ۱۰,۰۰۰,۰۰۰
+    (Decimal('500000000'), Decimal('20000000')),    # از ۲۰۰,۰۰۰,۰۰۰ تا ۵۰۰,۰۰۰,۰۰۰ تومان: ۲۰,۰۰۰,۰۰۰
+    (Decimal('1000000000'), Decimal('50000000')),   # از ۵۰۰,۰۰۰,۰۰۰ تا ۱,۰۰۰,۰۰۰,۰۰۰ تومان: ۵۰,۰۰۰,۰۰۰
+    (Decimal('4000000000'), Decimal('100000000')),  # از ۱,۰۰۰,۰۰۰,۰۰۰ تا ۴,۰۰۰,۰۰۰,۰۰۰ تومان: ۱۰۰,۰۰۰,۰۰۰
+)
+TOP_TIER_INCREMENT = Decimal('200000000')           # از ۴,۰۰۰,۰۰۰,۰۰۰ تومان به بالا: ۲۰۰,۰۰۰,۰۰۰
+
+
+def get_current_step_increment(price: Decimal | int | float | str | None) -> int:
+    """محاسبه میزان افزایش گام بر اساس جدول پله‌ای و قیمت جاری اثر (به تومان)"""
+    try:
+        current = Decimal(str(price or 0))
+    except (InvalidOperation, TypeError, ValueError):
+        current = Decimal('0')
+    if current < Decimal('0'):
+        current = Decimal('0')
+
+    for upper_limit, increment in TIERED_BID_INCREMENTS:
+        if current < upper_limit:
+            return int(increment)
+    return int(TOP_TIER_INCREMENT)
+
+
+def get_min_next_bid(current_or_base_price: Decimal | int | float | str | None) -> int:
+    """محاسبه حداقل مبلغ پیشنهاد بعدی (خالص) بر اساس قیمت فعلی اثر به علاوه افزایش پله جاری"""
+    try:
+        current = Decimal(str(current_or_base_price or 0))
+    except (InvalidOperation, TypeError, ValueError):
+        current = Decimal('0')
+    if current < Decimal('0'):
+        current = Decimal('0')
+
+    step = Decimal(str(get_current_step_increment(current)))
+    return int((current + step).to_integral_value(rounding=ROUND_CEILING))
 
 
 def ensure_auction_product_winner(product: AuctionProduct) -> AuctionProduct:

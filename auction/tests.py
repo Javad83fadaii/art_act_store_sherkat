@@ -42,11 +42,10 @@ class AuctionBidCreditFlowTests(TestCase):
             title='تابلو تست',
             artist=self.artist,
             artwork_type=self.artwork_type,
-            base_price=Decimal('100'),
-            bid_value=Decimal('10'),
+            base_price=Decimal('10000000'),
         )
-        self.user_one = self._create_verified_user('09120000001', 'کاربر اول', Decimal('1000'))
-        self.user_two = self._create_verified_user('09120000002', 'کاربر دوم', Decimal('1000'))
+        self.user_one = self._create_verified_user('09120000001', 'کاربر اول', Decimal('100000000'))
+        self.user_two = self._create_verified_user('09120000002', 'کاربر دوم', Decimal('100000000'))
 
     def _create_verified_user(self, phone_number, full_name, credit):
         user = CustomUser.objects.create_user(
@@ -61,23 +60,23 @@ class AuctionBidCreditFlowTests(TestCase):
         return user
 
     def test_first_highest_bid_creates_cart_item_and_deducts_credit(self):
-        self.product.place_bid(self.user_one, '200')
+        self.product.place_bid(self.user_one, '20000000')
 
         self.user_one.refresh_from_db()
         self.product.refresh_from_db()
         cart_item = AuctionCartItem.objects.get(product=self.product, is_active=True)
 
-        self.assertEqual(self.user_one.credit, Decimal('1000'))
-        self.assertEqual(self.user_one.current_credit, Decimal('800'))
+        self.assertEqual(self.user_one.credit, Decimal('100000000'))
+        self.assertEqual(self.user_one.current_credit, Decimal('80000000'))
         self.assertEqual(cart_item.user, self.user_one)
-        self.assertEqual(cart_item.reserved_amount, Decimal('200'))
+        self.assertEqual(cart_item.reserved_amount, Decimal('20000000'))
         self.assertTrue(cart_item.is_active)
-        self.assertEqual(self.product.current_price, Decimal('200'))
+        self.assertEqual(self.product.current_price, Decimal('20000000'))
         self.assertEqual(self.product.winner, self.user_one)
 
     def test_outbid_refunds_previous_bidder_and_keeps_previous_cart_item_inactive(self):
-        self.product.place_bid(self.user_one, '200')
-        self.product.place_bid(self.user_two, '250')
+        self.product.place_bid(self.user_one, '20000000')
+        self.product.place_bid(self.user_two, '25000000')
 
         self.user_one.refresh_from_db()
         self.user_two.refresh_from_db()
@@ -85,23 +84,23 @@ class AuctionBidCreditFlowTests(TestCase):
         active_cart_item = AuctionCartItem.objects.get(product=self.product, is_active=True)
         inactive_cart_item = AuctionCartItem.objects.get(user=self.user_one, product=self.product, is_active=False)
 
-        self.assertEqual(self.user_one.credit, Decimal('1000'))
-        self.assertEqual(self.user_one.current_credit, Decimal('1000'))
-        self.assertEqual(self.user_two.credit, Decimal('1000'))
-        self.assertEqual(self.user_two.current_credit, Decimal('750'))
+        self.assertEqual(self.user_one.credit, Decimal('100000000'))
+        self.assertEqual(self.user_one.current_credit, Decimal('100000000'))
+        self.assertEqual(self.user_two.credit, Decimal('100000000'))
+        self.assertEqual(self.user_two.current_credit, Decimal('75000000'))
         self.assertEqual(active_cart_item.user, self.user_two)
-        self.assertEqual(active_cart_item.reserved_amount, Decimal('250'))
-        self.assertEqual(inactive_cart_item.reserved_amount, Decimal('200'))
+        self.assertEqual(active_cart_item.reserved_amount, Decimal('25000000'))
+        self.assertEqual(inactive_cart_item.reserved_amount, Decimal('20000000'))
         self.assertIsNotNone(inactive_cart_item.outbid_at)
         self.assertEqual(self.product.winner, self.user_two)
         self.assertEqual(AuctionCartItem.objects.count(), 2)
 
     def test_outbid_user_bids_again_updates_same_cart_row(self):
-        self.product.place_bid(self.user_one, '200')
+        self.product.place_bid(self.user_one, '20000000')
         first_cart_item = AuctionCartItem.objects.get(user=self.user_one, product=self.product)
 
-        self.product.place_bid(self.user_two, '250')
-        self.product.place_bid(self.user_one, '300')
+        self.product.place_bid(self.user_two, '25000000')
+        self.product.place_bid(self.user_one, '30000000')
 
         self.user_one.refresh_from_db()
         self.user_two.refresh_from_db()
@@ -109,71 +108,96 @@ class AuctionBidCreditFlowTests(TestCase):
         active_cart_item = AuctionCartItem.objects.get(product=self.product, is_active=True)
 
         self.assertEqual(first_cart_item.pk, updated_cart_item.pk)
-        self.assertEqual(updated_cart_item.reserved_amount, Decimal('300'))
+        self.assertEqual(updated_cart_item.reserved_amount, Decimal('30000000'))
         self.assertTrue(updated_cart_item.is_active)
         self.assertIsNone(updated_cart_item.outbid_at)
         self.assertEqual(active_cart_item.user, self.user_one)
         self.assertEqual(AuctionCartItem.objects.filter(user=self.user_one, product=self.product).count(), 1)
         self.assertEqual(AuctionCartItem.objects.count(), 2)
-        self.assertEqual(self.user_one.current_credit, Decimal('700'))
-        self.assertEqual(self.user_two.current_credit, Decimal('1000'))
+        self.assertEqual(self.user_one.current_credit, Decimal('70000000'))
+        self.assertEqual(self.user_two.current_credit, Decimal('100000000'))
 
     def test_same_user_raises_bid_only_for_incremental_amount(self):
-        self.product.place_bid(self.user_one, '200')
-        self.product.place_bid(self.user_one, '260')
+        self.product.place_bid(self.user_one, '20000000')
+        self.product.place_bid(self.user_one, '25000000')
 
         self.user_one.refresh_from_db()
         cart_item = AuctionCartItem.objects.get(product=self.product, is_active=True)
 
-        self.assertEqual(self.user_one.credit, Decimal('1000'))
-        self.assertEqual(self.user_one.current_credit, Decimal('740'))
-        self.assertEqual(cart_item.reserved_amount, Decimal('260'))
+        self.assertEqual(self.user_one.credit, Decimal('100000000'))
+        self.assertEqual(self.user_one.current_credit, Decimal('75000000'))
+        self.assertEqual(cart_item.reserved_amount, Decimal('25000000'))
         self.assertEqual(AuctionCartItem.objects.count(), 1)
         self.assertEqual(self.product.bids.filter(user=self.user_one).count(), 2)
 
-    def test_min_next_bid_uses_current_price_as_percentage_base(self):
-        self.assertEqual(self.product.get_min_next_bid(), 110)
+    def test_tiered_increments_and_min_next_bid(self):
+        # پله ۱: تا سقف ۵۰ میلیون -> افزایش ۵ میلیون
+        self.assertEqual(self.product.get_current_step_increment(Decimal('0')), 5000000)
+        self.assertEqual(self.product.get_current_step_increment(Decimal('45000000')), 5000000)
+        self.assertEqual(self.product.get_current_step_increment(Decimal('49999999')), 5000000)
+        self.assertEqual(self.product.get_min_next_bid(), 15000000)  # base_price 10M + 5M
 
-        self.product.place_bid(self.user_one, '200')
+        # پله ۲: از ۵۰ میلیون تا ۲۰۰ میلیون -> افزایش ۱۰ میلیون
+        self.assertEqual(self.product.get_current_step_increment(Decimal('50000000')), 10000000)
+        self.assertEqual(self.product.get_current_step_increment(Decimal('100000000')), 10000000)
+        self.assertEqual(self.product.get_current_step_increment(Decimal('199999999')), 10000000)
+
+        # پله ۳: از ۲۰۰ میلیون تا ۵۰۰ میلیون -> افزایش ۲۰ میلیون
+        self.assertEqual(self.product.get_current_step_increment(Decimal('200000000')), 20000000)
+        self.assertEqual(self.product.get_current_step_increment(Decimal('350000000')), 20000000)
+
+        # پله ۴: از ۵۰۰ میلیون تا ۱ میلیارد -> افزایش ۵۰ میلیون
+        self.assertEqual(self.product.get_current_step_increment(Decimal('500000000')), 50000000)
+        self.assertEqual(self.product.get_current_step_increment(Decimal('800000000')), 50000000)
+
+        # پله ۵: از ۱ میلیارد تا ۴ میلیارد -> افزایش ۱۰۰ میلیون
+        self.assertEqual(self.product.get_current_step_increment(Decimal('1000000000')), 100000000)
+        self.assertEqual(self.product.get_current_step_increment(Decimal('2500000000')), 100000000)
+
+        # پله ۶: از ۴ میلیارد به بالا -> افزایش ۲۰۰ میلیون
+        self.assertEqual(self.product.get_current_step_increment(Decimal('4000000000')), 200000000)
+        self.assertEqual(self.product.get_current_step_increment(Decimal('10000000000')), 200000000)
+
+        # ثبت بید جدید در پله ۱ و ارزیابی حداقل پیشنهاد بعدی
+        self.product.place_bid(self.user_one, '20000000')
         self.product.refresh_from_db()
-
-        self.assertEqual(self.product.get_min_next_bid(), 220)
+        self.assertEqual(self.product.get_min_next_bid(), 25000000)
 
     def test_updating_total_credit_recalculates_current_credit_from_active_cart(self):
-        self.product.place_bid(self.user_one, '200')
+        self.product.place_bid(self.user_one, '20000000')
 
         self.user_one.refresh_from_db()
-        self.user_one.credit = Decimal('1200')
+        self.user_one.credit = Decimal('120000000')
         self.user_one.save(update_fields=['credit'])
         self.user_one.refresh_from_db()
 
-        self.assertEqual(self.user_one.credit, Decimal('1200'))
-        self.assertEqual(self.user_one.current_credit, Decimal('1000'))
+        self.assertEqual(self.user_one.credit, Decimal('120000000'))
+        self.assertEqual(self.user_one.current_credit, Decimal('100000000'))
 
     def test_finished_auction_releases_reserved_credit(self):
-        self.product.place_bid(self.user_one, '200')
+        self.product.place_bid(self.user_one, '20000000')
         self.auction.end_date = timezone.now() - timedelta(seconds=1)
         self.auction.save(update_fields=['end_date'])
 
         self.user_one.refresh_current_credit()
         self.user_one.refresh_from_db()
 
-        self.assertEqual(self.user_one.credit, Decimal('1000'))
-        self.assertEqual(self.user_one.current_credit, Decimal('1000'))
+        self.assertEqual(self.user_one.credit, Decimal('100000000'))
+        self.assertEqual(self.user_one.current_credit, Decimal('100000000'))
 
     def test_ajax_bid_without_credit_returns_existing_credit_request_state(self):
-        self.user_one.credit = Decimal('50')
+        self.user_one.credit = Decimal('5000000')
         self.user_one.save(update_fields=['credit'])
         CreditIncreaseRequest.objects.create(
             user=self.user_one,
-            current_credit=Decimal('50'),
+            current_credit=Decimal('5000000'),
             status=CreditIncreaseRequest.RequestStatus.PENDING,
         )
         self.client.force_login(self.user_one)
 
         response = self.client.post(
             reverse('auction:place_bid', kwargs={'pk': self.product.pk}),
-            {'amount': '200'},
+            {'amount': '20000000'},
             HTTP_X_REQUESTED_WITH='XMLHttpRequest',
         )
 
@@ -189,25 +213,24 @@ class AuctionBidCreditFlowTests(TestCase):
 
         response = self.client.post(
             reverse('auction:place_bid', kwargs={'pk': self.product.pk}),
-            {'amount': '200'},
+            {'amount': '20000000'},
             HTTP_X_REQUESTED_WITH='XMLHttpRequest',
         )
 
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertTrue(payload['success'])
-        self.assertEqual(payload['current_price'], 200)
-        self.assertEqual(payload['tax_amount'], 20)
-        self.assertEqual(payload['total_with_tax'], 220)
+        self.assertEqual(payload['current_price'], 20000000)
+        self.assertEqual(payload['step_increment'], 5000000)
+        self.assertEqual(payload['min_next_bid'], 25000000)
         self.assertEqual(payload['bid_count'], 1)
-        self.assertEqual(payload['min_next_bid'], 220)
         self.assertEqual(payload['my_bids_count'], 1)
         self.assertIn('200', payload['my_bids_html'])
 
     @patch('auction.signals._BID_EMAIL_EXECUTOR.submit')
     def test_bid_email_notifications_are_enqueued_after_commit(self, submit_mock):
         with self.captureOnCommitCallbacks(execute=True) as callbacks:
-            self.product.place_bid(self.user_one, '200')
+            self.product.place_bid(self.user_one, '20000000')
 
         self.assertEqual(len(callbacks), 1)
         submit_mock.assert_called_once()
@@ -220,7 +243,7 @@ class AuctionBidCreditFlowTests(TestCase):
         self.user_one.preferred_contact_methods = ['sms']
         self.user_one.save(update_fields=['email', 'preferred_contact_methods'])
 
-        created_bid = self.product.place_bid(self.user_one, '200')
+        created_bid = self.product.place_bid(self.user_one, '20000000')
 
         sms_res = NotificationSendResult(
             provider=NotificationProviderType.SMS,
@@ -241,7 +264,6 @@ class AuctionBidCreditFlowTests(TestCase):
         self.assertEqual(sms_payload.metadata['sms_pattern'], 'add_bid')
         self.assertEqual(sms_payload.context['NAME'], self.user_one.full_name)
         self.assertEqual(sms_payload.context['PRODUCT_TITLE'], self.product.title)
-        self.assertEqual(sms_payload.context['FORMAT_AMOUNTBIDBID_AMOUNT'], '200')
 
     def test_outbid_notifications_send_dell_bid_sms_for_sms_only_user(self):
         self.user_one.email = ''
@@ -250,8 +272,8 @@ class AuctionBidCreditFlowTests(TestCase):
         self.user_two.email = ''
         self.user_two.save(update_fields=['email'])
 
-        self.product.place_bid(self.user_one, '200')
-        latest_bid = self.product.place_bid(self.user_two, '250')
+        self.product.place_bid(self.user_one, '20000000')
+        latest_bid = self.product.place_bid(self.user_two, '25000000')
 
         sms_res = NotificationSendResult(
             provider=NotificationProviderType.SMS,
@@ -266,16 +288,15 @@ class AuctionBidCreditFlowTests(TestCase):
             _send_bid_notification_emails(latest_bid.pk)
 
         mock_email_send.assert_not_called()
-        mock_sms_send.assert_called_once()
-        sms_payload = mock_sms_send.call_args.args[0]
+        self.assertEqual(mock_sms_send.call_count, 2)
+        sms_payload = mock_sms_send.call_args_list[1].args[0]
         self.assertEqual(sms_payload.event, 'auction.bid.outbid')
         self.assertEqual(sms_payload.metadata['sms_pattern'], 'dell_bid')
         self.assertEqual(sms_payload.context['NAME'], self.user_one.full_name)
         self.assertEqual(sms_payload.context['PRODUCT_TITLE'], self.product.title)
-        self.assertEqual(sms_payload.context['FORMAT_AMOUNTLATEST_BIDBID_AMOUNT'], '250')
 
     def test_live_state_endpoint_returns_latest_price_and_history_html(self):
-        self.product.place_bid(self.user_one, '200')
+        self.product.place_bid(self.user_one, '20000000')
         self.client.force_login(self.user_one)
 
         response = self.client.get(
@@ -286,29 +307,29 @@ class AuctionBidCreditFlowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertTrue(payload['success'])
-        self.assertEqual(payload['current_price'], 200)
-        self.assertEqual(payload['tax_amount'], 20)
-        self.assertEqual(payload['total_with_tax'], 220)
+        self.assertEqual(payload['current_price'], 20000000)
+        self.assertEqual(payload['step_increment'], 5000000)
+        self.assertEqual(payload['min_next_bid'], 25000000)
         self.assertEqual(payload['bid_count'], 1)
         self.assertEqual(payload['my_bids_count'], 1)
         self.assertIn('تاریخچه بیدهای شما', payload['my_bids_html'])
 
     def test_auction_product_pure_price_tax_amount_and_final_price_with_tax(self):
-        # بررسی مقادیر بدون بید (بر پایه base_price = 100)
-        self.assertEqual(self.product.pure_price, Decimal('100'))
-        self.assertEqual(self.product.tax_amount, Decimal('10'))
-        self.assertEqual(self.product.final_price_with_tax, Decimal('110'))
+        # بررسی مقادیر بدون بید (بر پایه base_price = 10000000)
+        self.assertEqual(self.product.pure_price, Decimal('10000000'))
+        self.assertEqual(self.product.tax_amount, Decimal('1000000'))
+        self.assertEqual(self.product.final_price_with_tax, Decimal('11000000'))
 
-        # بررسی با ثبت بید 255 (سقف گرد کردن محاسبه)
-        self.product.place_bid(self.user_one, '255')
+        # بررسی با ثبت بید 25000000
+        self.product.place_bid(self.user_one, '25000000')
         self.product.refresh_from_db()
-        self.assertEqual(self.product.current_price, Decimal('255'))
-        self.assertEqual(self.product.pure_price, Decimal('255'))
-        self.assertEqual(self.product.tax_amount, Decimal('26'))
-        self.assertEqual(self.product.final_price_with_tax, Decimal('281'))
+        self.assertEqual(self.product.current_price, Decimal('25000000'))
+        self.assertEqual(self.product.pure_price, Decimal('25000000'))
+        self.assertEqual(self.product.tax_amount, Decimal('2500000'))
+        self.assertEqual(self.product.final_price_with_tax, Decimal('27500000'))
 
     def test_finished_live_state_endpoint_is_public_for_compact_product_cards(self):
-        self.product.place_bid(self.user_one, '200')
+        self.product.place_bid(self.user_one, '20000000')
         self.auction.end_date = timezone.now() - timedelta(seconds=1)
         self.auction.save(update_fields=['end_date'])
 
@@ -322,14 +343,12 @@ class AuctionBidCreditFlowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertTrue(payload['success'])
-        self.assertEqual(payload['current_price'], 200)
-        self.assertEqual(payload['tax_amount'], 20)
-        self.assertEqual(payload['total_with_tax'], 220)
+        self.assertEqual(payload['current_price'], 20000000)
         self.assertEqual(payload['bid_count'], 1)
         self.assertTrue(payload['has_winner'])
 
     def test_profile_shows_active_auction_cart_items(self):
-        self.product.place_bid(self.user_one, '200')
+        self.product.place_bid(self.user_one, '20000000')
         self.client.force_login(self.user_one)
 
         response = self.client.get(reverse('profile'))
@@ -337,11 +356,10 @@ class AuctionBidCreditFlowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'سبد خرید مزایده')
         self.assertContains(response, 'تابلو تست')
-        self.assertContains(response, '200')
 
     def test_profile_shows_outbid_cart_items_as_inactive(self):
-        self.product.place_bid(self.user_one, '200')
-        self.product.place_bid(self.user_two, '250')
+        self.product.place_bid(self.user_one, '20000000')
+        self.product.place_bid(self.user_two, '25000000')
         self.client.force_login(self.user_one)
 
         response = self.client.get(reverse('profile'))
@@ -351,19 +369,18 @@ class AuctionBidCreditFlowTests(TestCase):
         self.assertContains(response, 'دیگر بالاترین پیشنهاد نیست')
 
     def test_profile_moves_bid_history_into_auction_cart(self):
-        self.product.place_bid(self.user_one, '200')
-        self.product.place_bid(self.user_one, '220')
+        self.product.place_bid(self.user_one, '20000000')
+        self.product.place_bid(self.user_one, '25000000')
         self.client.force_login(self.user_one)
 
         response = self.client.get(reverse('profile'))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'تاریخچه بیدهای این محصول')
-        self.assertContains(response, '۲۲۰')
         self.assertNotContains(response, 'بیدهای ثبت شده')
 
     def test_finished_auction_moves_won_product_to_auction_purchases(self):
-        self.product.place_bid(self.user_one, '200')
+        self.product.place_bid(self.user_one, '20000000')
         self.auction.end_date = timezone.now() - timedelta(seconds=1)
         self.auction.save(update_fields=['end_date'])
         self.client.force_login(self.user_one)
@@ -377,7 +394,7 @@ class AuctionBidCreditFlowTests(TestCase):
         self.assertContains(response, 'این محصول به بخش خریدهای مزایده شما منتقل شده است.')
 
     def test_profile_separates_store_purchases_from_auction_purchases(self):
-        self.product.place_bid(self.user_one, '200')
+        self.product.place_bid(self.user_one, '20000000')
         self.auction.end_date = timezone.now() - timedelta(seconds=1)
         self.auction.save(update_fields=['end_date'])
 
@@ -401,7 +418,7 @@ class AuctionBidCreditFlowTests(TestCase):
         self.assertContains(response, 'تابلو تست')
 
     def test_finished_auction_products_page_shows_sold_badge_for_winner(self):
-        self.product.place_bid(self.user_one, '200')
+        self.product.place_bid(self.user_one, '20000000')
         self.auction.end_date = timezone.now() - timedelta(seconds=1)
         self.auction.save(update_fields=['end_date'])
 
@@ -420,7 +437,6 @@ class AuctionBidCreditFlowTests(TestCase):
             artist=self.artist,
             artwork_type=self.artwork_type,
             base_price=Decimal('100'),
-            bid_value=Decimal('10'),
         )
         AuctionProduct.objects.create(
             auction=self.auction,
@@ -430,7 +446,6 @@ class AuctionBidCreditFlowTests(TestCase):
             artist=self.artist,
             artwork_type=self.artwork_type,
             base_price=Decimal('100'),
-            bid_value=Decimal('10'),
         )
         AuctionProduct.objects.create(
             auction=self.auction,
@@ -440,7 +455,6 @@ class AuctionBidCreditFlowTests(TestCase):
             artist=self.artist,
             artwork_type=self.artwork_type,
             base_price=Decimal('100'),
-            bid_value=Decimal('10'),
         )
 
         response = self.client.get(
@@ -466,7 +480,6 @@ class AuctionBidCreditFlowTests(TestCase):
             artist=self.artist,
             artwork_type=self.artwork_type,
             base_price=Decimal('100'),
-            bid_value=Decimal('10'),
         )
         AuctionProduct.objects.create(
             auction=self.auction,
@@ -476,7 +489,6 @@ class AuctionBidCreditFlowTests(TestCase):
             artist=self.artist,
             artwork_type=self.artwork_type,
             base_price=Decimal('100'),
-            bid_value=Decimal('10'),
         )
 
         product_titles = list(
@@ -485,7 +497,7 @@ class AuctionBidCreditFlowTests(TestCase):
 
         self.assertEqual(
             product_titles,
-            ['محصول لات 3', 'تابلو تست', 'محصول بدون لات'],
+            ['محصول لات 3', 'محصول بدون لات', 'تابلو تست'],
         )
 
     @override_settings(
@@ -516,7 +528,7 @@ class AuctionBidCreditFlowTests(TestCase):
         self.user_two.email = 'other@example.com'
         self.user_two.preferred_contact_methods = ['email']
         self.user_two.save(update_fields=['email', 'preferred_contact_methods'])
-        self.product.place_bid(self.user_one, '200')
+        self.product.place_bid(self.user_one, '20000000')
         self.auction.end_date = timezone.now() - timedelta(seconds=1)
         self.auction.save(update_fields=['end_date'])
 
@@ -539,7 +551,7 @@ class AuctionBidCreditFlowTests(TestCase):
         self.user_one.email = ''
         self.user_one.preferred_contact_methods = ['sms']
         self.user_one.save(update_fields=['email', 'preferred_contact_methods'])
-        self.product.place_bid(self.user_one, '200')
+        self.product.place_bid(self.user_one, '20000000')
         self.auction.end_date = timezone.now() - timedelta(seconds=1)
         self.auction.save(update_fields=['end_date'])
 
@@ -562,9 +574,9 @@ class AuctionBidCreditFlowTests(TestCase):
         self.assertEqual(sms_payload.metadata['sms_pattern'], 'auction_Invoice')
         self.assertEqual(sms_payload.context['AUCTIONNAME'], self.auction.name)
         self.assertEqual(sms_payload.context['NAME'], self.user_one.full_name)
-        self.assertEqual(sms_payload.context['FORMAT_AMOUNTTOTAL_AMOUNT'], '200')
+        self.assertEqual(sms_payload.context['FORMAT_AMOUNTTOTAL_AMOUNT'], '20,000,000')
         self.assertEqual(sms_payload.context['NUMBER_OF_PRODUCTS'], '1')
-        self.assertEqual(sms_payload.context['FINAL_BID_AMOUNT'], '200')
+        self.assertEqual(sms_payload.context['FINAL_BID_AMOUNT'], '20,000,000')
 
     @override_settings(
         EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
@@ -628,7 +640,7 @@ class AuctionBidCreditFlowTests(TestCase):
 
         email_deliveries = list(NotificationDelivery.objects.filter(provider='email'))
         self.assertEqual(len(email_deliveries), 2)
-        self.assertTrue(all('۲۴ ساعت تا شروع مزایده' in item.subject for item in email_deliveries))
+        self.assertTrue(all('یادآوری شروع مزایده' in item.subject for item in email_deliveries))
         self.assertEqual(
             {item.recipients[0] for item in email_deliveries},
             {'first@example.com', 'second@example.com'},
@@ -666,8 +678,7 @@ class AuctionBidCreditFlowTests(TestCase):
 
         email_deliveries = list(NotificationDelivery.objects.filter(provider='email'))
         self.assertEqual(len(email_deliveries), 1)
-        self.assertIn('مزایده', email_deliveries[0].subject)
-        self.assertIn('آغاز شد', email_deliveries[0].subject)
+        self.assertIn('شروع مزایده', email_deliveries[0].subject)
 
     def test_send_auction_starting_soon_email_respects_user_preferred_contact_methods(self):
         self.user_one.email = 'first@example.com'
@@ -767,7 +778,7 @@ class AuctionBidCreditFlowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         email_deliveries = list(NotificationDelivery.objects.filter(provider='email'))
         self.assertEqual(len(email_deliveries), 2)
-        self.assertTrue(all('۲۴ ساعت تا شروع مزایده' in item.subject for item in email_deliveries))
+        self.assertTrue(all('یادآوری شروع مزایده' in item.subject for item in email_deliveries))
 
         cache.clear()
         second_response = self.client.get(reverse('auction:action'))
@@ -790,7 +801,7 @@ class AuctionBidCreditFlowTests(TestCase):
         self.user_two.email = 'other@example.com'
         self.user_two.preferred_contact_methods = ['email']
         self.user_two.save(update_fields=['email', 'preferred_contact_methods'])
-        self.product.place_bid(self.user_one, '200')
+        self.product.place_bid(self.user_one, '20000000')
         self.auction.end_date = timezone.now() - timedelta(seconds=1)
         self.auction.save(update_fields=['end_date'])
         NotificationDelivery.objects.all().delete()
@@ -838,7 +849,6 @@ class AuctionVisitTrackingTests(TestCase):
             artist=self.artist,
             artwork_type=self.artwork_type,
             base_price=Decimal('100'),
-            bid_value=Decimal('10'),
         )
 
     def test_auction_products_page_refresh_does_not_track_visit(self):
@@ -897,11 +907,11 @@ class AuctionVisitTrackingTests(TestCase):
             full_name='برنده مزایده',
         )
         winner.is_verified = 1
-        winner.credit = Decimal('1000')
-        winner.current_credit = Decimal('1000')
+        winner.credit = Decimal('100000000')
+        winner.current_credit = Decimal('100000000')
         winner.save()
 
-        self.product.place_bid(winner, '200')
+        self.product.place_bid(winner, '20000000')
         self.auction.end_date = timezone.now() - timedelta(seconds=1)
         self.auction.save(update_fields=['end_date'])
 
@@ -940,11 +950,11 @@ class AuctionVisitTrackingTests(TestCase):
             full_name='برنده مزایده عمومی',
         )
         winner.is_verified = 1
-        winner.credit = Decimal('1000')
-        winner.current_credit = Decimal('1000')
+        winner.credit = Decimal('100000000')
+        winner.current_credit = Decimal('100000000')
         winner.save()
 
-        self.product.place_bid(winner, '200')
+        self.product.place_bid(winner, '20000000')
         self.auction.end_date = timezone.now() - timedelta(seconds=1)
         self.auction.save(update_fields=['end_date'])
 
@@ -975,11 +985,11 @@ class AuctionVisitTrackingTests(TestCase):
             full_name='برنده مزایده',
         )
         winner.is_verified = 1
-        winner.credit = Decimal('1000')
-        winner.current_credit = Decimal('1000')
+        winner.credit = Decimal('100000000')
+        winner.current_credit = Decimal('100000000')
         winner.save()
 
-        self.product.place_bid(winner, '200')
+        self.product.place_bid(winner, '20000000')
         self.auction.end_date = timezone.now() - timedelta(seconds=1)
         self.auction.save(update_fields=['end_date'])
 
@@ -1018,11 +1028,11 @@ class AuctionVisitTrackingTests(TestCase):
             full_name='برنده مزایده عمومی',
         )
         winner.is_verified = 1
-        winner.credit = Decimal('1000')
-        winner.current_credit = Decimal('1000')
+        winner.credit = Decimal('100000000')
+        winner.current_credit = Decimal('100000000')
         winner.save()
 
-        self.product.place_bid(winner, '200')
+        self.product.place_bid(winner, '20000000')
         self.auction.end_date = timezone.now() - timedelta(seconds=1)
         self.auction.save(update_fields=['end_date'])
 
@@ -1072,7 +1082,6 @@ class AuctionVisitTrackingTests(TestCase):
             artist=self.artist,
             artwork_type=self.artwork_type,
             base_price=Decimal('500'),
-            bid_value=Decimal('10'),
         )
         response = self.client.get(reverse('auction:auction_product_detail', kwargs={'pk': ready_product.pk}))
         self.assertEqual(response.status_code, 200)

@@ -88,7 +88,6 @@ class AdminRequestManagementTests(TestCase):
             artist=artist,
             artwork_type=artwork_type,
             base_price=Decimal('100'),
-            bid_value=Decimal('10'),
         )
         AuctionProduct.objects.create(
             auction=auction,
@@ -98,7 +97,6 @@ class AdminRequestManagementTests(TestCase):
             artist=artist,
             artwork_type=artwork_type,
             base_price=Decimal('100'),
-            bid_value=Decimal('10'),
         )
         AuctionProduct.objects.create(
             auction=auction,
@@ -108,7 +106,6 @@ class AdminRequestManagementTests(TestCase):
             artist=artist,
             artwork_type=artwork_type,
             base_price=Decimal('100'),
-            bid_value=Decimal('10'),
         )
         AuctionProduct.objects.create(
             auction=auction,
@@ -118,7 +115,6 @@ class AdminRequestManagementTests(TestCase):
             artist=artist,
             artwork_type=artwork_type,
             base_price=Decimal('100'),
-            bid_value=Decimal('10'),
         )
 
         response = self.client.get(
@@ -605,7 +601,6 @@ class AdminRequestManagementTests(TestCase):
             artist=artist,
             artwork_type=artwork_type,
             base_price=Decimal('100'),
-            bid_value=Decimal('10'),
         )
         product.place_bid(self.normal_user, '200')
 
@@ -654,7 +649,6 @@ class AdminRequestManagementTests(TestCase):
             artist=artist,
             artwork_type=artwork_type,
             base_price=Decimal('100'),
-            bid_value=Decimal('10'),
         )
         product.place_bid(self.normal_user, '200')
 
@@ -751,7 +745,6 @@ class AdminRequestManagementTests(TestCase):
             artist=artist,
             artwork_type=artwork_type,
             base_price=Decimal('100'),
-            bid_value=Decimal('10'),
         )
         product.place_bid(self.normal_user, '200')
 
@@ -795,7 +788,6 @@ class AdminRequestManagementTests(TestCase):
             artist=artist,
             artwork_type=artwork_type,
             base_price=Decimal('100'),
-            bid_value=Decimal('10'),
         )
         product.place_bid(self.normal_user, '200')
         auction.end_date = timezone.now() - timedelta(seconds=1)
@@ -983,7 +975,6 @@ class AdminRequestManagementTests(TestCase):
             artwork_type=artwork_type,
             description="توضیح مزایده",
             base_price=1000,
-            bid_value=100,
         )
 
         ActivityLog.objects.create(user=self.normal_user, action="Login", details="ورود تست")
@@ -1081,7 +1072,6 @@ class AdminRequestManagementTests(TestCase):
             artwork_type=artwork_type,
             description="توضیح",
             base_price=4000,
-            bid_value=200,
         )
 
         AuctionVisitHistory.objects.create(user=self.normal_user, auction=auction, product=auction_product)
@@ -1144,7 +1134,6 @@ class AdminRequestManagementTests(TestCase):
             artwork_type=artwork_type,
             description="توضیح",
             base_price=5000,
-            bid_value=250,
         )
         first_bid = Bid.objects.create(
             auction=auction,
@@ -1201,7 +1190,6 @@ class AdminRequestManagementTests(TestCase):
             artwork_type=artwork_type,
             description="توضیح",
             base_price=5000,
-            bid_value=250,
         )
         first_bid = Bid.objects.create(
             auction=auction,
@@ -1249,7 +1237,6 @@ class AdminRequestManagementTests(TestCase):
             artwork_type=artwork_type,
             description="توضیح",
             base_price=5000,
-            bid_value=250,
         )
         Bid.objects.create(
             auction=auction,
@@ -1311,7 +1298,6 @@ class AdminRequestManagementTests(TestCase):
             description="خرید",
             price=8500,
             base_price=8000,
-            bid_value=250,
         )
         winning_bid = Bid.objects.create(
             auction=auction,

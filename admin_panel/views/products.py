@@ -762,7 +762,6 @@ def auction_list(request):
                 material_id=data.get('material_id') or None,
                 base_price=base_price or 0,
                 current_price=current_price,
-                bid_value=data.get('bid_value', 0),
                 winner_id=winner_id,
             )
             invalidate_cache('admin_auction_products*')
@@ -870,7 +869,6 @@ def auction_detail(request, pk):
             'dimensions': ap.dimensions,
             'creation_year': ap.creation_year,
             'current_price': ap.current_price,
-            'bid_value': ap.bid_value,
         }
 
         if 'artwork_title' in data:
@@ -907,8 +905,6 @@ def auction_detail(request, pk):
                 ap.lot = lot_value
         if 'current_price' in data:
             ap.current_price = data.get('current_price') if data.get('current_price') not in ('', None) else None
-        if 'bid_value' in data:
-            ap.bid_value = data.get('bid_value')
         if 'winner_id' in data:
             ap.winner_id = data.get('winner_id') if data.get('winner_id') not in ('', None) else None
         editable_fields = ['title', 'base_price', 'description', 'dimensions', 'creation_year']
@@ -925,7 +921,6 @@ def auction_detail(request, pk):
             'product_id': 'کد آیتم',
             'description': 'توضیحات',
             'current_price': 'قیمت جاری',
-            'bid_value': 'گام بید',
         }
         changes, diff_descriptions = compute_field_diff(old_data, ap, fields_map)
         if changes:
@@ -987,7 +982,7 @@ def auction_detail(request, pk):
         'authenticity_status': ap.authenticity_status,
         'reserve_price': str(ap.base_price),
         'current_price': str(ap.current_price) if ap.current_price is not None else None,
-        'bid_value': str(ap.bid_value),
+        'step_increment': str(ap.get_current_step_increment()),
         'winner_id': ap.winner_id,
         'status': status_fa.get(ap.auction.status, 'نامشخص') if ap.auction else 'نامشخص',
         'auction_start': ap.auction.start_date.isoformat() if ap.auction and ap.auction.start_date else None,

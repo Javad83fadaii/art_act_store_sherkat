@@ -240,17 +240,19 @@
                                 </div>
 
                                 {% if auction.auction.status == 'finished' %}
-                                    {% if auction.winner_id %}
-                                        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                            <span class="material-symbols-outlined text-[18px]">gavel</span>
-                                            <span class="text-sm font-black">فروخته‌شده</span>
-                                        </div>
-                                    {% else %}
-                                        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-neutral-100 text-neutral-700 border border-neutral-200">
-                                            <span class="material-symbols-outlined text-[18px]">event_busy</span>
-                                            <span class="text-sm font-black">پایان‌یافته</span>
-                                        </div>
-                                    {% endif %}
+                                {% if auction.winner_id %}
+                                <div
+                                    class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    <span class="material-symbols-outlined text-[18px]">gavel</span>
+                                    <span class="text-sm font-black">فروخته‌شده</span>
+                                </div>
+                                {% else %}
+                                <div
+                                    class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-neutral-100 text-neutral-700 border border-neutral-200">
+                                    <span class="material-symbols-outlined text-[18px]">event_busy</span>
+                                    <span class="text-sm font-black">پایان‌یافته</span>
+                                </div>
+                                {% endif %}
                                 {% elif auction.auction.status == 'ready' %}
                                 <div class="flex items-center gap-2 text-blue-600" dir="ltr" id="linear-timer"
                                     data-endtime="{{ auction.auction.start_date|date:'Y-m-d\\TH:i:s' }}">
@@ -310,108 +312,132 @@
                             data-current-price="{{ auction.current_price|default:auction.base_price }}"
                             data-tax-amount="{{ auction.tax_amount }}"
                             data-total-with-tax="{{ auction.final_price_with_tax }}"
-                            data-min-next="{{ auction.get_min_next_bid }}" data-bid-value="{{ auction.bid_value }}">
+                            data-min-next="{{ auction.get_min_next_bid }}"
+                            data-step-increment="{{ auction.get_current_step_increment }}">
                             {% if auction.auction.status == 'finished' %}
-                                {% if auction.winner_id %}
-                                    <div class="relative overflow-hidden rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-100 p-6 sm:p-7">
-                                        <div class="absolute -top-10 -left-10 w-32 h-32 rounded-full bg-emerald-200/40 blur-2xl"></div>
-                                        <div class="absolute -bottom-12 -right-10 w-36 h-36 rounded-full bg-emerald-300/30 blur-3xl"></div>
-                                        <div class="relative space-y-5">
-                                            <div class="w-16 h-16 rounded-2xl bg-emerald-600 shadow-lg shadow-emerald-600/25 text-white flex items-center justify-center">
-                                                <span class="material-symbols-outlined text-[30px]">workspace_premium</span>
+                            {% if auction.winner_id %}
+                            <div
+                                class="relative overflow-hidden rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-100 p-6 sm:p-7">
+                                <div
+                                    class="absolute -top-10 -left-10 w-32 h-32 rounded-full bg-emerald-200/40 blur-2xl">
+                                </div>
+                                <div
+                                    class="absolute -bottom-12 -right-10 w-36 h-36 rounded-full bg-emerald-300/30 blur-3xl">
+                                </div>
+                                <div class="relative space-y-5">
+                                    <div
+                                        class="w-16 h-16 rounded-2xl bg-emerald-600 shadow-lg shadow-emerald-600/25 text-white flex items-center justify-center">
+                                        <span class="material-symbols-outlined text-[30px]">workspace_premium</span>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <h3 class="text-2xl font-black text-neutral-900">این اثر فروخته شد</h3>
+                                        <p class="text-sm leading-7 text-neutral-600">
+                                            این مزایده به پایان رسیده و این اثر با بالاترین پیشنهاد نهایی شده است.
+                                        </p>
+                                    </div>
+                                    <div
+                                        class="rounded-xl border border-white/70 bg-white/80 backdrop-blur-sm p-4 space-y-3.5">
+                                        <div>
+                                            <span class="text-xs font-bold text-neutral-500">مبلغ قابل پرداخت (قیمت
+                                                نهایی کل با احتساب ۱۰٪ مالیات)</span>
+                                            <div class="mt-2 flex items-baseline gap-1">
+                                                <span class="text-3xl font-extrabold text-emerald-700">
+                                                    {{ auction.final_price_with_tax|fa_price }}
+                                                </span>
+                                                <span class="text-sm font-bold text-neutral-500">تومان</span>
                                             </div>
-                                            <div class="space-y-2">
-                                                <h3 class="text-2xl font-black text-neutral-900">این اثر فروخته شد</h3>
-                                                <p class="text-sm leading-7 text-neutral-600">
-                                                    این مزایده به پایان رسیده و این اثر با بالاترین پیشنهاد نهایی شده است.
-                                                </p>
+                                        </div>
+
+                                        <!-- تفکیک شفاف مبلغ خالص برنده و مالیات -->
+                                        <div
+                                            class="rounded-xl bg-emerald-50/80 border border-emerald-200/60 p-3 space-y-2 text-xs">
+                                            <div class="flex items-center justify-between text-neutral-600 font-medium">
+                                                <span>مبلغ خالص برنده (پیشنهاد نهایی):</span>
+                                                <span class="font-bold text-neutral-900">{{
+                                                    auction.current_price|default:auction.base_price|fa_price }}
+                                                    تومان</span>
                                             </div>
-                                            <div class="rounded-xl border border-white/70 bg-white/80 backdrop-blur-sm p-4 space-y-3.5">
-                                                <div>
-                                                    <span class="text-xs font-bold text-neutral-500">مبلغ قابل پرداخت (قیمت نهایی کل با احتساب ۱۰٪ مالیات)</span>
-                                                    <div class="mt-2 flex items-baseline gap-1">
-                                                        <span class="text-3xl font-extrabold text-emerald-700">
-                                                            {{ auction.final_price_with_tax|fa_price }}
-                                                        </span>
-                                                        <span class="text-sm font-bold text-neutral-500">تومان</span>
-                                                    </div>
-                                                </div>
+                                            <div class="flex items-center justify-between text-neutral-600 font-medium">
+                                                <span>۱۰٪ مالیات بر ارزش افزوده و کمیسیون:</span>
+                                                <span class="font-bold text-neutral-900">{{ auction.tax_amount|fa_price
+                                                    }} تومان</span>
+                                            </div>
+                                        </div>
 
-                                                <!-- تفکیک شفاف مبلغ خالص برنده و مالیات -->
-                                                <div class="rounded-xl bg-emerald-50/80 border border-emerald-200/60 p-3 space-y-2 text-xs">
-                                                    <div class="flex items-center justify-between text-neutral-600 font-medium">
-                                                        <span>مبلغ خالص برنده (پیشنهاد نهایی):</span>
-                                                        <span class="font-bold text-neutral-900">{{ auction.current_price|default:auction.base_price|fa_price }} تومان</span>
-                                                    </div>
-                                                    <div class="flex items-center justify-between text-neutral-600 font-medium">
-                                                        <span>۱۰٪ مالیات بر ارزش افزوده و کمیسیون:</span>
-                                                        <span class="font-bold text-neutral-900">{{ auction.tax_amount|fa_price }} تومان</span>
-                                                    </div>
-                                                </div>
-
-                                                {% if auction.price_description %}
-                                                    <div class="mt-1 text-[10px] font-medium text-neutral-400">
-                                                        {{ auction.price_description|fa_digits }}
-                                                    </div>
+                                        {% if auction.price_description %}
+                                        <div class="mt-1 text-[10px] font-medium text-neutral-400">
+                                            {{ auction.price_description|fa_digits }}
+                                        </div>
+                                        {% endif %}
+                                        <div class="border-t border-emerald-100 pt-3">
+                                            <span class="text-xs font-bold text-neutral-500">وضعیت دسترسی</span>
+                                            <div class="mt-2 text-sm font-bold text-emerald-700 leading-7">
+                                                {% if has_winner_profile_access %}
+                                                شما برنده این اثر هستید و جزئیات آن برای شما فعال است.
+                                                {% else %}
+                                                این اثر دارای برنده نهایی است.
                                                 {% endif %}
-                                                <div class="border-t border-emerald-100 pt-3">
-                                                    <span class="text-xs font-bold text-neutral-500">وضعیت دسترسی</span>
-                                                    <div class="mt-2 text-sm font-bold text-emerald-700 leading-7">
-                                                        {% if has_winner_profile_access %}
-                                                            شما برنده این اثر هستید و جزئیات آن برای شما فعال است.
-                                                        {% else %}
-                                                            این اثر دارای برنده نهایی است.
-                                                        {% endif %}
-                                                    </div>
-                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                {% else %}
-                                    <div class="relative overflow-hidden rounded-2xl border border-neutral-200 bg-gradient-to-br from-neutral-50 via-white to-neutral-100 p-6 sm:p-7">
-                                        <div class="absolute -top-10 -left-10 w-32 h-32 rounded-full bg-neutral-200/50 blur-2xl"></div>
-                                        <div class="absolute -bottom-12 -right-10 w-36 h-36 rounded-full bg-neutral-300/40 blur-3xl"></div>
-                                        <div class="relative space-y-5">
-                                            <div class="w-16 h-16 rounded-2xl bg-neutral-800 shadow-lg shadow-neutral-800/20 text-white flex items-center justify-center">
-                                                <span class="material-symbols-outlined text-[30px]">event_busy</span>
+                                </div>
+                            </div>
+                            {% else %}
+                            <div
+                                class="relative overflow-hidden rounded-2xl border border-neutral-200 bg-gradient-to-br from-neutral-50 via-white to-neutral-100 p-6 sm:p-7">
+                                <div
+                                    class="absolute -top-10 -left-10 w-32 h-32 rounded-full bg-neutral-200/50 blur-2xl">
+                                </div>
+                                <div
+                                    class="absolute -bottom-12 -right-10 w-36 h-36 rounded-full bg-neutral-300/40 blur-3xl">
+                                </div>
+                                <div class="relative space-y-5">
+                                    <div
+                                        class="w-16 h-16 rounded-2xl bg-neutral-800 shadow-lg shadow-neutral-800/20 text-white flex items-center justify-center">
+                                        <span class="material-symbols-outlined text-[30px]">event_busy</span>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <h3 class="text-2xl font-black text-neutral-900">مزایده این اثر پایان یافت</h3>
+                                        <p class="text-sm leading-7 text-neutral-600">
+                                            این مزایده به پایان رسیده است و دیگر امکان ثبت پیشنهاد جدید برای این اثر
+                                            وجود ندارد.
+                                        </p>
+                                    </div>
+                                    <div
+                                        class="rounded-xl border border-white/70 bg-white/80 backdrop-blur-sm p-4 space-y-3.5">
+                                        <div>
+                                            <span class="text-xs font-bold text-neutral-500">آخرین پیشنهاد ثبت‌شده (مبلغ
+                                                خالص)</span>
+                                            <div class="mt-2 flex items-baseline gap-1">
+                                                <span class="text-3xl font-extrabold text-neutral-900">
+                                                    {{ auction.current_price|default:auction.base_price|fa_price }}
+                                                </span>
+                                                <span class="text-sm font-bold text-neutral-500">تومان</span>
                                             </div>
-                                            <div class="space-y-2">
-                                                <h3 class="text-2xl font-black text-neutral-900">مزایده این اثر پایان یافت</h3>
-                                                <p class="text-sm leading-7 text-neutral-600">
-                                                    این مزایده به پایان رسیده است و دیگر امکان ثبت پیشنهاد جدید برای این اثر وجود ندارد.
-                                                </p>
+                                        </div>
+                                        <div
+                                            class="rounded-xl bg-neutral-100/80 border border-neutral-200/60 p-3 space-y-2 text-xs">
+                                            <div class="flex items-center justify-between text-neutral-600 font-medium">
+                                                <span>مبلغ با احتساب ۱۰٪ مالیات:</span>
+                                                <span class="font-bold text-neutral-900">{{
+                                                    auction.final_price_with_tax|fa_price }} تومان</span>
                                             </div>
-                                            <div class="rounded-xl border border-white/70 bg-white/80 backdrop-blur-sm p-4 space-y-3.5">
-                                                <div>
-                                                    <span class="text-xs font-bold text-neutral-500">آخرین پیشنهاد ثبت‌شده (مبلغ خالص)</span>
-                                                    <div class="mt-2 flex items-baseline gap-1">
-                                                        <span class="text-3xl font-extrabold text-neutral-900">
-                                                            {{ auction.current_price|default:auction.base_price|fa_price }}
-                                                        </span>
-                                                        <span class="text-sm font-bold text-neutral-500">تومان</span>
-                                                    </div>
-                                                </div>
-                                                <div class="rounded-xl bg-neutral-100/80 border border-neutral-200/60 p-3 space-y-2 text-xs">
-                                                    <div class="flex items-center justify-between text-neutral-600 font-medium">
-                                                        <span>مبلغ با احتساب ۱۰٪ مالیات:</span>
-                                                        <span class="font-bold text-neutral-900">{{ auction.final_price_with_tax|fa_price }} تومان</span>
-                                                    </div>
-                                                </div>
-                                                {% if auction.price_description %}
-                                                    <div class="mt-1 text-[10px] font-medium text-neutral-400">
-                                                        {{ auction.price_description|fa_digits }}
-                                                    </div>
-                                                {% endif %}
-                                                <div class="border-t border-neutral-200 pt-3">
-                                                    <span class="text-xs font-bold text-neutral-500">وضعیت دسترسی</span>
-                                                    <div class="mt-2 text-sm font-bold text-neutral-700 leading-7">
-                                                        این صفحه برای مشاهده عمومی باز است و ثبت بید غیرفعال شده است.
-                                                    </div>
-                                                </div>
+                                        </div>
+                                        {% if auction.price_description %}
+                                        <div class="mt-1 text-[10px] font-medium text-neutral-400">
+                                            {{ auction.price_description|fa_digits }}
+                                        </div>
+                                        {% endif %}
+                                        <div class="border-t border-neutral-200 pt-3">
+                                            <span class="text-xs font-bold text-neutral-500">وضعیت دسترسی</span>
+                                            <div class="mt-2 text-sm font-bold text-neutral-700 leading-7">
+                                                این صفحه برای مشاهده عمومی باز است و ثبت بید غیرفعال شده است.
                                             </div>
                                         </div>
                                     </div>
-                                {% endif %}
+                                </div>
+                            </div>
+                            {% endif %}
                             {% elif auction.auction.status == 'ready' %}
                             <div
                                 class="relative overflow-hidden rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 via-white to-blue-100 p-6 sm:p-7">
@@ -425,19 +451,17 @@
                                             مزایده</h3>
                                         <p class="text-sm leading-7 text-neutral-600">
                                             این اثر در حال حاضر در حالت پیش‌نمایش قرار دارد. ثبت پیشنهاد با آغاز رسمی
-                                             مزایده امکان‌پذیر خواهد بود.
+                                            مزایده امکان‌پذیر خواهد بود.
                                         </p>
                                     </div>
-                                    <div class="rounded-xl border border-white/70 bg-white/80 backdrop-blur-sm p-4 space-y-2">
+                                    <div
+                                        class="rounded-xl border border-white/70 bg-white/80 backdrop-blur-sm p-4 space-y-2">
                                         <span class="text-xs font-bold text-neutral-500">قیمت پایه (خالص)</span>
                                         <div class="flex items-baseline gap-1">
                                             <span class="text-3xl font-extrabold text-neutral-900">
                                                 {{ auction.current_price|default:auction.base_price|fa_price }}
                                             </span>
                                             <span class="text-sm font-bold text-neutral-500">تومان</span>
-                                        </div>
-                                        <div class="text-xs text-neutral-500 pt-1">
-                                            مبلغ با احتساب ۱۰٪ مالیات: <span class="font-bold text-neutral-800">{{ auction.final_price_with_tax|fa_price }} تومان</span>
                                         </div>
                                     </div>
                                     <div
@@ -452,7 +476,8 @@
                             <div class="space-y-3 text-center sm:text-right">
                                 <div class="flex justify-between items-center">
                                     <span
-                                        class="text-sm text-neutral-500 font-bold bg-neutral-100 px-2 py-1 rounded">آخرین پیشنهاد (خالص)</span>
+                                        class="text-sm text-neutral-500 font-bold bg-neutral-100 px-2 py-1 rounded">آخرین
+                                        پیشنهاد (خالص)</span>
                                     <span
                                         class="dir-ltr inline-flex items-center gap-1 rounded-lg bg-neutral-100 px-3 py-1.5 text-sm font-extrabold text-neutral-800 border border-neutral-200">
                                         قیمت پایه: {{ auction.base_price|fa_price }}
@@ -465,71 +490,43 @@
                                     </span>
                                     <span class="text-lg font-bold text-neutral-500 mt-1.5">تومان</span>
                                 </div>
-                                <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
-                                    <div class="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 border border-amber-200/80 px-3 py-1.5 text-xs text-amber-900">
-                                        <span class="material-symbols-outlined text-[15px] text-amber-600">receipt_long</span>
-                                        <span class="font-medium">مبلغ با احتساب ۱۰٪ مالیات:</span>
-                                        <span class="font-extrabold" id="current-total-with-tax-text">{{ auction.final_price_with_tax|fa_price }}</span>
-                                        <span class="text-[10px] font-bold">تومان</span>
-                                    </div>
-                                    <div class="text-[11px] text-neutral-400">
-                                        ۱۰٪ مالیات: <span id="current-tax-text">{{ auction.tax_amount|fa_price }}</span> تومان
-                                    </div>
-                                </div>
                             </div>
 
-                            <!-- باکس کنترل گام و افزایش -->
-                            <div class="bg-neutral-50 rounded-xl p-5 border border-neutral-100">
-                                <!-- ردیف اطلاعات گام -->
-                                <div
-                                    class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 border-b border-neutral-200 pb-4">
-                                    <span class="text-xs font-bold text-neutral-500 flex items-center gap-1">
-                                        <span class="material-symbols-outlined text-[16px]">trending_up</span>
-                                        میزان افزایش هر گام:
+                            <!-- باکس اطلاعات پیشنهاد بعدی بر اساس پله‌های افزایش -->
+                            <div class="bg-neutral-50 rounded-xl p-5 border border-neutral-100 space-y-4">
+                                <div class="flex items-center justify-between text-xs text-neutral-600">
+                                    <span class="font-bold flex items-center gap-1.5">
+                                        <span
+                                            class="material-symbols-outlined text-[18px] text-primary">trending_up</span>
+                                        افزایش هر پیشنهاد در این پله:
                                     </span>
                                     <span
-                                        class="text-sm font-bold text-neutral-900 bg-white border border-neutral-200 px-3 py-1 rounded-md shadow-sm">
-                                        {{ auction.bid_value|floatformat:"-2"|fa_digits }}٪ از مبلغ فعلی
+                                        class="text-sm font-extrabold text-neutral-900 bg-white border border-neutral-200 px-3 py-1 rounded-md shadow-sm"
+                                        id="step-increment-text">
+                                        {{ auction.get_current_step_increment|fa_price }} تومان
                                     </span>
                                 </div>
-
-                                <!-- کنترل تعداد گام -->
-                                <div class="flex items-center justify-between gap-4">
-                                    <label for="step-input"
-                                        class="text-sm font-bold text-neutral-700 whitespace-nowrap">تعداد گام
-                                        پیشنهادی:</label>
-                                    <div class="step-input-group-bold">
-                                        <button type="button" id="step-minus" class="step-btn-bold">−</button>
-                                        <input type="number" id="step-input" name="step" value="1" min="1" max="100"
-                                            class="step-input-bold">
-                                        <button type="button" id="step-plus" class="step-btn-bold">+</button>
-                                    </div>
+                                <div
+                                    class="flex items-center justify-between border-t border-neutral-200/70 pt-3 text-neutral-800">
+                                    <span class="text-sm font-black flex items-center gap-1.5">
+                                        <span class="material-symbols-outlined text-[18px] text-primary">gavel</span>
+                                        مبلغ پیشنهاد بعدی شما:
+                                    </span>
+                                    <span class="text-xl sm:text-2xl font-black text-primary" id="final-bid-text">
+                                        {{ auction.get_min_next_bid|fa_price }} تومان
+                                    </span>
                                 </div>
                             </div>
 
-                            <!-- نمایش قیمت نهایی و دکمه -->
+                            <!-- دکمه ثبت پیشنهاد -->
                             <div class="space-y-3 pt-2">
-                                <div class="rounded-xl bg-neutral-50 border border-neutral-200/70 p-4 space-y-2.5">
-                                    <div class="flex items-center justify-between text-xs text-neutral-600">
-                                        <span class="font-bold">مبلغ پیشنهاد شما (خالص):</span>
-                                        <span class="text-base font-extrabold text-neutral-900" id="final-bid-text">-- تومان</span>
-                                    </div>
-                                    <div class="flex items-center justify-between text-xs text-neutral-500 border-t border-neutral-200/60 pt-2">
-                                        <span>۱۰٪ مالیات و ارزش افزوده:</span>
-                                        <span class="font-bold text-neutral-700" id="final-tax-text">-- تومان</span>
-                                    </div>
-                                    <div class="flex items-baseline justify-between border-t border-neutral-200/60 pt-2 text-primary">
-                                        <span class="text-sm font-black">مبلغ کل قابل پرداخت:</span>
-                                        <span class="text-xl sm:text-2xl font-black" id="final-bid-with-tax-text">-- تومان</span>
-                                    </div>
-                                </div>
-
                                 {% if user.is_authenticated %}
                                 <form method="post" action="{% url 'auction:place_bid' auction.pk %}" class="w-full"
                                     id="bid-submit-form">
                                     {% csrf_token %}
                                     <input type="hidden" name="next" value="{{ request.path }}" />
-                                    <input type="hidden" name="amount" id="bid-amount" value="" />
+                                    <input type="hidden" name="amount" id="bid-amount"
+                                        value="{{ auction.get_min_next_bid }}" />
                                     <button
                                         class="w-full bg-primary hover:bg-primary-dark text-white text-lg font-bold py-4 rounded-xl shadow-lg shadow-primary/30 transition-all flex items-center justify-center gap-2 transform active:scale-[0.98]"
                                         type="submit">
@@ -558,7 +555,8 @@
                             <!-- آکاردئون بیدهای کاربر -->
                             {% if user.is_authenticated %}
                             <div id="my-bid-history-container">
-                                {% include 'auction/partials/my_bid_history.html' with my_bids=my_bids my_bids_count=my_bids_count user=user %}
+                                {% include 'auction/partials/my_bid_history.html' with my_bids=my_bids
+                                my_bids_count=my_bids_count user=user %}
                             </div>
 
                             <style>
@@ -636,7 +634,8 @@
                             </summary>
                             <div class="text-secondary-text text-sm leading-7 mt-4 pl-4 font-medium">
                                 <ul class="list-disc pr-4 space-y-2 marker:text-primary">
-                                    <li>{{ auction.provenance|default:"اطلاعاتی در دسترس نیست."|linebreaksbr|fa_digits }}</li>
+                                    <li>{{ auction.provenance|default:"اطلاعاتی در دسترس نیست."|linebreaksbr|fa_digits
+                                        }}</li>
                                 </ul>
                             </div>
                         </details>
@@ -755,40 +754,27 @@
                         <span class="material-symbols-outlined text-[16px]">palette</span>
                         اثر:
                     </span>
-                    <span id="confirm-modal-title" class="font-bold text-neutral-800 dark:text-neutral-200 truncate max-w-[220px]">{% if auction.lot %}لات {{ auction.lot|fa_digits }} - {% endif %}{{ auction.title|fa_digits }}</span>
+                    <span id="confirm-modal-title"
+                        class="font-bold text-neutral-800 dark:text-neutral-200 truncate max-w-[220px]">{% if
+                        auction.lot %}لات {{ auction.lot|fa_digits }} - {% endif %}{{ auction.title|fa_digits }}</span>
                 </div>
 
                 <div
                     class="flex items-center justify-between text-xs text-neutral-500 dark:text-neutral-400 pb-2.5 border-b border-neutral-200/60 dark:border-zinc-700/60">
                     <span class="flex items-center gap-1.5">
-                        <span class="material-symbols-outlined text-[16px]">format_list_numbered</span>
-                        تعداد گام افزایش:
+                        <span class="material-symbols-outlined text-[16px] text-neutral-500">trending_up</span>
+                        افزایش در این پله:
                     </span>
-                    <span id="confirm-modal-steps" class="font-bold text-neutral-800 dark:text-neutral-200">۱ گام</span>
-                </div>
-
-                <div class="flex items-center justify-between text-xs text-neutral-600 dark:text-neutral-300 pb-2 border-b border-neutral-200/60 dark:border-zinc-700/60">
-                    <span class="flex items-center gap-1.5 font-bold">
-                        <span class="material-symbols-outlined text-[16px] text-primary">gavel</span>
-                        مبلغ پیشنهاد شما (خالص):
-                    </span>
-                    <span id="confirm-modal-amount" class="text-sm sm:text-base font-extrabold text-neutral-800 dark:text-neutral-200 dir-rtl">-- تومان</span>
-                </div>
-
-                <div class="flex items-center justify-between text-xs text-neutral-500 dark:text-neutral-400 pb-2 border-b border-neutral-200/60 dark:border-zinc-700/60">
-                    <span class="flex items-center gap-1.5">
-                        <span class="material-symbols-outlined text-[16px] text-amber-500">percent</span>
-                        ۱۰٪ مالیات و ارزش افزوده:
-                    </span>
-                    <span id="confirm-modal-tax" class="font-bold text-neutral-700 dark:text-neutral-300 dir-rtl">-- تومان</span>
+                    <span id="confirm-modal-increment" class="font-bold text-neutral-800 dark:text-neutral-200">{{
+                        auction.get_current_step_increment|fa_price }} تومان</span>
                 </div>
 
                 <div class="flex items-center justify-between pt-1 text-primary">
                     <span class="text-xs font-black flex items-center gap-1.5">
-                        <span class="material-symbols-outlined text-[16px]">payments</span>
-                        مبلغ کل قابل پرداخت:
+                        <span class="material-symbols-outlined text-[16px] text-primary">gavel</span>
+                        مبلغ پیشنهاد شما:
                     </span>
-                    <span id="confirm-modal-total" class="text-lg sm:text-xl font-black dir-rtl">-- تومان</span>
+                    <span id="confirm-modal-amount" class="text-lg sm:text-xl font-black dir-rtl">-- تومان</span>
                 </div>
             </div>
 
@@ -797,935 +783,880 @@
                 class="flex items-center gap-2 text-[11px] text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 rounded-xl px-3.5 py-2.5 mb-6 text-right">
                 <span
                     class="material-symbols-outlined text-base shrink-0 text-amber-600 dark:text-amber-400">info</span>
-                <span>ثبت پیشنهاد تعهدآور بوده و پس از ثبت نهایی، قابل انصراف نخواهد بود.</span>
-            </div>
+                <!-- <span>ثبت پیشنهاد تعهدآور بوده و پس از ثبت نهایی، قابل انصراف نخواهد بود.</span>
+            </div> -->
 
-            <!-- دکمه‌های عملیات -->
-            <div class="flex flex-col sm:flex-row gap-3">
-                <button type="button" id="btn-cancel-confirm-bid"
-                    class="flex-1 py-3.5 px-4 bg-neutral-100 hover:bg-neutral-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-neutral-700 dark:text-neutral-300 font-bold rounded-xl text-sm transition-all cursor-pointer">
-                    انصراف
-                </button>
-                <button type="button" id="btn-execute-bid-submit"
-                    class="flex-1 py-3.5 px-4 bg-primary hover:bg-primary-dark text-white font-bold rounded-xl text-sm transition-all shadow-md shadow-primary/30 flex items-center justify-center gap-2 transform active:scale-[0.98] cursor-pointer">
-                    <span class="material-symbols-outlined text-lg">check_circle</span>
-                    <span>بله، ثبت پیشنهاد</span>
-                </button>
+                <!-- دکمه‌های عملیات -->
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <button type="button" id="btn-cancel-confirm-bid"
+                        class="flex-1 py-3.5 px-4 bg-neutral-100 hover:bg-neutral-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-neutral-700 dark:text-neutral-300 font-bold rounded-xl text-sm transition-all cursor-pointer">
+                        انصراف
+                    </button>
+                    <button type="button" id="btn-execute-bid-submit"
+                        class="flex-1 py-3.5 px-4 bg-primary hover:bg-primary-dark text-white font-bold rounded-xl text-sm transition-all shadow-md shadow-primary/30 flex items-center justify-center gap-2 transform active:scale-[0.98] cursor-pointer">
+                        <span class="material-symbols-outlined text-lg">check_circle</span>
+                        <span>بله، ثبت پیشنهاد</span>
+                    </button>
+                </div>
             </div>
         </div>
-    </div>
 
-    {% endblock %}
-
+        {% endblock %}
 
 
-    {% block extra_js %}
-    <script>
-        // ------------------------------------------------------------------
-        // تابع مرجع برای فارسی‌سازی اعداد در جاوا اسکریپت (معادل فیلتر fa_digits در جنگو)
-        // ------------------------------------------------------------------
-        const toPersianNum = (value) => {
-            if (value === null || value === undefined) return '';
-            return String(value).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[d]);
-        };
 
-        // ------------------------------------------------------------------
-        // بخش ۱: رفع مشکل کش شدن در صورت بازگشت کاربر از صفحات دیگر
-        // ------------------------------------------------------------------
-        window.addEventListener('pageshow', function (event) {
-            const dirtyInput = document.getElementById('page_is_dirty');
-
-            if (false) {
-                // Disabled location.replace
-            } else if (dirtyInput) {
-                dirtyInput.value = '1';
-            }
-        });
-
-        // ------------------------------------------------------------------
-        // بخش ۲: فرم ثبت بید و منطق مودال افزایش اعتبار
-        // ------------------------------------------------------------------
-        document.addEventListener('DOMContentLoaded', function () {
-            const productAuctionNotifications = {
-                requestSubmitError: window.getNotificationMessage('common.request_submit_error'),
-                serverCommunicationError: window.getNotificationMessage('common.server_communication_error'),
-                genericBidError: window.getNotificationMessage('auction.generic_error')
+        {% block extra_js %}
+        <script>
+            // ------------------------------------------------------------------
+            // تابع مرجع برای فارسی‌سازی اعداد در جاوا اسکریپت (معادل فیلتر fa_digits در جنگو)
+            // ------------------------------------------------------------------
+            const toPersianNum = (value) => {
+                if (value === null || value === undefined) return '';
+                return String(value).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[d]);
             };
-            const bidForm = document.getElementById('bid-submit-form');
-            const alertBox = document.getElementById('bid-alert');
-            const alertMessage = document.getElementById('bid-alert-message');
-            const alertAction = document.getElementById('bid-alert-action');
-            const bidCountEl = document.getElementById('bid-count-number');
-            const currentPriceEl = document.getElementById('current-price-text');
-            const currentTotalWithTaxEl = document.getElementById('current-total-with-tax-text');
-            const currentTaxEl = document.getElementById('current-tax-text');
-            const bidCalcBox = document.getElementById('bid-calc');
-            const creditRequestStatus = document.getElementById('credit-request-status');
-            const liveConfig = document.getElementById('auction-live-config');
-            const myBidHistoryContainer = document.getElementById('my-bid-history-container');
-            let liveSocket = null;
-            let livePollingTimer = null;
-            let reconnectTimer = null;
 
-            // المان‌های مربوط به مودال افزایش اعتبار
-            const creditModal = document.getElementById('credit-modal');
-            const creditModalBox = document.getElementById('credit-modal-box');
-            const creditModalContent = document.getElementById('credit-modal-content');
-            const creditModalSuccess = document.getElementById('credit-modal-success');
-            const btnSubmitCredit = document.getElementById('btn-submit-credit-request');
-            const btnCloseModalIcon = document.getElementById('btn-close-modal-icon');
-            const btnProfileLink = document.getElementById('btn-profile-link');
-            const msgSuccessEl = document.getElementById('credit-success-message');
+            // ------------------------------------------------------------------
+            // بخش ۱: رفع مشکل کش شدن در صورت بازگشت کاربر از صفحات دیگر
+            // ------------------------------------------------------------------
+            window.addEventListener('pageshow', function (event) {
+                const dirtyInput = document.getElementById('page_is_dirty');
 
-            // المان‌های مربوط به مودال تأیید ثبت بید
-            const confirmBidModal = document.getElementById('confirm-bid-modal');
-            const confirmBidModalBox = document.getElementById('confirm-bid-modal-box');
-            const confirmModalAmount = document.getElementById('confirm-modal-amount');
-            const confirmModalTax = document.getElementById('confirm-modal-tax');
-            const confirmModalTotal = document.getElementById('confirm-modal-total');
-            const confirmModalSteps = document.getElementById('confirm-modal-steps');
-            const confirmModalTitle = document.getElementById('confirm-modal-title');
-            const btnCloseConfirmBidModal = document.getElementById('btn-close-confirm-bid-modal');
-            const btnCancelConfirmBid = document.getElementById('btn-cancel-confirm-bid');
-            const btnExecuteBidSubmit = document.getElementById('btn-execute-bid-submit');
-
-            function getLatestCreditRequestStatus() {
-                return String(creditRequestStatus?.dataset.status ?? '').trim();
-            }
-
-            function formatFaNumber(value) {
-                try {
-                    return Number(value).toLocaleString('fa-IR').replace(/٬/g, ',');
-                } catch {
-                    return toPersianNum(String(value));
+                if (false) {
+                    // Disabled location.replace
+                } else if (dirtyInput) {
+                    dirtyInput.value = '1';
                 }
-            }
+            });
 
-            function applyLiveBidState(data) {
-                if (!data) return;
+            // ------------------------------------------------------------------
+            // بخش ۲: فرم ثبت بید و منطق مودال افزایش اعتبار
+            // ------------------------------------------------------------------
+            document.addEventListener('DOMContentLoaded', function () {
+                const productAuctionNotifications = {
+                    requestSubmitError: window.getNotificationMessage('common.request_submit_error'),
+                    serverCommunicationError: window.getNotificationMessage('common.server_communication_error'),
+                    genericBidError: window.getNotificationMessage('auction.generic_error')
+                };
+                const bidForm = document.getElementById('bid-submit-form');
+                const alertBox = document.getElementById('bid-alert');
+                const alertMessage = document.getElementById('bid-alert-message');
+                const alertAction = document.getElementById('bid-alert-action');
+                const bidCountEl = document.getElementById('bid-count-number');
+                const currentPriceEl = document.getElementById('current-price-text');
+                const currentTotalWithTaxEl = document.getElementById('current-total-with-tax-text');
+                const currentTaxEl = document.getElementById('current-tax-text');
+                const bidCalcBox = document.getElementById('bid-calc');
+                const creditRequestStatus = document.getElementById('credit-request-status');
+                const liveConfig = document.getElementById('auction-live-config');
+                const myBidHistoryContainer = document.getElementById('my-bid-history-container');
+                let liveSocket = null;
+                let livePollingTimer = null;
+                let reconnectTimer = null;
 
-                if (typeof data.current_price !== 'undefined' && currentPriceEl) {
-                    currentPriceEl.textContent = formatFaNumber(data.current_price);
-                }
+                // المان‌های مربوط به مودال افزایش اعتبار
+                const creditModal = document.getElementById('credit-modal');
+                const creditModalBox = document.getElementById('credit-modal-box');
+                const creditModalContent = document.getElementById('credit-modal-content');
+                const creditModalSuccess = document.getElementById('credit-modal-success');
+                const btnSubmitCredit = document.getElementById('btn-submit-credit-request');
+                const btnCloseModalIcon = document.getElementById('btn-close-modal-icon');
+                const btnProfileLink = document.getElementById('btn-profile-link');
+                const msgSuccessEl = document.getElementById('credit-success-message');
 
-                const currentPrice = typeof data.current_price !== 'undefined' ? Number(data.current_price) : Number(bidCalcBox?.dataset.currentPrice || 0);
-                const taxAmount = typeof data.tax_amount !== 'undefined' ? Number(data.tax_amount) : Math.ceil(currentPrice * 0.10);
-                const totalWithTax = typeof data.total_with_tax !== 'undefined' ? Number(data.total_with_tax) : (currentPrice + taxAmount);
+                // المان‌های مربوط به مودال تأیید ثبت بید
+                const confirmBidModal = document.getElementById('confirm-bid-modal');
+                const confirmBidModalBox = document.getElementById('confirm-bid-modal-box');
+                const confirmModalAmount = document.getElementById('confirm-modal-amount');
+                const confirmModalIncrement = document.getElementById('confirm-modal-increment');
+                const confirmModalTitle = document.getElementById('confirm-modal-title');
+                const btnCloseConfirmBidModal = document.getElementById('btn-close-confirm-bid-modal');
+                const btnCancelConfirmBid = document.getElementById('btn-cancel-confirm-bid');
+                const btnExecuteBidSubmit = document.getElementById('btn-execute-bid-submit');
 
-                if (currentTotalWithTaxEl) {
-                    currentTotalWithTaxEl.textContent = formatFaNumber(totalWithTax);
-                }
-                if (currentTaxEl) {
-                    currentTaxEl.textContent = formatFaNumber(taxAmount);
+                function getLatestCreditRequestStatus() {
+                    return String(creditRequestStatus?.dataset.status ?? '').trim();
                 }
 
-                if (bidCalcBox) {
-                    if (typeof data.current_price !== 'undefined') {
-                        bidCalcBox.dataset.currentPrice = String(data.current_price);
-                    }
-                    bidCalcBox.dataset.taxAmount = String(taxAmount);
-                    bidCalcBox.dataset.totalWithTax = String(totalWithTax);
-                    if (typeof data.min_next_bid !== 'undefined') {
-                        bidCalcBox.dataset.minNext = String(data.min_next_bid);
-                    }
-                }
-
-                if (bidCountEl && typeof data.bid_count !== 'undefined') {
-                    bidCountEl.textContent = formatFaNumber(data.bid_count);
-                }
-
-                if (myBidHistoryContainer && typeof data.my_bids_html === 'string') {
-                    const detailsEl = myBidHistoryContainer.querySelector('details');
-                    const wasOpen = Boolean(detailsEl && detailsEl.open);
-                    myBidHistoryContainer.innerHTML = data.my_bids_html;
-                    const updatedDetailsEl = myBidHistoryContainer.querySelector('details');
-                    if (updatedDetailsEl && wasOpen) {
-                        updatedDetailsEl.open = true;
-                    }
-                }
-
-                if (window.recalcBid) {
-                    window.recalcBid();
-                } else {
-                    try { recalcBid(); } catch { }
-                }
-            }
-
-            function stopLivePolling() {
-                if (!livePollingTimer) return;
-                window.clearInterval(livePollingTimer);
-                livePollingTimer = null;
-            }
-
-            function fetchLiveState() {
-                const liveStateUrl = liveConfig?.dataset.liveStateUrl;
-                if (!liveStateUrl) return;
-
-                fetch(liveStateUrl, {
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                })
-                    .then((res) => res.json())
-                    .then((data) => {
-                        if (data && data.success) {
-                            applyLiveBidState(data);
-                        }
-                    })
-                    .catch((err) => {
-                        console.error('خطا در دریافت وضعیت زنده مزایده:', err);
-                    });
-            }
-
-            function startLivePolling() {
-                if (livePollingTimer) return;
-                fetchLiveState();
-                livePollingTimer = window.setInterval(fetchLiveState, 5000);
-            }
-
-            function connectLiveUpdates() {
-                const productId = liveConfig?.dataset.productId;
-                if (!productId) return;
-
-                if (!('WebSocket' in window)) {
-                    startLivePolling();
-                    return;
-                }
-
-                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-                const socketUrl = `${protocol}//${window.location.host}/ws/auction/product/${productId}/`;
-
-                liveSocket = new WebSocket(socketUrl);
-
-                liveSocket.addEventListener('open', function () {
-                    stopLivePolling();
-                });
-
-                liveSocket.addEventListener('message', function (event) {
+                function formatFaNumber(value) {
                     try {
-                        const data = JSON.parse(event.data);
-                        applyLiveBidState(data.payload || data);
-                    } catch (err) {
-                        console.error('خطا در پردازش پیام زنده مزایده:', err);
-                    }
-                });
-
-                liveSocket.addEventListener('error', function () {
-                    if (liveSocket) {
-                        liveSocket.close();
-                    }
-                });
-
-                liveSocket.addEventListener('close', function () {
-                    startLivePolling();
-                    if (reconnectTimer) {
-                        window.clearTimeout(reconnectTimer);
-                    }
-                    reconnectTimer = window.setTimeout(connectLiveUpdates, 3000);
-                });
-            }
-
-            function openCreditModal(state = null) {
-                if (!creditModal) return;
-
-                const effectiveState = state || (getLatestCreditRequestStatus() === '0' ? 'pending' : 'request');
-
-                if (effectiveState === 'pending') {
-                    if (creditModalContent) {
-                        creditModalContent.classList.remove('block');
-                        creditModalContent.classList.add('hidden');
-                    }
-                    if (creditModalSuccess) {
-                        creditModalSuccess.classList.remove('hidden');
-                        creditModalSuccess.classList.add('block');
-                    }
-                } else {
-                    if (creditModalContent) {
-                        creditModalContent.classList.remove('hidden');
-                        creditModalContent.classList.add('block');
-                    }
-                    if (creditModalSuccess) {
-                        creditModalSuccess.classList.remove('block');
-                        creditModalSuccess.classList.add('hidden');
+                        return Number(value).toLocaleString('fa-IR').replace(/٬/g, ',');
+                    } catch {
+                        return toPersianNum(String(value));
                     }
                 }
 
-                // نمایش بک‌گراند مودال
-                creditModal.classList.remove('opacity-0', 'pointer-events-none');
-                creditModal.classList.add('opacity-100');
+                function applyLiveBidState(data) {
+                    if (!data) return;
 
-                // افکت اسکیل برای باکس داخلی
-                setTimeout(() => {
-                    if (creditModalBox) {
-                        creditModalBox.classList.remove('scale-95');
-                        creditModalBox.classList.add('scale-100');
+                    if (typeof data.current_price !== 'undefined' && currentPriceEl) {
+                        currentPriceEl.textContent = formatFaNumber(data.current_price);
                     }
-                }, 10);
 
-                document.body.style.overflow = 'hidden';
-            }
+                    const currentPrice = typeof data.current_price !== 'undefined' ? Number(data.current_price) : Number(bidCalcBox?.dataset.currentPrice || 0);
+                    const taxAmount = typeof data.tax_amount !== 'undefined' ? Number(data.tax_amount) : Math.ceil(currentPrice * 0.10);
+                    const totalWithTax = typeof data.total_with_tax !== 'undefined' ? Number(data.total_with_tax) : (currentPrice + taxAmount);
 
-            // تابع بستن مودال اعتبار
-            function closeCreditModal() {
-                if (!creditModal) return;
-
-                // افکت اسکیل خروج برای باکس داخلی
-                if (creditModalBox) {
-                    creditModalBox.classList.remove('scale-100');
-                    creditModalBox.classList.add('scale-95');
-                }
-
-                creditModal.classList.remove('opacity-100');
-                creditModal.classList.add('opacity-0', 'pointer-events-none');
-                document.body.style.overflow = '';
-            }
-
-            // اتصال رویداد کلیک به دکمه ضربدر
-            if (btnCloseModalIcon) {
-                btnCloseModalIcon.addEventListener('click', closeCreditModal);
-            }
-
-            // بستن مودال با کلیک روی پس‌زمینه
-            if (creditModal) {
-                creditModal.addEventListener('click', function (e) {
-                    if (e.target === this) {
-                        closeCreditModal();
+                    if (currentTotalWithTaxEl) {
+                        currentTotalWithTaxEl.textContent = formatFaNumber(totalWithTax);
                     }
-                });
-            }
+                    if (currentTaxEl) {
+                        currentTaxEl.textContent = formatFaNumber(taxAmount);
+                    }
 
-            // رویداد ثبت درخواست افزایش اعتبار (AJAX)
-            if (btnSubmitCredit && creditModal) {
-                btnSubmitCredit.addEventListener('click', function () {
-                    const url = creditModal.getAttribute('data-credit-url');
-                    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-
-                    const originalText = btnSubmitCredit.innerHTML;
-                    btnSubmitCredit.innerHTML = '<span class="material-symbols-outlined animate-spin-custom text-lg">sync</span> در حال ثبت...';
-                    btnSubmitCredit.disabled = true;
-
-                    fetch(url, {
-                        method: 'POST',
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'X-CSRFToken': csrfToken,
-                            'Content-Type': 'application/json'
+                    if (bidCalcBox) {
+                        if (typeof data.current_price !== 'undefined') {
+                            bidCalcBox.dataset.currentPrice = String(data.current_price);
                         }
+                        bidCalcBox.dataset.taxAmount = String(taxAmount);
+                        bidCalcBox.dataset.totalWithTax = String(totalWithTax);
+                        if (typeof data.min_next_bid !== 'undefined') {
+                            bidCalcBox.dataset.minNext = String(data.min_next_bid);
+                        }
+                        if (typeof data.step_increment !== 'undefined') {
+                            bidCalcBox.dataset.stepIncrement = String(data.step_increment);
+                        }
+                    }
+
+                    if (bidCountEl && typeof data.bid_count !== 'undefined') {
+                        bidCountEl.textContent = formatFaNumber(data.bid_count);
+                    }
+
+                    if (myBidHistoryContainer && typeof data.my_bids_html === 'string') {
+                        const detailsEl = myBidHistoryContainer.querySelector('details');
+                        const wasOpen = Boolean(detailsEl && detailsEl.open);
+                        myBidHistoryContainer.innerHTML = data.my_bids_html;
+                        const updatedDetailsEl = myBidHistoryContainer.querySelector('details');
+                        if (updatedDetailsEl && wasOpen) {
+                            updatedDetailsEl.open = true;
+                        }
+                    }
+
+                    if (window.recalcBid) {
+                        window.recalcBid();
+                    } else {
+                        try { recalcBid(); } catch { }
+                    }
+                }
+
+                function stopLivePolling() {
+                    if (!livePollingTimer) return;
+                    window.clearInterval(livePollingTimer);
+                    livePollingTimer = null;
+                }
+
+                function fetchLiveState() {
+                    const liveStateUrl = liveConfig?.dataset.liveStateUrl;
+                    if (!liveStateUrl) return;
+
+                    fetch(liveStateUrl, {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
                     })
-                        .then(res => res.json())
-                        .then(data => {
-                            btnSubmitCredit.innerHTML = originalText;
-                            btnSubmitCredit.disabled = false;
-
-                            if (data.success) {
-                                if (creditRequestStatus) {
-                                    creditRequestStatus.dataset.status = '0';
-                                }
-
-                                creditModalContent.classList.remove('block');
-                                creditModalContent.classList.add('hidden');
-
-                                creditModalSuccess.classList.remove('hidden');
-                                creditModalSuccess.classList.add('block');
-
-                                if (btnProfileLink && data.profile_url) {
-                                    btnProfileLink.href = data.profile_url;
-                                }
-                            }
-                        })
-                        .catch(err => {
-                            console.error('Error submitting credit request:', err);
-                            btnSubmitCredit.innerHTML = originalText;
-                            btnSubmitCredit.disabled = false;
-                            // alert(window.getNotificationMessage('common.server_retry_error'));
-                        });
-                });
-            }
-
-            if (alertAction) {
-                alertAction.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    openCreditModal(getLatestCreditRequestStatus() === '0' ? 'pending' : 'request');
-                });
-            }
-
-            // توابع باز و بسته کردن مودال تأیید بید
-            function openConfirmBidModal() {
-                if (!confirmBidModal) return;
-
-                if (confirmModalAmount && finalBidText) {
-                    confirmModalAmount.textContent = finalBidText.textContent;
-                }
-                const finalTaxEl = document.getElementById('final-tax-text');
-                const finalTotalEl = document.getElementById('final-bid-with-tax-text');
-                if (confirmModalTax && finalTaxEl) {
-                    confirmModalTax.textContent = finalTaxEl.textContent;
-                }
-                if (confirmModalTotal && finalTotalEl) {
-                    confirmModalTotal.textContent = finalTotalEl.textContent;
-                }
-                if (confirmModalSteps && stepInput) {
-                    const stepsVal = parseInt(stepInput.value) || 1;
-                    confirmModalSteps.textContent = toPersianNum(stepsVal) + ' گام';
-                }
-                if (confirmModalTitle && (!confirmModalTitle.textContent || !confirmModalTitle.textContent.trim())) {
-                    const h1Title = document.querySelector('h1');
-                    if (h1Title) {
-                        confirmModalTitle.textContent = h1Title.textContent.replace(/\s+/g, ' ').trim();
-                    }
-                }
-
-                confirmBidModal.classList.remove('opacity-0', 'pointer-events-none');
-                confirmBidModal.classList.add('opacity-100');
-
-                setTimeout(() => {
-                    if (confirmBidModalBox) {
-                        confirmBidModalBox.classList.remove('scale-95');
-                        confirmBidModalBox.classList.add('scale-100');
-                    }
-                }, 10);
-
-                document.body.style.overflow = 'hidden';
-            }
-
-            function closeConfirmBidModal() {
-                if (!confirmBidModal) return;
-
-                if (confirmBidModalBox) {
-                    confirmBidModalBox.classList.remove('scale-100');
-                    confirmBidModalBox.classList.add('scale-95');
-                }
-
-                confirmBidModal.classList.remove('opacity-100');
-                confirmBidModal.classList.add('opacity-0', 'pointer-events-none');
-                document.body.style.overflow = '';
-            }
-
-            window.closeConfirmBidModal = closeConfirmBidModal;
-            window.closeCreditModal = closeCreditModal;
-
-            if (btnCloseConfirmBidModal) {
-                btnCloseConfirmBidModal.addEventListener('click', closeConfirmBidModal);
-            }
-
-            if (btnCancelConfirmBid) {
-                btnCancelConfirmBid.addEventListener('click', closeConfirmBidModal);
-            }
-
-            if (confirmBidModal) {
-                confirmBidModal.addEventListener('click', function (e) {
-                    if (e.target === this) {
-                        closeConfirmBidModal();
-                    }
-                });
-            }
-
-            // ثبت فرم بید (ابتدا بررسی وضعیت درخواست، سپس باز شدن مودال تأیید)
-            if (bidForm) {
-                bidForm.addEventListener('submit', function (e) {
-                    e.preventDefault();
-                    if (getLatestCreditRequestStatus() === '0') {
-                        openCreditModal('pending');
-                        return;
-                    }
-                    openConfirmBidModal();
-                });
-            }
-
-            if (btnExecuteBidSubmit && bidForm) {
-                btnExecuteBidSubmit.addEventListener('click', function () {
-                    if (getLatestCreditRequestStatus() === '0') {
-                        closeConfirmBidModal();
-                        openCreditModal('pending');
-                        return;
-                    }
-
-                    const originalBtnHtml = btnExecuteBidSubmit.innerHTML;
-                    btnExecuteBidSubmit.innerHTML = '<span class="material-symbols-outlined animate-spin-custom text-lg">sync</span> در حال ثبت...';
-                    btnExecuteBidSubmit.disabled = true;
-                    if (btnCancelConfirmBid) btnCancelConfirmBid.disabled = true;
-                    if (btnCloseConfirmBidModal) btnCloseConfirmBidModal.disabled = true;
-
-                    const formSubmitBtn = bidForm.querySelector('button[type="submit"]');
-                    if (formSubmitBtn) {
-                        formSubmitBtn.innerHTML = '<span class="material-symbols-outlined animate-spin-custom">sync</span> در حال ثبت...';
-                        formSubmitBtn.disabled = true;
-                        formSubmitBtn.classList.add('opacity-75', 'cursor-not-allowed');
-                    }
-
-                    const formData = new FormData(bidForm);
-
-                    fetch(bidForm.action, {
-                        method: 'POST',
-                        body: formData,
-                        headers: { 'x-requested-with': 'XMLHttpRequest' }
-                    })
-                        .then(async (res) => {
-                            let data = null;
-                            try {
-                                data = await res.json();
-                            } catch {
-                                data = { success: false, message: productAuctionNotifications.serverCommunicationError };
-                            }
-
-                            // ریست وضعیت دکمه‌های مودال و فرم
-                            btnExecuteBidSubmit.innerHTML = originalBtnHtml;
-                            btnExecuteBidSubmit.disabled = false;
-                            if (btnCancelConfirmBid) btnCancelConfirmBid.disabled = false;
-                            if (btnCloseConfirmBidModal) btnCloseConfirmBidModal.disabled = false;
-
-                            if (formSubmitBtn) {
-                                formSubmitBtn.innerHTML = '<span class="material-symbols-outlined">gavel</span> ثبت نهایی پیشنهاد';
-                                formSubmitBtn.disabled = false;
-                                formSubmitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
-                            }
-
-                            closeConfirmBidModal();
-
+                        .then((res) => res.json())
+                        .then((data) => {
                             if (data && data.success) {
-                                if (alertBox) alertBox.classList.add('hidden');
                                 applyLiveBidState(data);
-                                return;
-                            }
-
-                            if (data && (data.needs_credit_increase || (data.message && data.message.includes('انتظار')))) {
-                                const targetState = data.credit_request_state || ((data.message && data.message.includes('انتظار')) ? 'pending' : 'request');
-                                openCreditModal(targetState);
-                                if (alertBox) alertBox.classList.add('hidden');
-                                return;
-                            }
-
-                            if (alertBox && alertMessage) {
-                                alertBox.classList.remove('hidden');
-                                alertBox.classList.remove('border-green-500/30', 'bg-green-500/10');
-                                alertBox.classList.add('border-red-500/30', 'bg-red-500/10');
-                                alertMessage.classList.remove('text-green-200');
-                                alertMessage.classList.add('text-red-200');
-                                alertMessage.textContent = (data && data.message) ? data.message : productAuctionNotifications.genericBidError;
-                            }
-
-                            if (alertAction) {
-                                const href = data && data.credit_increase_url ? data.credit_increase_url : '';
-                                if (href) {
-                                    alertAction.href = href;
-                                    alertAction.classList.remove('hidden');
-                                } else if (data && data.needs_credit_increase) {
-                                    alertAction.href = '#';
-                                    alertAction.classList.remove('hidden');
-                                } else {
-                                    alertAction.classList.add('hidden');
-                                    alertAction.removeAttribute('href');
-                                }
                             }
                         })
                         .catch((err) => {
-                            console.error('خطا در ثبت پیشنهاد:', err);
-                            btnExecuteBidSubmit.innerHTML = originalBtnHtml;
-                            btnExecuteBidSubmit.disabled = false;
-                            if (btnCancelConfirmBid) btnCancelConfirmBid.disabled = false;
-                            if (btnCloseConfirmBidModal) btnCloseConfirmBidModal.disabled = false;
-
-                            if (formSubmitBtn) {
-                                formSubmitBtn.innerHTML = '<span class="material-symbols-outlined">gavel</span> ثبت نهایی پیشنهاد';
-                                formSubmitBtn.disabled = false;
-                                formSubmitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
-                            }
-
-                            closeConfirmBidModal();
-
-                            if (alertBox && alertMessage) {
-                                alertBox.classList.remove('hidden');
-                                alertBox.classList.add('border-red-500/30', 'bg-red-500/10');
-                                alertMessage.classList.add('text-red-200');
-                                alertMessage.textContent = productAuctionNotifications.serverCommunicationError;
-                            }
+                            console.error('خطا در دریافت وضعیت زنده مزایده:', err);
                         });
+                }
+
+                function startLivePolling() {
+                    if (livePollingTimer) return;
+                    fetchLiveState();
+                    livePollingTimer = window.setInterval(fetchLiveState, 5000);
+                }
+
+                function connectLiveUpdates() {
+                    const productId = liveConfig?.dataset.productId;
+                    if (!productId) return;
+
+                    if (!('WebSocket' in window)) {
+                        startLivePolling();
+                        return;
+                    }
+
+                    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                    const socketUrl = `${protocol}//${window.location.host}/ws/auction/product/${productId}/`;
+
+                    liveSocket = new WebSocket(socketUrl);
+
+                    liveSocket.addEventListener('open', function () {
+                        stopLivePolling();
+                    });
+
+                    liveSocket.addEventListener('message', function (event) {
+                        try {
+                            const data = JSON.parse(event.data);
+                            applyLiveBidState(data.payload || data);
+                        } catch (err) {
+                            console.error('خطا در پردازش پیام زنده مزایده:', err);
+                        }
+                    });
+
+                    liveSocket.addEventListener('error', function () {
+                        if (liveSocket) {
+                            liveSocket.close();
+                        }
+                    });
+
+                    liveSocket.addEventListener('close', function () {
+                        startLivePolling();
+                        if (reconnectTimer) {
+                            window.clearTimeout(reconnectTimer);
+                        }
+                        reconnectTimer = window.setTimeout(connectLiveUpdates, 3000);
+                    });
+                }
+
+                function openCreditModal(state = null) {
+                    if (!creditModal) return;
+
+                    const effectiveState = state || (getLatestCreditRequestStatus() === '0' ? 'pending' : 'request');
+
+                    if (effectiveState === 'pending') {
+                        if (creditModalContent) {
+                            creditModalContent.classList.remove('block');
+                            creditModalContent.classList.add('hidden');
+                        }
+                        if (creditModalSuccess) {
+                            creditModalSuccess.classList.remove('hidden');
+                            creditModalSuccess.classList.add('block');
+                        }
+                    } else {
+                        if (creditModalContent) {
+                            creditModalContent.classList.remove('hidden');
+                            creditModalContent.classList.add('block');
+                        }
+                        if (creditModalSuccess) {
+                            creditModalSuccess.classList.remove('block');
+                            creditModalSuccess.classList.add('hidden');
+                        }
+                    }
+
+                    // نمایش بک‌گراند مودال
+                    creditModal.classList.remove('opacity-0', 'pointer-events-none');
+                    creditModal.classList.add('opacity-100');
+
+                    // افکت اسکیل برای باکس داخلی
+                    setTimeout(() => {
+                        if (creditModalBox) {
+                            creditModalBox.classList.remove('scale-95');
+                            creditModalBox.classList.add('scale-100');
+                        }
+                    }, 10);
+
+                    document.body.style.overflow = 'hidden';
+                }
+
+                // تابع بستن مودال اعتبار
+                function closeCreditModal() {
+                    if (!creditModal) return;
+
+                    // افکت اسکیل خروج برای باکس داخلی
+                    if (creditModalBox) {
+                        creditModalBox.classList.remove('scale-100');
+                        creditModalBox.classList.add('scale-95');
+                    }
+
+                    creditModal.classList.remove('opacity-100');
+                    creditModal.classList.add('opacity-0', 'pointer-events-none');
+                    document.body.style.overflow = '';
+                }
+
+                // اتصال رویداد کلیک به دکمه ضربدر
+                if (btnCloseModalIcon) {
+                    btnCloseModalIcon.addEventListener('click', closeCreditModal);
+                }
+
+                // بستن مودال با کلیک روی پس‌زمینه
+                if (creditModal) {
+                    creditModal.addEventListener('click', function (e) {
+                        if (e.target === this) {
+                            closeCreditModal();
+                        }
+                    });
+                }
+
+                // رویداد ثبت درخواست افزایش اعتبار (AJAX)
+                if (btnSubmitCredit && creditModal) {
+                    btnSubmitCredit.addEventListener('click', function () {
+                        const url = creditModal.getAttribute('data-credit-url');
+                        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+                        const originalText = btnSubmitCredit.innerHTML;
+                        btnSubmitCredit.innerHTML = '<span class="material-symbols-outlined animate-spin-custom text-lg">sync</span> در حال ثبت...';
+                        btnSubmitCredit.disabled = true;
+
+                        fetch(url, {
+                            method: 'POST',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'X-CSRFToken': csrfToken,
+                                'Content-Type': 'application/json'
+                            }
+                        })
+                            .then(res => res.json())
+                            .then(data => {
+                                btnSubmitCredit.innerHTML = originalText;
+                                btnSubmitCredit.disabled = false;
+
+                                if (data.success) {
+                                    if (creditRequestStatus) {
+                                        creditRequestStatus.dataset.status = '0';
+                                    }
+
+                                    creditModalContent.classList.remove('block');
+                                    creditModalContent.classList.add('hidden');
+
+                                    creditModalSuccess.classList.remove('hidden');
+                                    creditModalSuccess.classList.add('block');
+
+                                    if (btnProfileLink && data.profile_url) {
+                                        btnProfileLink.href = data.profile_url;
+                                    }
+                                }
+                            })
+                            .catch(err => {
+                                console.error('Error submitting credit request:', err);
+                                btnSubmitCredit.innerHTML = originalText;
+                                btnSubmitCredit.disabled = false;
+                                // alert(window.getNotificationMessage('common.server_retry_error'));
+                            });
+                    });
+                }
+
+                if (alertAction) {
+                    alertAction.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        openCreditModal(getLatestCreditRequestStatus() === '0' ? 'pending' : 'request');
+                    });
+                }
+
+                // توابع باز و بسته کردن مودال تأیید بید
+                function openConfirmBidModal() {
+                    if (!confirmBidModal) return;
+
+                    if (confirmModalAmount && finalBidText) {
+                        confirmModalAmount.textContent = finalBidText.textContent;
+                    }
+                    const stepIncrementEl = document.getElementById('step-increment-text');
+                    if (confirmModalIncrement && stepIncrementEl) {
+                        confirmModalIncrement.textContent = stepIncrementEl.textContent;
+                    }
+                    if (confirmModalTitle && (!confirmModalTitle.textContent || !confirmModalTitle.textContent.trim())) {
+                        const h1Title = document.querySelector('h1');
+                        if (h1Title) {
+                            confirmModalTitle.textContent = h1Title.textContent.replace(/\s+/g, ' ').trim();
+                        }
+                    }
+
+                    confirmBidModal.classList.remove('opacity-0', 'pointer-events-none');
+                    confirmBidModal.classList.add('opacity-100');
+
+                    setTimeout(() => {
+                        if (confirmBidModalBox) {
+                            confirmBidModalBox.classList.remove('scale-95');
+                            confirmBidModalBox.classList.add('scale-100');
+                        }
+                    }, 10);
+
+                    document.body.style.overflow = 'hidden';
+                }
+
+                function closeConfirmBidModal() {
+                    if (!confirmBidModal) return;
+
+                    if (confirmBidModalBox) {
+                        confirmBidModalBox.classList.remove('scale-100');
+                        confirmBidModalBox.classList.add('scale-95');
+                    }
+
+                    confirmBidModal.classList.remove('opacity-100');
+                    confirmBidModal.classList.add('opacity-0', 'pointer-events-none');
+                    document.body.style.overflow = '';
+                }
+
+                window.closeConfirmBidModal = closeConfirmBidModal;
+                window.closeCreditModal = closeCreditModal;
+
+                if (btnCloseConfirmBidModal) {
+                    btnCloseConfirmBidModal.addEventListener('click', closeConfirmBidModal);
+                }
+
+                if (btnCancelConfirmBid) {
+                    btnCancelConfirmBid.addEventListener('click', closeConfirmBidModal);
+                }
+
+                if (confirmBidModal) {
+                    confirmBidModal.addEventListener('click', function (e) {
+                        if (e.target === this) {
+                            closeConfirmBidModal();
+                        }
+                    });
+                }
+
+                // ثبت فرم بید (ابتدا بررسی وضعیت درخواست، سپس باز شدن مودال تأیید)
+                if (bidForm) {
+                    bidForm.addEventListener('submit', function (e) {
+                        e.preventDefault();
+                        if (getLatestCreditRequestStatus() === '0') {
+                            openCreditModal('pending');
+                            return;
+                        }
+                        openConfirmBidModal();
+                    });
+                }
+
+                if (btnExecuteBidSubmit && bidForm) {
+                    btnExecuteBidSubmit.addEventListener('click', function () {
+                        if (getLatestCreditRequestStatus() === '0') {
+                            closeConfirmBidModal();
+                            openCreditModal('pending');
+                            return;
+                        }
+
+                        const originalBtnHtml = btnExecuteBidSubmit.innerHTML;
+                        btnExecuteBidSubmit.innerHTML = '<span class="material-symbols-outlined animate-spin-custom text-lg">sync</span> در حال ثبت...';
+                        btnExecuteBidSubmit.disabled = true;
+                        if (btnCancelConfirmBid) btnCancelConfirmBid.disabled = true;
+                        if (btnCloseConfirmBidModal) btnCloseConfirmBidModal.disabled = true;
+
+                        const formSubmitBtn = bidForm.querySelector('button[type="submit"]');
+                        if (formSubmitBtn) {
+                            formSubmitBtn.innerHTML = '<span class="material-symbols-outlined animate-spin-custom">sync</span> در حال ثبت...';
+                            formSubmitBtn.disabled = true;
+                            formSubmitBtn.classList.add('opacity-75', 'cursor-not-allowed');
+                        }
+
+                        const formData = new FormData(bidForm);
+
+                        fetch(bidForm.action, {
+                            method: 'POST',
+                            body: formData,
+                            headers: { 'x-requested-with': 'XMLHttpRequest' }
+                        })
+                            .then(async (res) => {
+                                let data = null;
+                                try {
+                                    data = await res.json();
+                                } catch {
+                                    data = { success: false, message: productAuctionNotifications.serverCommunicationError };
+                                }
+
+                                // ریست وضعیت دکمه‌های مودال و فرم
+                                btnExecuteBidSubmit.innerHTML = originalBtnHtml;
+                                btnExecuteBidSubmit.disabled = false;
+                                if (btnCancelConfirmBid) btnCancelConfirmBid.disabled = false;
+                                if (btnCloseConfirmBidModal) btnCloseConfirmBidModal.disabled = false;
+
+                                if (formSubmitBtn) {
+                                    formSubmitBtn.innerHTML = '<span class="material-symbols-outlined">gavel</span> ثبت نهایی پیشنهاد';
+                                    formSubmitBtn.disabled = false;
+                                    formSubmitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+                                }
+
+                                closeConfirmBidModal();
+
+                                if (data && data.success) {
+                                    if (alertBox) alertBox.classList.add('hidden');
+                                    applyLiveBidState(data);
+                                    return;
+                                }
+
+                                if (data && (data.needs_credit_increase || (data.message && data.message.includes('انتظار')))) {
+                                    const targetState = data.credit_request_state || ((data.message && data.message.includes('انتظار')) ? 'pending' : 'request');
+                                    openCreditModal(targetState);
+                                    if (alertBox) alertBox.classList.add('hidden');
+                                    return;
+                                }
+
+                                if (alertBox && alertMessage) {
+                                    alertBox.classList.remove('hidden');
+                                    alertBox.classList.remove('border-green-500/30', 'bg-green-500/10');
+                                    alertBox.classList.add('border-red-500/30', 'bg-red-500/10');
+                                    alertMessage.classList.remove('text-green-200');
+                                    alertMessage.classList.add('text-red-200');
+                                    alertMessage.textContent = (data && data.message) ? data.message : productAuctionNotifications.genericBidError;
+                                }
+
+                                if (alertAction) {
+                                    const href = data && data.credit_increase_url ? data.credit_increase_url : '';
+                                    if (href) {
+                                        alertAction.href = href;
+                                        alertAction.classList.remove('hidden');
+                                    } else if (data && data.needs_credit_increase) {
+                                        alertAction.href = '#';
+                                        alertAction.classList.remove('hidden');
+                                    } else {
+                                        alertAction.classList.add('hidden');
+                                        alertAction.removeAttribute('href');
+                                    }
+                                }
+                            })
+                            .catch((err) => {
+                                console.error('خطا در ثبت پیشنهاد:', err);
+                                btnExecuteBidSubmit.innerHTML = originalBtnHtml;
+                                btnExecuteBidSubmit.disabled = false;
+                                if (btnCancelConfirmBid) btnCancelConfirmBid.disabled = false;
+                                if (btnCloseConfirmBidModal) btnCloseConfirmBidModal.disabled = false;
+
+                                if (formSubmitBtn) {
+                                    formSubmitBtn.innerHTML = '<span class="material-symbols-outlined">gavel</span> ثبت نهایی پیشنهاد';
+                                    formSubmitBtn.disabled = false;
+                                    formSubmitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+                                }
+
+                                closeConfirmBidModal();
+
+                                if (alertBox && alertMessage) {
+                                    alertBox.classList.remove('hidden');
+                                    alertBox.classList.add('border-red-500/30', 'bg-red-500/10');
+                                    alertMessage.classList.add('text-red-200');
+                                    alertMessage.textContent = productAuctionNotifications.serverCommunicationError;
+                                }
+                            });
+                    });
+                }
+
+                connectLiveUpdates();
+
+                window.addEventListener('beforeunload', function () {
+                    stopLivePolling();
+                    if (reconnectTimer) {
+                        window.clearTimeout(reconnectTimer);
+                    }
+                    if (liveSocket && liveSocket.readyState === WebSocket.OPEN) {
+                        liveSocket.close();
+                    }
                 });
+            });
+
+            // ------------------------------------------------------------------
+            // بقیه کدهای منطقی گالری، تایمر و ماشین‌حساب
+            // ------------------------------------------------------------------
+            let allGalleryImages = [];
+            let currentGalleryIndex = 0;
+
+            function switchView(view) {
+                const imgContainer = document.getElementById('product-main-image');
+                const view360 = document.getElementById('product-360-view');
+                const btnImg = document.getElementById('btn-view-image');
+                const btn360 = document.getElementById('btn-view-360');
+                const zoomHint = document.getElementById('zoom-hint');
+                const prevBtn = document.getElementById('prev-slide');
+                const nextBtn = document.getElementById('next-slide');
+
+                if (view === '360') {
+                    if (imgContainer) imgContainer.classList.add('hidden');
+                    if (view360) view360.classList.remove('hidden');
+                    if (zoomHint) zoomHint.classList.add('hidden');
+                    if (prevBtn) prevBtn.classList.add('hidden');
+                    if (nextBtn) nextBtn.classList.add('hidden');
+
+                    if (btnImg) {
+                        btnImg.classList.remove('text-primary', 'ring-2', 'ring-primary');
+                        btnImg.classList.add('text-neutral-600');
+                    }
+                    if (btn360) {
+                        btn360.classList.remove('text-neutral-600');
+                        btn360.classList.add('text-primary', 'ring-2', 'ring-primary');
+                    }
+                } else {
+                    if (imgContainer) imgContainer.classList.remove('hidden');
+                    if (view360) view360.classList.add('hidden');
+                    if (zoomHint) zoomHint.classList.remove('hidden');
+                    if (prevBtn) prevBtn.classList.remove('hidden');
+                    if (nextBtn) nextBtn.classList.remove('hidden');
+
+                    if (btn360) {
+                        btn360.classList.remove('text-primary', 'ring-2', 'ring-primary');
+                        btn360.classList.add('text-neutral-600');
+                    }
+                    if (btnImg) {
+                        btnImg.classList.remove('text-neutral-600');
+                        btnImg.classList.add('text-primary', 'ring-2', 'ring-primary');
+                    }
+                }
             }
 
-            connectLiveUpdates();
+            document.addEventListener('DOMContentLoaded', function () {
+                document.querySelectorAll('.product-thumb').forEach(el => {
+                    const url = el.getAttribute('data-image-url');
+                    if (url && !allGalleryImages.includes(url)) allGalleryImages.push(url);
+                });
 
-            window.addEventListener('beforeunload', function () {
-                stopLivePolling();
-                if (reconnectTimer) {
-                    window.clearTimeout(reconnectTimer);
+                document.querySelectorAll('.product-hidden-img').forEach(el => {
+                    const url = el.getAttribute('data-image-url');
+                    if (url && !allGalleryImages.includes(url)) allGalleryImages.push(url);
+                });
+
+                const mainImage = document.getElementById('product-main-image');
+                const thumbs = document.querySelectorAll('.product-thumb');
+
+                function updatePageDisplay(url) {
+                    if (!mainImage) return;
+                    mainImage.style.opacity = '0.5';
+                    setTimeout(() => {
+                        mainImage.style.backgroundImage = `url('${url}')`;
+                        mainImage.style.opacity = '1';
+                    }, 200);
+
+                    thumbs.forEach(t => {
+                        t.classList.remove('border-primary', 'shadow-sm', 'opacity-100', 'ring-2', 'ring-primary');
+                        t.classList.add('border-transparent', 'opacity-70');
+                    });
+
+                    const visibleThumb = document.querySelector(`.product-thumb[data-image-url="${url}"]`);
+                    if (visibleThumb) {
+                        visibleThumb.classList.remove('border-transparent', 'opacity-70');
+                        visibleThumb.classList.add('border-primary', 'shadow-sm', 'opacity-100');
+                    }
                 }
-                if (liveSocket && liveSocket.readyState === WebSocket.OPEN) {
-                    liveSocket.close();
+
+                const prevBtn = document.getElementById('prev-slide');
+                const nextBtn = document.getElementById('next-slide');
+
+                thumbs.forEach((thumb) => {
+                    thumb.addEventListener('click', function () {
+                        const url = this.getAttribute('data-image-url');
+                        if (!url) return;
+                        updatePageDisplay(url);
+                        const idx = allGalleryImages.indexOf(url);
+                        if (idx >= 0) currentGalleryIndex = idx;
+                    });
+                });
+
+                if (nextBtn) {
+                    nextBtn.addEventListener('click', function (e) {
+                        e.stopPropagation();
+                        if (allGalleryImages.length === 0) return;
+                        currentGalleryIndex++;
+                        if (currentGalleryIndex >= allGalleryImages.length) currentGalleryIndex = 0;
+                        updatePageDisplay(allGalleryImages[currentGalleryIndex]);
+                    });
+                }
+
+                if (prevBtn) {
+                    prevBtn.addEventListener('click', function (e) {
+                        e.stopPropagation();
+                        if (allGalleryImages.length === 0) return;
+                        currentGalleryIndex--;
+                        if (currentGalleryIndex < 0) currentGalleryIndex = allGalleryImages.length - 1;
+                        updatePageDisplay(allGalleryImages[currentGalleryIndex]);
+                    });
                 }
             });
-        });
 
-        // ------------------------------------------------------------------
-        // بقیه کدهای منطقی گالری، تایمر و ماشین‌حساب
-        // ------------------------------------------------------------------
-        let allGalleryImages = [];
-        let currentGalleryIndex = 0;
+            const modal = document.getElementById('gallery-modal');
+            const modalImg = document.getElementById('gallery-main-img');
+            const modalCountEl = document.getElementById('gallery-total-count');
+            const modalIndexEl = document.getElementById('gallery-current-index');
+            const modalContent = document.getElementById('gallery-modal-content');
 
-        function switchView(view) {
-            const imgContainer = document.getElementById('product-main-image');
-            const view360 = document.getElementById('product-360-view');
-            const btnImg = document.getElementById('btn-view-image');
-            const btn360 = document.getElementById('btn-view-360');
-            const zoomHint = document.getElementById('zoom-hint');
-            const prevBtn = document.getElementById('prev-slide');
-            const nextBtn = document.getElementById('next-slide');
+            function openGalleryModal(startIndex = 0) {
+                if (!modal || !modalImg || !modalCountEl || !modalIndexEl) return;
+                if (allGalleryImages.length === 0) return;
 
-            if (view === '360') {
-                if (imgContainer) imgContainer.classList.add('hidden');
-                if (view360) view360.classList.remove('hidden');
-                if (zoomHint) zoomHint.classList.add('hidden');
-                if (prevBtn) prevBtn.classList.add('hidden');
-                if (nextBtn) nextBtn.classList.add('hidden');
-
-                if (btnImg) {
-                    btnImg.classList.remove('text-primary', 'ring-2', 'ring-primary');
-                    btnImg.classList.add('text-neutral-600');
-                }
-                if (btn360) {
-                    btn360.classList.remove('text-neutral-600');
-                    btn360.classList.add('text-primary', 'ring-2', 'ring-primary');
-                }
-            } else {
-                if (imgContainer) imgContainer.classList.remove('hidden');
-                if (view360) view360.classList.add('hidden');
-                if (zoomHint) zoomHint.classList.remove('hidden');
-                if (prevBtn) prevBtn.classList.remove('hidden');
-                if (nextBtn) nextBtn.classList.remove('hidden');
-
-                if (btn360) {
-                    btn360.classList.remove('text-primary', 'ring-2', 'ring-primary');
-                    btn360.classList.add('text-neutral-600');
-                }
-                if (btnImg) {
-                    btnImg.classList.remove('text-neutral-600');
-                    btnImg.classList.add('text-primary', 'ring-2', 'ring-primary');
-                }
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', function () {
-            document.querySelectorAll('.product-thumb').forEach(el => {
-                const url = el.getAttribute('data-image-url');
-                if (url && !allGalleryImages.includes(url)) allGalleryImages.push(url);
-            });
-
-            document.querySelectorAll('.product-hidden-img').forEach(el => {
-                const url = el.getAttribute('data-image-url');
-                if (url && !allGalleryImages.includes(url)) allGalleryImages.push(url);
-            });
-
-            const mainImage = document.getElementById('product-main-image');
-            const thumbs = document.querySelectorAll('.product-thumb');
-
-            function updatePageDisplay(url) {
-                if (!mainImage) return;
-                mainImage.style.opacity = '0.5';
+                currentGalleryIndex = startIndex;
+                modal.classList.remove('hidden');
                 setTimeout(() => {
-                    mainImage.style.backgroundImage = `url('${url}')`;
-                    mainImage.style.opacity = '1';
-                }, 200);
+                    modal.classList.remove('opacity-0');
+                    if (modalContent) {
+                        modalContent.classList.remove('scale-95');
+                        modalContent.classList.add('scale-100');
+                    }
+                }, 10);
 
-                thumbs.forEach(t => {
-                    t.classList.remove('border-primary', 'shadow-sm', 'opacity-100', 'ring-2', 'ring-primary');
-                    t.classList.add('border-transparent', 'opacity-70');
-                });
-
-                const visibleThumb = document.querySelector(`.product-thumb[data-image-url="${url}"]`);
-                if (visibleThumb) {
-                    visibleThumb.classList.remove('border-transparent', 'opacity-70');
-                    visibleThumb.classList.add('border-primary', 'shadow-sm', 'opacity-100');
-                }
+                modalCountEl.innerText = Number(allGalleryImages.length).toLocaleString('fa-IR').replace(/٬/g, ',');
+                updateModalImage();
+                if (window.syncGalleryDownload) window.syncGalleryDownload(allGalleryImages[currentGalleryIndex]);
+                if (window.resetGalleryZoom) window.resetGalleryZoom();
+                document.body.style.overflow = 'hidden';
             }
 
-            const prevBtn = document.getElementById('prev-slide');
-            const nextBtn = document.getElementById('next-slide');
-
-            thumbs.forEach((thumb) => {
-                thumb.addEventListener('click', function () {
-                    const url = this.getAttribute('data-image-url');
-                    if (!url) return;
-                    updatePageDisplay(url);
-                    const idx = allGalleryImages.indexOf(url);
-                    if (idx >= 0) currentGalleryIndex = idx;
-                });
-            });
-
-            if (nextBtn) {
-                nextBtn.addEventListener('click', function (e) {
-                    e.stopPropagation();
-                    if (allGalleryImages.length === 0) return;
-                    currentGalleryIndex++;
-                    if (currentGalleryIndex >= allGalleryImages.length) currentGalleryIndex = 0;
-                    updatePageDisplay(allGalleryImages[currentGalleryIndex]);
-                });
-            }
-
-            if (prevBtn) {
-                prevBtn.addEventListener('click', function (e) {
-                    e.stopPropagation();
-                    if (allGalleryImages.length === 0) return;
-                    currentGalleryIndex--;
-                    if (currentGalleryIndex < 0) currentGalleryIndex = allGalleryImages.length - 1;
-                    updatePageDisplay(allGalleryImages[currentGalleryIndex]);
-                });
-            }
-        });
-
-        const modal = document.getElementById('gallery-modal');
-        const modalImg = document.getElementById('gallery-main-img');
-        const modalCountEl = document.getElementById('gallery-total-count');
-        const modalIndexEl = document.getElementById('gallery-current-index');
-        const modalContent = document.getElementById('gallery-modal-content');
-
-        function openGalleryModal(startIndex = 0) {
-            if (!modal || !modalImg || !modalCountEl || !modalIndexEl) return;
-            if (allGalleryImages.length === 0) return;
-
-            currentGalleryIndex = startIndex;
-            modal.classList.remove('hidden');
-            setTimeout(() => {
-                modal.classList.remove('opacity-0');
+            function closeGalleryModal() {
+                if (!modal) return;
+                modal.classList.add('opacity-0');
                 if (modalContent) {
-                    modalContent.classList.remove('scale-95');
-                    modalContent.classList.add('scale-100');
+                    modalContent.classList.remove('scale-100');
+                    modalContent.classList.add('scale-95');
                 }
-            }, 10);
-
-            modalCountEl.innerText = Number(allGalleryImages.length).toLocaleString('fa-IR').replace(/٬/g, ',');
-            updateModalImage();
-            if (window.syncGalleryDownload) window.syncGalleryDownload(allGalleryImages[currentGalleryIndex]);
-            if (window.resetGalleryZoom) window.resetGalleryZoom();
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeGalleryModal() {
-            if (!modal) return;
-            modal.classList.add('opacity-0');
-            if (modalContent) {
-                modalContent.classList.remove('scale-100');
-                modalContent.classList.add('scale-95');
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                    document.body.style.overflow = '';
+                }, 300);
             }
-            setTimeout(() => {
-                modal.classList.add('hidden');
-                document.body.style.overflow = '';
-            }, 300);
-        }
 
-        function changeGalleryImage(direction) {
-            if (allGalleryImages.length === 0) return;
-            currentGalleryIndex += direction;
-            if (currentGalleryIndex >= allGalleryImages.length) currentGalleryIndex = 0;
-            if (currentGalleryIndex < 0) currentGalleryIndex = allGalleryImages.length - 1;
-            updateModalImage();
-        }
+            function changeGalleryImage(direction) {
+                if (allGalleryImages.length === 0) return;
+                currentGalleryIndex += direction;
+                if (currentGalleryIndex >= allGalleryImages.length) currentGalleryIndex = 0;
+                if (currentGalleryIndex < 0) currentGalleryIndex = allGalleryImages.length - 1;
+                updateModalImage();
+            }
 
-        function updateModalImage() {
-            if (!modalImg || !modalIndexEl) return;
-            modalImg.src = allGalleryImages[currentGalleryIndex];
-            modalIndexEl.innerText = Number(currentGalleryIndex + 1).toLocaleString('fa-IR').replace(/٬/g, ',');
-            if (window.syncGalleryDownload) window.syncGalleryDownload(allGalleryImages[currentGalleryIndex]);
-            if (window.resetGalleryZoom) window.resetGalleryZoom();
-        }
+            function updateModalImage() {
+                if (!modalImg || !modalIndexEl) return;
+                modalImg.src = allGalleryImages[currentGalleryIndex];
+                modalIndexEl.innerText = Number(currentGalleryIndex + 1).toLocaleString('fa-IR').replace(/٬/g, ',');
+                if (window.syncGalleryDownload) window.syncGalleryDownload(allGalleryImages[currentGalleryIndex]);
+                if (window.resetGalleryZoom) window.resetGalleryZoom();
+            }
 
-        const videoModal = document.getElementById('video-modal');
-        const videoModalContent = document.getElementById('video-modal-content');
-        const videoPlayer = document.getElementById('product-video-player');
+            const videoModal = document.getElementById('video-modal');
+            const videoModalContent = document.getElementById('video-modal-content');
+            const videoPlayer = document.getElementById('product-video-player');
 
-        function openVideoModal(videoUrl) {
-            if (!videoModal || !videoModalContent || !videoPlayer) return;
+            function openVideoModal(videoUrl) {
+                if (!videoModal || !videoModalContent || !videoPlayer) return;
 
-            if (window.prepareVideoModal) {
-                window.prepareVideoModal(videoUrl);
-            } else {
-                videoPlayer.src = videoUrl;
+                if (window.prepareVideoModal) {
+                    window.prepareVideoModal(videoUrl);
+                } else {
+                    videoPlayer.src = videoUrl;
+                    videoPlayer.load();
+                    videoPlayer.play().catch(() => { });
+                }
+
+                videoModal.classList.remove('hidden');
+                setTimeout(() => {
+                    videoModal.classList.remove('opacity-0');
+                    videoModalContent.classList.remove('scale-95');
+                    videoModalContent.classList.add('scale-100');
+                }, 10);
+
+                document.body.style.overflow = 'hidden';
+            }
+
+            function closeVideoModal() {
+                if (!videoModal || !videoModalContent || !videoPlayer) return;
+
+                videoModal.classList.add('opacity-0');
+                videoModalContent.classList.remove('scale-100');
+                videoModalContent.classList.add('scale-95');
+
+                videoPlayer.pause();
+                videoPlayer.removeAttribute('src');
                 videoPlayer.load();
-                videoPlayer.play().catch(() => { });
+
+                setTimeout(() => {
+                    videoModal.classList.add('hidden');
+                    document.body.style.overflow = '';
+                }, 300);
+
+                if (window.resetVideoModalUI) window.resetVideoModalUI();
             }
 
-            videoModal.classList.remove('hidden');
-            setTimeout(() => {
-                videoModal.classList.remove('opacity-0');
-                videoModalContent.classList.remove('scale-95');
-                videoModalContent.classList.add('scale-100');
-            }, 10);
+            if (videoModal) {
+                videoModal.addEventListener('click', function (e) {
+                    if (e.target === videoModal) closeVideoModal();
+                });
+            }
 
-            document.body.style.overflow = 'hidden';
-        }
+            // تایمر خطی
+            const timerContainer = document.getElementById('linear-timer');
+            if (timerContainer) {
+                const endTimeStr = timerContainer.dataset.endtime;
+                const endTime = new Date(endTimeStr).getTime();
 
-        function closeVideoModal() {
-            if (!videoModal || !videoModalContent || !videoPlayer) return;
+                const updateTimer = () => {
+                    const now = new Date().getTime();
+                    const distance = endTime - now;
 
-            videoModal.classList.add('opacity-0');
-            videoModalContent.classList.remove('scale-100');
-            videoModalContent.classList.add('scale-95');
+                    const daysEl = document.getElementById('l-days');
+                    const hoursEl = document.getElementById('l-hours');
+                    const minutesEl = document.getElementById('l-minutes');
+                    const secondsEl = document.getElementById('l-seconds');
 
-            videoPlayer.pause();
-            videoPlayer.removeAttribute('src');
-            videoPlayer.load();
+                    if (distance < 0) {
+                        if (daysEl) daysEl.innerText = "۰۰";
+                        if (hoursEl) hoursEl.innerText = "۰۰";
+                        if (minutesEl) minutesEl.innerText = "۰۰";
+                        if (secondsEl) secondsEl.innerText = "۰۰";
+                        clearInterval(interval);
+                        return;
+                    }
 
-            setTimeout(() => {
-                videoModal.classList.add('hidden');
-                document.body.style.overflow = '';
-            }, 300);
+                    const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                    const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                    const seconds = Math.floor((distance % (1000 * 60)) / 1000);
 
-            if (window.resetVideoModalUI) window.resetVideoModalUI();
-        }
+                    // اعمال تابع سراسری فارسی‌ساز روی زمان
+                    if (daysEl) daysEl.innerText = toPersianNum(days < 10 ? '0' + days : String(days));
+                    if (hoursEl) hoursEl.innerText = toPersianNum(hours < 10 ? '0' + hours : String(hours));
+                    if (minutesEl) minutesEl.innerText = toPersianNum(minutes < 10 ? '0' + minutes : String(minutes));
+                    if (secondsEl) secondsEl.innerText = toPersianNum(seconds < 10 ? '0' + seconds : String(seconds));
+                };
 
-        if (videoModal) {
-            videoModal.addEventListener('click', function (e) {
-                if (e.target === videoModal) closeVideoModal();
-            });
-        }
+                const interval = setInterval(updateTimer, 1000);
+                updateTimer();
+            }
 
-        // تایمر خطی
-        const timerContainer = document.getElementById('linear-timer');
-        if (timerContainer) {
-            const endTimeStr = timerContainer.dataset.endtime;
-            const endTime = new Date(endTimeStr).getTime();
+            const bidCalc = document.getElementById('bid-calc');
+            const finalBidText = document.getElementById('final-bid-text');
+            const stepIncrementText = document.getElementById('step-increment-text');
+            const bidAmountInput = document.getElementById('bid-amount');
 
-            const updateTimer = () => {
-                const now = new Date().getTime();
-                const distance = endTime - now;
-
-                const daysEl = document.getElementById('l-days');
-                const hoursEl = document.getElementById('l-hours');
-                const minutesEl = document.getElementById('l-minutes');
-                const secondsEl = document.getElementById('l-seconds');
-
-                if (distance < 0) {
-                    if (daysEl) daysEl.innerText = "۰۰";
-                    if (hoursEl) hoursEl.innerText = "۰۰";
-                    if (minutesEl) minutesEl.innerText = "۰۰";
-                    if (secondsEl) secondsEl.innerText = "۰۰";
-                    clearInterval(interval);
-                    return;
+            const formatToman = (value) => {
+                try {
+                    // برای اطمینان صد در صدی از فارسی بودن اعداد جدا شده با کاما، آن را از تابع سراسری عبور می‌دهیم
+                    let formatted = Number(value).toLocaleString('en-US');
+                    return toPersianNum(formatted) + ' تومان';
+                } catch {
+                    return toPersianNum(value) + ' تومان';
                 }
-
-                const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-                // اعمال تابع سراسری فارسی‌ساز روی زمان
-                if (daysEl) daysEl.innerText = toPersianNum(days < 10 ? '0' + days : String(days));
-                if (hoursEl) hoursEl.innerText = toPersianNum(hours < 10 ? '0' + hours : String(hours));
-                if (minutesEl) minutesEl.innerText = toPersianNum(minutes < 10 ? '0' + minutes : String(minutes));
-                if (secondsEl) secondsEl.innerText = toPersianNum(seconds < 10 ? '0' + seconds : String(seconds));
             };
 
-            const interval = setInterval(updateTimer, 1000);
-            updateTimer();
-        }
+            const getTieredIncrement = (price) => {
+                const p = Math.max(0, Number(price) || 0);
+                if (p < 50000000) return 5000000;
+                if (p < 200000000) return 10000000;
+                if (p < 500000000) return 20000000;
+                if (p < 1000000000) return 50000000;
+                if (p < 4000000000) return 100000000;
+                return 200000000;
+            };
 
-        const bidCalc = document.getElementById('bid-calc');
-        const finalBidText = document.getElementById('final-bid-text');
-        const finalTaxText = document.getElementById('final-tax-text');
-        const finalBidWithTaxText = document.getElementById('final-bid-with-tax-text');
-        const bidAmountInput = document.getElementById('bid-amount');
+            const recalcBid = () => {
+                if (!bidCalc || !finalBidText) return;
 
-        const stepInput = document.getElementById('step-input');
-        const stepMinus = document.getElementById('step-minus');
-        const stepPlus = document.getElementById('step-plus');
+                const current = Number(bidCalc.dataset.currentPrice || "0");
+                let minNext = Number(bidCalc.dataset.minNext || "0");
+                let stepInc = Number(bidCalc.dataset.stepIncrement || "0");
 
-        const getSelectedSteps = () => {
-            if (!stepInput) return 1;
-            const val = parseInt(stepInput.value);
-            return (isNaN(val) || val < 1) ? 1 : val;
-        };
-
-        const updateStepButtons = () => {
-            if (stepMinus) {
-                stepMinus.disabled = (parseInt(stepInput.value) <= 1);
-                stepMinus.style.opacity = (parseInt(stepInput.value) <= 1) ? '0.5' : '1';
-            }
-            if (stepPlus) {
-                const maxVal = 100;
-                stepPlus.disabled = (parseInt(stepInput.value) >= maxVal);
-                stepPlus.style.opacity = (parseInt(stepInput.value) >= maxVal) ? '0.5' : '1';
-            }
-        };
-
-        const formatToman = (value) => {
-            try {
-                // برای اطمینان صد در صدی از فارسی بودن اعداد جدا شده با کاما، آن را از تابع سراسری عبور می‌دهیم
-                let formatted = Number(value).toLocaleString('en-US');
-                return toPersianNum(formatted) + ' تومان';
-            } catch {
-                return toPersianNum(value) + ' تومان';
-            }
-        };
-
-        const ceilInt = (n) => Math.ceil(Number(n));
-
-        const recalcBid = () => {
-            if (!bidCalc || !finalBidText) return;
-
-            const current = Number(bidCalc.dataset.currentPrice || "0");
-            const minNext = Number(bidCalc.dataset.minNext || "0");
-            const bidValue = Number(bidCalc.dataset.bidValue || "0");
-            const steps = Math.max(1, getSelectedSteps());
-
-            const increasePerStep = Math.max(0, current) * (Math.max(0, bidValue) / 100);
-            let computed = ceilInt(current + increasePerStep * steps);
-
-            if (!Number.isNaN(minNext) && minNext > 0 && computed < minNext) computed = ceilInt(minNext);
-            if (computed < 0) computed = 0;
-
-            const tax = ceilInt(computed * 0.10);
-            const totalWithTax = computed + tax;
-
-            finalBidText.textContent = formatToman(computed);
-            if (finalTaxText) finalTaxText.textContent = formatToman(tax);
-            if (finalBidWithTaxText) finalBidWithTaxText.textContent = formatToman(totalWithTax);
-
-            // دقت کنید که اتریبیوت فرم که به سرور ارسال می‌شود (value) باید عدد انگلیسی بماند و مبلغ خالص است
-            if (bidAmountInput) bidAmountInput.value = String(computed);
-        };
-
-        window.recalcBid = recalcBid;
-
-        if (stepInput) {
-            stepInput.addEventListener('input', () => {
-                if (parseInt(stepInput.value) < 1) stepInput.value = 1;
-                recalcBid();
-                updateStepButtons();
-            });
-        }
-
-        if (stepMinus) {
-            stepMinus.addEventListener('click', () => {
-                let val = parseInt(stepInput.value) || 1;
-                if (val > 1) {
-                    val--;
-                    stepInput.value = val;
-                    recalcBid();
-                    updateStepButtons();
+                if (!stepInc || stepInc <= 0) {
+                    stepInc = getTieredIncrement(current);
                 }
-            });
-        }
-
-        if (stepPlus) {
-            stepPlus.addEventListener('click', () => {
-                let val = parseInt(stepInput.value) || 1;
-                if (val < 100) {
-                    val++;
-                    stepInput.value = val;
-                    recalcBid();
-                    updateStepButtons();
+                if (!minNext || minNext <= 0) {
+                    minNext = current + stepInc;
                 }
+
+                if (stepIncrementText) {
+                    stepIncrementText.textContent = formatToman(stepInc);
+                }
+                finalBidText.textContent = formatToman(minNext);
+
+                // دقت کنید که اتریبیوت فرم که به سرور ارسال می‌شود (value) باید عدد انگلیسی بماند و مبلغ خالص است
+                if (bidAmountInput) {
+                    bidAmountInput.value = String(minNext);
+                }
+            };
+
+            window.recalcBid = recalcBid;
+            recalcBid();
+
+            document.addEventListener('keydown', function (event) {
+                if (event.key !== "Escape") return;
+                if (window.closeConfirmBidModal) window.closeConfirmBidModal();
+                if (window.closeCreditModal) window.closeCreditModal();
+                if (modal && !modal.classList.contains('hidden')) closeGalleryModal();
+                if (videoModal && !videoModal.classList.contains('hidden')) closeVideoModal();
             });
-        }
-
-        recalcBid();
-
-        document.addEventListener('keydown', function (event) {
-            if (event.key !== "Escape") return;
-            if (window.closeConfirmBidModal) window.closeConfirmBidModal();
-            if (window.closeCreditModal) window.closeCreditModal();
-            if (modal && !modal.classList.contains('hidden')) closeGalleryModal();
-            if (videoModal && !videoModal.classList.contains('hidden')) closeVideoModal();
-        });
-    </script>
-    {% if auction.model_360_url %}
-    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
-    {% endif %}
-    {% endblock %}
+        </script>
+        {% if auction.model_360_url %}
+        <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+        {% endif %}
+        {% endblock %}

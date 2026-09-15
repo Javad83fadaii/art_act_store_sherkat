@@ -105,7 +105,7 @@
                         data-product-title="{{ product.title }}"
                         data-current-price="{{ product.current_price|default:product.base_price }}"
                         data-min-next="{{ product.get_min_next_bid|default:0 }}"
-                        data-bid-value="{{ product.bid_value|default:0 }}"
+                        data-step-increment="{{ product.get_current_step_increment|default:0 }}"
                         data-bid-count="{{ product.bid_count|default:0 }}">
                     <span class="material-symbols-outlined text-[18px] filled">bolt</span>
                     ثبت پیشنهاد سریع

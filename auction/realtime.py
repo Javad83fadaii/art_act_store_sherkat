@@ -74,12 +74,23 @@ def build_bid_live_payload(
         )
 
     product = ensure_auction_product_winner(product)
+    current_price_int = _as_int_price(product.current_price or product.base_price)
+    step_increment_int = int(product.get_current_step_increment())
+    min_next_bid_int = int(product.get_min_next_bid())
+
+    def _fa_num(val: int) -> str:
+        return f'{int(val):,}'.translate(str.maketrans('0123456789', '۰۱۲۳۴۵۶۷۸۹'))
+
     payload = {
-        'current_price': _as_int_price(product.current_price or product.base_price),
+        'current_price': current_price_int,
+        'formatted_current_price': _fa_num(current_price_int),
+        'step_increment': step_increment_int,
+        'formatted_step_increment': _fa_num(step_increment_int),
+        'min_next_bid': min_next_bid_int,
+        'formatted_min_next_bid': _fa_num(min_next_bid_int),
         'tax_amount': _as_int_price(product.tax_amount),
         'total_with_tax': _as_int_price(product.final_price_with_tax),
         'bid_count': product.bids.count(),
-        'min_next_bid': product.get_min_next_bid(),
         'has_winner': bool(product.winner_id),
     }
     if not include_user_history:

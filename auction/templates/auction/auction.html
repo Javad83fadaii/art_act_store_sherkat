@@ -210,15 +210,10 @@
 
                     <div class="space-y-3">
                         <div class="rounded-xl border border-primary/10 bg-primary/5 px-4 py-3 flex items-center justify-between">
-                            <span class="text-sm font-medium text-neutral-600 dark:text-neutral-400">افزایش هر گام</span>
-                            <span class="text-lg font-black text-primary" id="qb-step-percent-display">--</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-sm font-medium text-neutral-600 dark:text-neutral-400">تعداد گام افزایش:</span>
-                            <div class="step-input-group-bold">
-                                <button type="button" id="step-minus" class="step-btn-bold">−</button>
-                                <input type="number" id="step-input" name="step" value="1" min="1" max="100" class="step-input-bold">
-                                <button type="button" id="step-plus" class="step-btn-bold">+</button>
+                            <span class="text-sm font-medium text-neutral-600 dark:text-neutral-400">افزایش این پیشنهاد:</span>
+                            <div class="flex items-center gap-1 text-base font-extrabold text-primary" id="qb-step-increment-display" dir="rtl">
+                                <span class="font-en" data-amount-value>--</span>
+                                <span class="text-xs font-bold text-primary/80">تومان</span>
                             </div>
                         </div>
                     </div>
@@ -486,6 +481,9 @@
                 if (typeof data.min_next_bid !== 'undefined') {
                     btn.setAttribute('data-min-next', String(data.min_next_bid));
                 }
+                if (typeof data.step_increment !== 'undefined') {
+                    btn.setAttribute('data-step-increment', String(data.step_increment));
+                }
                 if (typeof data.bid_count !== 'undefined') {
                     btn.setAttribute('data-bid-count', String(data.bid_count));
                 }
@@ -503,6 +501,10 @@
                 if (typeof data.min_next_bid !== 'undefined') {
                     currentBidButton.setAttribute('data-min-next', String(data.min_next_bid));
                     qbCalcContainer.dataset.minNext = String(data.min_next_bid);
+                }
+                if (typeof data.step_increment !== 'undefined') {
+                    currentBidButton.setAttribute('data-step-increment', String(data.step_increment));
+                    qbCalcContainer.dataset.stepIncrement = String(data.step_increment);
                 }
                 if (typeof data.bid_count !== 'undefined') {
                     currentBidButton.setAttribute('data-bid-count', String(data.bid_count));
@@ -771,15 +773,12 @@
         const qbModal = document.getElementById('quick-bid-modal');
         const qbModalContent = document.getElementById('qb-modal-content');
         const qbCalcContainer = document.getElementById('qb-calc-container');
-        const qbStepInput = document.getElementById('step-input');
-        const qbStepMinus = document.getElementById('step-minus');
-        const qbStepPlus = document.getElementById('step-plus');
         const qbFinalText = document.getElementById('qb-final-bid-text');
         const qbAmountInput = document.getElementById('qb-bid-amount');
         const qbForm = document.getElementById('qb-form');
         const qbTitle = document.getElementById('qb-title');
         const qbCurrentPriceDisplay = document.getElementById('qb-current-price-display');
-        const qbStepPercentDisplay = document.getElementById('qb-step-percent-display');
+        const qbStepIncrementDisplay = document.getElementById('qb-step-increment-display');
         const qbSubmitBtn = document.getElementById('qb-submit-btn');
         const basePlaceBidUrl = "{% url 'auction:place_bid' 123456789 %}";
         const qbBidState = document.getElementById('qb-bid-state');
@@ -846,9 +845,8 @@
 
             qbCalcContainer.dataset.currentPrice = current;
             qbCalcContainer.dataset.minNext = btn.getAttribute('data-min-next');
-            qbCalcContainer.dataset.bidValue = btn.getAttribute('data-bid-value');
+            qbCalcContainer.dataset.stepIncrement = btn.getAttribute('data-step-increment');
 
-            if(qbStepInput) qbStepInput.value = 1;
             recalcQuickBid();
             setQuickBidModalState('bid');
 
@@ -871,24 +869,33 @@
             }, 300);
         }
 
+        const getTieredIncrement = (price) => {
+            const p = Math.max(0, Number(price) || 0);
+            if (p < 50000000) return 5000000;
+            if (p < 200000000) return 10000000;
+            if (p < 500000000) return 20000000;
+            if (p < 1000000000) return 50000000;
+            if (p < 4000000000) return 100000000;
+            return 200000000;
+        };
+
         function recalcQuickBid() {
             const current = Number(qbCalcContainer.dataset.currentPrice || "0");
-            const minNext = Number(qbCalcContainer.dataset.minNext || "0");
-            const bidValue = Number(qbCalcContainer.dataset.bidValue || "0");
+            let minNext = Number(qbCalcContainer.dataset.minNext || "0");
+            let stepInc = Number(qbCalcContainer.dataset.stepIncrement || "0");
 
-            let steps = parseInt(qbStepInput.value);
-            if (isNaN(steps) || steps < 1) steps = 1;
-
-            const increasePerStep = current * (bidValue / 100);
-            let computed = ceilInt(current + (increasePerStep * steps));
-
-            if (minNext > 0 && computed < minNext) computed = ceilInt(minNext);
-
-            if (qbStepPercentDisplay) {
-                qbStepPercentDisplay.textContent = formatFaNumber(bidValue) + '٪ از مبلغ فعلی';
+            if (!stepInc || stepInc <= 0) {
+                stepInc = getTieredIncrement(current);
             }
-            setAmountWithToman(qbFinalText, computed);
-            qbAmountInput.value = String(computed);
+            if (!minNext || minNext <= 0) {
+                minNext = current + stepInc;
+            }
+
+            if (qbStepIncrementDisplay) {
+                setAmountWithToman(qbStepIncrementDisplay, stepInc);
+            }
+            setAmountWithToman(qbFinalText, minNext);
+            qbAmountInput.value = String(minNext);
         }
 
         async function handleQuickBidSubmit(event) {
@@ -939,15 +946,7 @@
             }
             if (qbModal) document.body.appendChild(qbModal);
             if (qbForm) qbForm.addEventListener('submit', handleQuickBidSubmit);
-            if (qbStepInput) qbStepInput.addEventListener('input', recalcQuickBid);
-            if (qbStepMinus) qbStepMinus.addEventListener('click', () => { 
-                let v = parseInt(qbStepInput.value); 
-                if(v > 1) { qbStepInput.value = v - 1; recalcQuickBid(); } 
-            });
-            if (qbStepPlus) qbStepPlus.addEventListener('click', () => { 
-                qbStepInput.value = (parseInt(qbStepInput.value) || 0) + 1; 
-                recalcQuickBid(); 
-            });
+
             
             document.querySelectorAll('.btn-view-preview').forEach(btn => {
                 btn.addEventListener('click', function() {

@@ -205,9 +205,6 @@ class AuctionProduct(models.Model):
     current_price = models.DecimalField(max_digits=15, decimal_places=0, blank=True, null=True)
     price_description = models.CharField(max_length=255, blank=True, null=True, verbose_name='توضیحات قیمت')
 
-    # درصد افزایش بید برای هر محصول
-    bid_value = models.DecimalField(max_digits=15, decimal_places=0)
-    
     winner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -449,18 +446,21 @@ class AuctionProduct(models.Model):
     def condition_report(self):
         return None
 
-    def get_min_next_bid(self):
-        current = self.current_price or self.base_price or Decimal('0')
-        try:
-            current = Decimal(str(current))
-        except (InvalidOperation, TypeError, ValueError):
-            current = Decimal('0')
-        percent = Decimal(str(self.bid_value or 0))
-        min_next = current + (current * (percent / Decimal('100')))
+    def get_current_step_increment(self, price=None) -> int:
+        from .services import get_current_step_increment
+        target_price = price if price is not None else (self.current_price or self.base_price)
+        return get_current_step_increment(target_price)
 
-        return int(min_next.to_integral_value(rounding=ROUND_CEILING))
+    def get_min_next_bid(self) -> int:
+        from .services import get_min_next_bid
+        target_price = self.current_price or self.base_price
+        return get_min_next_bid(target_price)
 
-    def place_bid(self, user, amount):
+    @property
+    def current_step_increment(self) -> int:
+        return self.get_current_step_increment()
+
+    def place_bid(self, user, amount=None):
         user_model = get_user_model()
 
         with transaction.atomic():
@@ -474,18 +474,23 @@ class AuctionProduct(models.Model):
             if product.auction.status != 'ongoing':
                 raise ValidationError('مزایده در حال حاضر فعال نیست.')
 
+            # ارزیابی مجدد حداقل پیشنهاد بر اساس پله جاری پس از اعمال قفل دیتابیس
+            min_next = Decimal(str(product.get_min_next_bid()))
+
+            # در صورت عدم ارسال مبلغ، حداقل پیشنهاد بعدی پله جاری منظور می‌شود
             raw = (amount or '').strip() if isinstance(amount, str) else amount
-            try:
-                bid_amount = Decimal(str(raw))
-            except (InvalidOperation, TypeError, ValueError):
-                raise ValidationError('مبلغ پیشنهاد نامعتبر است.')
+            if raw in (None, ''):
+                bid_amount = min_next
+            else:
+                try:
+                    bid_amount = Decimal(str(raw))
+                except (InvalidOperation, TypeError, ValueError):
+                    raise ValidationError('مبلغ پیشنهاد نامعتبر است.')
 
             if bid_amount <= 0:
                 raise ValidationError('مبلغ پیشنهاد باید بزرگتر از صفر باشد.')
 
-            min_next = Decimal(str(product.get_min_next_bid()))
             if bid_amount < min_next:
-                # تغییر متن ارور از دلار به تومان
                 raise ValidationError(f'حداقل پیشنهاد بعدی {_fa_digits(f"{int(min_next):,}")} تومان است.')
 
             bidder = user_model.objects.select_for_update().get(pk=user.pk)

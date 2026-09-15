@@ -311,10 +311,13 @@ def place_bid(request, pk: int):
         return redirect(next_url)
 
     raw = (amount or "").strip() if isinstance(amount, str) else amount
-    try:
-        new_bid_amount = Decimal(str(raw))
-    except (InvalidOperation, TypeError, ValueError):
-        new_bid_amount = None
+    if raw in (None, ""):
+        new_bid_amount = Decimal(str(auction.get_min_next_bid()))
+    else:
+        try:
+            new_bid_amount = Decimal(str(raw))
+        except (InvalidOperation, TypeError, ValueError):
+            new_bid_amount = None
 
     if new_bid_amount is not None:
         credit = request.user.calculate_current_credit()
