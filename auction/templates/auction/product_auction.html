@@ -353,14 +353,11 @@
                                             class="rounded-xl bg-emerald-50/80 border border-emerald-200/60 p-3 space-y-2 text-xs">
                                             <div class="flex items-center justify-between text-neutral-600 font-medium">
                                                 <span>مبلغ خالص برنده (پیشنهاد نهایی):</span>
-                                                <span class="font-bold text-neutral-900">{{
-                                                    auction.current_price|default:auction.base_price|fa_price }}
-                                                    تومان</span>
+                                                <span class="font-bold text-neutral-900">{{ auction.current_price|default:auction.base_price|fa_price }} تومان</span>
                                             </div>
                                             <div class="flex items-center justify-between text-neutral-600 font-medium">
                                                 <span>۱۰٪ مالیات بر ارزش افزوده و کمیسیون:</span>
-                                                <span class="font-bold text-neutral-900">{{ auction.tax_amount|fa_price
-                                                    }} تومان</span>
+                                                <span class="font-bold text-neutral-900">{{ auction.tax_amount|fa_price }} تومان</span>
                                             </div>
                                         </div>
 
@@ -419,8 +416,7 @@
                                             class="rounded-xl bg-neutral-100/80 border border-neutral-200/60 p-3 space-y-2 text-xs">
                                             <div class="flex items-center justify-between text-neutral-600 font-medium">
                                                 <span>مبلغ با احتساب ۱۰٪ مالیات:</span>
-                                                <span class="font-bold text-neutral-900">{{
-                                                    auction.final_price_with_tax|fa_price }} تومان</span>
+                                                <span class="font-bold text-neutral-900">{{ auction.final_price_with_tax|fa_price }} تومان</span>
                                             </div>
                                         </div>
                                         {% if auction.price_description %}
@@ -555,8 +551,7 @@
                             <!-- آکاردئون بیدهای کاربر -->
                             {% if user.is_authenticated %}
                             <div id="my-bid-history-container">
-                                {% include 'auction/partials/my_bid_history.html' with my_bids=my_bids
-                                my_bids_count=my_bids_count user=user %}
+                                {% include 'auction/partials/my_bid_history.html' with my_bids=my_bids my_bids_count=my_bids_count user=user %}
                             </div>
 
                             <style>
@@ -634,8 +629,7 @@
                             </summary>
                             <div class="text-secondary-text text-sm leading-7 mt-4 pl-4 font-medium">
                                 <ul class="list-disc pr-4 space-y-2 marker:text-primary">
-                                    <li>{{ auction.provenance|default:"اطلاعاتی در دسترس نیست."|linebreaksbr|fa_digits
-                                        }}</li>
+                                    <li>{{ auction.provenance|default:"اطلاعاتی در دسترس نیست."|linebreaksbr|fa_digits }}</li>
                                 </ul>
                             </div>
                         </details>
@@ -755,8 +749,7 @@
                         اثر:
                     </span>
                     <span id="confirm-modal-title"
-                        class="font-bold text-neutral-800 dark:text-neutral-200 truncate max-w-[220px]">{% if
-                        auction.lot %}لات {{ auction.lot|fa_digits }} - {% endif %}{{ auction.title|fa_digits }}</span>
+                        class="font-bold text-neutral-800 dark:text-neutral-200 truncate max-w-[220px]">{% if auction.lot %}لات {{ auction.lot|fa_digits }} - {% endif %}{{ auction.title|fa_digits }}</span>
                 </div>
 
                 <div
@@ -765,8 +758,7 @@
                         <span class="material-symbols-outlined text-[16px] text-neutral-500">trending_up</span>
                         افزایش در این پله:
                     </span>
-                    <span id="confirm-modal-increment" class="font-bold text-neutral-800 dark:text-neutral-200">{{
-                        auction.get_current_step_increment|fa_price }} تومان</span>
+                    <span id="confirm-modal-increment" class="font-bold text-neutral-800 dark:text-neutral-200">{{ auction.get_current_step_increment|fa_price }} تومان</span>
                 </div>
 
                 <div class="flex items-center justify-between pt-1 text-primary">
@@ -778,30 +770,25 @@
                 </div>
             </div>
 
-            <!-- متن یادآوری و تعهد خرید -->
-            <div
-                class="flex items-center gap-2 text-[11px] text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 rounded-xl px-3.5 py-2.5 mb-6 text-right">
-                <span
-                    class="material-symbols-outlined text-base shrink-0 text-amber-600 dark:text-amber-400">info</span>
-                <!-- <span>ثبت پیشنهاد تعهدآور بوده و پس از ثبت نهایی، قابل انصراف نخواهد بود.</span>
-            </div> -->
-
-                <!-- دکمه‌های عملیات -->
-                <div class="flex flex-col sm:flex-row gap-3">
-                    <button type="button" id="btn-cancel-confirm-bid"
-                        class="flex-1 py-3.5 px-4 bg-neutral-100 hover:bg-neutral-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-neutral-700 dark:text-neutral-300 font-bold rounded-xl text-sm transition-all cursor-pointer">
-                        انصراف
-                    </button>
-                    <button type="button" id="btn-execute-bid-submit"
-                        class="flex-1 py-3.5 px-4 bg-primary hover:bg-primary-dark text-white font-bold rounded-xl text-sm transition-all shadow-md shadow-primary/30 flex items-center justify-center gap-2 transform active:scale-[0.98] cursor-pointer">
-                        <span class="material-symbols-outlined text-lg">check_circle</span>
-                        <span>بله، ثبت پیشنهاد</span>
-                    </button>
-                </div>
+            <!-- دکمه‌های عملیات -->
+            <div class="flex items-center justify-center gap-2.5 pt-1 max-w-[320px] mx-auto w-full">
+                <!-- دکمه تأیید و ثبت پیشنهاد (سمت راست در چیدمان راست‌به‌چپ) -->
+                <button type="button" id="btn-execute-bid-submit"
+                    class="flex-1 py-2 px-3 bg-primary hover:bg-primary-dark text-white font-bold rounded-xl text-xs sm:text-sm transition-all shadow-sm flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer whitespace-nowrap">
+                    <span class="material-symbols-outlined text-[17px]">check</span>
+                    <span>تأیید پیشنهاد</span>
+                </button>
+                <!-- دکمه انصراف (سمت چپ در چیدمان راست‌به‌چپ) -->
+                <button type="button" id="btn-cancel-confirm-bid"
+                    class="flex-1 py-2 px-3 bg-neutral-100 hover:bg-neutral-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-neutral-600 dark:text-neutral-300 font-semibold rounded-xl text-xs sm:text-sm border border-neutral-200/80 dark:border-zinc-700 transition-all active:scale-95 cursor-pointer whitespace-nowrap text-center">
+                    <span>انصراف</span>
+                </button>
             </div>
         </div>
+    </div>
+</div>
 
-        {% endblock %}
+{% endblock %}
 
 
 
