@@ -30,11 +30,10 @@ def _dispatch_starting_soon(*, now, remaining):
     if remaining <= 0:
         return 0
 
-    lower_bound = now + timedelta(hours=23, minutes=55)
     upper_bound = now + timedelta(hours=24, seconds=1)
     auctions = Auction.objects.filter(
         start_reminder_24h_dispatched_at__isnull=True,
-        start_date__gte=lower_bound,
+        start_date__gt=now,
         start_date__lte=upper_bound,
     ).order_by('start_date')[:remaining]
 
@@ -55,12 +54,10 @@ def _dispatch_started(*, now, remaining):
     if remaining <= 0:
         return 0
 
-    lower_bound = now - timedelta(minutes=5)
-    upper_bound = now + timedelta(seconds=1)
     auctions = Auction.objects.filter(
         start_notice_dispatched_at__isnull=True,
-        start_date__gte=lower_bound,
-        start_date__lte=upper_bound,
+        start_date__lte=now + timedelta(seconds=1),
+        end_date__gt=now,
     ).order_by('start_date')[:remaining]
 
     count = 0

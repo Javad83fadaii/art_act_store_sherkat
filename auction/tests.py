@@ -830,6 +830,54 @@ class AuctionBidCreditFlowTests(TestCase):
         self.assertIsNotNone(self.auction.end_notice_dispatched_at)
         self.assertIsNotNone(self.auction.winner_billing_dispatched_at)
 
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        DEFAULT_FROM_EMAIL="Auction Platform <sender@example.com>",
+        SERVER_EMAIL="sender@example.com",
+    )
+    def test_dispatch_command_handles_starting_soon_without_5min_restriction(self):
+        from django.core.management import call_command
+        self.user_one.email = 'first@example.com'
+        self.user_one.save(update_fields=['email'])
+
+        # Start date is 10 hours from now (way past old 5-minute window)
+        self.auction.start_date = timezone.now() + timedelta(hours=10)
+        self.auction.end_date = self.auction.start_date + timedelta(hours=2)
+        self.auction.start_reminder_24h_dispatched_at = None
+        self.auction.save(update_fields=['start_date', 'end_date', 'start_reminder_24h_dispatched_at'])
+        NotificationDelivery.objects.all().delete()
+
+        call_command('dispatch_auction_notifications')
+
+        self.auction.refresh_from_db()
+        self.assertIsNotNone(self.auction.start_reminder_24h_dispatched_at)
+        deliveries = NotificationDelivery.objects.filter(event='auction.start.reminder_24h')
+        self.assertTrue(deliveries.exists())
+
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        DEFAULT_FROM_EMAIL="Auction Platform <sender@example.com>",
+        SERVER_EMAIL="sender@example.com",
+    )
+    def test_dispatch_command_handles_started_notice_without_5min_restriction(self):
+        from django.core.management import call_command
+        self.user_one.email = 'first@example.com'
+        self.user_one.save(update_fields=['email'])
+
+        # Start date was 30 minutes ago (way past old 5-minute window)
+        self.auction.start_date = timezone.now() - timedelta(minutes=30)
+        self.auction.end_date = timezone.now() + timedelta(hours=2)
+        self.auction.start_notice_dispatched_at = None
+        self.auction.save(update_fields=['start_date', 'end_date', 'start_notice_dispatched_at'])
+        NotificationDelivery.objects.all().delete()
+
+        call_command('dispatch_auction_notifications')
+
+        self.auction.refresh_from_db()
+        self.assertIsNotNone(self.auction.start_notice_dispatched_at)
+        deliveries = NotificationDelivery.objects.filter(event='auction.start.started')
+        self.assertTrue(deliveries.exists())
+
 
 class AuctionVisitTrackingTests(TestCase):
     def setUp(self):

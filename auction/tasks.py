@@ -71,13 +71,17 @@ def _scheduled_datetime_matches(actual_value, expected_value):
     return delta < 1
 
 
-def _is_within_delivery_window(target_time, *, late_grace_seconds=300):
+def _is_within_delivery_window(target_time, *, late_grace_seconds=None, max_time=None):
     if target_time is None:
         return False
     now = timezone.now()
     earliest_allowed = target_time - timezone.timedelta(seconds=1)
-    latest_allowed = target_time + timezone.timedelta(seconds=late_grace_seconds)
-    return earliest_allowed <= now <= latest_allowed
+    if max_time is not None:
+        return earliest_allowed <= now < max_time
+    if late_grace_seconds is not None:
+        latest_allowed = target_time + timezone.timedelta(seconds=late_grace_seconds)
+        return earliest_allowed <= now <= latest_allowed
+    return earliest_allowed <= now
 
 
 def _claim_dispatch(auction_id, field_name):
@@ -154,7 +158,10 @@ def send_auction_starting_soon_email(auction_id, expected_start=None):
     if not _scheduled_datetime_matches(auction.start_date, expected_start):
         return
 
-    if not _is_within_delivery_window(auction.start_date - timezone.timedelta(hours=24)):
+    if not _is_within_delivery_window(
+        auction.start_date - timezone.timedelta(hours=24),
+        max_time=auction.start_date,
+    ):
         return
 
     claimed_at = _claim_dispatch(auction.id, 'start_reminder_24h_dispatched_at')
@@ -208,7 +215,10 @@ def send_auction_started_email(auction_id, expected_start=None):
     if not _scheduled_datetime_matches(auction.start_date, expected_start):
         return
 
-    if not _is_within_delivery_window(auction.start_date):
+    if not _is_within_delivery_window(
+        auction.start_date,
+        max_time=auction.end_date,
+    ):
         return
 
     claimed_at = _claim_dispatch(auction.id, 'start_notice_dispatched_at')
