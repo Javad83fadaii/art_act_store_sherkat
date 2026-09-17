@@ -460,6 +460,51 @@ def get_default_notification_templates() -> tuple[NotificationTemplate, ...]:
         )
     )
 
+    new_user_body = (
+        '{name} گرامی یوزر جدید ثبت نام کرده است.\n'
+        'لطفا جهت احراز هویت به پنل ادمین مراجعه فرمایید.'
+    )
+
+    new_user = NotificationTemplate(
+        key='new_user',
+        default_providers=(
+            NotificationProviderType.SMS,
+        ),
+    )
+    new_user.register_channel(
+        NotificationChannelTemplate(
+            provider=NotificationProviderType.SMS,
+            metadata={
+                'sms_pattern': 'new_user',
+            },
+            context_map={
+                'name': 'NAME',
+                'NAME': 'name',
+            },
+            body_template=new_user_body,
+        )
+    )
+
+    new_user_title_case = NotificationTemplate(
+        key='New_User',
+        default_providers=(
+            NotificationProviderType.SMS,
+        ),
+    )
+    new_user_title_case.register_channel(
+        NotificationChannelTemplate(
+            provider=NotificationProviderType.SMS,
+            metadata={
+                'sms_pattern': 'New_User',
+            },
+            context_map={
+                'name': 'NAME',
+                'NAME': 'name',
+            },
+            body_template=new_user_body,
+        )
+    )
+
     return (
         verification,
         signup_welcome,
@@ -469,4 +514,6 @@ def get_default_notification_templates() -> tuple[NotificationTemplate, ...]:
         add_bid,
         dell_bid,
         password_reset,
+        new_user,
+        new_user_title_case,
     )

@@ -6,13 +6,15 @@ import threading
 import pytz
 import requests
 from django.conf import settings
-from django.db import transaction
+from django.db import models, transaction
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
 
 from django.contrib.auth import get_user_model
 from core.utils import send_admin_notification
+from notifications.enums import NotificationProviderType
+from notifications.services import notification_service
 from .models import CreditIncreaseRequest, VerificationRequest
 from .realtime import broadcast_profile_update
 
@@ -161,6 +163,95 @@ def _send_credit_increase_message(message_text: str) -> None:
     )
 
 
+def _send_auction_verification_sms_to_admins(
+    *,
+    request_id: int,
+    user_id,
+    full_name: str,
+    phone_number: str,
+) -> None:
+    try:
+        user_model = get_user_model()
+        admin_users = list(
+            user_model.objects.filter(is_active=True)
+            .filter(models.Q(is_staff=True) | models.Q(is_superuser=True))
+            .exclude(phone_number__isnull=True)
+            .exclude(phone_number="")
+        )
+        raw_extra_numbers = getattr(settings, 'ADMIN_PHONE_NUMBERS', []) or []
+        if isinstance(raw_extra_numbers, str):
+            raw_extra_numbers = [p.strip() for p in raw_extra_numbers.split(',') if p.strip()]
+
+        notified_phones: set[str] = set()
+
+        for admin in admin_users:
+            admin_phone = str(getattr(admin, 'phone_number', '') or '').strip()
+            if not admin_phone or admin_phone in notified_phones:
+                continue
+            notified_phones.add(admin_phone)
+
+            admin_name = (
+                getattr(admin, 'get_full_name', lambda: '')()
+                or getattr(admin, 'full_name', '')
+                or ''
+            ).strip() or 'مدیر'
+
+            try:
+                notification_service.send_template(
+                    event='admin.verification_request.sms',
+                    template_key='new_user',
+                    recipients=[admin_phone],
+                    providers=[NotificationProviderType.SMS],
+                    context={
+                        'name': admin_name,
+                        'NAME': admin_name,
+                    },
+                    metadata={
+                        'request_id': str(request_id),
+                        'target_user_id': str(user_id),
+                        'target_user_name': full_name,
+                        'target_user_phone': phone_number,
+                    },
+                )
+            except Exception:
+                logger.exception(
+                    "Failed to send auction verification SMS to admin user %s (%s)",
+                    admin.pk,
+                    admin_phone,
+                )
+
+        for extra_phone in raw_extra_numbers:
+            cleaned_phone = str(extra_phone).strip()
+            if not cleaned_phone or cleaned_phone in notified_phones:
+                continue
+            notified_phones.add(cleaned_phone)
+
+            try:
+                notification_service.send_template(
+                    event='admin.verification_request.sms',
+                    template_key='new_user',
+                    recipients=[cleaned_phone],
+                    providers=[NotificationProviderType.SMS],
+                    context={
+                        'name': 'مدیر',
+                        'NAME': 'مدیر',
+                    },
+                    metadata={
+                        'request_id': str(request_id),
+                        'target_user_id': str(user_id),
+                        'target_user_name': full_name,
+                        'target_user_phone': phone_number,
+                    },
+                )
+            except Exception:
+                logger.exception(
+                    "Failed to send auction verification SMS to extra admin phone %s",
+                    cleaned_phone,
+                )
+    except Exception:
+        logger.exception("Unexpected error in _send_auction_verification_sms_to_admins")
+
+
 def _handle_verification_request_side_effects_async(
     *,
     request_id: int,
@@ -192,6 +283,13 @@ def _handle_verification_request_side_effects_async(
             ]
         )
         _send_auction_verification_message(message_text)
+
+        _send_auction_verification_sms_to_admins(
+            request_id=request_id,
+            user_id=user_id,
+            full_name=full_name,
+            phone_number=phone_number,
+        )
 
     threading.Thread(target=runner, daemon=True).start()
 

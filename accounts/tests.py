@@ -71,6 +71,82 @@ class VerificationRequestModelTests(TestCase):
         self.assertEqual(kwargs["full_name"], "کاربر تست")
         self.assertEqual(kwargs["phone_number"], "09120000000")
 
+    @patch("accounts.signals.notification_service.send_template")
+    def test_send_auction_verification_sms_to_admins_notifies_all_admins(self, send_template_mock):
+        from accounts.signals import _send_auction_verification_sms_to_admins
+
+        admin_staff = CustomUser.objects.create_user(
+            phone_number="09121111111",
+            password="Test@1234",
+            full_name="ادمین یک",
+            is_staff=True,
+        )
+        admin_super = CustomUser.objects.create_superuser(
+            phone_number="09122222222",
+            password="Test@1234",
+            full_name="مدیر کل",
+        )
+        # Inactive admin should be excluded
+        CustomUser.objects.create_user(
+            phone_number="09124444444",
+            password="Test@1234",
+            full_name="ادمین غیرفعال",
+            is_staff=True,
+            is_active=False,
+        )
+
+        with override_settings(ADMIN_PHONE_NUMBERS=["09123333333"]):
+            _send_auction_verification_sms_to_admins(
+                request_id=10,
+                user_id=self.user.pk,
+                full_name="متقاضی تست",
+                phone_number="09120000000",
+            )
+
+        self.assertEqual(send_template_mock.call_count, 3)
+        called_phones = [call.kwargs["recipients"][0] for call in send_template_mock.call_args_list]
+        self.assertIn("09121111111", called_phones)
+        self.assertIn("09122222222", called_phones)
+        self.assertIn("09123333333", called_phones)
+        self.assertNotIn("09124444444", called_phones)
+
+        # Check template key and context for admin_staff
+        for call in send_template_mock.call_args_list:
+            self.assertEqual(call.kwargs["template_key"], "new_user")
+            if call.kwargs["recipients"] == ["09121111111"]:
+                self.assertEqual(call.kwargs["context"]["name"], "ادمین یک")
+            elif call.kwargs["recipients"] == ["09122222222"]:
+                self.assertEqual(call.kwargs["context"]["name"], "مدیر کل")
+            elif call.kwargs["recipients"] == ["09123333333"]:
+                self.assertEqual(call.kwargs["context"]["name"], "مدیر")
+
+    @patch("accounts.signals._send_auction_verification_sms_to_admins")
+    @patch("accounts.signals._send_auction_verification_message")
+    @patch("accounts.signals.send_admin_notification")
+    def test_handle_verification_request_side_effects_triggers_sms(
+        self,
+        send_admin_notif_mock,
+        send_tg_mock,
+        send_sms_mock,
+    ):
+        from accounts.signals import _handle_verification_request_side_effects_async
+        import time
+
+        _handle_verification_request_side_effects_async(
+            request_id=15,
+            user_id=self.user.pk,
+            user_label="کاربر تست",
+            full_name="کاربر تست",
+            phone_number="09120000000",
+            created_at="1405/01/01 12:00:00",
+        )
+
+        time.sleep(0.1)
+        self.assertTrue(send_tg_mock.called)
+        self.assertTrue(send_sms_mock.called)
+        self.assertEqual(send_sms_mock.call_args.kwargs["request_id"], 15)
+        self.assertEqual(send_sms_mock.call_args.kwargs["full_name"], "کاربر تست")
+
     def test_request_auction_verification_ajax_returns_pending_state(self):
         self.client.force_login(self.user)
 
