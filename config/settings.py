@@ -413,11 +413,15 @@ SMS_PATTERNS = {
     },
     'new_user': {
         'code': _get_first_setting('SMS_PATTERN_NEW_USER_CODE', 'SMS_PATTERN_NEWUSER_CODE') or '979811',
-        'variables': ('NAME',),
+        'variables': (
+            _get_first_setting('SMS_PATTERN_NEW_USER_VARIABLE') or 'name',
+        ),
     },
     'New_User': {
         'code': _get_first_setting('SMS_PATTERN_NEW_USER_CODE', 'SMS_PATTERN_NEWUSER_CODE') or '979811',
-        'variables': ('NAME',),
+        'variables': (
+            _get_first_setting('SMS_PATTERN_NEW_USER_VARIABLE') or 'name',
+        ),
     },
 }
 

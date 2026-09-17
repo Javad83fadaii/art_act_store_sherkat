@@ -182,6 +182,7 @@ def _send_auction_verification_sms_to_admins(
         if isinstance(raw_extra_numbers, str):
             raw_extra_numbers = [p.strip() for p in raw_extra_numbers.split(',') if p.strip()]
 
+        applicant_name = (full_name or "").strip() or str(phone_number or "").strip() or "کاربر جدید"
         notified_phones: set[str] = set()
 
         for admin in admin_users:
@@ -190,12 +191,6 @@ def _send_auction_verification_sms_to_admins(
                 continue
             notified_phones.add(admin_phone)
 
-            admin_name = (
-                getattr(admin, 'get_full_name', lambda: '')()
-                or getattr(admin, 'full_name', '')
-                or ''
-            ).strip() or 'مدیر'
-
             try:
                 notification_service.send_template(
                     event='admin.verification_request.sms',
@@ -203,8 +198,8 @@ def _send_auction_verification_sms_to_admins(
                     recipients=[admin_phone],
                     providers=[NotificationProviderType.SMS],
                     context={
-                        'name': admin_name,
-                        'NAME': admin_name,
+                        'name': applicant_name,
+                        'NAME': applicant_name,
                     },
                     metadata={
                         'request_id': str(request_id),
@@ -233,8 +228,8 @@ def _send_auction_verification_sms_to_admins(
                     recipients=[cleaned_phone],
                     providers=[NotificationProviderType.SMS],
                     context={
-                        'name': 'مدیر',
-                        'NAME': 'مدیر',
+                        'name': applicant_name,
+                        'NAME': applicant_name,
                     },
                     metadata={
                         'request_id': str(request_id),

@@ -110,15 +110,10 @@ class VerificationRequestModelTests(TestCase):
         self.assertIn("09123333333", called_phones)
         self.assertNotIn("09124444444", called_phones)
 
-        # Check template key and context for admin_staff
+        # Check template key and context for applicant name
         for call in send_template_mock.call_args_list:
             self.assertEqual(call.kwargs["template_key"], "new_user")
-            if call.kwargs["recipients"] == ["09121111111"]:
-                self.assertEqual(call.kwargs["context"]["name"], "ادمین یک")
-            elif call.kwargs["recipients"] == ["09122222222"]:
-                self.assertEqual(call.kwargs["context"]["name"], "مدیر کل")
-            elif call.kwargs["recipients"] == ["09123333333"]:
-                self.assertEqual(call.kwargs["context"]["name"], "مدیر")
+            self.assertEqual(call.kwargs["context"]["name"], "متقاضی تست")
 
     @patch("accounts.signals._send_auction_verification_sms_to_admins")
     @patch("accounts.signals._send_auction_verification_message")

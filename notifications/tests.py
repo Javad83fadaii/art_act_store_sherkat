@@ -136,13 +136,13 @@ class EmailProviderIntegrationTests(TestCase):
         'new_user': {
             'code': '979811',
             'variables': (
-                'NAME',
+                'name',
             ),
         },
         'New_User': {
             'code': '979811',
             'variables': (
-                'NAME',
+                'name',
             ),
         },
     },
@@ -524,7 +524,7 @@ class SMSProviderIntegrationTests(TestCase):
             channels=['sms'],
             recipients=['09121234567'],
             context={
-                'name': 'مدیر سیستم',
+                'name': 'کاربر جدید',
             },
         )
 
@@ -535,8 +535,8 @@ class SMSProviderIntegrationTests(TestCase):
                 'templateId': 979811,
                 'parameters': [
                     {
-                        'name': 'NAME',
-                        'value': 'مدیر سیستم',
+                        'name': 'name',
+                        'value': 'کاربر جدید',
                     },
                 ],
             },

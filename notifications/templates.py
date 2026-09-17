@@ -461,7 +461,8 @@ def get_default_notification_templates() -> tuple[NotificationTemplate, ...]:
     )
 
     new_user_body = (
-        '{name} گرامی یوزر جدید ثبت نام کرده است.\n'
+        'ادمین گرامی یوزر جدید ثبت نام کرده است.\n'
+        'نام کاربر : {name}\n'
         'لطفا جهت احراز هویت به پنل ادمین مراجعه فرمایید.'
     )
 
@@ -478,8 +479,10 @@ def get_default_notification_templates() -> tuple[NotificationTemplate, ...]:
                 'sms_pattern': 'new_user',
             },
             context_map={
-                'name': 'NAME',
-                'NAME': 'name',
+                'name': ('name', 'NAME'),
+                'NAME': ('name', 'NAME'),
+                'full_name': ('name', 'NAME'),
+                'user_name': ('name', 'NAME'),
             },
             body_template=new_user_body,
         )
@@ -498,8 +501,10 @@ def get_default_notification_templates() -> tuple[NotificationTemplate, ...]:
                 'sms_pattern': 'New_User',
             },
             context_map={
-                'name': 'NAME',
-                'NAME': 'name',
+                'name': ('name', 'NAME'),
+                'NAME': ('name', 'NAME'),
+                'full_name': ('name', 'NAME'),
+                'user_name': ('name', 'NAME'),
             },
             body_template=new_user_body,
         )
