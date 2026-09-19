@@ -229,6 +229,29 @@ def auction_product_detail(request, pk: int):
             and bid.bid_amount == highest_user_bid
         )
 
+    # ----------------------------------
+    # ناوبری بین لات‌های مزایده (قبلی و بعدی)
+    # ----------------------------------
+    previous_lot_product = None
+    next_lot_product = None
+    current_lot_index = None
+    total_lots_count = 0
+
+    if product.auction_id:
+        sibling_lots = list(
+            _order_auction_products_by_lot(
+                AuctionProduct.objects.filter(auction_id=product.auction_id)
+            ).values('pk', 'lot', 'title')
+        )
+        total_lots_count = len(sibling_lots)
+        current_idx = next((i for i, item in enumerate(sibling_lots) if item['pk'] == product.pk), -1)
+        if current_idx != -1:
+            current_lot_index = current_idx + 1
+            if current_idx > 0:
+                previous_lot_product = sibling_lots[current_idx - 1]
+            if current_idx < total_lots_count - 1:
+                next_lot_product = sibling_lots[current_idx + 1]
+
     context = {
         'auction': product,
         'has_winner_profile_access': has_winner_profile_access,
@@ -242,6 +265,10 @@ def auction_product_detail(request, pk: int):
         'bid_success': request.session.pop('bid_success', None),
         'bid_error': request.session.pop('bid_error', None),
         'latest_credit_request_status': latest_credit_request_status,
+        'previous_lot_product': previous_lot_product,
+        'next_lot_product': next_lot_product,
+        'current_lot_index': current_lot_index,
+        'total_lots_count': total_lots_count,
     }
 
     context['bid_error'] = request.GET.get('bid_error', '') or context['bid_error']

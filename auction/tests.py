@@ -1136,3 +1136,59 @@ class AuctionVisitTrackingTests(TestCase):
         html = response.content.decode()
         self.assertIn('اثر پیش‌نمایش', html)
         self.assertIn('در انتظار شروع مزایده', html)
+
+    def test_product_detail_back_button_and_lot_navigation(self):
+        # Create 3 products with lots 1, 2, 3
+        self.product.lot = 1
+        self.product.save()
+
+        p2 = AuctionProduct.objects.create(
+            auction=self.auction,
+            product_id='A-102',
+            lot=2,
+            title='اثر لات دوم',
+            artist=self.artist,
+            artwork_type=self.artwork_type,
+            base_price=Decimal('20000000'),
+        )
+        p3 = AuctionProduct.objects.create(
+            auction=self.auction,
+            product_id='A-103',
+            lot=3,
+            title='اثر لات سوم',
+            artist=self.artist,
+            artwork_type=self.artwork_type,
+            base_price=Decimal('30000000'),
+        )
+
+        auction_back_url = reverse('auction:auction_products', kwargs={'pk': self.auction.pk})
+        p1_url = reverse('auction:auction_product_detail', kwargs={'pk': self.product.pk})
+        p2_url = reverse('auction:auction_product_detail', kwargs={'pk': p2.pk})
+        p3_url = reverse('auction:auction_product_detail', kwargs={'pk': p3.pk})
+
+        # Test Lot 1 (First lot): Next lot is Lot 2, Previous is None (disabled)
+        resp1 = self.client.get(p1_url)
+        self.assertEqual(resp1.status_code, 200)
+        self.assertContains(resp1, auction_back_url)
+        self.assertContains(resp1, 'بازگشت به مزایده')
+        self.assertContains(resp1, p2_url)
+        self.assertEqual(resp1.context['previous_lot_product'], None)
+        self.assertEqual(resp1.context['next_lot_product']['pk'], p2.pk)
+
+        # Test Lot 2 (Middle lot): Previous is Lot 1, Next is Lot 3
+        resp2 = self.client.get(p2_url)
+        self.assertEqual(resp2.status_code, 200)
+        self.assertContains(resp2, auction_back_url)
+        self.assertContains(resp2, p1_url)
+        self.assertContains(resp2, p3_url)
+        self.assertEqual(resp2.context['previous_lot_product']['pk'], self.product.pk)
+        self.assertEqual(resp2.context['next_lot_product']['pk'], p3.pk)
+
+        # Test Lot 3 (Last lot): Previous is Lot 2, Next is None (disabled)
+        resp3 = self.client.get(p3_url)
+        self.assertEqual(resp3.status_code, 200)
+        self.assertContains(resp3, auction_back_url)
+        self.assertContains(resp3, p2_url)
+        self.assertEqual(resp3.context['previous_lot_product']['pk'], p2.pk)
+        self.assertEqual(resp3.context['next_lot_product'], None)
+

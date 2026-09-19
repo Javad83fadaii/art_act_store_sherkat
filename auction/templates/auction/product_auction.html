@@ -35,7 +35,88 @@
 {% endif %}
 
 <div class="bg-background-light dark:bg-background-dark text-text-main dark:text-white min-h-screen flex flex-col">
-    <main class="flex-grow w-full max-w-[1300px] mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <main class="flex-grow w-full max-w-[1300px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+
+        <!-- نوار ناوبری بالای صفحه: دکمه بازگشت به مزایده و جابه‌جایی بین لات‌ها -->
+        <nav aria-label="ناوبری آثار و مزایده"
+             class="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md p-3 sm:p-4 rounded-2xl border border-neutral-200/80 dark:border-zinc-800/80 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
+            
+            <!-- بخش راست: دکمه بازگشت به صفحه مزایده (auction.html) -->
+            <div class="flex items-center gap-3">
+                <a href="{% if auction.auction %}{% url 'auction:auction_products' auction.auction.pk %}{% elif auction.pk %}{% url 'auction:auction_products' auction.pk %}{% else %}{% url 'auction:auction' %}{% endif %}"
+                   class="inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-white dark:bg-zinc-800 hover:bg-neutral-50 dark:hover:bg-zinc-700 text-neutral-800 dark:text-neutral-100 border border-neutral-200/90 dark:border-zinc-700 shadow-sm hover:shadow hover:border-primary/50 transition-all duration-200 text-xs sm:text-sm font-bold group shrink-0"
+                   title="بازگشت به صفحه مزایده">
+                    <span class="material-symbols-outlined text-[18px] sm:text-[20px] text-neutral-500 dark:text-neutral-400 group-hover:text-primary transition-all group-hover:translate-x-0.5 transform">arrow_forward</span>
+                    <span>بازگشت به مزایده</span>
+                </a>
+
+                {% if auction.auction.name %}
+                <span class="hidden md:inline-flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400 font-medium border-r border-neutral-200 dark:border-zinc-700 pr-3">
+                    <span class="material-symbols-outlined text-sm text-primary">gavel</span>
+                    <span class="truncate max-w-[200px] lg:max-w-[320px]">{{ auction.auction.name|fa_digits }}</span>
+                </span>
+                {% endif %}
+            </div>
+
+            <!-- بخش چپ: دکمه‌های لات قبلی و لات بعدی -->
+            <div class="flex items-center justify-between sm:justify-end gap-2 sm:gap-3 w-full sm:w-auto">
+                {% if current_lot_index and total_lots_count %}
+                <div class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-100/90 dark:bg-zinc-800/90 text-xs font-bold text-neutral-600 dark:text-neutral-300 border border-neutral-200/60 dark:border-zinc-700/60 shrink-0">
+                    <span class="text-neutral-400 font-medium">اثر</span>
+                    <span class="text-primary font-black">{{ current_lot_index|fa_digits }}</span>
+                    <span class="text-neutral-400 font-normal">از</span>
+                    <span class="text-neutral-700 dark:text-neutral-200 font-black">{{ total_lots_count|fa_digits }}</span>
+                </div>
+                {% endif %}
+
+                <!-- دکمه لات قبلی -->
+                {% if previous_lot_product %}
+                <a href="{% url 'auction:auction_product_detail' previous_lot_product.pk %}"
+                   id="prev-lot-btn"
+                   class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-white dark:bg-zinc-800 hover:bg-neutral-50 dark:hover:bg-zinc-700 text-neutral-800 dark:text-neutral-100 border border-neutral-200/90 dark:border-zinc-700 shadow-sm hover:shadow hover:border-primary/50 transition-all duration-200 text-xs sm:text-sm font-bold group"
+                   title="لات قبلی{% if previous_lot_product.lot %} (لات {{ previous_lot_product.lot|fa_digits }}){% endif %}: {{ previous_lot_product.title|fa_digits }}">
+                    <span class="material-symbols-outlined text-[18px] sm:text-[20px] text-neutral-500 dark:text-neutral-400 group-hover:text-primary transition-colors">chevron_right</span>
+                    <span>لات قبلی</span>
+                    {% if previous_lot_product.lot %}
+                    <span class="inline-block px-1.5 py-0.5 text-[10px] sm:text-[11px] font-bold rounded bg-neutral-100 dark:bg-zinc-700 text-neutral-600 dark:text-neutral-300">
+                        {{ previous_lot_product.lot|fa_digits }}
+                    </span>
+                    {% endif %}
+                </a>
+                {% else %}
+                <button type="button" disabled
+                   class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-neutral-100/70 dark:bg-zinc-800/40 text-neutral-400 dark:text-neutral-600 border border-neutral-200/50 dark:border-zinc-800/60 text-xs sm:text-sm font-medium cursor-not-allowed opacity-60"
+                   title="لات قبلی وجود ندارد">
+                    <span class="material-symbols-outlined text-[18px] sm:text-[20px]">chevron_right</span>
+                    <span>لات قبلی</span>
+                </button>
+                {% endif %}
+
+                <!-- دکمه لات بعدی -->
+                {% if next_lot_product %}
+                <a href="{% url 'auction:auction_product_detail' next_lot_product.pk %}"
+                   id="next-lot-btn"
+                   class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-white dark:bg-zinc-800 hover:bg-neutral-50 dark:hover:bg-zinc-700 text-neutral-800 dark:text-neutral-100 border border-neutral-200/90 dark:border-zinc-700 shadow-sm hover:shadow hover:border-primary/50 transition-all duration-200 text-xs sm:text-sm font-bold group"
+                   title="لات بعدی{% if next_lot_product.lot %} (لات {{ next_lot_product.lot|fa_digits }}){% endif %}: {{ next_lot_product.title|fa_digits }}">
+                    <span>لات بعدی</span>
+                    {% if next_lot_product.lot %}
+                    <span class="inline-block px-1.5 py-0.5 text-[10px] sm:text-[11px] font-bold rounded bg-neutral-100 dark:bg-zinc-700 text-neutral-600 dark:text-neutral-300">
+                        {{ next_lot_product.lot|fa_digits }}
+                    </span>
+                    {% endif %}
+                    <span class="material-symbols-outlined text-[18px] sm:text-[20px] text-neutral-500 dark:text-neutral-400 group-hover:text-primary transition-colors">chevron_left</span>
+                </a>
+                {% else %}
+                <button type="button" disabled
+                   class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-neutral-100/70 dark:bg-zinc-800/40 text-neutral-400 dark:text-neutral-600 border border-neutral-200/50 dark:border-zinc-800/60 text-xs sm:text-sm font-medium cursor-not-allowed opacity-60"
+                   title="لات بعدی وجود ندارد">
+                    <span>لات بعدی</span>
+                    <span class="material-symbols-outlined text-[18px] sm:text-[20px]">chevron_left</span>
+                </button>
+                {% endif %}
+            </div>
+        </nav>
+
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 xl:gap-16">
 
             <!-- ستون سمت راست: گالری تصاویر -->
@@ -227,8 +308,7 @@
                                     <div class="flex flex-col">
                                         {% if auction.auction.status == 'finished' %}
                                         <span class="text-xs font-bold text-neutral-700">وضعیت اثر</span>
-                                        <span class="text-[10px] text-neutral-400">مزایده این اثر به پایان رسیده
-                                            است</span>
+                                        <span class="text-[10px] text-neutral-400">مزایده این اثر به پایان رسیده است</span>
                                         {% elif auction.auction.status == 'ready' %}
                                         <span class="text-xs font-bold text-blue-600">زمان باقی‌مانده</span>
                                         <span class="text-[10px] text-neutral-400">تا شروع مزایده</span>
@@ -646,6 +726,34 @@
                     </details> -->
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- نوار ناوبری پایین صفحه: دسترسی سریع به بازگشت و لات قبلی / بعدی پس از مطالعه مشخصات اثر -->
+        <div class="mt-12 pt-6 border-t border-neutral-200/80 dark:border-zinc-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <a href="{% if auction.auction %}{% url 'auction:auction_products' auction.auction.pk %}{% elif auction.pk %}{% url 'auction:auction_products' auction.pk %}{% else %}{% url 'auction:auction' %}{% endif %}"
+               class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-zinc-800 hover:bg-neutral-50 dark:hover:bg-zinc-700 text-neutral-800 dark:text-neutral-100 border border-neutral-200/90 dark:border-zinc-700 shadow-sm hover:shadow hover:border-primary/50 transition-all text-xs sm:text-sm font-bold group"
+               title="بازگشت به صفحه مزایده">
+                <span class="material-symbols-outlined text-[18px] sm:text-[20px] text-neutral-500 dark:text-neutral-400 group-hover:text-primary transition-all group-hover:translate-x-0.5 transform">arrow_forward</span>
+                <span>بازگشت به مزایده</span>
+            </a>
+
+            <div class="flex items-center gap-2 sm:gap-3">
+                {% if previous_lot_product %}
+                <a href="{% url 'auction:auction_product_detail' previous_lot_product.pk %}"
+                   class="inline-flex items-center gap-1.5 px-3.5 py-2 sm:py-2.5 rounded-xl bg-white dark:bg-zinc-800 hover:bg-neutral-50 dark:hover:bg-zinc-700 text-neutral-800 dark:text-neutral-100 border border-neutral-200/90 dark:border-zinc-700 shadow-sm hover:shadow hover:border-primary/50 transition-all text-xs sm:text-sm font-bold group">
+                    <span class="material-symbols-outlined text-[18px] sm:text-[20px] text-neutral-500 group-hover:text-primary transition-colors">chevron_right</span>
+                    <span>لات قبلی{% if previous_lot_product.lot %} ({{ previous_lot_product.lot|fa_digits }}){% endif %}</span>
+                </a>
+                {% endif %}
+
+                {% if next_lot_product %}
+                <a href="{% url 'auction:auction_product_detail' next_lot_product.pk %}"
+                   class="inline-flex items-center gap-1.5 px-3.5 py-2 sm:py-2.5 rounded-xl bg-white dark:bg-zinc-800 hover:bg-neutral-50 dark:hover:bg-zinc-700 text-neutral-800 dark:text-neutral-100 border border-neutral-200/90 dark:border-zinc-700 shadow-sm hover:shadow hover:border-primary/50 transition-all text-xs sm:text-sm font-bold group">
+                    <span>لات بعدی{% if next_lot_product.lot %} ({{ next_lot_product.lot|fa_digits }}){% endif %}</span>
+                    <span class="material-symbols-outlined text-[18px] sm:text-[20px] text-neutral-500 group-hover:text-primary transition-colors">chevron_left</span>
+                </a>
+                {% endif %}
             </div>
         </div>
     </main>
@@ -1636,11 +1744,42 @@
             recalcBid();
 
             document.addEventListener('keydown', function (event) {
-                if (event.key !== "Escape") return;
-                if (window.closeConfirmBidModal) window.closeConfirmBidModal();
-                if (window.closeCreditModal) window.closeCreditModal();
-                if (modal && !modal.classList.contains('hidden')) closeGalleryModal();
-                if (videoModal && !videoModal.classList.contains('hidden')) closeVideoModal();
+                if (event.key === "Escape") {
+                    if (window.closeConfirmBidModal) window.closeConfirmBidModal();
+                    if (window.closeCreditModal) window.closeCreditModal();
+                    if (modal && !modal.classList.contains('hidden')) closeGalleryModal();
+                    if (videoModal && !videoModal.classList.contains('hidden')) closeVideoModal();
+                    return;
+                }
+
+                // ناوبری بین لات‌ها با کلیدهای جهت‌نما (در صورت عدم فوکوس روی فیلدهای متنی یا مودال‌ها)
+                const activeEl = document.activeElement;
+                const isInputFocused = activeEl && (
+                    activeEl.tagName === 'INPUT' ||
+                    activeEl.tagName === 'TEXTAREA' ||
+                    activeEl.tagName === 'SELECT' ||
+                    activeEl.isContentEditable
+                );
+                const isAnyModalOpen = (modal && !modal.classList.contains('hidden')) ||
+                                       (videoModal && !videoModal.classList.contains('hidden')) ||
+                                       (document.getElementById('credit-modal') && !document.getElementById('credit-modal').classList.contains('pointer-events-none')) ||
+                                       (document.getElementById('confirm-bid-modal') && !document.getElementById('confirm-bid-modal').classList.contains('pointer-events-none'));
+
+                if (isInputFocused || isAnyModalOpen) return;
+
+                if (event.key === 'ArrowRight') {
+                    // در چیدمان راست‌به‌چپ (RTL)، کلید راست به سمت لات قبلی است
+                    const prevBtn = document.getElementById('prev-lot-btn');
+                    if (prevBtn && prevBtn.href) {
+                        window.location.href = prevBtn.href;
+                    }
+                } else if (event.key === 'ArrowLeft') {
+                    // در چیدمان راست‌به‌چپ (RTL)، کلید چپ به سمت لات بعدی است
+                    const nextBtn = document.getElementById('next-lot-btn');
+                    if (nextBtn && nextBtn.href) {
+                        window.location.href = nextBtn.href;
+                    }
+                }
             });
         </script>
         {% if auction.model_360_url %}
