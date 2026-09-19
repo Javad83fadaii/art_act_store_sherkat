@@ -252,13 +252,21 @@ class SMSProvider(BaseNotificationProvider):
         if str(pattern.code).isdigit():
             template_id = int(pattern.code)
 
+        def _resolve_context_value(var: str) -> Any:
+            if var in context:
+                return context[var]
+            for k, v in context.items():
+                if str(k).lower() == str(var).lower():
+                    return v
+            return None
+
         return {
             'mobile': recipient,
             'templateId': template_id,
             'parameters': [
                 {
                     'name': variable,
-                    'value': self._stringify_context_value(context.get(variable)),
+                    'value': self._stringify_context_value(_resolve_context_value(variable)),
                 }
                 for variable in pattern.variables
             ],
@@ -280,6 +288,11 @@ class SMSProvider(BaseNotificationProvider):
         missing: list[str] = []
         for variable in pattern.variables:
             value = context.get(variable)
+            if value is None:
+                for k, v in context.items():
+                    if str(k).lower() == str(variable).lower():
+                        value = v
+                        break
             if value is None:
                 missing.append(variable)
                 continue

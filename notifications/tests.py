@@ -133,6 +133,18 @@ class EmailProviderIntegrationTests(TestCase):
                 'FORMAT_AMOUNTLATEST_BIDBID_AMOUNT',
             ),
         },
+        'new_user': {
+            'code': '979811',
+            'variables': (
+                'name',
+            ),
+        },
+        'New_User': {
+            'code': '979811',
+            'variables': (
+                'name',
+            ),
+        },
     },
 )
 class SMSProviderIntegrationTests(TestCase):
@@ -484,6 +496,47 @@ class SMSProviderIntegrationTests(TestCase):
                     {
                         'name': 'FORMAT_AMOUNTBIDBID_AMOUNT',
                         'value': '12,500,000',
+                    },
+                ],
+            },
+            headers={
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-API-KEY': 'test-api-key',
+            },
+            timeout=9,
+        )
+
+    @patch('notifications.providers.sms.requests.post')
+    def test_send_template_maps_new_user_context_to_sms_pattern_variables(self, post_mock) -> None:
+        response = Mock()
+        response.status_code = 200
+        response.text = '{"status": 1, "message": "success", "data": 123456}'
+        response.json.return_value = {
+            'status': 1,
+            'message': 'success',
+            'data': 123456,
+        }
+        post_mock.return_value = response
+
+        self.service.send_template(
+            template='new_user',
+            channels=['sms'],
+            recipients=['09121234567'],
+            context={
+                'name': 'کاربر جدید',
+            },
+        )
+
+        post_mock.assert_called_once_with(
+            'https://api.sms.ir/v1/send/verify',
+            json={
+                'mobile': '9121234567',
+                'templateId': 979811,
+                'parameters': [
+                    {
+                        'name': 'name',
+                        'value': 'کاربر جدید',
                     },
                 ],
             },

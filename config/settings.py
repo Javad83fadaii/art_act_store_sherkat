@@ -411,4 +411,21 @@ SMS_PATTERNS = {
         'code': _get_first_setting('SMS_PATTERN_PASSWORD_RESET_CODE') or '331368',
         'variables': ('CODE',),
     },
+    'new_user': {
+        'code': _get_first_setting('SMS_PATTERN_NEW_USER_CODE', 'SMS_PATTERN_NEWUSER_CODE') or '979811',
+        'variables': (
+            _get_first_setting('SMS_PATTERN_NEW_USER_VARIABLE') or 'name',
+        ),
+    },
+    'New_User': {
+        'code': _get_first_setting('SMS_PATTERN_NEW_USER_CODE', 'SMS_PATTERN_NEWUSER_CODE') or '979811',
+        'variables': (
+            _get_first_setting('SMS_PATTERN_NEW_USER_VARIABLE') or 'name',
+        ),
+    },
 }
+
+_raw_admin_phone_numbers = _get_first_setting('ADMIN_PHONE_NUMBERS') or ''
+ADMIN_PHONE_NUMBERS = [
+    num.strip() for num in _raw_admin_phone_numbers.split(',') if num.strip()
+]
