@@ -3,6 +3,44 @@
 from django.db import migrations
 
 
+def _create_verification_triggers(apps, schema_editor):
+    if schema_editor.connection.vendor != "mysql":
+        return
+
+    statements = [
+        """
+        CREATE TRIGGER accounts_vr_sync_user_ai
+        AFTER INSERT ON accounts_verificationrequest
+        FOR EACH ROW
+        UPDATE accounts_customuser
+        SET is_verified = NEW.is_verified
+        WHERE id = NEW.user_id
+        """,
+        """
+        CREATE TRIGGER accounts_vr_sync_user_au
+        AFTER UPDATE ON accounts_verificationrequest
+        FOR EACH ROW
+        UPDATE accounts_customuser
+        SET is_verified = NEW.is_verified
+        WHERE id = NEW.user_id
+        """,
+    ]
+    for sql in statements:
+        schema_editor.execute(sql)
+
+
+def _drop_verification_triggers(apps, schema_editor):
+    if schema_editor.connection.vendor != "mysql":
+        return
+
+    statements = [
+        "DROP TRIGGER IF EXISTS accounts_vr_sync_user_ai",
+        "DROP TRIGGER IF EXISTS accounts_vr_sync_user_au",
+    ]
+    for sql in statements:
+        schema_editor.execute(sql)
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -10,28 +48,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunSQL(
-            sql=[
-                """
-                CREATE TRIGGER accounts_vr_sync_user_ai
-                AFTER INSERT ON accounts_verificationrequest
-                FOR EACH ROW
-                UPDATE accounts_customuser
-                SET is_verified = NEW.is_verified
-                WHERE id = NEW.user_id
-                """,
-                """
-                CREATE TRIGGER accounts_vr_sync_user_au
-                AFTER UPDATE ON accounts_verificationrequest
-                FOR EACH ROW
-                UPDATE accounts_customuser
-                SET is_verified = NEW.is_verified
-                WHERE id = NEW.user_id
-                """,
-            ],
-            reverse_sql=[
-                "DROP TRIGGER IF EXISTS accounts_vr_sync_user_ai",
-                "DROP TRIGGER IF EXISTS accounts_vr_sync_user_au",
-            ],
-        ),
+        migrations.RunPython(_create_verification_triggers, _drop_verification_triggers),
     ]

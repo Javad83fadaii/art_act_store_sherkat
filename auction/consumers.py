@@ -1,4 +1,5 @@
 import json
+from urllib.parse import parse_qs
 
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
@@ -10,6 +11,8 @@ class AuctionProductBidConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.product_pk = int(self.scope['url_route']['kwargs']['product_pk'])
         self.group_name = get_auction_product_group_name(self.product_pk)
+        query_params = parse_qs((self.scope.get('query_string') or b'').decode())
+        self.include_user_history = query_params.get('compact', ['0'])[0] != '1'
 
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
@@ -19,6 +22,7 @@ class AuctionProductBidConsumer(AsyncWebsocketConsumer):
             payload = await database_sync_to_async(build_bid_live_payload)(
                 self.product_pk,
                 self.scope.get('user'),
+                include_user_history=self.include_user_history,
             )
             # تلاش برای ارسال داده به کلاینت
             await self.send(
@@ -42,6 +46,7 @@ class AuctionProductBidConsumer(AsyncWebsocketConsumer):
             payload = await database_sync_to_async(build_bid_live_payload)(
                 self.product_pk,
                 self.scope.get('user'),
+                include_user_history=self.include_user_history,
             )
             await self.send(
                 text_data=json.dumps(

@@ -68,6 +68,17 @@ def site_rules(request):
     return render(request, 'core/site_rules.html')
 
 
+def enamad_verification_file(request):
+    """ارسال فایل تایید اینماد از ریشه دامنه."""
+    verification_file_path = Path(settings.BASE_DIR) / '62603317.txt'
+    if not verification_file_path.exists() or not verification_file_path.is_file():
+        raise Http404()
+
+    response = FileResponse(open(verification_file_path, 'rb'), content_type='text/plain')
+    response['Content-Disposition'] = 'inline; filename="62603317.txt"'
+    return response
+
+
 def _get_client_ip(request) -> str | None:
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
     if x_forwarded_for:
@@ -94,7 +105,7 @@ def track_public_visit(request):
     user = request.user if request.user.is_authenticated else None
     ip_address = _get_client_ip(request)
 
-    if visit_kind == 'store_product':
+    if visit_kind in {'product', 'store_product'}:
         product = get_object_or_404(Artwork, pk=object_id)
         VisitHistory.objects.create(
             user=user,

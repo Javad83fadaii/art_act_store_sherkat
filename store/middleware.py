@@ -2,13 +2,22 @@ from django.utils import timezone
 from .models import SiteVisitLog
 import datetime
 
+
+VERIFICATION_EXEMPT_PATHS = {'/39556468.txt'}
+
+
 class VisitTrackingMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
         # ۱. نادیده گرفتن درخواست‌های مربوط به فایل‌های استاتیک و ادمین (برای کاهش فشار دیتابیس)
-        if request.path.startswith('/static/') or request.path.startswith('/media/') or request.path.startswith('/admin/'):
+        if (
+            request.path.startswith('/static/')
+            or request.path.startswith('/media/')
+            or request.path.startswith('/admin/')
+            or request.path in VERIFICATION_EXEMPT_PATHS
+        ):
             return self.get_response(request)
 
         # ۲. اطمینان از وجود سشن (برای کاربران مهمان)

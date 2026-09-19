@@ -136,15 +136,7 @@
             var message = q.get('toast_message');
             if (!message) return;
             window.__TOAST_QUERY_HANDLED = true;
-            var type = q.get('toast_type') || 'info';
-            var position = q.get('toast_position') || 'bottom-left';
-            var actionLabel = q.get('toast_action_label') || '';
-            var actionHref = q.get('toast_action_href') || '';
-            if (typeof window.showToast === 'function') {
-                window.showToast(message, type, position, { actionLabel: actionLabel, actionHref: actionHref });
-            } else if (typeof window.showNotificationText === 'function') {
-                window.showNotificationText(message, { type: type, position: position, toastOptions: { actionLabel: actionLabel, actionHref: actionHref } });
-            }
+            // Notification display disabled by request. We only clean the URL params.
             q.delete('toast_message');
             q.delete('toast_type');
             q.delete('toast_position');

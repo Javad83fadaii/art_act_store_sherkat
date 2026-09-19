@@ -56,7 +56,12 @@ def _build_my_bids_context(product: AuctionProduct, user) -> tuple[list[Bid], in
     return my_bids, my_bids_count
 
 
-def build_bid_live_payload(product: AuctionProduct | int, user=None) -> dict:
+def build_bid_live_payload(
+    product: AuctionProduct | int,
+    user=None,
+    *,
+    include_user_history: bool = True,
+) -> dict:
     if isinstance(product, int):
         product = (
             AuctionProduct.objects.select_related('auction', 'winner')
@@ -69,23 +74,43 @@ def build_bid_live_payload(product: AuctionProduct | int, user=None) -> dict:
         )
 
     product = ensure_auction_product_winner(product)
-    my_bids, my_bids_count = _build_my_bids_context(product, user)
+    current_price_int = _as_int_price(product.current_price or product.base_price)
+    step_increment_int = int(product.get_current_step_increment())
+    min_next_bid_int = int(product.get_min_next_bid())
 
-    return {
-        'current_price': _as_int_price(product.current_price or product.base_price),
+    def _fa_num(val: int) -> str:
+        return f'{int(val):,}'.translate(str.maketrans('0123456789', '۰۱۲۳۴۵۶۷۸۹'))
+
+    payload = {
+        'current_price': current_price_int,
+        'formatted_current_price': _fa_num(current_price_int),
+        'step_increment': step_increment_int,
+        'formatted_step_increment': _fa_num(step_increment_int),
+        'min_next_bid': min_next_bid_int,
+        'formatted_min_next_bid': _fa_num(min_next_bid_int),
+        'tax_amount': _as_int_price(product.tax_amount),
+        'total_with_tax': _as_int_price(product.final_price_with_tax),
         'bid_count': product.bids.count(),
-        'min_next_bid': product.get_min_next_bid(),
         'has_winner': bool(product.winner_id),
-        'my_bids_count': my_bids_count,
-        'my_bids_html': render_to_string(
-            'auction/partials/my_bid_history.html',
-            {
-                'my_bids': my_bids,
-                'my_bids_count': my_bids_count,
-                'user': user,
-            },
-        ),
     }
+    if not include_user_history:
+        return payload
+
+    my_bids, my_bids_count = _build_my_bids_context(product, user)
+    payload.update(
+        {
+            'my_bids_count': my_bids_count,
+            'my_bids_html': render_to_string(
+                'auction/partials/my_bid_history.html',
+                {
+                    'my_bids': my_bids,
+                    'my_bids_count': my_bids_count,
+                    'user': user,
+                },
+            ),
+        }
+    )
+    return payload
 
 
 def broadcast_product_bid_update(product_pk: int) -> bool:

@@ -40,6 +40,18 @@ class StoreVisitTrackingTests(TestCase):
         visit = VisitHistory.objects.get()
         self.assertEqual(visit.product, self.artwork)
 
+    def test_track_visit_endpoint_accepts_legacy_product_kind(self):
+        response = self.client.post(
+            reverse('track_public_visit'),
+            data=json.dumps({'kind': 'product', 'object_id': self.artwork.pk}),
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(VisitHistory.objects.count(), 1)
+        visit = VisitHistory.objects.get()
+        self.assertEqual(visit.product, self.artwork)
+
 
 class TelegramPurchaseWebhookTests(TestCase):
     def setUp(self):

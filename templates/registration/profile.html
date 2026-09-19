@@ -27,7 +27,7 @@
                 <!-- بخش سمت راست: دکمه بازگشت و عنوان صفحه -->
                 <div class="flex items-center gap-4">
                     <!-- دکمه بازگشت با استایل جدید: کوچک‌تر و شیشه‌ای‌تر -->
-                    <button type="button" onclick="history.back()" 
+                    <button type="button" onclick="window.smartGoBack('{% url 'home' %}')" 
                        class="group flex items-center justify-center w-8 h-8 bg-white/20 dark:bg-gray-800/30 backdrop-blur-lg border border-white/40 dark:border-gray-600/30 rounded-xl shadow-[0_4px_10px_rgba(0,0,0,0.05)] hover:shadow-[0_4px_15px_rgba(0,0,0,0.1)] hover:bg-white/40 dark:hover:bg-gray-700/50 transition-all duration-300 cursor-pointer shrink-0" 
                        title="بازگشت به صفحه قبل">
                         <svg class="w-4 h-4 text-gray-700 dark:text-gray-200 transform transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -162,7 +162,9 @@
                             <!-- کارت کالای لایک شده شیشه‌ای -->
                             <a href="{% url 'store:artwork_detail' like.product.id %}" class="group flex items-center gap-4 p-3 bg-white/20 dark:bg-gray-800/20 backdrop-blur-md border border-white/40 dark:border-gray-600/30 rounded-2xl hover:bg-white/40 dark:hover:bg-gray-700/40 hover:shadow-lg hover:border-white/60 transition-all duration-300" data-track-visit="1" data-track-kind="store_product" data-track-id="{{ like.product.id }}">
                                 <div class="w-16 h-16 shrink-0 overflow-hidden rounded-xl bg-white/30 dark:bg-gray-900/50 backdrop-blur-sm border border-white/30">
-                                    <img src="{{ like.product.main_image_url }}" alt="{{ like.product.title }}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                                    {% if like.product.main_image_url %}
+                                        <img src="{{ like.product.main_image_url }}" alt="{{ like.product.title }}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                                    {% endif %}
                                 </div>
                                 <div class="min-w-0 flex-1">
                                     <h3 class="font-bold text-sm text-gray-900 dark:text-white truncate drop-shadow-sm">{% include 'partials/lot_badge_title.html' with lot=like.product.lot title=like.product.title %}</h3>

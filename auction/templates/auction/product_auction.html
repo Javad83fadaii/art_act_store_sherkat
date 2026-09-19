@@ -1,21 +1,28 @@
 {% extends 'base.html' %}
 {% load static humanize fa_digits %}
 
-{% block title %}جزئیات مزایده - {{ auction.display_title|fa_digits }}{% endblock %}
+{% block title %}جزئیات مزایده - {{ auction.title|fa_digits }}{% endblock %}
 
 {% block extra_head %}
-    <!-- جلوگیری از کش شدن در سطح هدر HTTP -->
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-    <meta http-equiv="Pragma" content="no-cache" />
-    <meta http-equiv="Expires" content="0" />
-    
-    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
-    
-    <!-- استایل برای انیمیشن دکمه در زمان ثبت بید -->
-    <style>
-        @keyframes spin-custom { 100% { transform: rotate(360deg); } }
-        .animate-spin-custom { animation: spin-custom 1s linear infinite; }
-    </style>
+<!-- جلوگیری از کش شدن در سطح هدر HTTP -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+
+<link rel="stylesheet" href="{% static 'css/styles.css' %}">
+
+<!-- استایل برای انیمیشن دکمه در زمان ثبت بید -->
+<style>
+    @keyframes spin-custom {
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+
+    .animate-spin-custom {
+        animation: spin-custom 1s linear infinite;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -23,213 +30,312 @@
 <input type="hidden" id="page_is_dirty" value="0">
 <div id="credit-request-status" class="hidden" data-status="{{ latest_credit_request_status }}"></div>
 {% if auction.auction.status == 'ongoing' %}
-<div
-    id="auction-live-config"
-    class="hidden"
-    data-product-id="{{ auction.pk }}"
-    data-live-state-url="{{ live_state_url }}"
-></div>
+<div id="auction-live-config" class="hidden" data-product-id="{{ auction.pk }}"
+    data-live-state-url="{{ live_state_url }}"></div>
 {% endif %}
 
 <div class="bg-background-light dark:bg-background-dark text-text-main dark:text-white min-h-screen flex flex-col">
-<main class="flex-grow w-full max-w-[1300px] mx-auto px-4 sm:px-6 lg:px-8 py-10">
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 xl:gap-16">
-        
-        <!-- ستون سمت راست: گالری تصاویر -->
-        <div class="lg:col-span-7 flex flex-col gap-6">
-            <div class="relative w-full aspect-[4/3] bg-neutral-100 rounded-xl overflow-hidden shadow-sm border border-neutral-200 group zoom-container">
+    <main class="flex-grow w-full max-w-[1300px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
 
-                <div class="absolute top-4 right-4 flex gap-2 z-20">
-                    <button id="btn-view-image" onclick="switchView('image')" class="px-3 py-1.5 bg-white/90 backdrop-blur-md border border-white/50 rounded-lg text-xs font-bold text-primary shadow-sm hover:bg-white transition-all ring-2 ring-primary">
-                        تصویر
-                    </button>
-                    {% if auction.model_360_url %}
-                        <button id="btn-view-360" onclick="switchView('360')" class="px-3 py-1.5 bg-white/90 backdrop-blur-md border border-white/50 rounded-lg text-xs font-bold text-neutral-600 shadow-sm hover:bg-white transition-all hover:text-primary">
-                            نمای ۳۶۰
-                        </button>
-                    {% endif %}
+        <!-- نوار ناوبری بالای صفحه: دکمه بازگشت به مزایده و جابه‌جایی بین لات‌ها -->
+        <nav aria-label="ناوبری آثار و مزایده"
+             class="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md p-3 sm:p-4 rounded-2xl border border-neutral-200/80 dark:border-zinc-800/80 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
+            
+            <!-- بخش راست: دکمه بازگشت به صفحه مزایده (auction.html) -->
+            <div class="flex items-center gap-3">
+                <a href="{% if auction.auction %}{% url 'auction:auction_products' auction.auction.pk %}{% elif auction.pk %}{% url 'auction:auction_products' auction.pk %}{% else %}{% url 'auction:auction' %}{% endif %}"
+                   class="inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-white dark:bg-zinc-800 hover:bg-neutral-50 dark:hover:bg-zinc-700 text-neutral-800 dark:text-neutral-100 border border-neutral-200/90 dark:border-zinc-700 shadow-sm hover:shadow hover:border-primary/50 transition-all duration-200 text-xs sm:text-sm font-bold group shrink-0"
+                   title="بازگشت به صفحه مزایده">
+                    <span class="material-symbols-outlined text-[18px] sm:text-[20px] text-neutral-500 dark:text-neutral-400 group-hover:text-primary transition-all group-hover:translate-x-0.5 transform">arrow_forward</span>
+                    <span>بازگشت به مزایده</span>
+                </a>
+
+                {% if auction.auction.name %}
+                <span class="hidden md:inline-flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400 font-medium border-r border-neutral-200 dark:border-zinc-700 pr-3">
+                    <span class="material-symbols-outlined text-sm text-primary">gavel</span>
+                    <span class="truncate max-w-[200px] lg:max-w-[320px]">{{ auction.auction.name|fa_digits }}</span>
+                </span>
+                {% endif %}
+            </div>
+
+            <!-- بخش چپ: دکمه‌های لات قبلی و لات بعدی -->
+            <div class="flex items-center justify-between sm:justify-end gap-2 sm:gap-3 w-full sm:w-auto">
+                {% if current_lot_index and total_lots_count %}
+                <div class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-100/90 dark:bg-zinc-800/90 text-xs font-bold text-neutral-600 dark:text-neutral-300 border border-neutral-200/60 dark:border-zinc-700/60 shrink-0">
+                    <span class="text-neutral-400 font-medium">اثر</span>
+                    <span class="text-primary font-black">{{ current_lot_index|fa_digits }}</span>
+                    <span class="text-neutral-400 font-normal">از</span>
+                    <span class="text-neutral-700 dark:text-neutral-200 font-black">{{ total_lots_count|fa_digits }}</span>
                 </div>
-
-                {% if auction.auction.status == 'finished' and auction.winner_id %}
-                    <div class="absolute top-4 left-4 z-20 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-600/95 text-white shadow-lg border border-white/20 backdrop-blur-sm">
-                        <span class="material-symbols-outlined text-[18px]">check_circle</span>
-                        <span class="text-xs sm:text-sm font-black">فروخته شد</span>
-                    </div>
                 {% endif %}
 
-                <button id="next-slide" class="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white/80 hover:bg-white backdrop-blur-md border border-white/50 rounded-full flex items-center justify-center text-neutral-700 hover:text-primary shadow-md transition-all opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0 duration-300" type="button">
-                    <span class="material-symbols-outlined">chevron_left</span>
+                <!-- دکمه لات قبلی -->
+                {% if previous_lot_product %}
+                <a href="{% url 'auction:auction_product_detail' previous_lot_product.pk %}"
+                   id="prev-lot-btn"
+                   class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-white dark:bg-zinc-800 hover:bg-neutral-50 dark:hover:bg-zinc-700 text-neutral-800 dark:text-neutral-100 border border-neutral-200/90 dark:border-zinc-700 shadow-sm hover:shadow hover:border-primary/50 transition-all duration-200 text-xs sm:text-sm font-bold group"
+                   title="لات قبلی{% if previous_lot_product.lot %} (لات {{ previous_lot_product.lot|fa_digits }}){% endif %}: {{ previous_lot_product.title|fa_digits }}">
+                    <span class="material-symbols-outlined text-[18px] sm:text-[20px] text-neutral-500 dark:text-neutral-400 group-hover:text-primary transition-colors">chevron_right</span>
+                    <span>لات قبلی</span>
+                    {% if previous_lot_product.lot %}
+                    <span class="inline-block px-1.5 py-0.5 text-[10px] sm:text-[11px] font-bold rounded bg-neutral-100 dark:bg-zinc-700 text-neutral-600 dark:text-neutral-300">
+                        {{ previous_lot_product.lot|fa_digits }}
+                    </span>
+                    {% endif %}
+                </a>
+                {% else %}
+                <button type="button" disabled
+                   class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-neutral-100/70 dark:bg-zinc-800/40 text-neutral-400 dark:text-neutral-600 border border-neutral-200/50 dark:border-zinc-800/60 text-xs sm:text-sm font-medium cursor-not-allowed opacity-60"
+                   title="لات قبلی وجود ندارد">
+                    <span class="material-symbols-outlined text-[18px] sm:text-[20px]">chevron_right</span>
+                    <span>لات قبلی</span>
                 </button>
+                {% endif %}
 
-                <button id="prev-slide" class="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white/80 hover:bg-white backdrop-blur-md border border-white/50 rounded-full flex items-center justify-center text-neutral-700 hover:text-primary shadow-md transition-all opacity-0 group-hover:opacity-100 -translate-x-4 group-hover:translate-x-0 duration-300" type="button">
-                    <span class="material-symbols-outlined">chevron_right</span>
+                <!-- دکمه لات بعدی -->
+                {% if next_lot_product %}
+                <a href="{% url 'auction:auction_product_detail' next_lot_product.pk %}"
+                   id="next-lot-btn"
+                   class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-white dark:bg-zinc-800 hover:bg-neutral-50 dark:hover:bg-zinc-700 text-neutral-800 dark:text-neutral-100 border border-neutral-200/90 dark:border-zinc-700 shadow-sm hover:shadow hover:border-primary/50 transition-all duration-200 text-xs sm:text-sm font-bold group"
+                   title="لات بعدی{% if next_lot_product.lot %} (لات {{ next_lot_product.lot|fa_digits }}){% endif %}: {{ next_lot_product.title|fa_digits }}">
+                    <span>لات بعدی</span>
+                    {% if next_lot_product.lot %}
+                    <span class="inline-block px-1.5 py-0.5 text-[10px] sm:text-[11px] font-bold rounded bg-neutral-100 dark:bg-zinc-700 text-neutral-600 dark:text-neutral-300">
+                        {{ next_lot_product.lot|fa_digits }}
+                    </span>
+                    {% endif %}
+                    <span class="material-symbols-outlined text-[18px] sm:text-[20px] text-neutral-500 dark:text-neutral-400 group-hover:text-primary transition-colors">chevron_left</span>
+                </a>
+                {% else %}
+                <button type="button" disabled
+                   class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-neutral-100/70 dark:bg-zinc-800/40 text-neutral-400 dark:text-neutral-600 border border-neutral-200/50 dark:border-zinc-800/60 text-xs sm:text-sm font-medium cursor-not-allowed opacity-60"
+                   title="لات بعدی وجود ندارد">
+                    <span>لات بعدی</span>
+                    <span class="material-symbols-outlined text-[18px] sm:text-[20px]">chevron_left</span>
                 </button>
+                {% endif %}
+            </div>
+        </nav>
 
-                <div class="w-full h-full bg-cover bg-center transition-transform duration-700 ease-in-out hover:scale-110 cursor-pointer"
-                     id="product-main-image"
-                     data-alt="{{ auction.display_title|fa_digits }}"
-                     style="background-image: url('{{ auction.main_image_url }}');"
-                     onclick="openGalleryModal(currentGalleryIndex)">
-                </div>
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 xl:gap-16">
 
-                <div id="zoom-hint" class="absolute bottom-4 left-4 bg-white/90 backdrop-blur-md border border-white/50 px-3 py-1.5 rounded-full text-xs font-bold text-neutral-800 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none flex items-center gap-1.5 shadow-lg">
-                    <span class="material-symbols-outlined text-[18px]">zoom_in</span>
-                    بزرگنمایی
-                </div>
+            <!-- ستون سمت راست: گالری تصاویر -->
+            <div class="lg:col-span-7 flex flex-col gap-6">
+                <div
+                    class="relative w-full aspect-[4/3] bg-white rounded-xl overflow-hidden shadow-sm border border-neutral-200 group zoom-container">
 
-                {% if auction.model_360_url %}
-                    <div id="product-360-view" class="hidden absolute inset-0 bg-[#f5f5f4] flex items-center justify-center select-none overflow-hidden">
-                        <model-viewer
-                            src="{{ auction.model_360_url }}"
-                            poster="{{ auction.main_image_url }}"
-                            alt="360 View"
-                            camera-controls
-                            touch-action="pan-y"
-                            exposure="1"
-                            shadow-intensity="1"
-                            class="w-full h-full"
-                        ></model-viewer>
+                    <div class="absolute top-4 right-4 flex gap-2 z-20">
+                        <button id="btn-view-image" onclick="switchView('image')"
+                            class="px-3 py-1.5 bg-white/90 backdrop-blur-md border border-white/50 rounded-lg text-xs font-bold text-primary shadow-sm hover:bg-white transition-all ring-2 ring-primary">
+                            تصویر
+                        </button>
+                        {% if auction.model_360_url %}
+                        <button id="btn-view-360" onclick="switchView('360')"
+                            class="px-3 py-1.5 bg-white/90 backdrop-blur-md border border-white/50 rounded-lg text-xs font-bold text-neutral-600 shadow-sm hover:bg-white transition-all hover:text-primary">
+                            نمای ۳۶۰
+                        </button>
+                        {% endif %}
+                    </div>
+
+
+
+                    <button id="next-slide"
+                        class="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white/80 hover:bg-white backdrop-blur-md border border-white/50 rounded-full flex items-center justify-center text-neutral-700 hover:text-primary shadow-md transition-all opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0 duration-300"
+                        type="button">
+                        <span class="material-symbols-outlined">chevron_left</span>
+                    </button>
+
+                    <button id="prev-slide"
+                        class="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white/80 hover:bg-white backdrop-blur-md border border-white/50 rounded-full flex items-center justify-center text-neutral-700 hover:text-primary shadow-md transition-all opacity-0 group-hover:opacity-100 -translate-x-4 group-hover:translate-x-0 duration-300"
+                        type="button">
+                        <span class="material-symbols-outlined">chevron_right</span>
+                    </button>
+
+                    <div class="w-full h-full bg-contain bg-center bg-no-repeat bg-white transition-opacity duration-300 cursor-pointer"
+                        id="product-main-image" data-alt="{{ auction.title|fa_digits }}"
+                        style="background-image: url('{{ auction.main_image_url }}');"
+                        onclick="openGalleryModal(currentGalleryIndex)">
+                    </div>
+
+                    <div id="zoom-hint"
+                        class="absolute bottom-4 left-4 bg-white/90 backdrop-blur-md border border-white/50 px-3 py-1.5 rounded-full text-xs font-bold text-neutral-800 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none flex items-center gap-1.5 shadow-lg">
+                        <span class="material-symbols-outlined text-[18px]">zoom_in</span>
+                        بزرگنمایی
+                    </div>
+
+                    {% if auction.model_360_url %}
+                    <div id="product-360-view"
+                        class="hidden absolute inset-0 bg-white flex items-center justify-center select-none overflow-hidden">
+                        <model-viewer src="{{ auction.model_360_url }}" poster="{{ auction.main_image_url }}"
+                            alt="360 View" camera-controls touch-action="pan-y" exposure="1" shadow-intensity="1"
+                            class="w-full h-full"></model-viewer>
                         <div class="absolute bottom-6 inset-x-0 text-center pointer-events-none">
-                            <span class="bg-white/80 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-neutral-600 shadow-sm border border-white/50 flex items-center gap-2 w-fit mx-auto">
+                            <span
+                                class="bg-white/80 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-neutral-600 shadow-sm border border-white/50 flex items-center gap-2 w-fit mx-auto">
                                 <span class="material-symbols-outlined text-[16px]">360</span>
                                 برای چرخش بکشید
                             </span>
                         </div>
                     </div>
-                {% endif %}
-            </div>
+                    {% endif %}
+                </div>
 
-            <div class="grid {% if auction.video_url and auction.model_360_url %}grid-cols-6{% elif auction.video_url or auction.model_360_url %}grid-cols-5{% else %}grid-cols-4{% endif %} gap-3 sm:gap-4" id="product-thumbs">
-                {% with image_count=auction.gallery_images|length %}
+                <div class="grid {% if auction.video_url and auction.model_360_url %}grid-cols-6{% elif auction.video_url or auction.model_360_url %}grid-cols-5{% else %}grid-cols-4{% endif %} gap-3 sm:gap-4"
+                    id="product-thumbs">
+                    {% with image_count=auction.gallery_images|length %}
                     {% for image_url in auction.gallery_images %}
-                        {% if forloop.counter <= 4 %}
-                            <button type="button"
-                                class="product-thumb aspect-square rounded-lg overflow-hidden border border-transparent hover:border-neutral-300 opacity-70 hover:opacity-100 p-0.5 cursor-pointer relative group transition-all"
-                                data-image-url="{{ image_url }}"
-                                data-index="{{ forloop.counter0 }}">
-                                <div class="w-full h-full rounded-md bg-cover bg-center"
-                                    style="background-image: url('{{ image_url }}');">
-                                </div>
-                            </button>
+                    {% if forloop.counter <= 4 %} <button type="button"
+                        class="product-thumb aspect-square rounded-lg overflow-hidden border border-neutral-200 hover:border-neutral-300 opacity-70 hover:opacity-100 p-0.5 cursor-pointer relative group transition-all bg-white"
+                        data-image-url="{{ image_url }}" data-index="{{ forloop.counter0 }}">
+                        <div class="w-full h-full rounded-md bg-contain bg-center bg-no-repeat bg-white"
+                            style="background-image: url('{{ image_url }}');">
+                        </div>
+                        </button>
                         {% elif forloop.counter == 5 and image_count > 5 %}
-                            <button type="button"
-                                class="relative aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
-                                onclick="openGalleryModal({{ forloop.counter0 }})">
-                                <div class="w-full h-full bg-cover bg-center blur-[1px]"
-                                    style="background-image: url('{{ image_url }}');">
-                                </div>
-                                <div class="absolute inset-0 bg-black/50 flex items-center justify-center text-white font-bold text-xl dir-ltr">
-                                    <span>+{{ image_count|add:"-4"|fa_digits }}</span>
-                                </div>
-                                <span class="hidden product-hidden-img" data-image-url="{{ image_url }}"></span>
-                            </button>
-                        {% elif forloop.counter == 5 and image_count == 5 %}
-                            <button type="button"
-                                class="product-thumb aspect-square rounded-lg overflow-hidden border border-transparent hover:border-neutral-300 opacity-70 hover:opacity-100 p-0.5 cursor-pointer relative group transition-all"
-                                data-image-url="{{ image_url }}"
-                                data-index="{{ forloop.counter0 }}">
-                                <div class="w-full h-full rounded-md bg-cover bg-center"
-                                    style="background-image: url('{{ image_url }}');">
-                                </div>
-                            </button>
-                        {% else %}
+                        <button type="button"
+                            class="relative aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity bg-white border border-neutral-200"
+                            onclick="openGalleryModal({{ forloop.counter0 }})">
+                            <div class="w-full h-full bg-cover bg-center blur-[1px]"
+                                style="background-image: url('{{ image_url }}');">
+                            </div>
+                            <div
+                                class="absolute inset-0 bg-black/50 flex items-center justify-center text-white font-bold text-xl dir-ltr">
+                                <span>+{{ image_count|add:"-4"|fa_digits }}</span>
+                            </div>
                             <span class="hidden product-hidden-img" data-image-url="{{ image_url }}"></span>
+                        </button>
+                        {% elif forloop.counter == 5 and image_count == 5 %}
+                        <button type="button"
+                            class="product-thumb aspect-square rounded-lg overflow-hidden border border-neutral-200 hover:border-neutral-300 opacity-70 hover:opacity-100 p-0.5 cursor-pointer relative group transition-all bg-white"
+                            data-image-url="{{ image_url }}" data-index="{{ forloop.counter0 }}">
+                            <div class="w-full h-full rounded-md bg-contain bg-center bg-no-repeat bg-white"
+                                style="background-image: url('{{ image_url }}');">
+                            </div>
+                        </button>
+                        {% else %}
+                        <span class="hidden product-hidden-img" data-image-url="{{ image_url }}"></span>
                         {% endif %}
-                    {% endfor %}
-                {% endwith %}
+                        {% endfor %}
+                        {% endwith %}
 
-                {% if auction.model_360_url %}
-                    <button type="button"
-                        class="aspect-square rounded-lg overflow-hidden bg-neutral-100 border border-transparent hover:border-neutral-300 hover:bg-neutral-200 cursor-pointer flex items-center justify-center transition-all"
-                        onclick="switchView('360')">
-                        <div class="flex flex-col items-center gap-1 text-secondary-text">
-                            <span class="material-symbols-outlined">360</span>
-                            <span class="text-[10px] font-bold">نمای ۳۶۰</span>
-                        </div>
-                    </button>
-                {% endif %}
+                        {% if auction.model_360_url %}
+                        <button type="button"
+                            class="aspect-square rounded-lg overflow-hidden bg-white border border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50 cursor-pointer flex items-center justify-center transition-all"
+                            onclick="switchView('360')">
+                            <div class="flex flex-col items-center gap-1 text-secondary-text">
+                                <span class="material-symbols-outlined">360</span>
+                                <span class="text-[10px] font-bold">نمای ۳۶۰</span>
+                            </div>
+                        </button>
+                        {% endif %}
 
-                {% if auction.video_url %}
-                    <button type="button"
-                        class="aspect-square rounded-lg overflow-hidden bg-neutral-100 border border-transparent hover:border-neutral-300 hover:bg-neutral-200 cursor-pointer flex items-center justify-center transition-all"
-                        onclick="openVideoModal('{{ auction.video_url|escapejs }}')">
-                        <div class="flex flex-col items-center gap-1 text-secondary-text">
-                            <span class="material-symbols-outlined">smart_display</span>
-                            <span class="text-[10px] font-bold">ویدئو</span>
-                        </div>
-                    </button>
-                {% endif %}
+                        {% if auction.video_url %}
+                        <button type="button"
+                            class="aspect-square rounded-lg overflow-hidden bg-white border border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50 cursor-pointer flex items-center justify-center transition-all"
+                            onclick="openVideoModal('{{ auction.video_url|escapejs }}')">
+                            <div class="flex flex-col items-center gap-1 text-secondary-text">
+                                <span class="material-symbols-outlined">smart_display</span>
+                                <span class="text-[10px] font-bold">ویدئو</span>
+                            </div>
+                        </button>
+                        {% endif %}
+                </div>
             </div>
-        </div>
-        
-        <!-- ستون سمت چپ: اطلاعات و پنل بید -->
-        <div class="lg:col-span-5 flex flex-col">
-            <div class="sticky top-28 space-y-8">
-                
-                <!-- بخش هدر: عنوان و مشخصات -->
-                <div class="border-b border-neutral-200 pb-6 animate-fadeIn" style="animation-delay: 0.1s;">
-                    <h1 class="text-4xl lg:text-5xl font-bold text-neutral-900 mb-3 tracking-tight leading-tight">
-                        {{ auction.display_title|fa_digits }}
-                    </h1>
-                    <h2 class="text-2xl lg:text-3xl text-neutral-600 font-medium mb-6">
-                    {{ auction.artist.name|fa_digits }}
-                    </h2>
-                    
-                    <div class="flex flex-wrap gap-y-3 gap-x-6 text-sm text-secondary-text font-medium">
-                        {% if auction.creation_year %}
-                        <div class="flex items-center gap-2">
-                            <span class="material-symbols-outlined text-[20px] text-neutral-400">calendar_month</span>
-                            <span>{{ auction.creation_year|fa_digits }}</span>
-                        </div>
-                        {% endif %}
-                        <div class="flex items-center gap-2">
-                            <span class="material-symbols-outlined text-[20px] text-neutral-400">square_foot</span>
-                            <span id="product-dimensions">{{ auction.dimensions|default:"—"|fa_digits }}</span>
-                        </div>
-                        {% comment %} {% if auction.authenticity_status == 0 %}
-                            <div class="flex items-center gap-2 text-primary bg-primary/10 px-2.5 py-1 rounded-full border border-primary/20">
+
+            <!-- ستون سمت چپ: اطلاعات و پنل بید -->
+            <div class="lg:col-span-5 flex flex-col">
+                <div class="sticky top-28 space-y-8">
+
+                    <!-- بخش هدر: عنوان و مشخصات -->
+                    <div class="border-b border-neutral-200 pb-6 animate-fadeIn" style="animation-delay: 0.1s;">
+
+                        <h1 class="text-4xl lg:text-5xl font-bold text-neutral-900 mb-3 tracking-tight leading-tight">
+                            {% include 'partials/lot_badge_title.html' with lot=auction.lot title=auction.title %}
+                        </h1>
+                        <h2 class="text-2xl lg:text-3xl text-neutral-600 font-medium mb-6">
+                            {{ auction.artist.name|fa_digits }}
+                        </h2>
+
+                        <div class="flex flex-wrap gap-y-3 gap-x-6 text-sm text-secondary-text font-medium">
+                            {% comment %} {% if auction.creation_year %}
+                            <div class="flex items-center gap-2">
+                                <span
+                                    class="material-symbols-outlined text-[20px] text-neutral-400">calendar_month</span>
+                                <span>{{ auction.creation_year|fa_digits }}</span>
+                            </div>
+                            {% endif %}
+                            <div class="flex items-center gap-2">
+                                <span class="material-symbols-outlined text-[20px] text-neutral-400">square_foot</span>
+                                <span id="product-dimensions">{{ auction.dimensions|default:"—"|fa_digits }}</span>
+                            </div> {% endcomment %}
+                            {% comment %} {% if auction.authenticity_status == 0 %}
+                            <div
+                                class="flex items-center gap-2 text-primary bg-primary/10 px-2.5 py-1 rounded-full border border-primary/20">
                                 <span class="material-symbols-outlined text-[18px] filled">verified</span>
                                 {{ auction.get_authenticity_status_display|fa_digits }}
                             </div>
-                        {% elif auction.authenticity_status == 1 %}
-                            <div class="flex items-center gap-2 text-neutral-500 bg-neutral-100 px-2.5 py-1 rounded-full border border-neutral-200">
+                            {% elif auction.authenticity_status == 1 %}
+                            <div
+                                class="flex items-center gap-2 text-neutral-500 bg-neutral-100 px-2.5 py-1 rounded-full border border-neutral-200">
                                 <span class="material-symbols-outlined text-[18px]">new_releases</span>
                                 {{ auction.get_authenticity_status_display|fa_digits }}
                             </div>
-                        {% endif %} {% endcomment %}
+                            {% endif %} {% endcomment %}
+                        </div>
                     </div>
-                </div>
 
-                <!-- باکس اصلی: تایمر، قیمت و پیشنهاد -->
-                <div class="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-neutral-200 animate-fadeIn overflow-hidden" style="animation-delay: 0.2s;">
-                    
-                    <!-- بخش 1: تایمر -->
-                    <div class="px-6 sm:px-8 py-5 border-b border-neutral-100 bg-neutral-50/30">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-2.5">
-                                {% if auction.auction.status == 'finished' and auction.winner_id %}
+                    <!-- باکس اصلی: تایمر، قیمت و پیشنهاد -->
+                    <div class="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-neutral-200 animate-fadeIn overflow-hidden"
+                        style="animation-delay: 0.2s;">
+
+                        <!-- بخش 1: تایمر -->
+                        <div class="px-6 sm:px-8 py-5 border-b border-neutral-100 bg-neutral-50/30">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2.5">
+                                    {% if auction.auction.status == 'finished' %}
+                                    {% if auction.winner_id %}
                                     <span class="material-symbols-outlined text-[22px] text-emerald-600">verified</span>
-                                {% else %}
-                                    <span class="material-symbols-outlined text-[22px] text-primary animate-hourglass">hourglass_top</span>
-                                {% endif %}
-                                <div class="flex flex-col">
-                                    {% if auction.auction.status == 'finished' and auction.winner_id %}
+                                    {% else %}
+                                    <span class="material-symbols-outlined text-[22px] text-neutral-600">schedule</span>
+                                    {% endif %}
+                                    {% elif auction.auction.status == 'ready' %}
+                                    <span
+                                        class="material-symbols-outlined text-[22px] text-blue-500 animate-pulse">hourglass_empty</span>
+                                    {% else %}
+                                    <span
+                                        class="material-symbols-outlined text-[22px] text-primary animate-hourglass">hourglass_top</span>
+                                    {% endif %}
+                                    <div class="flex flex-col">
+                                        {% if auction.auction.status == 'finished' %}
                                         <span class="text-xs font-bold text-neutral-700">وضعیت اثر</span>
                                         <span class="text-[10px] text-neutral-400">مزایده این اثر به پایان رسیده است</span>
-                                    {% else %}
+                                        {% elif auction.auction.status == 'ready' %}
+                                        <span class="text-xs font-bold text-blue-600">زمان باقی‌مانده</span>
+                                        <span class="text-[10px] text-neutral-400">تا شروع مزایده</span>
+                                        {% else %}
                                         <span class="text-xs font-bold text-neutral-700">زمان باقی‌مانده</span>
                                         <span class="text-[10px] text-neutral-400">تا پایان مزایده</span>
-                                    {% endif %}
+                                        {% endif %}
+                                    </div>
                                 </div>
-                            </div>
 
-                            {% if auction.auction.status == 'finished' and auction.winner_id %}
-                                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                {% if auction.auction.status == 'finished' %}
+                                {% if auction.winner_id %}
+                                <div
+                                    class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                                     <span class="material-symbols-outlined text-[18px]">gavel</span>
                                     <span class="text-sm font-black">فروخته‌شده</span>
                                 </div>
-                            {% else %}
-                                <div class="flex items-center gap-2 text-neutral-800" dir="ltr" id="linear-timer" data-endtime="{{ auction.end_time|date:'Y-m-d\\TH:i:s' }}">
+                                {% else %}
+                                <div
+                                    class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-neutral-100 text-neutral-700 border border-neutral-200">
+                                    <span class="material-symbols-outlined text-[18px]">event_busy</span>
+                                    <span class="text-sm font-black">پایان‌یافته</span>
+                                </div>
+                                {% endif %}
+                                {% elif auction.auction.status == 'ready' %}
+                                <div class="flex items-center gap-2 text-blue-600" dir="ltr" id="linear-timer"
+                                    data-endtime="{{ auction.auction.start_date|date:'Y-m-d\\TH:i:s' }}">
                                     <div class="flex flex-col items-center">
                                         <span class="text-lg font-bold tabular-nums leading-none" id="l-days">۰۰</span>
                                         <span class="text-[9px] text-neutral-400 uppercase mt-0.5">روز</span>
@@ -241,30 +347,66 @@
                                     </div>
                                     <span class="text-neutral-300 text-lg -mt-3">:</span>
                                     <div class="flex flex-col items-center">
-                                        <span class="text-lg font-bold tabular-nums leading-none" id="l-minutes">۰۰</span>
+                                        <span class="text-lg font-bold tabular-nums leading-none"
+                                            id="l-minutes">۰۰</span>
+                                        <span class="text-[9px] text-neutral-400 uppercase mt-0.5">دقیقه</span>
+                                    </div>
+                                    <span class="text-neutral-300 text-lg -mt-3">:</span>
+                                    <div class="flex flex-col items-center text-blue-500">
+                                        <span class="text-lg font-bold tabular-nums leading-none"
+                                            id="l-seconds">۰۰</span>
+                                        <span class="text-[9px] text-blue-400 uppercase mt-0.5">ثانیه</span>
+                                    </div>
+                                </div>
+                                {% else %}
+                                <div class="flex items-center gap-2 text-neutral-800" dir="ltr" id="linear-timer"
+                                    data-endtime="{{ auction.end_time|date:'Y-m-d\\TH:i:s' }}">
+                                    <div class="flex flex-col items-center">
+                                        <span class="text-lg font-bold tabular-nums leading-none" id="l-days">۰۰</span>
+                                        <span class="text-[9px] text-neutral-400 uppercase mt-0.5">روز</span>
+                                    </div>
+                                    <span class="text-neutral-300 text-lg -mt-3">:</span>
+                                    <div class="flex flex-col items-center">
+                                        <span class="text-lg font-bold tabular-nums leading-none" id="l-hours">۰۰</span>
+                                        <span class="text-[9px] text-neutral-400 uppercase mt-0.5">ساعت</span>
+                                    </div>
+                                    <span class="text-neutral-300 text-lg -mt-3">:</span>
+                                    <div class="flex flex-col items-center">
+                                        <span class="text-lg font-bold tabular-nums leading-none"
+                                            id="l-minutes">۰۰</span>
                                         <span class="text-[9px] text-neutral-400 uppercase mt-0.5">دقیقه</span>
                                     </div>
                                     <span class="text-neutral-300 text-lg -mt-3">:</span>
                                     <div class="flex flex-col items-center text-red-500">
-                                        <span class="text-lg font-bold tabular-nums leading-none" id="l-seconds">۰۰</span>
+                                        <span class="text-lg font-bold tabular-nums leading-none"
+                                            id="l-seconds">۰۰</span>
                                         <span class="text-[9px] text-red-400 uppercase mt-0.5">ثانیه</span>
                                     </div>
                                 </div>
-                            {% endif %}
+                                {% endif %}
+                            </div>
                         </div>
-                    </div>
 
-                    <!-- بخش 2: قیمت‌ها و محاسبه -->
-                    <div class="p-6 sm:p-8 space-y-8" id="bid-calc" 
-                         data-current-price="{{ auction.current_price|default:auction.base_price }}" 
-                         data-min-next="{{ auction.get_min_next_bid }}" 
-                         data-bid-value="{{ auction.bid_value }}">
-                        {% if auction.auction.status == 'finished' and auction.winner_id %}
-                            <div class="relative overflow-hidden rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-100 p-6 sm:p-7">
-                                <div class="absolute -top-10 -left-10 w-32 h-32 rounded-full bg-emerald-200/40 blur-2xl"></div>
-                                <div class="absolute -bottom-12 -right-10 w-36 h-36 rounded-full bg-emerald-300/30 blur-3xl"></div>
+                        <!-- بخش 2: قیمت‌ها و محاسبه -->
+                        <div class="p-6 sm:p-8 space-y-8" id="bid-calc"
+                            data-current-price="{{ auction.current_price|default:auction.base_price }}"
+                            data-tax-amount="{{ auction.tax_amount }}"
+                            data-total-with-tax="{{ auction.final_price_with_tax }}"
+                            data-min-next="{{ auction.get_min_next_bid }}"
+                            data-step-increment="{{ auction.get_current_step_increment }}">
+                            {% if auction.auction.status == 'finished' %}
+                            {% if auction.winner_id %}
+                            <div
+                                class="relative overflow-hidden rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-100 p-6 sm:p-7">
+                                <div
+                                    class="absolute -top-10 -left-10 w-32 h-32 rounded-full bg-emerald-200/40 blur-2xl">
+                                </div>
+                                <div
+                                    class="absolute -bottom-12 -right-10 w-36 h-36 rounded-full bg-emerald-300/30 blur-3xl">
+                                </div>
                                 <div class="relative space-y-5">
-                                    <div class="w-16 h-16 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-600/25">
+                                    <div
+                                        class="w-16 h-16 rounded-2xl bg-emerald-600 shadow-lg shadow-emerald-600/25 text-white flex items-center justify-center">
                                         <span class="material-symbols-outlined text-[30px]">workspace_premium</span>
                                     </div>
                                     <div class="space-y-2">
@@ -273,187 +415,305 @@
                                             این مزایده به پایان رسیده و این اثر با بالاترین پیشنهاد نهایی شده است.
                                         </p>
                                     </div>
-                                    <div class="rounded-xl border border-white/70 bg-white/80 backdrop-blur-sm p-4">
-                                        <span class="text-xs font-bold text-neutral-500">قیمت نهایی فروش</span>
-                                        <div class="mt-2 flex items-baseline gap-1">
-                                            <span class="text-3xl font-extrabold text-neutral-900">
-                                                {{ auction.current_price|default:auction.base_price|intcomma|fa_digits }}
-                                            </span>
-                                            <span class="text-sm font-bold text-neutral-500">تومان</span>
-                                        </div>
-                                        {% if auction.price_description %}
-                                            <div class="mt-1 text-[10px] font-medium text-neutral-400">
-                                                {{ auction.price_description|fa_digits }}
+                                    <div
+                                        class="rounded-xl border border-white/70 bg-white/80 backdrop-blur-sm p-4 space-y-3.5">
+                                        <div>
+                                            <span class="text-xs font-bold text-neutral-500">مبلغ قابل پرداخت (قیمت
+                                                نهایی کل با احتساب ۱۰٪ مالیات)</span>
+                                            <div class="mt-2 flex items-baseline gap-1">
+                                                <span class="text-3xl font-extrabold text-emerald-700">
+                                                    {{ auction.final_price_with_tax|fa_price }}
+                                                </span>
+                                                <span class="text-sm font-bold text-neutral-500">تومان</span>
                                             </div>
+                                        </div>
+
+                                        <!-- تفکیک شفاف مبلغ خالص برنده و مالیات -->
+                                        <div
+                                            class="rounded-xl bg-emerald-50/80 border border-emerald-200/60 p-3 space-y-2 text-xs">
+                                            <div class="flex items-center justify-between text-neutral-600 font-medium">
+                                                <span>مبلغ خالص برنده (پیشنهاد نهایی):</span>
+                                                <span class="font-bold text-neutral-900">{{ auction.current_price|default:auction.base_price|fa_price }} تومان</span>
+                                            </div>
+                                            <div class="flex items-center justify-between text-neutral-600 font-medium">
+                                                <span>۱۰٪ مالیات بر ارزش افزوده و کمیسیون:</span>
+                                                <span class="font-bold text-neutral-900">{{ auction.tax_amount|fa_price }} تومان</span>
+                                            </div>
+                                        </div>
+
+                                        {% if auction.price_description %}
+                                        <div class="mt-1 text-[10px] font-medium text-neutral-400">
+                                            {{ auction.price_description|fa_digits }}
+                                        </div>
                                         {% endif %}
-                                        <div class="mt-4 border-t border-emerald-100 pt-4">
+                                        <div class="border-t border-emerald-100 pt-3">
                                             <span class="text-xs font-bold text-neutral-500">وضعیت دسترسی</span>
                                             <div class="mt-2 text-sm font-bold text-emerald-700 leading-7">
                                                 {% if has_winner_profile_access %}
-                                                    شما برنده این اثر هستید و جزئیات آن برای شما فعال است.
+                                                شما برنده این اثر هستید و جزئیات آن برای شما فعال است.
                                                 {% else %}
-                                                    این اثر دارای برنده نهایی است.
+                                                این اثر دارای برنده نهایی است.
                                                 {% endif %}
                                             </div>
                                         </div>
                                     </div>
-                                    {% comment %} <div class="rounded-xl border border-emerald-200 bg-emerald-600 text-white px-4 py-3 flex items-center gap-2">
-                                        <span class="material-symbols-outlined text-[20px]">gavel</span>
-                                        <span class="text-sm font-bold"> فروخته شده</span>
-                                    </div> {% endcomment %}
                                 </div>
                             </div>
-                        {% else %}
+                            {% else %}
+                            <div
+                                class="relative overflow-hidden rounded-2xl border border-neutral-200 bg-gradient-to-br from-neutral-50 via-white to-neutral-100 p-6 sm:p-7">
+                                <div
+                                    class="absolute -top-10 -left-10 w-32 h-32 rounded-full bg-neutral-200/50 blur-2xl">
+                                </div>
+                                <div
+                                    class="absolute -bottom-12 -right-10 w-36 h-36 rounded-full bg-neutral-300/40 blur-3xl">
+                                </div>
+                                <div class="relative space-y-5">
+                                    <div
+                                        class="w-16 h-16 rounded-2xl bg-neutral-800 shadow-lg shadow-neutral-800/20 text-white flex items-center justify-center">
+                                        <span class="material-symbols-outlined text-[30px]">event_busy</span>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <h3 class="text-2xl font-black text-neutral-900">مزایده این اثر پایان یافت</h3>
+                                        <p class="text-sm leading-7 text-neutral-600">
+                                            این مزایده به پایان رسیده است و دیگر امکان ثبت پیشنهاد جدید برای این اثر
+                                            وجود ندارد.
+                                        </p>
+                                    </div>
+                                    <div
+                                        class="rounded-xl border border-white/70 bg-white/80 backdrop-blur-sm p-4 space-y-3.5">
+                                        <div>
+                                            <span class="text-xs font-bold text-neutral-500">آخرین پیشنهاد ثبت‌شده (مبلغ
+                                                خالص)</span>
+                                            <div class="mt-2 flex items-baseline gap-1">
+                                                <span class="text-3xl font-extrabold text-neutral-900">
+                                                    {{ auction.current_price|default:auction.base_price|fa_price }}
+                                                </span>
+                                                <span class="text-sm font-bold text-neutral-500">تومان</span>
+                                            </div>
+                                        </div>
+                                        <div
+                                            class="rounded-xl bg-neutral-100/80 border border-neutral-200/60 p-3 space-y-2 text-xs">
+                                            <div class="flex items-center justify-between text-neutral-600 font-medium">
+                                                <span>مبلغ با احتساب ۱۰٪ مالیات:</span>
+                                                <span class="font-bold text-neutral-900">{{ auction.final_price_with_tax|fa_price }} تومان</span>
+                                            </div>
+                                        </div>
+                                        {% if auction.price_description %}
+                                        <div class="mt-1 text-[10px] font-medium text-neutral-400">
+                                            {{ auction.price_description|fa_digits }}
+                                        </div>
+                                        {% endif %}
+                                        <div class="border-t border-neutral-200 pt-3">
+                                            <span class="text-xs font-bold text-neutral-500">وضعیت دسترسی</span>
+                                            <div class="mt-2 text-sm font-bold text-neutral-700 leading-7">
+                                                این صفحه برای مشاهده عمومی باز است و ثبت بید غیرفعال شده است.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% elif auction.auction.status == 'ready' %}
+                            <div
+                                class="relative overflow-hidden rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 via-white to-blue-100 p-6 sm:p-7">
+                                <div class="relative space-y-5">
+                                    <div
+                                        class="w-16 h-16 rounded-2xl bg-blue-500 shadow-lg shadow-blue-500/25 text-white flex items-center justify-center">
+                                        <span class="material-symbols-outlined text-[30px]">hourglass_empty</span>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <h3 class="text-2xl font-black text-neutral-900">پیش‌نمایش اثر قبل از شروع
+                                            مزایده</h3>
+                                        <p class="text-sm leading-7 text-neutral-600">
+                                            این اثر در حال حاضر در حالت پیش‌نمایش قرار دارد. ثبت پیشنهاد با آغاز رسمی
+                                            مزایده امکان‌پذیر خواهد بود.
+                                        </p>
+                                    </div>
+                                    <div
+                                        class="rounded-xl border border-white/70 bg-white/80 backdrop-blur-sm p-4 space-y-2">
+                                        <span class="text-xs font-bold text-neutral-500">قیمت پایه (خالص)</span>
+                                        <div class="flex items-baseline gap-1">
+                                            <span class="text-3xl font-extrabold text-neutral-900">
+                                                {{ auction.current_price|default:auction.base_price|fa_price }}
+                                            </span>
+                                            <span class="text-sm font-bold text-neutral-500">تومان</span>
+                                        </div>
+                                    </div>
+                                    <div
+                                        class="w-full flex items-center justify-center gap-2 bg-blue-50 text-blue-600 border border-blue-200 text-base font-bold py-4 rounded-xl cursor-not-allowed">
+                                        <span class="material-symbols-outlined text-[20px]">hourglass_top</span>
+                                        در انتظار شروع مزایده
+                                    </div>
+                                </div>
+                            </div>
+                            {% else %}
                             <!-- نمایش قیمت -->
                             <div class="space-y-3 text-center sm:text-right">
                                 <div class="flex justify-between items-center">
-                                    <span class="text-sm text-neutral-500 font-bold bg-neutral-100 px-2 py-1 rounded">آخرین پیشنهاد </span>
-                                    <span class="dir-ltr inline-flex items-center gap-1 rounded-lg bg-neutral-100 px-3 py-1.5 text-sm font-extrabold text-neutral-800 border border-neutral-200">
-                                        قیمت پایه: {{ auction.base_price|intcomma|fa_digits }}
+                                    <span
+                                        class="text-sm text-neutral-500 font-bold bg-neutral-100 px-2 py-1 rounded">آخرین
+                                        پیشنهاد </span>
+                                    <span
+                                        class="dir-ltr inline-flex items-center gap-1 rounded-lg bg-neutral-100 px-3 py-1.5 text-sm font-extrabold text-neutral-800 border border-neutral-200">
+                                        قیمت پایه: {{ auction.base_price|fa_price }}
                                     </span>
                                 </div>
                                 <div class="flex items-start justify-center sm:justify-start gap-1">
-                                    <span id="current-price-text" class="text-5xl font-extrabold text-neutral-900 tracking-tight leading-none">
-                                        {{ auction.current_price|default:auction.base_price|intcomma|fa_digits }}
+                                    <span id="current-price-text"
+                                        class="text-5xl font-extrabold text-neutral-900 tracking-tight leading-none">
+                                        {{ auction.current_price|default:auction.base_price|fa_price }}
                                     </span>
                                     <span class="text-lg font-bold text-neutral-500 mt-1.5">تومان</span>
                                 </div>
                             </div>
 
-                            <!-- باکس کنترل گام و افزایش -->
-                            <div class="bg-neutral-50 rounded-xl p-5 border border-neutral-100">
-                                <!-- ردیف اطلاعات گام -->
-                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 border-b border-neutral-200 pb-4">
-                                    <span class="text-xs font-bold text-neutral-500 flex items-center gap-1">
-                                        <span class="material-symbols-outlined text-[16px]">trending_up</span>
-                                        میزان افزایش هر گام:
+                            <!-- باکس اطلاعات پیشنهاد بعدی بر اساس پله‌های افزایش -->
+                            <div class="bg-neutral-50 rounded-xl p-5 border border-neutral-100 space-y-4">
+                                <div class="flex items-center justify-between text-xs text-neutral-600">
+                                    <span class="font-bold flex items-center gap-1.5">
+                                        <span
+                                            class="material-symbols-outlined text-[18px] text-primary">trending_up</span>
+                                        افزایش هر پیشنهاد در این پله:
                                     </span>
-                                    <span class="text-sm font-bold text-neutral-900 bg-white border border-neutral-200 px-3 py-1 rounded-md shadow-sm">
-                                        {{ auction.bid_value|floatformat:"-2"|fa_digits }}٪ از مبلغ فعلی
+                                    <span
+                                        class="text-sm font-extrabold text-neutral-900 bg-white border border-neutral-200 px-3 py-1 rounded-md shadow-sm"
+                                        id="step-increment-text">
+                                        {{ auction.get_current_step_increment|fa_price }} تومان
                                     </span>
                                 </div>
-
-                                <!-- کنترل تعداد گام -->
-                                <div class="flex items-center justify-between gap-4">
-                                    <label for="step-input" class="text-sm font-bold text-neutral-700 whitespace-nowrap">تعداد گام پیشنهادی:</label>
-                                    <div class="step-input-group-bold">
-                                        <button type="button" id="step-minus" class="step-btn-bold">−</button>
-                                        <input type="number" id="step-input" name="step" value="1" min="1" max="100" class="step-input-bold">
-                                        <button type="button" id="step-plus" class="step-btn-bold">+</button>
-                                    </div>
+                                <div
+                                    class="flex items-center justify-between border-t border-neutral-200/70 pt-3 text-neutral-800">
+                                    <span class="text-sm font-black flex items-center gap-1.5">
+                                        <span class="material-symbols-outlined text-[18px] text-primary">gavel</span>
+                                        مبلغ پیشنهاد بعدی شما:
+                                    </span>
+                                    <span class="text-xl sm:text-2xl font-black text-primary" id="final-bid-text">
+                                        {{ auction.get_min_next_bid|fa_price }} تومان
+                                    </span>
                                 </div>
                             </div>
 
-                            <!-- نمایش قیمت نهایی و دکمه -->
-                            <div class="space-y-4 pt-2">
-                                <div class="flex items-baseline justify-between px-1">
-                                    <span class="text-sm text-neutral-500 font-medium">مبلغ نهایی پیشنهاد شما:</span>
-                                    <span class="text-xl sm:text-2xl font-black text-primary" id="final-bid-text">تومان</span>
-                                </div>
-
+                            <!-- دکمه ثبت پیشنهاد -->
+                            <div class="space-y-3 pt-2">
                                 {% if user.is_authenticated %}
-                                    <form method="post" action="{% url 'auction:place_bid' auction.pk %}" class="w-full" id="bid-submit-form">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="next" value="{{ request.path }}"/>
-                                        <input type="hidden" name="amount" id="bid-amount" value=""/>
-                                        <button class="w-full bg-primary hover:bg-primary-dark text-white text-lg font-bold py-4 rounded-xl shadow-lg shadow-primary/30 transition-all flex items-center justify-center gap-2 transform active:scale-[0.98]" type="submit">
-                                            <span class="material-symbols-outlined">gavel</span>
-                                            ثبت نهایی پیشنهاد
-                                        </button>
-                                    </form>
-                                    <div id="bid-alert" class="hidden mt-4 rounded-xl border px-4 py-3">
-                                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                                            <div class="text-sm font-bold" id="bid-alert-message"></div>
-                                            <a id="bid-alert-action" href="#" class="hidden inline-flex items-center justify-center h-11 px-4 rounded-xl bg-primary hover:bg-primary-dark text-white font-black transition-colors">
-                                                درخواست افزایش اعتبار
-                                            </a>
-                                        </div>
+                                <form method="post" action="{% url 'auction:place_bid' auction.pk %}" class="w-full"
+                                    id="bid-submit-form">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="next" value="{{ request.path }}" />
+                                    <input type="hidden" name="amount" id="bid-amount"
+                                        value="{{ auction.get_min_next_bid }}" />
+                                    <button
+                                        class="w-full bg-primary hover:bg-primary-dark text-white text-lg font-bold py-4 rounded-xl shadow-lg shadow-primary/30 transition-all flex items-center justify-center gap-2 transform active:scale-[0.98]"
+                                        type="submit">
+                                        <span class="material-symbols-outlined">gavel</span>
+                                        ثبت نهایی پیشنهاد
+                                    </button>
+                                </form>
+                                <div id="bid-alert" class="hidden mt-4 rounded-xl border px-4 py-3">
+                                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                        <div class="text-sm font-bold" id="bid-alert-message"></div>
+                                        <a id="bid-alert-action" href="#"
+                                            class="hidden inline-flex items-center justify-center h-11 px-4 rounded-xl bg-primary hover:bg-primary-dark text-white font-black transition-colors">
+                                            درخواست افزایش اعتبار
+                                        </a>
                                     </div>
+                                </div>
                                 {% else %}
-                                    <a class="w-full bg-neutral-800 hover:bg-neutral-900 text-white text-lg font-bold py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2" href="{% url 'login' %}?next={{ request.path }}">
-                                        <span class="material-symbols-outlined">login</span>
-                                        ورود جهت ثبت پیشنهاد
-                                    </a>
+                                <a class="w-full bg-neutral-800 hover:bg-neutral-900 text-white text-lg font-bold py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
+                                    href="{% url 'login' %}?next={{ request.path }}">
+                                    <span class="material-symbols-outlined">login</span>
+                                    ورود جهت ثبت پیشنهاد
+                                </a>
                                 {% endif %}
                             </div>
 
                             <!-- آکاردئون بیدهای کاربر -->
                             {% if user.is_authenticated %}
-                                <div id="my-bid-history-container">
-                                    {% include 'auction/partials/my_bid_history.html' with my_bids=my_bids my_bids_count=my_bids_count user=user %}
-                                </div>
+                            <div id="my-bid-history-container">
+                                {% include 'auction/partials/my_bid_history.html' with my_bids=my_bids my_bids_count=my_bids_count user=user %}
+                            </div>
 
-                                <style>
+                            <style>
                                 /* اسکرول شیشه‌ای */
                                 .custom-glass-scroll::-webkit-scrollbar {
                                     width: 6px;
                                 }
+
                                 .custom-glass-scroll::-webkit-scrollbar-track {
                                     background: rgba(255, 255, 255, 0.2);
                                     backdrop-filter: blur(6px);
                                     border-radius: 20px;
                                 }
+
                                 .custom-glass-scroll::-webkit-scrollbar-thumb {
                                     background: rgba(150, 150, 150, 0.35);
                                     border-radius: 20px;
                                     backdrop-filter: blur(4px);
                                 }
+
                                 .custom-glass-scroll::-webkit-scrollbar-thumb:hover {
                                     background: rgba(150, 150, 150, 0.55);
                                 }
-                                </style>
+                            </style>
 
                             {% endif %}
-                            
+
                             {% if not user.is_authenticated %}
-                                 <p class="text-[11px] text-neutral-400 text-center bg-neutral-50 py-2 rounded border border-neutral-100">
-                                     برای مشاهده وضعیت بیدهای خود وارد شوید.
-                                 </p>
+                            <p
+                                class="text-[11px] text-neutral-400 text-center bg-neutral-50 py-2 rounded border border-neutral-100">
+                                برای مشاهده وضعیت بیدهای خود وارد شوید.
+                            </p>
                             {% endif %}
-                        {% endif %}
+                            {% endif %}
 
+                        </div>
+
+                        <!-- فوتر هزینه‌ها -->
+                        <div
+                            class="bg-neutral-50 border-t border-neutral-200 px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-2 text-[11px] text-neutral-500 font-medium">
+                            {% comment %} <span class="flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-[16px] text-neutral-400">percent</span>
+                                کمیسیون خریدار: ۱۰٪ مبلغ نهایی
+                            </span>
+                            <span class="flex items-center gap-1.5">
+                                <span
+                                    class="material-symbols-outlined text-[16px] text-neutral-400">local_shipping</span>
+                                هزینه حمل و نقل: محاسبه جداگانه
+                            </span> {% endcomment %}
+                        </div>
                     </div>
 
-                    <!-- فوتر هزینه‌ها -->
-                    <div class="bg-neutral-50 border-t border-neutral-200 px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-2 text-[11px] text-neutral-500 font-medium">
-                        <span class="flex items-center gap-1.5">
-                            <span class="material-symbols-outlined text-[16px] text-neutral-400">percent</span>
-                            کمیسیون خریدار: ۱۰٪ مبلغ نهایی
-                        </span>
-                        <span class="flex items-center gap-1.5">
-                            <span class="material-symbols-outlined text-[16px] text-neutral-400">local_shipping</span>
-                            هزینه حمل و نقل: محاسبه جداگانه
-                        </span>
-                    </div>
-                </div>
-
-                <!-- آکاردئون‌های توضیحات -->
-                <div class="divide-y divide-neutral-200 border-t border-neutral-200 pt-6">
-                    <details class="group py-4" open>
-                        <summary class="flex justify-between items-center font-bold text-lg text-neutral-900 cursor-pointer list-none select-none hover:text-primary transition-colors">
-                            <span>درباره اثر</span>
-                            <span class="transition-transform duration-300 group-open:rotate-180 text-neutral-400">
-                                <span class="material-symbols-outlined">expand_more</span>
-                            </span>
-                        </summary>
-                        <div class="text-secondary-text text-base leading-8 mt-4 pl-4 text-justify animate-fadeIn font-medium">
-                            {{ auction.description|linebreaksbr|fa_digits }}
-                        </div>
-                    </details>
-                    <details class="group py-4">
-                        <summary class="flex justify-between items-center font-bold text-lg text-neutral-900 cursor-pointer list-none select-none hover:text-primary transition-colors">
-                            <span>پیشینه (Provenance)</span>
-                            <span class="transition-transform duration-300 group-open:rotate-180 text-neutral-400">
-                                <span class="material-symbols-outlined">expand_more</span>
-                            </span>
-                        </summary>
-                        <div class="text-secondary-text text-sm leading-7 mt-4 pl-4 font-medium">
-                            <ul class="list-disc pr-4 space-y-2 marker:text-primary">
-                                <li>{{ auction.provenance|default:"اطلاعاتی در دسترس نیست."|linebreaksbr|fa_digits }}</li>
-                            </ul>
-                        </div>
-                    </details>
-                    <!-- <details class="group py-4">
+                    <!-- آکاردئون‌های توضیحات -->
+                    <div class="divide-y divide-neutral-200 border-t border-neutral-200 pt-6">
+                        <details class="group py-4" open>
+                            <summary
+                                class="flex justify-between items-center font-bold text-lg text-neutral-900 cursor-pointer list-none select-none hover:text-primary transition-colors">
+                                <span>درباره اثر</span>
+                                <span class="transition-transform duration-300 group-open:rotate-180 text-neutral-400">
+                                    <span class="material-symbols-outlined">expand_more</span>
+                                </span>
+                            </summary>
+                            <div
+                                class="text-secondary-text text-base leading-8 mt-4 pl-4 text-justify animate-fadeIn font-medium">
+                                {{ auction.description|linebreaksbr|fa_digits }}
+                            </div>
+                        </details>
+                        <details class="group py-4">
+                            <summary
+                                class="flex justify-between items-center font-bold text-lg text-neutral-900 cursor-pointer list-none select-none hover:text-primary transition-colors">
+                                <span>پیشینه (Provenance)</span>
+                                <span class="transition-transform duration-300 group-open:rotate-180 text-neutral-400">
+                                    <span class="material-symbols-outlined">expand_more</span>
+                                </span>
+                            </summary>
+                            <div class="text-secondary-text text-sm leading-7 mt-4 pl-4 font-medium">
+                                <ul class="list-disc pr-4 space-y-2 marker:text-primary">
+                                    <li>{{ auction.provenance|default:"اطلاعاتی در دسترس نیست."|linebreaksbr|fa_digits }}</li>
+                                </ul>
+                            </div>
+                        </details>
+                        <!-- <details class="group py-4">
                         <summary class="flex justify-between items-center font-bold text-lg text-neutral-900 cursor-pointer list-none select-none hover:text-primary transition-colors">
                             <span>گزارش وضعیت</span>
                             <span class="transition-transform duration-300 group-open:rotate-180 text-neutral-400">
@@ -464,58 +724,174 @@
                             {{ auction.condition_report|default:"اطلاعاتی در دسترس نیست."|linebreaksbr|fa_digits }}
                         </div>
                     </details> -->
+                    </div>
                 </div>
             </div>
         </div>
+
+        <!-- نوار ناوبری پایین صفحه: دسترسی سریع به بازگشت و لات قبلی / بعدی پس از مطالعه مشخصات اثر -->
+        <div class="mt-12 pt-6 border-t border-neutral-200/80 dark:border-zinc-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <a href="{% if auction.auction %}{% url 'auction:auction_products' auction.auction.pk %}{% elif auction.pk %}{% url 'auction:auction_products' auction.pk %}{% else %}{% url 'auction:auction' %}{% endif %}"
+               class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-zinc-800 hover:bg-neutral-50 dark:hover:bg-zinc-700 text-neutral-800 dark:text-neutral-100 border border-neutral-200/90 dark:border-zinc-700 shadow-sm hover:shadow hover:border-primary/50 transition-all text-xs sm:text-sm font-bold group"
+               title="بازگشت به صفحه مزایده">
+                <span class="material-symbols-outlined text-[18px] sm:text-[20px] text-neutral-500 dark:text-neutral-400 group-hover:text-primary transition-all group-hover:translate-x-0.5 transform">arrow_forward</span>
+                <span>بازگشت به مزایده</span>
+            </a>
+
+            <div class="flex items-center gap-2 sm:gap-3">
+                {% if previous_lot_product %}
+                <a href="{% url 'auction:auction_product_detail' previous_lot_product.pk %}"
+                   class="inline-flex items-center gap-1.5 px-3.5 py-2 sm:py-2.5 rounded-xl bg-white dark:bg-zinc-800 hover:bg-neutral-50 dark:hover:bg-zinc-700 text-neutral-800 dark:text-neutral-100 border border-neutral-200/90 dark:border-zinc-700 shadow-sm hover:shadow hover:border-primary/50 transition-all text-xs sm:text-sm font-bold group">
+                    <span class="material-symbols-outlined text-[18px] sm:text-[20px] text-neutral-500 group-hover:text-primary transition-colors">chevron_right</span>
+                    <span>لات قبلی{% if previous_lot_product.lot %} ({{ previous_lot_product.lot|fa_digits }}){% endif %}</span>
+                </a>
+                {% endif %}
+
+                {% if next_lot_product %}
+                <a href="{% url 'auction:auction_product_detail' next_lot_product.pk %}"
+                   class="inline-flex items-center gap-1.5 px-3.5 py-2 sm:py-2.5 rounded-xl bg-white dark:bg-zinc-800 hover:bg-neutral-50 dark:hover:bg-zinc-700 text-neutral-800 dark:text-neutral-100 border border-neutral-200/90 dark:border-zinc-700 shadow-sm hover:shadow hover:border-primary/50 transition-all text-xs sm:text-sm font-bold group">
+                    <span>لات بعدی{% if next_lot_product.lot %} ({{ next_lot_product.lot|fa_digits }}){% endif %}</span>
+                    <span class="material-symbols-outlined text-[18px] sm:text-[20px] text-neutral-500 group-hover:text-primary transition-colors">chevron_left</span>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </main>
+    <div id="credit-modal" data-credit-url="{% url 'auction:submit_credit_increase_ajax' %}"
+        class="fixed inset-0 z-[10000] bg-black/60 backdrop-blur-sm flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
+        <!-- باکس اصلی مودال اعتبار -->
+        <div class="bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8 border border-gray-200 dark:border-zinc-700 transform scale-95 transition-transform duration-300 relative text-center"
+            id="credit-modal-box">
+
+            <!-- دکمه ضربدر -->
+            <button type="button" id="btn-close-modal-icon"
+                class="absolute top-4 left-4 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-zinc-800 text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors z-10">
+                <span class="material-symbols-outlined text-[20px]">close</span>
+            </button>
+
+            <!-- کانتینر محتوای متغیر مدال -->
+            <div id="modal-dynamic-content" class="transition-opacity duration-300">
+
+                <!-- حالت اول: نیاز به افزایش اعتبار -->
+                <div id="credit-modal-content" class="block">
+                    <div
+                        class="w-20 h-20 mx-auto bg-red-50 dark:bg-red-900/20 text-red-500 rounded-full flex items-center justify-center mb-6 border border-red-100 dark:border-red-900/30">
+                        <span class="material-symbols-outlined text-4xl">account_balance_wallet</span>
+                    </div>
+                    <h3 class="font-bold text-xl text-text-main dark:text-white mb-3">اعتبار شما کافی نیست</h3>
+                    <p class="text-gray-500 dark:text-gray-400 text-sm leading-relaxed mb-8">
+                        اعتبار فعلی شما برای ثبت این پیشنهاد کافی نیست. برای شرکت در این مزایده با مبالغ بالاتر، باید
+                        درخواست افزایش اعتبار ثبت کنید. آیا مایل هستید؟
+                    </p>
+                    <div class="space-y-3">
+                        <button type="button" id="btn-submit-credit-request"
+                            class="w-full flex items-center justify-center gap-2 bg-[#AB8C58] hover:bg-[#967949] text-white py-3.5 px-6 rounded-xl font-bold text-sm transition-all shadow-md shadow-[#AB8C58]/30 disabled:opacity-70 disabled:cursor-not-allowed">
+                            <span class="material-symbols-outlined text-lg">add_circle</span>
+                            ثبت درخواست افزایش اعتبار
+                        </button>
+                    </div>
+                </div>
+
+                <!-- حالت دوم: درخواست ثبت شده و در انتظار تایید -->
+                <div id="credit-modal-success" class="hidden">
+                    <div
+                        class="w-20 h-20 mx-auto bg-indigo-50 dark:bg-indigo-900/20 text-indigo-500 rounded-full flex items-center justify-center mb-6 border border-indigo-100 dark:border-indigo-900/30">
+                        <span class="material-symbols-outlined text-4xl animate-pulse">hourglass_top</span>
+                    </div>
+                    <h3 class="font-bold text-xl text-text-main dark:text-white mb-3">درخواست در حال بررسی</h3>
+                    <p class="text-gray-500 dark:text-gray-400 text-sm leading-relaxed mb-8"
+                        id="credit-success-message">
+                        درخواست شما با موفقیت ثبت شده و هم‌اکنون در انتظار بررسی و تایید توسط مدیران سیستم می‌باشد.
+                    </p>
+                    <div class="space-y-3">
+                        <!-- دکمه مشاهده پروفایل (آیکون جابه‌جا شد و در سمت راست متن قرار گرفت) -->
+                        <a href="{% url 'profile' %}" id="btn-profile-link"
+                            class="w-full flex flex-row items-center justify-center gap-2 bg-gray-50 hover:bg-gray-100 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-zinc-600 py-3.5 px-6 rounded-xl font-bold text-sm transition-all">
+                            <span class="material-symbols-outlined text-lg">person</span>
+                            <span>مشاهده پروفایل</span>
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
     </div>
-</main>
-<div id="credit-modal" data-credit-url="{% url 'auction:submit_credit_increase_ajax' %}" class="fixed inset-0 z-[10000] bg-black/60 backdrop-blur-sm flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
-    <!-- باکس اصلی مودال -->
-    <div class="bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8 border border-gray-200 dark:border-zinc-700 transform scale-95 transition-transform duration-300 relative text-center" id="credit-modal-box">
-        
-        <!-- دکمه ضربدر -->
-        <button type="button" id="btn-close-modal-icon" class="absolute top-4 left-4 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-zinc-800 text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors z-10">
-            <span class="material-symbols-outlined text-[20px]">close</span>
-        </button>
 
-        <!-- کانتینر محتوای متغیر مدال -->
-        <div id="modal-dynamic-content" class="transition-opacity duration-300">
-            
-            <!-- حالت اول: نیاز به افزایش اعتبار -->
-            <div id="credit-modal-content" class="block">
-                <div class="w-20 h-20 mx-auto bg-red-50 dark:bg-red-900/20 text-red-500 rounded-full flex items-center justify-center mb-6 border border-red-100 dark:border-red-900/30">
-                    <span class="material-symbols-outlined text-4xl">account_balance_wallet</span>
+    <!-- مودال تأیید ثبت پیشنهاد مزایده -->
+    <div id="confirm-bid-modal"
+        class="fixed inset-0 z-[10000] bg-black/60 backdrop-blur-sm flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl w-full max-w-md mx-4 p-6 sm:p-8 border border-gray-200 dark:border-zinc-700 transform scale-95 transition-transform duration-300 relative text-center"
+            id="confirm-bid-modal-box">
+
+            <!-- دکمه بستن (ضربدر) -->
+            <button type="button" id="btn-close-confirm-bid-modal"
+                class="absolute top-4 left-4 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-zinc-800 text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors z-10"
+                aria-label="بستن">
+                <span class="material-symbols-outlined text-[20px]">close</span>
+            </button>
+
+            <!-- آیکون چکش مزایده با جلوه نورانی -->
+            <div class="relative w-20 h-20 mx-auto mb-5 flex items-center justify-center">
+                <div class="absolute inset-0 rounded-full bg-primary/15 dark:bg-primary/25 animate-ping opacity-25">
                 </div>
-                <h3 class="font-bold text-xl text-text-main dark:text-white mb-3">اعتبار شما کافی نیست</h3>
-                <p class="text-gray-500 dark:text-gray-400 text-sm leading-relaxed mb-8">
-                    اعتبار فعلی شما برای ثبت این پیشنهاد کافی نیست. برای شرکت در این مزایده با مبالغ بالاتر، باید درخواست افزایش اعتبار ثبت کنید. آیا مایل هستید؟
-                </p>
-                <div class="space-y-3">
-                    <button type="button" id="btn-submit-credit-request" class="w-full flex items-center justify-center gap-2 bg-[#AB8C58] hover:bg-[#967949] text-white py-3.5 px-6 rounded-xl font-bold text-sm transition-all shadow-md shadow-[#AB8C58]/30 disabled:opacity-70 disabled:cursor-not-allowed">
-                        <span class="material-symbols-outlined text-lg">add_circle</span>
-                        ثبت درخواست افزایش اعتبار
-                    </button>
+                <div
+                    class="w-20 h-20 bg-gradient-to-br from-primary/20 to-primary/10 dark:from-primary/30 dark:to-primary/10 text-primary rounded-full flex items-center justify-center border border-primary/30 shadow-inner">
+                    <span class="material-symbols-outlined text-4xl">gavel</span>
                 </div>
             </div>
 
-            <!-- حالت دوم: درخواست ثبت شده و در انتظار تایید -->
-            <div id="credit-modal-success" class="hidden">
-                <div class="w-20 h-20 mx-auto bg-indigo-50 dark:bg-indigo-900/20 text-indigo-500 rounded-full flex items-center justify-center mb-6 border border-indigo-100 dark:border-indigo-900/30">
-                    <span class="material-symbols-outlined text-4xl animate-pulse">hourglass_top</span>
+            <h3 class="font-black text-xl sm:text-2xl text-neutral-900 dark:text-white mb-2">
+                تأیید ثبت پیشنهاد مزایده
+            </h3>
+            <p class="text-neutral-500 dark:text-neutral-400 text-sm leading-relaxed mb-5">
+                آیا از ثبت این پیشنهاد برای این اثر مطمئن هستید؟
+            </p>
+
+            <!-- کادر اطلاعات و مشخصات پیشنهاد -->
+            <div
+                class="bg-neutral-50 dark:bg-zinc-800/60 rounded-2xl p-4 sm:p-5 border border-neutral-200/80 dark:border-zinc-700/80 mb-5 text-right space-y-3">
+                <div
+                    class="flex items-center justify-between text-xs text-neutral-500 dark:text-neutral-400 pb-2.5 border-b border-neutral-200/60 dark:border-zinc-700/60">
+                    <span class="flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[16px]">palette</span>
+                        اثر:
+                    </span>
+                    <span id="confirm-modal-title"
+                        class="font-bold text-neutral-800 dark:text-neutral-200 truncate max-w-[220px]">{% if auction.lot %}لات {{ auction.lot|fa_digits }} - {% endif %}{{ auction.title|fa_digits }}</span>
                 </div>
-                <h3 class="font-bold text-xl text-text-main dark:text-white mb-3">درخواست در حال بررسی</h3>
-                <p class="text-gray-500 dark:text-gray-400 text-sm leading-relaxed mb-8" id="credit-success-message">
-                    درخواست شما با موفقیت ثبت شده و هم‌اکنون در انتظار بررسی و تایید توسط مدیران سیستم می‌باشد.
-                </p>
-                <div class="space-y-3">
-                    <!-- دکمه مشاهده پروفایل (آیکون جابه‌جا شد و در سمت راست متن قرار گرفت) -->
-                    <a href="{% url 'profile' %}" id="btn-profile-link" class="w-full flex flex-row items-center justify-center gap-2 bg-gray-50 hover:bg-gray-100 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-zinc-600 py-3.5 px-6 rounded-xl font-bold text-sm transition-all">
-                        <span class="material-symbols-outlined text-lg">person</span>
-                        <span>مشاهده پروفایل</span>
-                    </a>
+
+                <div
+                    class="flex items-center justify-between text-xs text-neutral-500 dark:text-neutral-400 pb-2.5 border-b border-neutral-200/60 dark:border-zinc-700/60">
+                    <span class="flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[16px] text-neutral-500">trending_up</span>
+                        افزایش در این پله:
+                    </span>
+                    <span id="confirm-modal-increment" class="font-bold text-neutral-800 dark:text-neutral-200">{{ auction.get_current_step_increment|fa_price }} تومان</span>
+                </div>
+
+                <div class="flex items-center justify-between pt-1 text-primary">
+                    <span class="text-xs font-black flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[16px] text-primary">gavel</span>
+                        مبلغ پیشنهاد شما:
+                    </span>
+                    <span id="confirm-modal-amount" class="text-lg sm:text-xl font-black dir-rtl">-- تومان</span>
                 </div>
             </div>
 
+            <!-- دکمه‌های عملیات -->
+            <div class="flex items-center justify-center gap-2.5 pt-1 max-w-[320px] mx-auto w-full">
+                <!-- دکمه تأیید و ثبت پیشنهاد (سمت راست در چیدمان راست‌به‌چپ) -->
+                <button type="button" id="btn-execute-bid-submit"
+                    class="flex-1 py-2 px-3 bg-primary hover:bg-primary-dark text-white font-bold rounded-xl text-xs sm:text-sm transition-all shadow-sm flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer whitespace-nowrap">
+                    <span class="material-symbols-outlined text-[17px]">check</span>
+                    <span>تأیید پیشنهاد</span>
+                </button>
+                <!-- دکمه انصراف (سمت چپ در چیدمان راست‌به‌چپ) -->
+                <button type="button" id="btn-cancel-confirm-bid"
+                    class="flex-1 py-2 px-3 bg-neutral-100 hover:bg-neutral-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-neutral-600 dark:text-neutral-300 font-semibold rounded-xl text-xs sm:text-sm border border-neutral-200/80 dark:border-zinc-700 transition-all active:scale-95 cursor-pointer whitespace-nowrap text-center">
+                    <span>انصراف</span>
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -524,756 +900,889 @@
 
 
 
-{% block extra_js %}
-<script>
-    // ------------------------------------------------------------------
-    // تابع مرجع برای فارسی‌سازی اعداد در جاوا اسکریپت (معادل فیلتر fa_digits در جنگو)
-    // ------------------------------------------------------------------
-    const toPersianNum = (value) => {
-        if (value === null || value === undefined) return '';
-        return String(value).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[d]);
-    };
+        {% block extra_js %}
+        <script>
+            // ------------------------------------------------------------------
+            // تابع مرجع برای فارسی‌سازی اعداد در جاوا اسکریپت (معادل فیلتر fa_digits در جنگو)
+            // ------------------------------------------------------------------
+            const toPersianNum = (value) => {
+                if (value === null || value === undefined) return '';
+                return String(value).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[d]);
+            };
 
-    // ------------------------------------------------------------------
-    // بخش ۱: رفع مشکل کش شدن در صورت بازگشت کاربر از صفحات دیگر
-    // ------------------------------------------------------------------
-    window.addEventListener('pageshow', function(event) {
-        const dirtyInput = document.getElementById('page_is_dirty');
-        
-        if (event.persisted || (dirtyInput && dirtyInput.value === '1')) {
-            window.location.replace(window.location.href);
-        } else if (dirtyInput) {
-            dirtyInput.value = '1';
-        }
-    });
+            // ------------------------------------------------------------------
+            // بخش ۱: رفع مشکل کش شدن در صورت بازگشت کاربر از صفحات دیگر
+            // ------------------------------------------------------------------
+            window.addEventListener('pageshow', function (event) {
+                const dirtyInput = document.getElementById('page_is_dirty');
 
-    // ------------------------------------------------------------------
-    // بخش ۲: فرم ثبت بید و منطق مودال افزایش اعتبار
-    // ------------------------------------------------------------------
-    document.addEventListener('DOMContentLoaded', function() {
-        const productAuctionNotifications = {
-            requestSubmitError: window.getNotificationMessage('common.request_submit_error'),
-            serverCommunicationError: window.getNotificationMessage('common.server_communication_error'),
-            genericBidError: window.getNotificationMessage('auction.generic_error')
-        };
-        const bidForm = document.getElementById('bid-submit-form');
-        const alertBox = document.getElementById('bid-alert');
-        const alertMessage = document.getElementById('bid-alert-message');
-        const alertAction = document.getElementById('bid-alert-action');
-        const bidCountEl = document.getElementById('bid-count-number');
-        const currentPriceEl = document.getElementById('current-price-text');
-        const bidCalcBox = document.getElementById('bid-calc');
-        const creditRequestStatus = document.getElementById('credit-request-status');
-        const liveConfig = document.getElementById('auction-live-config');
-        const myBidHistoryContainer = document.getElementById('my-bid-history-container');
-        let liveSocket = null;
-        let livePollingTimer = null;
-        let reconnectTimer = null;
-        
-        // المان‌های مربوط به مودال افزایش اعتبار
-        const creditModal = document.getElementById('credit-modal');
-        const creditModalBox = document.getElementById('credit-modal-box');
-        const creditModalContent = document.getElementById('credit-modal-content');
-        const creditModalSuccess = document.getElementById('credit-modal-success');
-        const btnSubmitCredit = document.getElementById('btn-submit-credit-request');
-        const btnCloseModalIcon = document.getElementById('btn-close-modal-icon');
-        const btnProfileLink = document.getElementById('btn-profile-link');
-        const msgSuccessEl = document.getElementById('credit-success-message');
-
-        function getLatestCreditRequestStatus() {
-            return String(creditRequestStatus?.dataset.status ?? '').trim();
-        }
-
-        function formatFaNumber(value) {
-            try {
-                return Number(value).toLocaleString('fa-IR');
-            } catch {
-                return toPersianNum(String(value));
-            }
-        }
-
-        function applyLiveBidState(data) {
-            if (!data) return;
-
-            if (typeof data.current_price !== 'undefined' && currentPriceEl) {
-                currentPriceEl.textContent = formatFaNumber(data.current_price);
-            }
-
-            if (bidCalcBox && typeof data.current_price !== 'undefined') {
-                bidCalcBox.dataset.currentPrice = String(data.current_price);
-            }
-
-            if (bidCountEl && typeof data.bid_count !== 'undefined') {
-                bidCountEl.textContent = formatFaNumber(data.bid_count);
-            }
-
-            if (bidCalcBox && typeof data.min_next_bid !== 'undefined') {
-                bidCalcBox.dataset.minNext = String(data.min_next_bid);
-            }
-
-            if (myBidHistoryContainer && typeof data.my_bids_html === 'string') {
-                const detailsEl = myBidHistoryContainer.querySelector('details');
-                const wasOpen = Boolean(detailsEl && detailsEl.open);
-                myBidHistoryContainer.innerHTML = data.my_bids_html;
-                const updatedDetailsEl = myBidHistoryContainer.querySelector('details');
-                if (updatedDetailsEl && wasOpen) {
-                    updatedDetailsEl.open = true;
-                }
-            }
-
-            if (window.recalcBid) {
-                window.recalcBid();
-            } else {
-                try { recalcBid(); } catch {}
-            }
-        }
-
-        function stopLivePolling() {
-            if (!livePollingTimer) return;
-            window.clearInterval(livePollingTimer);
-            livePollingTimer = null;
-        }
-
-        function fetchLiveState() {
-            const liveStateUrl = liveConfig?.dataset.liveStateUrl;
-            if (!liveStateUrl) return;
-
-            fetch(liveStateUrl, {
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            })
-            .then((res) => res.json())
-            .then((data) => {
-                if (data && data.success) {
-                    applyLiveBidState(data);
-                }
-            })
-            .catch((err) => {
-                console.error('خطا در دریافت وضعیت زنده مزایده:', err);
-            });
-        }
-
-        function startLivePolling() {
-            if (livePollingTimer) return;
-            fetchLiveState();
-            livePollingTimer = window.setInterval(fetchLiveState, 5000);
-        }
-
-        function connectLiveUpdates() {
-            const productId = liveConfig?.dataset.productId;
-            if (!productId) return;
-
-            if (!('WebSocket' in window)) {
-                startLivePolling();
-                return;
-            }
-
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const socketUrl = `${protocol}//${window.location.host}/ws/auction/product/${productId}/`;
-
-            liveSocket = new WebSocket(socketUrl);
-
-            liveSocket.addEventListener('open', function() {
-                stopLivePolling();
-            });
-
-            liveSocket.addEventListener('message', function(event) {
-                try {
-                    const data = JSON.parse(event.data);
-                    applyLiveBidState(data.payload || data);
-                } catch (err) {
-                    console.error('خطا در پردازش پیام زنده مزایده:', err);
+                if (false) {
+                    // Disabled location.replace
+                } else if (dirtyInput) {
+                    dirtyInput.value = '1';
                 }
             });
 
-            liveSocket.addEventListener('error', function() {
-                if (liveSocket) {
-                    liveSocket.close();
+            // ------------------------------------------------------------------
+            // بخش ۲: فرم ثبت بید و منطق مودال افزایش اعتبار
+            // ------------------------------------------------------------------
+            document.addEventListener('DOMContentLoaded', function () {
+                const productAuctionNotifications = {
+                    requestSubmitError: window.getNotificationMessage('common.request_submit_error'),
+                    serverCommunicationError: window.getNotificationMessage('common.server_communication_error'),
+                    genericBidError: window.getNotificationMessage('auction.generic_error')
+                };
+                const bidForm = document.getElementById('bid-submit-form');
+                const alertBox = document.getElementById('bid-alert');
+                const alertMessage = document.getElementById('bid-alert-message');
+                const alertAction = document.getElementById('bid-alert-action');
+                const bidCountEl = document.getElementById('bid-count-number');
+                const currentPriceEl = document.getElementById('current-price-text');
+                const currentTotalWithTaxEl = document.getElementById('current-total-with-tax-text');
+                const currentTaxEl = document.getElementById('current-tax-text');
+                const bidCalcBox = document.getElementById('bid-calc');
+                const creditRequestStatus = document.getElementById('credit-request-status');
+                const liveConfig = document.getElementById('auction-live-config');
+                const myBidHistoryContainer = document.getElementById('my-bid-history-container');
+                let liveSocket = null;
+                let livePollingTimer = null;
+                let reconnectTimer = null;
+
+                // المان‌های مربوط به مودال افزایش اعتبار
+                const creditModal = document.getElementById('credit-modal');
+                const creditModalBox = document.getElementById('credit-modal-box');
+                const creditModalContent = document.getElementById('credit-modal-content');
+                const creditModalSuccess = document.getElementById('credit-modal-success');
+                const btnSubmitCredit = document.getElementById('btn-submit-credit-request');
+                const btnCloseModalIcon = document.getElementById('btn-close-modal-icon');
+                const btnProfileLink = document.getElementById('btn-profile-link');
+                const msgSuccessEl = document.getElementById('credit-success-message');
+
+                // المان‌های مربوط به مودال تأیید ثبت بید
+                const confirmBidModal = document.getElementById('confirm-bid-modal');
+                const confirmBidModalBox = document.getElementById('confirm-bid-modal-box');
+                const confirmModalAmount = document.getElementById('confirm-modal-amount');
+                const confirmModalIncrement = document.getElementById('confirm-modal-increment');
+                const confirmModalTitle = document.getElementById('confirm-modal-title');
+                const btnCloseConfirmBidModal = document.getElementById('btn-close-confirm-bid-modal');
+                const btnCancelConfirmBid = document.getElementById('btn-cancel-confirm-bid');
+                const btnExecuteBidSubmit = document.getElementById('btn-execute-bid-submit');
+
+                function getLatestCreditRequestStatus() {
+                    return String(creditRequestStatus?.dataset.status ?? '').trim();
                 }
-            });
 
-            liveSocket.addEventListener('close', function() {
-                startLivePolling();
-                if (reconnectTimer) {
-                    window.clearTimeout(reconnectTimer);
-                }
-                reconnectTimer = window.setTimeout(connectLiveUpdates, 3000);
-            });
-        }
-
-        function openCreditModal(state = null) {
-            if (!creditModal) return;
-
-            const effectiveState = state || (getLatestCreditRequestStatus() === '0' ? 'pending' : 'request');
-
-            if (effectiveState === 'pending') {
-                if (creditModalContent) {
-                    creditModalContent.classList.remove('block');
-                    creditModalContent.classList.add('hidden');
-                }
-                if (creditModalSuccess) {
-                    creditModalSuccess.classList.remove('hidden');
-                    creditModalSuccess.classList.add('block');
-                }
-            } else {
-                if (creditModalContent) {
-                    creditModalContent.classList.remove('hidden');
-                    creditModalContent.classList.add('block');
-                }
-                if (creditModalSuccess) {
-                    creditModalSuccess.classList.remove('block');
-                    creditModalSuccess.classList.add('hidden');
-                }
-            }
-
-            // نمایش بک‌گراند مودال
-            creditModal.classList.remove('opacity-0', 'pointer-events-none');
-            creditModal.classList.add('opacity-100');
-            
-            // افکت اسکیل برای باکس داخلی
-            setTimeout(() => {
-                if(creditModalBox) {
-                    creditModalBox.classList.remove('scale-95');
-                    creditModalBox.classList.add('scale-100');
-                }
-            }, 10);
-
-            document.body.style.overflow = 'hidden';
-        }
-
-        // تابع بستن مودال اعتبار
-        function closeCreditModal() {
-            if (!creditModal) return;
-            
-            // افکت اسکیل خروج برای باکس داخلی
-            if(creditModalBox) {
-                creditModalBox.classList.remove('scale-100');
-                creditModalBox.classList.add('scale-95');
-            }
-
-            creditModal.classList.remove('opacity-100');
-            creditModal.classList.add('opacity-0', 'pointer-events-none');
-            document.body.style.overflow = '';
-        }
-
-        // اتصال رویداد کلیک به دکمه ضربدر
-        if (btnCloseModalIcon) {
-            btnCloseModalIcon.addEventListener('click', closeCreditModal);
-        }
-
-        // بستن مودال با کلیک روی پس‌زمینه
-        if (creditModal) {
-            creditModal.addEventListener('click', function(e) {
-                if (e.target === this) {
-                    closeCreditModal();
-                }
-            });
-        }
-
-        // رویداد ثبت درخواست افزایش اعتبار (AJAX)
-        if (btnSubmitCredit && creditModal) {
-            btnSubmitCredit.addEventListener('click', function() {
-                const url = creditModal.getAttribute('data-credit-url');
-                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-                
-                const originalText = btnSubmitCredit.innerHTML;
-                btnSubmitCredit.innerHTML = '<span class="material-symbols-outlined animate-spin-custom text-lg">sync</span> در حال ثبت...';
-                btnSubmitCredit.disabled = true;
-
-                fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'X-CSRFToken': csrfToken,
-                        'Content-Type': 'application/json'
+                function formatFaNumber(value) {
+                    try {
+                        return Number(value).toLocaleString('fa-IR').replace(/٬/g, ',');
+                    } catch {
+                        return toPersianNum(String(value));
                     }
-                })
-                .then(res => res.json())
-                .then(data => {
-                    btnSubmitCredit.innerHTML = originalText;
-                    btnSubmitCredit.disabled = false;
+                }
 
-                    if (data.success) {
-                        if (creditRequestStatus) {
-                            creditRequestStatus.dataset.status = '0';
+                function applyLiveBidState(data) {
+                    if (!data) return;
+
+                    if (typeof data.current_price !== 'undefined' && currentPriceEl) {
+                        currentPriceEl.textContent = formatFaNumber(data.current_price);
+                    }
+
+                    const currentPrice = typeof data.current_price !== 'undefined' ? Number(data.current_price) : Number(bidCalcBox?.dataset.currentPrice || 0);
+                    const taxAmount = typeof data.tax_amount !== 'undefined' ? Number(data.tax_amount) : Math.ceil(currentPrice * 0.10);
+                    const totalWithTax = typeof data.total_with_tax !== 'undefined' ? Number(data.total_with_tax) : (currentPrice + taxAmount);
+
+                    if (currentTotalWithTaxEl) {
+                        currentTotalWithTaxEl.textContent = formatFaNumber(totalWithTax);
+                    }
+                    if (currentTaxEl) {
+                        currentTaxEl.textContent = formatFaNumber(taxAmount);
+                    }
+
+                    if (bidCalcBox) {
+                        if (typeof data.current_price !== 'undefined') {
+                            bidCalcBox.dataset.currentPrice = String(data.current_price);
                         }
+                        bidCalcBox.dataset.taxAmount = String(taxAmount);
+                        bidCalcBox.dataset.totalWithTax = String(totalWithTax);
+                        if (typeof data.min_next_bid !== 'undefined') {
+                            bidCalcBox.dataset.minNext = String(data.min_next_bid);
+                        }
+                        if (typeof data.step_increment !== 'undefined') {
+                            bidCalcBox.dataset.stepIncrement = String(data.step_increment);
+                        }
+                    }
 
-                        creditModalContent.classList.remove('block');
-                        creditModalContent.classList.add('hidden');
-                        
-                        creditModalSuccess.classList.remove('hidden');
-                        creditModalSuccess.classList.add('block');
-                        
-                        if (btnProfileLink && data.profile_url) {
-                            btnProfileLink.href = data.profile_url;
+                    if (bidCountEl && typeof data.bid_count !== 'undefined') {
+                        bidCountEl.textContent = formatFaNumber(data.bid_count);
+                    }
+
+                    if (myBidHistoryContainer && typeof data.my_bids_html === 'string') {
+                        const detailsEl = myBidHistoryContainer.querySelector('details');
+                        const wasOpen = Boolean(detailsEl && detailsEl.open);
+                        myBidHistoryContainer.innerHTML = data.my_bids_html;
+                        const updatedDetailsEl = myBidHistoryContainer.querySelector('details');
+                        if (updatedDetailsEl && wasOpen) {
+                            updatedDetailsEl.open = true;
+                        }
+                    }
+
+                    if (window.recalcBid) {
+                        window.recalcBid();
+                    } else {
+                        try { recalcBid(); } catch { }
+                    }
+                }
+
+                function stopLivePolling() {
+                    if (!livePollingTimer) return;
+                    window.clearInterval(livePollingTimer);
+                    livePollingTimer = null;
+                }
+
+                function fetchLiveState() {
+                    const liveStateUrl = liveConfig?.dataset.liveStateUrl;
+                    if (!liveStateUrl) return;
+
+                    fetch(liveStateUrl, {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    })
+                        .then((res) => res.json())
+                        .then((data) => {
+                            if (data && data.success) {
+                                applyLiveBidState(data);
+                            }
+                        })
+                        .catch((err) => {
+                            console.error('خطا در دریافت وضعیت زنده مزایده:', err);
+                        });
+                }
+
+                function startLivePolling() {
+                    if (livePollingTimer) return;
+                    fetchLiveState();
+                    livePollingTimer = window.setInterval(fetchLiveState, 5000);
+                }
+
+                function connectLiveUpdates() {
+                    const productId = liveConfig?.dataset.productId;
+                    if (!productId) return;
+
+                    if (!('WebSocket' in window)) {
+                        startLivePolling();
+                        return;
+                    }
+
+                    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                    const socketUrl = `${protocol}//${window.location.host}/ws/auction/product/${productId}/`;
+
+                    liveSocket = new WebSocket(socketUrl);
+
+                    liveSocket.addEventListener('open', function () {
+                        stopLivePolling();
+                    });
+
+                    liveSocket.addEventListener('message', function (event) {
+                        try {
+                            const data = JSON.parse(event.data);
+                            applyLiveBidState(data.payload || data);
+                        } catch (err) {
+                            console.error('خطا در پردازش پیام زنده مزایده:', err);
+                        }
+                    });
+
+                    liveSocket.addEventListener('error', function () {
+                        if (liveSocket) {
+                            liveSocket.close();
+                        }
+                    });
+
+                    liveSocket.addEventListener('close', function () {
+                        startLivePolling();
+                        if (reconnectTimer) {
+                            window.clearTimeout(reconnectTimer);
+                        }
+                        reconnectTimer = window.setTimeout(connectLiveUpdates, 3000);
+                    });
+                }
+
+                function openCreditModal(state = null) {
+                    if (!creditModal) return;
+
+                    const effectiveState = state || (getLatestCreditRequestStatus() === '0' ? 'pending' : 'request');
+
+                    if (effectiveState === 'pending') {
+                        if (creditModalContent) {
+                            creditModalContent.classList.remove('block');
+                            creditModalContent.classList.add('hidden');
+                        }
+                        if (creditModalSuccess) {
+                            creditModalSuccess.classList.remove('hidden');
+                            creditModalSuccess.classList.add('block');
                         }
                     } else {
-                        alert(data.message || productAuctionNotifications.requestSubmitError);
-                    }
-                })
-                .catch(err => {
-                    console.error('Error submitting credit request:', err);
-                    btnSubmitCredit.innerHTML = originalText;
-                    btnSubmitCredit.disabled = false;
-                    alert(window.getNotificationMessage('common.server_retry_error'));
-                });
-            });
-        }
-
-        // ثبت فرم بید (AJAX اصلی)
-        if (bidForm) {
-            bidForm.addEventListener('submit', function(e) {
-                e.preventDefault(); 
-                
-                const btn = this.querySelector('button[type="submit"]');
-                if (btn) {
-                    btn.innerHTML = '<span class="material-symbols-outlined animate-spin-custom">sync</span> در حال ثبت...';
-                    btn.disabled = true;
-                    btn.classList.add('opacity-75', 'cursor-not-allowed');
-                }
-
-                const formData = new FormData(this);
-                
-                fetch(this.action, {
-                    method: 'POST',
-                    body: formData,
-                    headers: { 'x-requested-with': 'XMLHttpRequest' }
-                })
-                .then(async (res) => {
-                    let data = null;
-                    try {
-                        data = await res.json();
-                    } catch {
-                        data = { success: false, message: productAuctionNotifications.serverCommunicationError };
-                    }
-
-                    if (btn) {
-                        btn.innerHTML = '<span class="material-symbols-outlined">gavel</span> ثبت نهایی پیشنهاد';
-                        btn.disabled = false;
-                        btn.classList.remove('opacity-75', 'cursor-not-allowed');
-                    }
-
-                    if (data && data.success) {
-                        if (alertBox) alertBox.classList.add('hidden');
-                        applyLiveBidState(data);
-                        return;
-                    }
-
-                    if (data && data.needs_credit_increase) {
-                        openCreditModal(data.credit_request_state);
-                        if (alertBox) alertBox.classList.add('hidden');
-                        return;
-                    }
-
-                    if (alertBox && alertMessage) {
-                        alertBox.classList.remove('hidden');
-                        alertBox.classList.remove('border-green-500/30', 'bg-green-500/10');
-                        alertBox.classList.add('border-red-500/30', 'bg-red-500/10');
-                        alertMessage.classList.remove('text-green-200');
-                        alertMessage.classList.add('text-red-200');
-                        alertMessage.textContent = (data && data.message) ? data.message : productAuctionNotifications.genericBidError;
-                    }
-
-                    if (alertAction) {
-                        const href = data && data.credit_increase_url ? data.credit_increase_url : '';
-                        if (href) {
-                            alertAction.href = href;
-                            alertAction.classList.remove('hidden');
-                        } else {
-                            alertAction.classList.add('hidden');
-                            alertAction.removeAttribute('href');
+                        if (creditModalContent) {
+                            creditModalContent.classList.remove('hidden');
+                            creditModalContent.classList.add('block');
+                        }
+                        if (creditModalSuccess) {
+                            creditModalSuccess.classList.remove('block');
+                            creditModalSuccess.classList.add('hidden');
                         }
                     }
-                })
-                .catch((err) => {
-                    console.error('خطا در ثبت:', err);
-                    if (btn) {
-                        btn.innerHTML = '<span class="material-symbols-outlined">gavel</span> ثبت نهایی پیشنهاد';
-                        btn.disabled = false;
-                        btn.classList.remove('opacity-75', 'cursor-not-allowed');
+
+                    // نمایش بک‌گراند مودال
+                    creditModal.classList.remove('opacity-0', 'pointer-events-none');
+                    creditModal.classList.add('opacity-100');
+
+                    // افکت اسکیل برای باکس داخلی
+                    setTimeout(() => {
+                        if (creditModalBox) {
+                            creditModalBox.classList.remove('scale-95');
+                            creditModalBox.classList.add('scale-100');
+                        }
+                    }, 10);
+
+                    document.body.style.overflow = 'hidden';
+                }
+
+                // تابع بستن مودال اعتبار
+                function closeCreditModal() {
+                    if (!creditModal) return;
+
+                    // افکت اسکیل خروج برای باکس داخلی
+                    if (creditModalBox) {
+                        creditModalBox.classList.remove('scale-100');
+                        creditModalBox.classList.add('scale-95');
                     }
-                    if (alertBox && alertMessage) {
-                        alertBox.classList.remove('hidden');
-                        alertBox.classList.add('border-red-500/30', 'bg-red-500/10');
-                        alertMessage.classList.add('text-red-200');
-                        alertMessage.textContent = productAuctionNotifications.serverCommunicationError;
+
+                    creditModal.classList.remove('opacity-100');
+                    creditModal.classList.add('opacity-0', 'pointer-events-none');
+                    document.body.style.overflow = '';
+                }
+
+                // اتصال رویداد کلیک به دکمه ضربدر
+                if (btnCloseModalIcon) {
+                    btnCloseModalIcon.addEventListener('click', closeCreditModal);
+                }
+
+                // بستن مودال با کلیک روی پس‌زمینه
+                if (creditModal) {
+                    creditModal.addEventListener('click', function (e) {
+                        if (e.target === this) {
+                            closeCreditModal();
+                        }
+                    });
+                }
+
+                // رویداد ثبت درخواست افزایش اعتبار (AJAX)
+                if (btnSubmitCredit && creditModal) {
+                    btnSubmitCredit.addEventListener('click', function () {
+                        const url = creditModal.getAttribute('data-credit-url');
+                        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+                        const originalText = btnSubmitCredit.innerHTML;
+                        btnSubmitCredit.innerHTML = '<span class="material-symbols-outlined animate-spin-custom text-lg">sync</span> در حال ثبت...';
+                        btnSubmitCredit.disabled = true;
+
+                        fetch(url, {
+                            method: 'POST',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'X-CSRFToken': csrfToken,
+                                'Content-Type': 'application/json'
+                            }
+                        })
+                            .then(res => res.json())
+                            .then(data => {
+                                btnSubmitCredit.innerHTML = originalText;
+                                btnSubmitCredit.disabled = false;
+
+                                if (data.success) {
+                                    if (creditRequestStatus) {
+                                        creditRequestStatus.dataset.status = '0';
+                                    }
+
+                                    creditModalContent.classList.remove('block');
+                                    creditModalContent.classList.add('hidden');
+
+                                    creditModalSuccess.classList.remove('hidden');
+                                    creditModalSuccess.classList.add('block');
+
+                                    if (btnProfileLink && data.profile_url) {
+                                        btnProfileLink.href = data.profile_url;
+                                    }
+                                }
+                            })
+                            .catch(err => {
+                                console.error('Error submitting credit request:', err);
+                                btnSubmitCredit.innerHTML = originalText;
+                                btnSubmitCredit.disabled = false;
+                                // alert(window.getNotificationMessage('common.server_retry_error'));
+                            });
+                    });
+                }
+
+                if (alertAction) {
+                    alertAction.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        openCreditModal(getLatestCreditRequestStatus() === '0' ? 'pending' : 'request');
+                    });
+                }
+
+                // توابع باز و بسته کردن مودال تأیید بید
+                function openConfirmBidModal() {
+                    if (!confirmBidModal) return;
+
+                    if (confirmModalAmount && finalBidText) {
+                        confirmModalAmount.textContent = finalBidText.textContent;
+                    }
+                    const stepIncrementEl = document.getElementById('step-increment-text');
+                    if (confirmModalIncrement && stepIncrementEl) {
+                        confirmModalIncrement.textContent = stepIncrementEl.textContent;
+                    }
+                    if (confirmModalTitle && (!confirmModalTitle.textContent || !confirmModalTitle.textContent.trim())) {
+                        const h1Title = document.querySelector('h1');
+                        if (h1Title) {
+                            confirmModalTitle.textContent = h1Title.textContent.replace(/\s+/g, ' ').trim();
+                        }
+                    }
+
+                    confirmBidModal.classList.remove('opacity-0', 'pointer-events-none');
+                    confirmBidModal.classList.add('opacity-100');
+
+                    setTimeout(() => {
+                        if (confirmBidModalBox) {
+                            confirmBidModalBox.classList.remove('scale-95');
+                            confirmBidModalBox.classList.add('scale-100');
+                        }
+                    }, 10);
+
+                    document.body.style.overflow = 'hidden';
+                }
+
+                function closeConfirmBidModal() {
+                    if (!confirmBidModal) return;
+
+                    if (confirmBidModalBox) {
+                        confirmBidModalBox.classList.remove('scale-100');
+                        confirmBidModalBox.classList.add('scale-95');
+                    }
+
+                    confirmBidModal.classList.remove('opacity-100');
+                    confirmBidModal.classList.add('opacity-0', 'pointer-events-none');
+                    document.body.style.overflow = '';
+                }
+
+                window.closeConfirmBidModal = closeConfirmBidModal;
+                window.closeCreditModal = closeCreditModal;
+
+                if (btnCloseConfirmBidModal) {
+                    btnCloseConfirmBidModal.addEventListener('click', closeConfirmBidModal);
+                }
+
+                if (btnCancelConfirmBid) {
+                    btnCancelConfirmBid.addEventListener('click', closeConfirmBidModal);
+                }
+
+                if (confirmBidModal) {
+                    confirmBidModal.addEventListener('click', function (e) {
+                        if (e.target === this) {
+                            closeConfirmBidModal();
+                        }
+                    });
+                }
+
+                // ثبت فرم بید (ابتدا بررسی وضعیت درخواست، سپس باز شدن مودال تأیید)
+                if (bidForm) {
+                    bidForm.addEventListener('submit', function (e) {
+                        e.preventDefault();
+                        if (getLatestCreditRequestStatus() === '0') {
+                            openCreditModal('pending');
+                            return;
+                        }
+                        openConfirmBidModal();
+                    });
+                }
+
+                if (btnExecuteBidSubmit && bidForm) {
+                    btnExecuteBidSubmit.addEventListener('click', function () {
+                        if (getLatestCreditRequestStatus() === '0') {
+                            closeConfirmBidModal();
+                            openCreditModal('pending');
+                            return;
+                        }
+
+                        const originalBtnHtml = btnExecuteBidSubmit.innerHTML;
+                        btnExecuteBidSubmit.innerHTML = '<span class="material-symbols-outlined animate-spin-custom text-lg">sync</span> در حال ثبت...';
+                        btnExecuteBidSubmit.disabled = true;
+                        if (btnCancelConfirmBid) btnCancelConfirmBid.disabled = true;
+                        if (btnCloseConfirmBidModal) btnCloseConfirmBidModal.disabled = true;
+
+                        const formSubmitBtn = bidForm.querySelector('button[type="submit"]');
+                        if (formSubmitBtn) {
+                            formSubmitBtn.innerHTML = '<span class="material-symbols-outlined animate-spin-custom">sync</span> در حال ثبت...';
+                            formSubmitBtn.disabled = true;
+                            formSubmitBtn.classList.add('opacity-75', 'cursor-not-allowed');
+                        }
+
+                        const formData = new FormData(bidForm);
+
+                        fetch(bidForm.action, {
+                            method: 'POST',
+                            body: formData,
+                            headers: { 'x-requested-with': 'XMLHttpRequest' }
+                        })
+                            .then(async (res) => {
+                                let data = null;
+                                try {
+                                    data = await res.json();
+                                } catch {
+                                    data = { success: false, message: productAuctionNotifications.serverCommunicationError };
+                                }
+
+                                // ریست وضعیت دکمه‌های مودال و فرم
+                                btnExecuteBidSubmit.innerHTML = originalBtnHtml;
+                                btnExecuteBidSubmit.disabled = false;
+                                if (btnCancelConfirmBid) btnCancelConfirmBid.disabled = false;
+                                if (btnCloseConfirmBidModal) btnCloseConfirmBidModal.disabled = false;
+
+                                if (formSubmitBtn) {
+                                    formSubmitBtn.innerHTML = '<span class="material-symbols-outlined">gavel</span> ثبت نهایی پیشنهاد';
+                                    formSubmitBtn.disabled = false;
+                                    formSubmitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+                                }
+
+                                closeConfirmBidModal();
+
+                                if (data && data.success) {
+                                    if (alertBox) alertBox.classList.add('hidden');
+                                    applyLiveBidState(data);
+                                    return;
+                                }
+
+                                if (data && (data.needs_credit_increase || (data.message && data.message.includes('انتظار')))) {
+                                    const targetState = data.credit_request_state || ((data.message && data.message.includes('انتظار')) ? 'pending' : 'request');
+                                    openCreditModal(targetState);
+                                    if (alertBox) alertBox.classList.add('hidden');
+                                    return;
+                                }
+
+                                if (alertBox && alertMessage) {
+                                    alertBox.classList.remove('hidden');
+                                    alertBox.classList.remove('border-green-500/30', 'bg-green-500/10');
+                                    alertBox.classList.add('border-red-500/30', 'bg-red-500/10');
+                                    alertMessage.classList.remove('text-green-200');
+                                    alertMessage.classList.add('text-red-200');
+                                    alertMessage.textContent = (data && data.message) ? data.message : productAuctionNotifications.genericBidError;
+                                }
+
+                                if (alertAction) {
+                                    const href = data && data.credit_increase_url ? data.credit_increase_url : '';
+                                    if (href) {
+                                        alertAction.href = href;
+                                        alertAction.classList.remove('hidden');
+                                    } else if (data && data.needs_credit_increase) {
+                                        alertAction.href = '#';
+                                        alertAction.classList.remove('hidden');
+                                    } else {
+                                        alertAction.classList.add('hidden');
+                                        alertAction.removeAttribute('href');
+                                    }
+                                }
+                            })
+                            .catch((err) => {
+                                console.error('خطا در ثبت پیشنهاد:', err);
+                                btnExecuteBidSubmit.innerHTML = originalBtnHtml;
+                                btnExecuteBidSubmit.disabled = false;
+                                if (btnCancelConfirmBid) btnCancelConfirmBid.disabled = false;
+                                if (btnCloseConfirmBidModal) btnCloseConfirmBidModal.disabled = false;
+
+                                if (formSubmitBtn) {
+                                    formSubmitBtn.innerHTML = '<span class="material-symbols-outlined">gavel</span> ثبت نهایی پیشنهاد';
+                                    formSubmitBtn.disabled = false;
+                                    formSubmitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+                                }
+
+                                closeConfirmBidModal();
+
+                                if (alertBox && alertMessage) {
+                                    alertBox.classList.remove('hidden');
+                                    alertBox.classList.add('border-red-500/30', 'bg-red-500/10');
+                                    alertMessage.classList.add('text-red-200');
+                                    alertMessage.textContent = productAuctionNotifications.serverCommunicationError;
+                                }
+                            });
+                    });
+                }
+
+                connectLiveUpdates();
+
+                window.addEventListener('beforeunload', function () {
+                    stopLivePolling();
+                    if (reconnectTimer) {
+                        window.clearTimeout(reconnectTimer);
+                    }
+                    if (liveSocket && liveSocket.readyState === WebSocket.OPEN) {
+                        liveSocket.close();
                     }
                 });
             });
-        }
 
-        connectLiveUpdates();
+            // ------------------------------------------------------------------
+            // بقیه کدهای منطقی گالری، تایمر و ماشین‌حساب
+            // ------------------------------------------------------------------
+            let allGalleryImages = [];
+            let currentGalleryIndex = 0;
 
-        window.addEventListener('beforeunload', function() {
-            stopLivePolling();
-            if (reconnectTimer) {
-                window.clearTimeout(reconnectTimer);
+            function switchView(view) {
+                const imgContainer = document.getElementById('product-main-image');
+                const view360 = document.getElementById('product-360-view');
+                const btnImg = document.getElementById('btn-view-image');
+                const btn360 = document.getElementById('btn-view-360');
+                const zoomHint = document.getElementById('zoom-hint');
+                const prevBtn = document.getElementById('prev-slide');
+                const nextBtn = document.getElementById('next-slide');
+
+                if (view === '360') {
+                    if (imgContainer) imgContainer.classList.add('hidden');
+                    if (view360) view360.classList.remove('hidden');
+                    if (zoomHint) zoomHint.classList.add('hidden');
+                    if (prevBtn) prevBtn.classList.add('hidden');
+                    if (nextBtn) nextBtn.classList.add('hidden');
+
+                    if (btnImg) {
+                        btnImg.classList.remove('text-primary', 'ring-2', 'ring-primary');
+                        btnImg.classList.add('text-neutral-600');
+                    }
+                    if (btn360) {
+                        btn360.classList.remove('text-neutral-600');
+                        btn360.classList.add('text-primary', 'ring-2', 'ring-primary');
+                    }
+                } else {
+                    if (imgContainer) imgContainer.classList.remove('hidden');
+                    if (view360) view360.classList.add('hidden');
+                    if (zoomHint) zoomHint.classList.remove('hidden');
+                    if (prevBtn) prevBtn.classList.remove('hidden');
+                    if (nextBtn) nextBtn.classList.remove('hidden');
+
+                    if (btn360) {
+                        btn360.classList.remove('text-primary', 'ring-2', 'ring-primary');
+                        btn360.classList.add('text-neutral-600');
+                    }
+                    if (btnImg) {
+                        btnImg.classList.remove('text-neutral-600');
+                        btnImg.classList.add('text-primary', 'ring-2', 'ring-primary');
+                    }
+                }
             }
-            if (liveSocket && liveSocket.readyState === WebSocket.OPEN) {
-                liveSocket.close();
-            }
-        });
-    });
 
-    // ------------------------------------------------------------------
-    // بقیه کدهای منطقی گالری، تایمر و ماشین‌حساب
-    // ------------------------------------------------------------------
-    let allGalleryImages = [];
-    let currentGalleryIndex = 0; 
+            document.addEventListener('DOMContentLoaded', function () {
+                document.querySelectorAll('.product-thumb').forEach(el => {
+                    const url = el.getAttribute('data-image-url');
+                    if (url && !allGalleryImages.includes(url)) allGalleryImages.push(url);
+                });
 
-    function switchView(view) {
-        const imgContainer = document.getElementById('product-main-image');
-        const view360 = document.getElementById('product-360-view');
-        const btnImg = document.getElementById('btn-view-image');
-        const btn360 = document.getElementById('btn-view-360');
-        const zoomHint = document.getElementById('zoom-hint');
-        const prevBtn = document.getElementById('prev-slide');
-        const nextBtn = document.getElementById('next-slide');
+                document.querySelectorAll('.product-hidden-img').forEach(el => {
+                    const url = el.getAttribute('data-image-url');
+                    if (url && !allGalleryImages.includes(url)) allGalleryImages.push(url);
+                });
 
-        if (view === '360') {
-            if (imgContainer) imgContainer.classList.add('hidden');
-            if (view360) view360.classList.remove('hidden');
-            if (zoomHint) zoomHint.classList.add('hidden');
-            if (prevBtn) prevBtn.classList.add('hidden');
-            if (nextBtn) nextBtn.classList.add('hidden');
-            
-            if (btnImg) {
-                btnImg.classList.remove('text-primary', 'ring-2', 'ring-primary');
-                btnImg.classList.add('text-neutral-600');
-            }
-            if (btn360) {
-                btn360.classList.remove('text-neutral-600');
-                btn360.classList.add('text-primary', 'ring-2', 'ring-primary');
-            }
-        } else {
-            if (imgContainer) imgContainer.classList.remove('hidden');
-            if (view360) view360.classList.add('hidden');
-            if (zoomHint) zoomHint.classList.remove('hidden');
-            if (prevBtn) prevBtn.classList.remove('hidden');
-            if (nextBtn) nextBtn.classList.remove('hidden');
-            
-            if (btn360) {
-                btn360.classList.remove('text-primary', 'ring-2', 'ring-primary');
-                btn360.classList.add('text-neutral-600');
-            }
-            if (btnImg) {
-                btnImg.classList.remove('text-neutral-600');
-                btnImg.classList.add('text-primary', 'ring-2', 'ring-primary');
-            }
-        }
-    }
+                const mainImage = document.getElementById('product-main-image');
+                const thumbs = document.querySelectorAll('.product-thumb');
 
-    document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('.product-thumb').forEach(el => {
-            const url = el.getAttribute('data-image-url');
-            if (url && !allGalleryImages.includes(url)) allGalleryImages.push(url);
-        });
+                function updatePageDisplay(url) {
+                    if (!mainImage) return;
+                    mainImage.style.opacity = '0.5';
+                    setTimeout(() => {
+                        mainImage.style.backgroundImage = `url('${url}')`;
+                        mainImage.style.opacity = '1';
+                    }, 200);
 
-        document.querySelectorAll('.product-hidden-img').forEach(el => {
-            const url = el.getAttribute('data-image-url');
-            if (url && !allGalleryImages.includes(url)) allGalleryImages.push(url);
-        });
+                    thumbs.forEach(t => {
+                        t.classList.remove('border-primary', 'shadow-sm', 'opacity-100', 'ring-2', 'ring-primary');
+                        t.classList.add('border-transparent', 'opacity-70');
+                    });
 
-        const mainImage = document.getElementById('product-main-image');
-        const thumbs = document.querySelectorAll('.product-thumb');
+                    const visibleThumb = document.querySelector(`.product-thumb[data-image-url="${url}"]`);
+                    if (visibleThumb) {
+                        visibleThumb.classList.remove('border-transparent', 'opacity-70');
+                        visibleThumb.classList.add('border-primary', 'shadow-sm', 'opacity-100');
+                    }
+                }
 
-        function updatePageDisplay(url) {
-            if (!mainImage) return;
-            mainImage.style.opacity = '0.5';
-            setTimeout(() => {
-                mainImage.style.backgroundImage = `url('${url}')`;
-                mainImage.style.opacity = '1';
-            }, 200);
+                const prevBtn = document.getElementById('prev-slide');
+                const nextBtn = document.getElementById('next-slide');
 
-            thumbs.forEach(t => {
-                t.classList.remove('border-primary', 'shadow-sm', 'opacity-100', 'ring-2', 'ring-primary');
-                t.classList.add('border-transparent', 'opacity-70');
+                thumbs.forEach((thumb) => {
+                    thumb.addEventListener('click', function () {
+                        const url = this.getAttribute('data-image-url');
+                        if (!url) return;
+                        updatePageDisplay(url);
+                        const idx = allGalleryImages.indexOf(url);
+                        if (idx >= 0) currentGalleryIndex = idx;
+                    });
+                });
+
+                if (nextBtn) {
+                    nextBtn.addEventListener('click', function (e) {
+                        e.stopPropagation();
+                        if (allGalleryImages.length === 0) return;
+                        currentGalleryIndex++;
+                        if (currentGalleryIndex >= allGalleryImages.length) currentGalleryIndex = 0;
+                        updatePageDisplay(allGalleryImages[currentGalleryIndex]);
+                    });
+                }
+
+                if (prevBtn) {
+                    prevBtn.addEventListener('click', function (e) {
+                        e.stopPropagation();
+                        if (allGalleryImages.length === 0) return;
+                        currentGalleryIndex--;
+                        if (currentGalleryIndex < 0) currentGalleryIndex = allGalleryImages.length - 1;
+                        updatePageDisplay(allGalleryImages[currentGalleryIndex]);
+                    });
+                }
             });
 
-            const visibleThumb = document.querySelector(`.product-thumb[data-image-url="${url}"]`);
-            if (visibleThumb) {
-                visibleThumb.classList.remove('border-transparent', 'opacity-70');
-                visibleThumb.classList.add('border-primary', 'shadow-sm', 'opacity-100');
-            }
-        }
+            const modal = document.getElementById('gallery-modal');
+            const modalImg = document.getElementById('gallery-main-img');
+            const modalCountEl = document.getElementById('gallery-total-count');
+            const modalIndexEl = document.getElementById('gallery-current-index');
+            const modalContent = document.getElementById('gallery-modal-content');
 
-        const prevBtn = document.getElementById('prev-slide');
-        const nextBtn = document.getElementById('next-slide');
-
-        thumbs.forEach((thumb) => {
-            thumb.addEventListener('click', function() {
-                const url = this.getAttribute('data-image-url');
-                if (!url) return;
-                updatePageDisplay(url);
-                const idx = allGalleryImages.indexOf(url);
-                if (idx >= 0) currentGalleryIndex = idx; 
-            });
-        });
-
-        if (nextBtn) {
-            nextBtn.addEventListener('click', function(e) {
-                e.stopPropagation();
+            function openGalleryModal(startIndex = 0) {
+                if (!modal || !modalImg || !modalCountEl || !modalIndexEl) return;
                 if (allGalleryImages.length === 0) return;
-                currentGalleryIndex++;
+
+                currentGalleryIndex = startIndex;
+                modal.classList.remove('hidden');
+                setTimeout(() => {
+                    modal.classList.remove('opacity-0');
+                    if (modalContent) {
+                        modalContent.classList.remove('scale-95');
+                        modalContent.classList.add('scale-100');
+                    }
+                }, 10);
+
+                modalCountEl.innerText = Number(allGalleryImages.length).toLocaleString('fa-IR').replace(/٬/g, ',');
+                updateModalImage();
+                if (window.syncGalleryDownload) window.syncGalleryDownload(allGalleryImages[currentGalleryIndex]);
+                if (window.resetGalleryZoom) window.resetGalleryZoom();
+                document.body.style.overflow = 'hidden';
+            }
+
+            function closeGalleryModal() {
+                if (!modal) return;
+                modal.classList.add('opacity-0');
+                if (modalContent) {
+                    modalContent.classList.remove('scale-100');
+                    modalContent.classList.add('scale-95');
+                }
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                    document.body.style.overflow = '';
+                }, 300);
+            }
+
+            function changeGalleryImage(direction) {
+                if (allGalleryImages.length === 0) return;
+                currentGalleryIndex += direction;
                 if (currentGalleryIndex >= allGalleryImages.length) currentGalleryIndex = 0;
-                updatePageDisplay(allGalleryImages[currentGalleryIndex]);
-            });
-        }
-
-        if (prevBtn) {
-            prevBtn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                if (allGalleryImages.length === 0) return;
-                currentGalleryIndex--;
                 if (currentGalleryIndex < 0) currentGalleryIndex = allGalleryImages.length - 1;
-                updatePageDisplay(allGalleryImages[currentGalleryIndex]);
-            });
-        }
-    });
-
-    const modal = document.getElementById('gallery-modal');
-    const modalImg = document.getElementById('gallery-main-img');
-    const modalCountEl = document.getElementById('gallery-total-count');
-    const modalIndexEl = document.getElementById('gallery-current-index');
-    const modalContent = document.getElementById('gallery-modal-content');
-
-    function openGalleryModal(startIndex = 0) {
-        if (!modal || !modalImg || !modalCountEl || !modalIndexEl) return;
-        if (allGalleryImages.length === 0) return;
-
-        currentGalleryIndex = startIndex;
-        modal.classList.remove('hidden');
-        setTimeout(() => {
-            modal.classList.remove('opacity-0');
-            if (modalContent) {
-                modalContent.classList.remove('scale-95');
-                modalContent.classList.add('scale-100');
-            }
-        }, 10);
-
-        modalCountEl.innerText = Number(allGalleryImages.length).toLocaleString('fa-IR');
-        updateModalImage();
-        if (window.syncGalleryDownload) window.syncGalleryDownload(allGalleryImages[currentGalleryIndex]);
-        if (window.resetGalleryZoom) window.resetGalleryZoom();
-        document.body.style.overflow = 'hidden';
-    }
-
-    function closeGalleryModal() {
-        if (!modal) return;
-        modal.classList.add('opacity-0');
-        if (modalContent) {
-            modalContent.classList.remove('scale-100');
-            modalContent.classList.add('scale-95');
-        }
-        setTimeout(() => {
-            modal.classList.add('hidden');
-            document.body.style.overflow = '';
-        }, 300);
-    }
-
-    function changeGalleryImage(direction) {
-        if (allGalleryImages.length === 0) return;
-        currentGalleryIndex += direction;
-        if (currentGalleryIndex >= allGalleryImages.length) currentGalleryIndex = 0;
-        if (currentGalleryIndex < 0) currentGalleryIndex = allGalleryImages.length - 1;
-        updateModalImage();
-    }
-
-    function updateModalImage() {
-        if (!modalImg || !modalIndexEl) return;
-        modalImg.src = allGalleryImages[currentGalleryIndex];
-        modalIndexEl.innerText = Number(currentGalleryIndex + 1).toLocaleString('fa-IR');
-        if (window.syncGalleryDownload) window.syncGalleryDownload(allGalleryImages[currentGalleryIndex]);
-        if (window.resetGalleryZoom) window.resetGalleryZoom();
-    }
-
-    const videoModal = document.getElementById('video-modal');
-    const videoModalContent = document.getElementById('video-modal-content');
-    const videoPlayer = document.getElementById('product-video-player');
-
-    function openVideoModal(videoUrl) {
-        if (!videoModal || !videoModalContent || !videoPlayer) return;
-
-        if (window.prepareVideoModal) {
-            window.prepareVideoModal(videoUrl);
-        } else {
-            videoPlayer.src = videoUrl;
-            videoPlayer.load();
-            videoPlayer.play().catch(() => {});
-        }
-
-        videoModal.classList.remove('hidden');
-        setTimeout(() => {
-            videoModal.classList.remove('opacity-0');
-            videoModalContent.classList.remove('scale-95');
-            videoModalContent.classList.add('scale-100');
-        }, 10);
-
-        document.body.style.overflow = 'hidden';
-    }
-
-    function closeVideoModal() {
-        if (!videoModal || !videoModalContent || !videoPlayer) return;
-
-        videoModal.classList.add('opacity-0');
-        videoModalContent.classList.remove('scale-100');
-        videoModalContent.classList.add('scale-95');
-
-        videoPlayer.pause();
-        videoPlayer.removeAttribute('src');
-        videoPlayer.load();
-
-        setTimeout(() => {
-            videoModal.classList.add('hidden');
-            document.body.style.overflow = '';
-        }, 300);
-
-        if (window.resetVideoModalUI) window.resetVideoModalUI();
-    }
-
-    if (videoModal) {
-        videoModal.addEventListener('click', function(e) {
-            if (e.target === videoModal) closeVideoModal();
-        });
-    }
-
-    // تایمر خطی
-    const timerContainer = document.getElementById('linear-timer');
-    if (timerContainer) {
-        const endTimeStr = timerContainer.dataset.endtime;
-        const endTime = new Date(endTimeStr).getTime();
-
-        const updateTimer = () => {
-            const now = new Date().getTime();
-            const distance = endTime - now;
-
-            const daysEl = document.getElementById('l-days');
-            const hoursEl = document.getElementById('l-hours');
-            const minutesEl = document.getElementById('l-minutes');
-            const secondsEl = document.getElementById('l-seconds');
-
-            if (distance < 0) {
-                if (daysEl) daysEl.innerText = "۰۰";
-                if (hoursEl) hoursEl.innerText = "۰۰";
-                if (minutesEl) minutesEl.innerText = "۰۰";
-                if (secondsEl) secondsEl.innerText = "۰۰";
-                clearInterval(interval);
-                return;
+                updateModalImage();
             }
 
-            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+            function updateModalImage() {
+                if (!modalImg || !modalIndexEl) return;
+                modalImg.src = allGalleryImages[currentGalleryIndex];
+                modalIndexEl.innerText = Number(currentGalleryIndex + 1).toLocaleString('fa-IR').replace(/٬/g, ',');
+                if (window.syncGalleryDownload) window.syncGalleryDownload(allGalleryImages[currentGalleryIndex]);
+                if (window.resetGalleryZoom) window.resetGalleryZoom();
+            }
 
-            // اعمال تابع سراسری فارسی‌ساز روی زمان
-            if (daysEl) daysEl.innerText = toPersianNum(days < 10 ? '0' + days : String(days));
-            if (hoursEl) hoursEl.innerText = toPersianNum(hours < 10 ? '0' + hours : String(hours));
-            if (minutesEl) minutesEl.innerText = toPersianNum(minutes < 10 ? '0' + minutes : String(minutes));
-            if (secondsEl) secondsEl.innerText = toPersianNum(seconds < 10 ? '0' + seconds : String(seconds));
-        };
+            const videoModal = document.getElementById('video-modal');
+            const videoModalContent = document.getElementById('video-modal-content');
+            const videoPlayer = document.getElementById('product-video-player');
 
-        const interval = setInterval(updateTimer, 1000);
-        updateTimer(); 
-    }
+            function openVideoModal(videoUrl) {
+                if (!videoModal || !videoModalContent || !videoPlayer) return;
 
-    const bidCalc = document.getElementById('bid-calc');
-    const finalBidText = document.getElementById('final-bid-text');
-    const bidAmountInput = document.getElementById('bid-amount');
-    
-    const stepInput = document.getElementById('step-input'); 
-    const stepMinus = document.getElementById('step-minus'); 
-    const stepPlus = document.getElementById('step-plus');   
+                if (window.prepareVideoModal) {
+                    window.prepareVideoModal(videoUrl);
+                } else {
+                    videoPlayer.src = videoUrl;
+                    videoPlayer.load();
+                    videoPlayer.play().catch(() => { });
+                }
 
-    const getSelectedSteps = () => {
-        if (!stepInput) return 1; 
-        const val = parseInt(stepInput.value);
-        return (isNaN(val) || val < 1) ? 1 : val;
-    };
+                videoModal.classList.remove('hidden');
+                setTimeout(() => {
+                    videoModal.classList.remove('opacity-0');
+                    videoModalContent.classList.remove('scale-95');
+                    videoModalContent.classList.add('scale-100');
+                }, 10);
 
-    const updateStepButtons = () => {
-        if (stepMinus) {
-            stepMinus.disabled = (parseInt(stepInput.value) <= 1);
-            stepMinus.style.opacity = (parseInt(stepInput.value) <= 1) ? '0.5' : '1';
-        }
-        if (stepPlus) {
-            const maxVal = 100; 
-            stepPlus.disabled = (parseInt(stepInput.value) >= maxVal);
-            stepPlus.style.opacity = (parseInt(stepInput.value) >= maxVal) ? '0.5' : '1';
-        }
-    };
+                document.body.style.overflow = 'hidden';
+            }
 
-    const formatToman = (value) => {
-        try {
-            // برای اطمینان صد در صدی از فارسی بودن اعداد جدا شده با کاما، آن را از تابع سراسری عبور می‌دهیم
-            let formatted = Number(value).toLocaleString('en-US');
-            return toPersianNum(formatted) + ' تومان';
-        } catch {
-            return toPersianNum(value) + ' تومان';
-        }
-    };
+            function closeVideoModal() {
+                if (!videoModal || !videoModalContent || !videoPlayer) return;
 
-    const ceilInt = (n) => Math.ceil(Number(n));
+                videoModal.classList.add('opacity-0');
+                videoModalContent.classList.remove('scale-100');
+                videoModalContent.classList.add('scale-95');
 
-    const recalcBid = () => {
-        if (!bidCalc || !finalBidText) return;
+                videoPlayer.pause();
+                videoPlayer.removeAttribute('src');
+                videoPlayer.load();
 
-        const current = Number(bidCalc.dataset.currentPrice || "0");
-        const minNext = Number(bidCalc.dataset.minNext || "0");
-        const bidValue = Number(bidCalc.dataset.bidValue || "0");
-        const steps = Math.max(1, getSelectedSteps());
+                setTimeout(() => {
+                    videoModal.classList.add('hidden');
+                    document.body.style.overflow = '';
+                }, 300);
 
-        const increasePerStep = Math.max(0, current) * (Math.max(0, bidValue) / 100);
-        let computed = ceilInt(current + increasePerStep * steps);
+                if (window.resetVideoModalUI) window.resetVideoModalUI();
+            }
 
-        if (!Number.isNaN(minNext) && minNext > 0 && computed < minNext) computed = ceilInt(minNext);
-        if (computed < 0) computed = 0;
+            if (videoModal) {
+                videoModal.addEventListener('click', function (e) {
+                    if (e.target === videoModal) closeVideoModal();
+                });
+            }
 
-        finalBidText.textContent = formatToman(computed);
-        // دقت کنید که اتریبیوت فرم که به سرور ارسال می‌شود (value) باید عدد انگلیسی بماند
-        if (bidAmountInput) bidAmountInput.value = String(computed);
-    };
+            // تایمر خطی
+            const timerContainer = document.getElementById('linear-timer');
+            if (timerContainer) {
+                const endTimeStr = timerContainer.dataset.endtime;
+                const endTime = new Date(endTimeStr).getTime();
 
-    if (stepInput) {
-        stepInput.addEventListener('input', () => {
-            if (parseInt(stepInput.value) < 1) stepInput.value = 1;
+                const updateTimer = () => {
+                    const now = new Date().getTime();
+                    const distance = endTime - now;
+
+                    const daysEl = document.getElementById('l-days');
+                    const hoursEl = document.getElementById('l-hours');
+                    const minutesEl = document.getElementById('l-minutes');
+                    const secondsEl = document.getElementById('l-seconds');
+
+                    if (distance < 0) {
+                        if (daysEl) daysEl.innerText = "۰۰";
+                        if (hoursEl) hoursEl.innerText = "۰۰";
+                        if (minutesEl) minutesEl.innerText = "۰۰";
+                        if (secondsEl) secondsEl.innerText = "۰۰";
+                        clearInterval(interval);
+                        return;
+                    }
+
+                    const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                    const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                    const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+                    // اعمال تابع سراسری فارسی‌ساز روی زمان
+                    if (daysEl) daysEl.innerText = toPersianNum(days < 10 ? '0' + days : String(days));
+                    if (hoursEl) hoursEl.innerText = toPersianNum(hours < 10 ? '0' + hours : String(hours));
+                    if (minutesEl) minutesEl.innerText = toPersianNum(minutes < 10 ? '0' + minutes : String(minutes));
+                    if (secondsEl) secondsEl.innerText = toPersianNum(seconds < 10 ? '0' + seconds : String(seconds));
+                };
+
+                const interval = setInterval(updateTimer, 1000);
+                updateTimer();
+            }
+
+            const bidCalc = document.getElementById('bid-calc');
+            const finalBidText = document.getElementById('final-bid-text');
+            const stepIncrementText = document.getElementById('step-increment-text');
+            const bidAmountInput = document.getElementById('bid-amount');
+
+            const formatToman = (value) => {
+                try {
+                    // برای اطمینان صد در صدی از فارسی بودن اعداد جدا شده با کاما، آن را از تابع سراسری عبور می‌دهیم
+                    let formatted = Number(value).toLocaleString('en-US');
+                    return toPersianNum(formatted) + ' تومان';
+                } catch {
+                    return toPersianNum(value) + ' تومان';
+                }
+            };
+
+            const getTieredIncrement = (price) => {
+                const p = Math.max(0, Number(price) || 0);
+                if (p < 50000000) return 5000000;
+                if (p < 200000000) return 10000000;
+                if (p < 500000000) return 20000000;
+                if (p < 1000000000) return 50000000;
+                if (p < 4000000000) return 100000000;
+                return 200000000;
+            };
+
+            const recalcBid = () => {
+                if (!bidCalc || !finalBidText) return;
+
+                const current = Number(bidCalc.dataset.currentPrice || "0");
+                let minNext = Number(bidCalc.dataset.minNext || "0");
+                let stepInc = Number(bidCalc.dataset.stepIncrement || "0");
+
+                if (!stepInc || stepInc <= 0) {
+                    stepInc = getTieredIncrement(current);
+                }
+                if (!minNext || minNext <= 0) {
+                    minNext = current + stepInc;
+                }
+
+                if (stepIncrementText) {
+                    stepIncrementText.textContent = formatToman(stepInc);
+                }
+                finalBidText.textContent = formatToman(minNext);
+
+                // دقت کنید که اتریبیوت فرم که به سرور ارسال می‌شود (value) باید عدد انگلیسی بماند و مبلغ خالص است
+                if (bidAmountInput) {
+                    bidAmountInput.value = String(minNext);
+                }
+            };
+
+            window.recalcBid = recalcBid;
             recalcBid();
-            updateStepButtons();
-        });
-    }
 
-    if (stepMinus) {
-        stepMinus.addEventListener('click', () => {
-            let val = parseInt(stepInput.value) || 1;
-            if (val > 1) {
-                val--;
-                stepInput.value = val;
-                recalcBid();
-                updateStepButtons();
-            }
-        });
-    }
+            document.addEventListener('keydown', function (event) {
+                if (event.key === "Escape") {
+                    if (window.closeConfirmBidModal) window.closeConfirmBidModal();
+                    if (window.closeCreditModal) window.closeCreditModal();
+                    if (modal && !modal.classList.contains('hidden')) closeGalleryModal();
+                    if (videoModal && !videoModal.classList.contains('hidden')) closeVideoModal();
+                    return;
+                }
 
-    if (stepPlus) {
-        stepPlus.addEventListener('click', () => {
-            let val = parseInt(stepInput.value) || 1;
-            if (val < 100) {
-                val++;
-                stepInput.value = val;
-                recalcBid();
-                updateStepButtons();
-            }
-        });
-    }
+                // ناوبری بین لات‌ها با کلیدهای جهت‌نما (در صورت عدم فوکوس روی فیلدهای متنی یا مودال‌ها)
+                const activeEl = document.activeElement;
+                const isInputFocused = activeEl && (
+                    activeEl.tagName === 'INPUT' ||
+                    activeEl.tagName === 'TEXTAREA' ||
+                    activeEl.tagName === 'SELECT' ||
+                    activeEl.isContentEditable
+                );
+                const isAnyModalOpen = (modal && !modal.classList.contains('hidden')) ||
+                                       (videoModal && !videoModal.classList.contains('hidden')) ||
+                                       (document.getElementById('credit-modal') && !document.getElementById('credit-modal').classList.contains('pointer-events-none')) ||
+                                       (document.getElementById('confirm-bid-modal') && !document.getElementById('confirm-bid-modal').classList.contains('pointer-events-none'));
 
-    recalcBid();
+                if (isInputFocused || isAnyModalOpen) return;
 
-    document.addEventListener('keydown', function(event) {
-        if (event.key !== "Escape") return;
-        if (modal && !modal.classList.contains('hidden')) closeGalleryModal();
-        if (videoModal && !videoModal.classList.contains('hidden')) closeVideoModal();
-    });
-</script>
-{% if auction.model_360_url %}
-<script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
-{% endif %}
-{% endblock %}
+                if (event.key === 'ArrowRight') {
+                    // در چیدمان راست‌به‌چپ (RTL)، کلید راست به سمت لات قبلی است
+                    const prevBtn = document.getElementById('prev-lot-btn');
+                    if (prevBtn && prevBtn.href) {
+                        window.location.href = prevBtn.href;
+                    }
+                } else if (event.key === 'ArrowLeft') {
+                    // در چیدمان راست‌به‌چپ (RTL)، کلید چپ به سمت لات بعدی است
+                    const nextBtn = document.getElementById('next-lot-btn');
+                    if (nextBtn && nextBtn.href) {
+                        window.location.href = nextBtn.href;
+                    }
+                }
+            });
+        </script>
+        {% if auction.model_360_url %}
+        <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+        {% endif %}
+        {% endblock %}
