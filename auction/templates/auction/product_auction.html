@@ -309,15 +309,19 @@
                                             {% if auction.is_in_extension %}زمان باقی‌مانده تمدید{% else %}زمان باقی‌مانده{% endif %}
                                         </span>
                                         <span class="text-[10px] text-neutral-400" id="timer-sub-text">
-                                            {% if auction.is_in_extension %}تمدید خودکار ۶ ساعته به دلیل ثبت بید{% else %}تا پایان مزایده{% endif %}
+                                            {% if not auction.is_in_extension %}تا پایان مزایده{% endif %}
                                         </span>
                                         {% endif %}
                                     </div>
                                 </div>
 
-                                <div id="overtime-badge" class="{% if not auction.is_in_extension %}hidden{% endif %} inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-xs font-bold animate-pulse">
-                                    <span class="material-symbols-outlined text-sm">history</span>
-                                    <span>تمدید شده (Soft Close)</span>
+                                <div id="overtime-badge" class="{% if not auction.is_in_extension %}hidden{% endif %} inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-xs font-bold">
+                                    <svg class="w-3.5 h-3.5 shrink-0 text-amber-600 dark:text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <polyline points="12 6 12 12 16 14"></polyline>
+                                    </svg>
+                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0"></span>
+                                    <span>تمدید شده</span>
                                 </div>
 
                                 {% if auction.status == 'finished' %}
@@ -1712,7 +1716,7 @@
                         timerTitle.classList.add('text-amber-600', 'dark:text-amber-400');
                     }
                     if (timerSub) {
-                        timerSub.textContent = 'تمدید خودکار ۶ ساعته به دلیل ثبت بید';
+                        timerSub.textContent = '';
                     }
                     timerContainer.classList.add('ring-2', 'ring-amber-500/50', 'rounded-lg', 'p-1', 'transition-all');
                     setTimeout(() => {

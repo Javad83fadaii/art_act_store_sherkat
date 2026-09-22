@@ -538,9 +538,9 @@ def get_default_notification_templates() -> tuple[NotificationTemplate, ...]:
                 'sms_pattern': 'auction_extended_notice',
             },
             context_map={
-                'name': 'NAME',
-                'auction_name': 'AUCTION_NAME',
-                'number_of_works': 'NUMBER_OF_WORKS',
+                'name': ('NAME', 'name'),
+                'auction_name': ('AUCTION_NAME', 'AUCTIONNAME'),
+                'number_of_works': ('NUMBER_OF_WORKS', 'NUMBEROFWORKS'),
             },
             body_template=auction_extended_notice_body,
         )

@@ -23,6 +23,7 @@ except ImportError:
 from django.utils import timezone
 
 from core.emailing import get_user_email_recipients, send_plain_email
+from core.templatetags.fa_digits import _to_persian_digits
 from notifications.enums import NotificationProviderType
 from notifications.services import notification_service
 
@@ -333,16 +334,27 @@ def send_auction_extended_notice_sms(auction_id):
 
     try:
         users = get_active_users_for_notifications()
+        # Clean auction title to eliminate underscores that trigger BiDi text inversions on mobile devices
+        clean_auction_name = ' '.join(auction.name.replace('_', ' - ').split())
+        fa_count = _to_persian_digits(active_extended_count)
+
         for user in users:
             providers = _get_user_notification_providers(user)
             if not providers:
                 continue
-            display_name = (
+            raw_name = (
                 getattr(user, 'get_full_name', lambda: '')()
                 or getattr(user, 'full_name', '')
                 or getattr(user, 'username', '')
-                or 'کاربر گرامی'
-            )
+                or ''
+            ).strip()
+            if not raw_name or raw_name == 'کاربر گرامی':
+                display_name = 'کاربر'
+            elif raw_name.endswith(' گرامی'):
+                display_name = raw_name[:-6].strip() or 'کاربر'
+            else:
+                display_name = raw_name
+
             notification_service.send_template(
                 event='auction.end.extended_notice',
                 template='auction_extended_notice',
@@ -351,10 +363,12 @@ def send_auction_extended_notice_sms(auction_id):
                 context={
                     'name': display_name,
                     'NAME': display_name,
-                    'auction_name': auction.name,
-                    'AUCTION_NAME': auction.name,
-                    'number_of_works': str(active_extended_count),
-                    'NUMBER_OF_WORKS': str(active_extended_count),
+                    'auction_name': clean_auction_name,
+                    'AUCTION_NAME': clean_auction_name,
+                    'AUCTIONNAME': clean_auction_name,
+                    'number_of_works': fa_count,
+                    'NUMBER_OF_WORKS': fa_count,
+                    'NUMBEROFWORKS': fa_count,
                 },
                 metadata={
                     'auction_id': str(auction.pk),

@@ -1452,7 +1452,7 @@ class AuctionSoftCloseOvertimeTests(TestCase):
 
             # Check sent payload
             payload = mock_sms_send.call_args[0][0]
-            self.assertEqual(payload.context['number_of_works'], '1')
+            self.assertIn(payload.context['number_of_works'], ('1', '۱'))
             self.assertEqual(payload.context['auction_name'], self.auction.name)
             self.assertEqual(payload.metadata.get('sms_pattern'), 'auction_extended_notice')
 

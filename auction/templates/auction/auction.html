@@ -328,17 +328,24 @@
 
         function isAuctionEnded() {
             const timeWindow = document.getElementById('auction-time-window');
-            if (timeWindow && timeWindow.getAttribute('data-end')) {
-                const endTime = new Date(timeWindow.getAttribute('data-end')).getTime();
-                return new Date().getTime() >= endTime;
+            if (timeWindow) {
+                const maxEnd = timeWindow.getAttribute('data-max-end');
+                const end = timeWindow.getAttribute('data-end');
+                const targetEnd = maxEnd || end;
+                if (targetEnd) {
+                    const endTime = new Date(targetEnd).getTime();
+                    return new Date().getTime() >= endTime;
+                }
             }
             return false;
         }
 
-        function showInactiveAuctionToast() {
-            // if (window.showToast) {
-            //     window.showToast('مزایده فعال نیست', 'warning', 'bottom-left');
-            // }
+        function showInactiveAuctionToast(message = 'مهلت ثبت پیشنهاد برای این اثر به پایان رسیده است.') {
+            if (window.showToast) {
+                window.showToast(message, 'warning', 'bottom-left');
+            } else {
+                console.warn(message);
+            }
         }
 
         function setAuthModalState() {
@@ -401,9 +408,27 @@
             return true;
         };
 
-        function ensureBidAccess(targetUrl, loginMessage) {
-            if (isAuctionNotStarted() || isAuctionEnded()) {
-                showInactiveAuctionToast();
+        function ensureBidAccess(targetUrl, loginMessage, card = null) {
+            const now = new Date().getTime();
+            if (isAuctionNotStarted()) {
+                showInactiveAuctionToast('مزایده هنوز آغاز نشده است.');
+                return false;
+            }
+
+            if (card) {
+                const cardEndTimeStr = card.getAttribute('data-end-time');
+                if (cardEndTimeStr) {
+                    const cardEndTime = new Date(cardEndTimeStr).getTime();
+                    if (now >= cardEndTime) {
+                        showInactiveAuctionToast('مهلت ثبت پیشنهاد برای این اثر به پایان رسیده است.');
+                        return false;
+                    }
+                } else if (isAuctionEnded()) {
+                    showInactiveAuctionToast('مهلت مزایده به پایان رسیده است.');
+                    return false;
+                }
+            } else if (isAuctionEnded()) {
+                showInactiveAuctionToast('مهلت مزایده به پایان رسیده است.');
                 return false;
             }
 
@@ -862,17 +887,35 @@
         }
 
         function openQuickBidModal(btn) {
+            const card = btn.closest('[data-product-card]');
+            const now = new Date().getTime();
+
             if (isAuctionNotStarted()) {
-                showInactiveAuctionToast();
+                showInactiveAuctionToast('مزایده هنوز آغاز نشده است.');
                 return;
             }
-            if (isAuctionEnded()) {
-                showInactiveAuctionToast();
+
+            if (card) {
+                const cardEndTimeStr = card.getAttribute('data-end-time');
+                if (cardEndTimeStr) {
+                    const cardEndTime = new Date(cardEndTimeStr).getTime();
+                    if (now >= cardEndTime) {
+                        showInactiveAuctionToast('مهلت ثبت پیشنهاد برای این اثر به پایان رسیده است.');
+                        return;
+                    }
+                } else if (isAuctionEnded()) {
+                    showInactiveAuctionToast('مهلت مزایده به پایان رسیده است.');
+                    return;
+                }
+            } else if (isAuctionEnded()) {
+                showInactiveAuctionToast('مهلت مزایده به پایان رسیده است.');
                 return;
             }
+
             if (!ensureBidAccess(
                 window.location.pathname + window.location.search,
-                'برای ثبت پیشنهاد در مزایده، لطفاً ابتدا وارد حساب کاربری خود شوید.'
+                'برای ثبت پیشنهاد در مزایده، لطفاً ابتدا وارد حساب کاربری خود شوید.',
+                card
             )) return;
             currentBidButton = btn; 
 
@@ -885,6 +928,9 @@
             qbCalcContainer.dataset.currentPrice = current;
             qbCalcContainer.dataset.minNext = btn.getAttribute('data-min-next');
             qbCalcContainer.dataset.stepIncrement = btn.getAttribute('data-step-increment');
+
+            const prevError = document.getElementById('qb-error-msg');
+            if (prevError) prevError.classList.add('hidden');
 
             recalcQuickBid();
             setQuickBidModalState('bid');
@@ -945,6 +991,9 @@
             qbSubmitBtn.querySelector('.btn-text').classList.add('hidden');
             qbSubmitBtn.querySelector('.loader').classList.remove('hidden');
 
+            const prevError = document.getElementById('qb-error-msg');
+            if (prevError) prevError.classList.add('hidden');
+
             const formData = new FormData(qbForm);
             try {
                 const response = await fetch(qbForm.action, {
@@ -964,14 +1013,42 @@
                         applyProductLiveState(submittedProductId, data);
                     }
                     closeQuickBidModal();
-                    // if(window.showToast) window.showToast(data.message || 'پیشنهاد با موفقیت ثبت شد.', 'success', 'bottom-left');
+                    if (window.showToast) {
+                        window.showToast(data.message || 'پیشنهاد با موفقیت ثبت شد.', 'success', 'bottom-left');
+                    }
                 } else {
                     if (data.needs_credit_increase) {
                         setQuickBidModalState(data.credit_request_state === 'pending' ? 'pending' : 'credit');
+                    } else {
+                        const errorMsg = data.message || 'خطا در ثبت پیشنهاد.';
+                        let errorEl = document.getElementById('qb-error-msg');
+                        if (!errorEl) {
+                            errorEl = document.createElement('div');
+                            errorEl.id = 'qb-error-msg';
+                            errorEl.className = 'p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs font-bold text-center border border-red-200 dark:border-red-800/40 mb-3';
+                            qbForm.parentNode.insertBefore(errorEl, qbForm);
+                        }
+                        errorEl.textContent = errorMsg;
+                        errorEl.classList.remove('hidden');
+                        if (window.showToast) {
+                            window.showToast(errorMsg, 'error', 'bottom-left');
+                        }
                     }
                 }
             } catch (error) {
-                // if(window.showToast) window.showToast('خطا در ارتباط با سرور.', 'error', 'bottom-left');
+                const errorMsg = 'خطا در ارتباط با سرور. لطفاً مجدداً تلاش کنید.';
+                let errorEl = document.getElementById('qb-error-msg');
+                if (!errorEl) {
+                    errorEl = document.createElement('div');
+                    errorEl.id = 'qb-error-msg';
+                    errorEl.className = 'p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs font-bold text-center border border-red-200 dark:border-red-800/40 mb-3';
+                    qbForm.parentNode.insertBefore(errorEl, qbForm);
+                }
+                errorEl.textContent = errorMsg;
+                errorEl.classList.remove('hidden');
+                if (window.showToast) {
+                    window.showToast(errorMsg, 'error', 'bottom-left');
+                }
             } finally {
                 qbSubmitBtn.disabled = false;
                 qbSubmitBtn.querySelector('.btn-text').classList.remove('hidden');
@@ -1133,6 +1210,9 @@
                 const candidate = new Date(isoStr).getTime();
                 if (candidate > maxEndTime) {
                     maxEndTime = candidate;
+                    if (timeWindow) {
+                        timeWindow.setAttribute('data-max-end', isoStr);
+                    }
                 }
             };
 
