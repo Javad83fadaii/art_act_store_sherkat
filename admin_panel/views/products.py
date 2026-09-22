@@ -686,6 +686,7 @@ def auction_main_detail(request, pk):
     status_fa = {
         'ready': 'آینده',
         'ongoing': 'در حال برگزاری',
+        'extended': 'در حال تمدید',
         'finished': 'پایان یافته',
     }
 

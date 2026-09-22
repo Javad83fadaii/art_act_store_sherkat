@@ -26,7 +26,10 @@
             {% if auction %}
                 <div id="auction-time-window" class="hidden"
                      data-start="{{ auction.start_date|date:'c' }}"
-                     data-end="{{ auction.end_date|date:'c' }}"></div>
+                     data-end="{{ auction.end_date|date:'c' }}"
+                     data-max-end="{{ auction.get_max_end_date|date:'c' }}"
+                     data-status="{{ auction.status }}"
+                     data-extended-count="{{ auction.get_active_extended_products_count }}"></div>
                 <div id="credit-request-status" class="hidden" data-status="{{ latest_credit_request_status }}"></div>
                 
                 <div class="mb-10 flex flex-col items-center animate-fadeIn" style="animation-delay: 0.2s; min-height: 120px;">
@@ -472,6 +475,42 @@
 
             if (typeof data.has_winner !== 'undefined') {
                 card.setAttribute('data-has-winner', data.has_winner ? '1' : '0');
+            }
+
+            if (data.end_time) {
+                card.setAttribute('data-end-time', data.end_time);
+                const timerContainer = card.querySelector('[data-card-timer-container]');
+                if (timerContainer) {
+                    timerContainer.setAttribute('data-end-time', data.end_time);
+                }
+                if (typeof window.recordNewMaxEndTime === 'function') {
+                    window.recordNewMaxEndTime(data.end_time);
+                }
+            }
+
+            if (data.is_extended || data.is_in_extension) {
+                card.setAttribute('data-is-extended', '1');
+                const overtimeBadge = card.querySelector('[data-overtime-badge]');
+                if (overtimeBadge) {
+                    overtimeBadge.classList.remove('hidden');
+                    overtimeBadge.classList.add('flex');
+                }
+                const timerContainer = card.querySelector('[data-card-timer-container]');
+                if (timerContainer) {
+                    timerContainer.classList.remove('hidden');
+                    timerContainer.classList.add('flex');
+                }
+                const glowExt = card.querySelector('[data-glow="EXTENDED"]');
+                if (glowExt) glowExt.classList.remove('opacity-0');
+
+                card.classList.add('md:col-span-2', 'sm:flex-row', 'gap-4', 'sm:gap-6', 'border-amber-500/40', 'dark:border-amber-400/30', 'bg-gradient-to-br', 'from-amber-500/[0.04]', 'via-white', 'to-amber-500/[0.01]', 'dark:from-amber-500/[0.06]', 'dark:via-zinc-900', 'dark:to-zinc-900');
+                card.classList.remove('border-neutral-200', 'dark:border-zinc-800', 'border-2', 'ring-2', 'ring-amber-500/20', 'border-amber-500/80');
+
+                const imgWrap = card.querySelector('[data-card-img-wrap]');
+                if (imgWrap) {
+                    imgWrap.classList.add('sm:w-5/12', 'lg:w-5/12', 'aspect-[4/5]', 'sm:aspect-auto', 'rounded-xl', 'sm:rounded-2xl');
+                    imgWrap.classList.remove('w-full', 'aspect-[112/135]', 'mb-3');
+                }
             }
 
             if (btn) {
@@ -1081,10 +1120,21 @@
 
             const startStr = timeWindow.getAttribute('data-start');
             const endStr = timeWindow.getAttribute('data-end');
+            const maxEndStr = timeWindow.getAttribute('data-max-end') || endStr;
+            let extendedCount = parseInt(timeWindow.getAttribute('data-extended-count') || '0', 10);
             if (!startStr || !endStr) return;
 
             const startTime = new Date(startStr).getTime();
             const endTime = new Date(endStr).getTime();
+            let maxEndTime = new Date(maxEndStr).getTime();
+
+            window.recordNewMaxEndTime = function(isoStr) {
+                if (!isoStr) return;
+                const candidate = new Date(isoStr).getTime();
+                if (candidate > maxEndTime) {
+                    maxEndTime = candidate;
+                }
+            };
 
             const timerLabel = document.getElementById('timer-label');
             const countdownContainer = document.getElementById('auction-main-countdown');
@@ -1097,73 +1147,120 @@
             const mm = document.getElementById('main-mins');
             const ms = document.getElementById('main-secs');
 
+            function tickCardTimers() {
+                const toFaDigits = (value) => String(value).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[d]);
+                const now = new Date().getTime();
+                const timerContainers = document.querySelectorAll('[data-card-timer-container]:not(.hidden)');
+
+                timerContainers.forEach(container => {
+                    const endTimeStr = container.getAttribute('data-end-time');
+                    if (!endTimeStr) return;
+                    const cardEndTime = new Date(endTimeStr).getTime();
+                    const dist = cardEndTime - now;
+
+                    const daysEl = container.querySelector('.card-time-days');
+                    const hoursEl = container.querySelector('.card-time-hours');
+                    const minsEl = container.querySelector('.card-time-mins');
+                    const secsEl = container.querySelector('.card-time-secs');
+                    const card = container.closest('[data-product-card]');
+
+                    if (dist <= 0) {
+                        if (hoursEl) hoursEl.textContent = '۰۰';
+                        if (minsEl) minsEl.textContent = '۰۰';
+                        if (secsEl) secsEl.textContent = '۰۰';
+                        if (daysEl) daysEl.classList.add('hidden');
+
+                        if (card) {
+                            const btnActive = card.querySelector('[data-btn-active="1"]');
+                            const btnEnded = card.querySelector('[data-btn-ended="1"]');
+                            if (btnActive && !btnActive.classList.contains('hidden') && now >= startTime) {
+                                btnActive.classList.add('hidden');
+                                btnActive.classList.remove('flex');
+                                if (btnEnded) {
+                                    btnEnded.classList.remove('hidden');
+                                    btnEnded.classList.add('flex');
+                                }
+                            }
+                        }
+                        return;
+                    }
+
+                    const days = Math.floor(dist / 86400000);
+                    const hours = Math.floor((dist % 86400000) / 3600000);
+                    const mins = Math.floor((dist % 3600000) / 60000);
+                    const secs = Math.floor((dist % 60000) / 1000);
+
+                    if (days > 0 && daysEl) {
+                        daysEl.textContent = toFaDigits(String(days)) + ' روز:';
+                        daysEl.classList.remove('hidden');
+                    } else if (daysEl) {
+                        daysEl.classList.add('hidden');
+                    }
+
+                    if (hoursEl) hoursEl.textContent = toFaDigits(String(hours).padStart(2, '0'));
+                    if (minsEl) minsEl.textContent = toFaDigits(String(mins).padStart(2, '0'));
+                    if (secsEl) secsEl.textContent = toFaDigits(String(secs).padStart(2, '0'));
+                });
+            }
+
             function updateCardsVisualState(state) {
                 window.currentAuctionVisualState = state;
+                const now = new Date().getTime();
                 const cards = document.querySelectorAll('[data-product-card]');
                 cards.forEach(card => {
                     const overlayNotStarted = card.querySelector('[data-status-overlay="NOT_STARTED"]');
                     const overlayEnded = card.querySelector('[data-status-overlay="ENDED"]');
                     const glowNotStarted = card.querySelector('[data-glow="NOT_STARTED"]');
                     const glowEnded = card.querySelector('[data-glow="ENDED"]');
+                    const glowExt = card.querySelector('[data-glow="EXTENDED"]');
                     const img = card.querySelector('img[data-product-img]');
                     const soldBadge = card.querySelector('[data-sold-badge]');
+                    const overtimeBadge = card.querySelector('[data-overtime-badge]');
                     
                     const btnActive = card.querySelector('[data-btn-active="1"]');
                     const btnWaiting = card.querySelector('[data-btn-waiting="1"]');
                     const btnEnded = card.querySelector('[data-btn-ended="1"]');
                     const hasWinner = card.getAttribute('data-has-winner') === '1';
                     const isUserWinner = card.getAttribute('data-is-user-winner') === '1';
-                    const winnerMedal = card.querySelector('[data-winner-medal]');
-                    const soldBadgeIcon = card.querySelector('[data-sold-badge-icon]');
-                    const soldBadgeText = card.querySelector('[data-sold-badge-text]');
+                    const isExtended = card.getAttribute('data-is-extended') === '1';
+                    const cardEndTimeStr = card.getAttribute('data-end-time');
+                    const cardEndTime = cardEndTimeStr ? new Date(cardEndTimeStr).getTime() : endTime;
+                    const isCardExpired = now >= cardEndTime;
+
+                    const timerContainer = card.querySelector('[data-card-timer-container]');
 
                     if (state === 'NOT_STARTED') {
-                        // حاشیه و هاله آبی
                         card.classList.add('border-blue-500/30', 'dark:border-blue-400/30');
-                        card.classList.remove('border-red-500/30', 'dark:border-red-500/30', 'border-neutral-200', 'dark:border-zinc-800');
+                        card.classList.remove('border-red-500/30', 'dark:border-red-500/30', 'border-neutral-200', 'dark:border-zinc-800', 'border-amber-500/40', 'dark:border-amber-400/30', 'border-2', 'ring-2', 'ring-amber-500/20', 'from-amber-500/[0.03]');
                         if(glowNotStarted) glowNotStarted.classList.remove('opacity-0');
                         if(glowEnded) glowEnded.classList.add('opacity-0');
+                        if(glowExt) glowExt.classList.add('opacity-0');
                         
                         if(img) img.classList.remove('grayscale');
                         
-                        if (overlayNotStarted) { overlayNotStarted.classList.add('hidden'); overlayNotStarted.classList.remove('flex'); }
-                        if (overlayEnded) { overlayEnded.classList.add('hidden'); overlayEnded.classList.remove('flex'); }
-                        
-                        // دکمه‌ها
                         if(btnActive) { btnActive.classList.add('hidden'); btnActive.classList.remove('flex'); }
                         if(btnWaiting) { btnWaiting.classList.remove('hidden'); btnWaiting.classList.add('flex'); }
                         if(btnEnded) { btnEnded.classList.add('hidden'); btnEnded.classList.remove('flex'); }
                         if(soldBadge) { soldBadge.classList.add('hidden'); soldBadge.classList.remove('flex'); }
-                        if(winnerMedal) { winnerMedal.classList.add('hidden'); winnerMedal.classList.remove('flex'); }
+                        if(overtimeBadge) { overtimeBadge.classList.add('hidden'); overtimeBadge.classList.remove('flex'); }
+                        if(timerContainer) { timerContainer.classList.add('hidden'); timerContainer.classList.remove('flex'); }
 
-                    } else if (state === 'ENDED') {
-                        // حاشیه و هاله قرمز
+                    } else if (state === 'ENDED' || isCardExpired) {
                         card.classList.add('border-red-500/30', 'dark:border-red-500/30');
-                        card.classList.remove('border-blue-500/30', 'dark:border-blue-400/30', 'border-neutral-200', 'dark:border-zinc-800');
+                        card.classList.remove('border-blue-500/30', 'dark:border-blue-400/30', 'border-neutral-200', 'dark:border-zinc-800', 'border-amber-500/40', 'dark:border-amber-400/30', 'border-2', 'ring-2', 'ring-amber-500/20', 'from-amber-500/[0.03]');
                         if(glowNotStarted) glowNotStarted.classList.add('opacity-0');
                         if(glowEnded) glowEnded.classList.remove('opacity-0');
+                        if(glowExt) glowExt.classList.add('opacity-0');
                         
-                        if(img) img.classList.add('grayscale'); // افکت سیاه و سفید برای عکس
+                        if(img) img.classList.add('grayscale');
                         
-                        if (overlayNotStarted) { overlayNotStarted.classList.add('hidden'); overlayNotStarted.classList.remove('flex'); }
-                        if (overlayEnded) { overlayEnded.classList.remove('hidden'); overlayEnded.classList.add('flex'); }
-                        
-                        // دکمه‌ها
                         if(btnActive) { btnActive.classList.add('hidden'); btnActive.classList.remove('flex'); }
                         if(btnWaiting) { btnWaiting.classList.add('hidden'); btnWaiting.classList.remove('flex'); }
                         if(btnEnded) { btnEnded.classList.remove('hidden'); btnEnded.classList.add('flex'); }
+                        if(overtimeBadge) { overtimeBadge.classList.add('hidden'); overtimeBadge.classList.remove('flex'); }
+                        if(timerContainer) { timerContainer.classList.add('hidden'); timerContainer.classList.remove('flex'); }
                         if(soldBadge) {
                             if (hasWinner) {
-                                soldBadge.classList.remove('border-emerald-300/70', 'bg-emerald-500/90', 'shadow-emerald-500/20', 'border-amber-300/80', 'bg-amber-500/95', 'shadow-amber-500/25');
-                                if (isUserWinner) {
-                                    soldBadge.classList.add('border-amber-300/80', 'bg-amber-500/95', 'shadow-amber-500/25');
-                                } else {
-                                    soldBadge.classList.add('border-emerald-300/70', 'bg-emerald-500/90', 'shadow-emerald-500/20');
-                                }
-                               
-                                if (soldBadgeText) {
-                                    soldBadgeText.textContent = isUserWinner ? 'شما برنده شدید' : 'به فروش رسید';
-                                }
                                 soldBadge.classList.remove('hidden');
                                 soldBadge.classList.add('flex');
                             } else {
@@ -1171,35 +1268,40 @@
                                 soldBadge.classList.remove('flex');
                             }
                         }
-                        if(winnerMedal) {
-                            if (isUserWinner) {
-                                winnerMedal.classList.remove('hidden');
-                                winnerMedal.classList.add('flex');
-                            } else {
-                                winnerMedal.classList.add('hidden');
-                                winnerMedal.classList.remove('flex');
-                            }
-                        }
 
                     } else {
-                        // وضعیت ACTIVE
-                        // حاشیه‌های حالت عادی
-                        card.classList.remove('border-blue-500/30', 'dark:border-blue-400/30', 'border-red-500/30', 'dark:border-red-500/30');
-                        card.classList.add('border-neutral-200', 'dark:border-zinc-800');
+                        // وضعیت ACTIVE یا EXTENDED (روی کارت فعال)
+                        const imgWrap = card.querySelector('[data-card-img-wrap]');
+                        if (isExtended) {
+                            card.classList.add('md:col-span-2', 'sm:flex-row', 'gap-4', 'sm:gap-6', 'border-amber-500/40', 'dark:border-amber-400/30', 'bg-gradient-to-br', 'from-amber-500/[0.04]', 'via-white', 'to-amber-500/[0.01]', 'dark:from-amber-500/[0.06]', 'dark:via-zinc-900', 'dark:to-zinc-900');
+                            card.classList.remove('border-blue-500/30', 'dark:border-blue-400/30', 'border-red-500/30', 'dark:border-red-500/30', 'border-neutral-200', 'dark:border-zinc-800', 'border-2', 'ring-2', 'ring-amber-500/20');
+                            if(glowExt) glowExt.classList.remove('opacity-0');
+                            if(overtimeBadge) { overtimeBadge.classList.remove('hidden'); overtimeBadge.classList.add('flex'); }
+                            if(timerContainer) { timerContainer.classList.remove('hidden'); timerContainer.classList.add('flex'); }
+                            if (imgWrap) {
+                                imgWrap.classList.add('sm:w-5/12', 'lg:w-5/12', 'aspect-[4/5]', 'sm:aspect-auto', 'rounded-xl', 'sm:rounded-2xl');
+                                imgWrap.classList.remove('w-full', 'aspect-[112/135]', 'mb-3');
+                            }
+                        } else {
+                            card.classList.remove('md:col-span-2', 'sm:flex-row', 'gap-4', 'sm:gap-6', 'border-blue-500/30', 'dark:border-blue-400/30', 'border-red-500/30', 'dark:border-red-500/30', 'border-amber-500/40', 'dark:border-amber-400/30', 'border-2', 'ring-2', 'ring-amber-500/20', 'from-amber-500/[0.04]', 'via-white', 'to-amber-500/[0.01]', 'dark:from-amber-500/[0.06]');
+                            card.classList.add('border-neutral-200', 'dark:border-zinc-800');
+                            if(glowExt) glowExt.classList.add('opacity-0');
+                            if(overtimeBadge) { overtimeBadge.classList.add('hidden'); overtimeBadge.classList.remove('flex'); }
+                            if(timerContainer) { timerContainer.classList.add('hidden'); timerContainer.classList.remove('flex'); }
+                            if (imgWrap) {
+                                imgWrap.classList.remove('sm:w-5/12', 'lg:w-5/12', 'aspect-[4/5]', 'sm:aspect-auto', 'rounded-xl', 'sm:rounded-2xl');
+                                imgWrap.classList.add('w-full', 'aspect-[112/135]', 'mb-3');
+                            }
+                        }
                         if(glowNotStarted) glowNotStarted.classList.add('opacity-0');
                         if(glowEnded) glowEnded.classList.add('opacity-0');
                         
                         if(img) img.classList.remove('grayscale');
                         
-                        if (overlayNotStarted) { overlayNotStarted.classList.add('hidden'); overlayNotStarted.classList.remove('flex'); }
-                        if (overlayEnded) { overlayEnded.classList.add('hidden'); overlayEnded.classList.remove('flex'); }
-                        
-                        // دکمه‌ها
                         if(btnActive) { btnActive.classList.remove('hidden'); btnActive.classList.add('flex'); }
                         if(btnWaiting) { btnWaiting.classList.add('hidden'); btnWaiting.classList.remove('flex'); }
                         if(btnEnded) { btnEnded.classList.add('hidden'); btnEnded.classList.remove('flex'); }
                         if(soldBadge) { soldBadge.classList.add('hidden'); soldBadge.classList.remove('flex'); }
-                        if(winnerMedal) { winnerMedal.classList.add('hidden'); winnerMedal.classList.remove('flex'); }
                     }
                 });
             }
@@ -1218,21 +1320,36 @@
                     if (timerLabel) {
                         timerLabel.innerHTML = '<span class="material-symbols-outlined text-[20px] animate-pulse">hourglass_empty</span>زمان باقی‌مانده تا شروع مزایده';
                         timerLabel.classList.add('text-blue-500');
-                        timerLabel.classList.remove('text-primary');
+                        timerLabel.classList.remove('text-primary', 'text-amber-500');
                     }
                     timerBoxes.forEach(box => {
                         box.classList.add('border-blue-200', 'dark:border-blue-800', 'bg-blue-50/50', 'dark:bg-blue-900/10');
+                        box.classList.remove('border-amber-400', 'dark:border-amber-700', 'bg-amber-50/60', 'dark:bg-amber-950/20');
                     });
                 } else if (now >= startTime && now < endTime) {
                     state = 'ACTIVE';
                     targetTime = endTime;
                     if (timerLabel) {
                         timerLabel.innerHTML = '<span class="material-symbols-outlined text-[20px] animate-pulse">timer</span>زمان باقی‌مانده تا پایان مزایده';
-                        timerLabel.classList.remove('text-blue-500');
+                        timerLabel.classList.remove('text-blue-500', 'text-amber-500');
                         timerLabel.classList.add('text-primary');
                     }
                     timerBoxes.forEach(box => {
+                        box.classList.remove('border-blue-200', 'dark:border-blue-800', 'bg-blue-50/50', 'dark:bg-blue-900/10', 'border-amber-400', 'dark:border-amber-700', 'bg-amber-50/60', 'dark:bg-amber-950/20');
+                    });
+                } else if (now >= endTime && now < maxEndTime) {
+                    // حالت سوم: اتمام زمان کلی ولی وجود آثار در حال تمدید (Overtime)
+                    state = 'EXTENDED';
+                    targetTime = maxEndTime;
+                    if (timerLabel) {
+                        const countText = extendedCount > 0 ? ` (${toFaDigits(extendedCount)} اثر در حال تمدید)` : ' (تمدید خودکار)';
+                        timerLabel.innerHTML = `<span class="material-symbols-outlined text-[20px] text-amber-500 animate-pulse">history</span>زمان باقی‌مانده تا پایان تمدید${countText}`;
+                        timerLabel.classList.remove('text-blue-500', 'text-primary');
+                        timerLabel.classList.add('text-amber-500');
+                    }
+                    timerBoxes.forEach(box => {
                         box.classList.remove('border-blue-200', 'dark:border-blue-800', 'bg-blue-50/50', 'dark:bg-blue-900/10');
+                        box.classList.add('border-amber-400', 'dark:border-amber-700', 'bg-amber-50/60', 'dark:bg-amber-950/20');
                     });
                 } else {
                     state = 'ENDED';
@@ -1263,6 +1380,7 @@
                 if (ms) ms.textContent = toFaDigits(String(secs).padStart(2, '0'));
 
                 updateCardsVisualState(state);
+                tickCardTimers();
             }
 
             tickMain();

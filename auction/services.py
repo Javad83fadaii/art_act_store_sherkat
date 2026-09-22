@@ -48,7 +48,8 @@ def get_min_next_bid(current_or_base_price: Decimal | int | float | str | None) 
 
 
 def ensure_auction_product_winner(product: AuctionProduct) -> AuctionProduct:
-    if product.auction.status != 'finished':
+    now = timezone.now()
+    if now < product.end_time:
         return product
 
     latest_bid = (

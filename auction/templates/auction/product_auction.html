@@ -29,7 +29,7 @@
 <!-- فیلد مخفی برای تشخیص قطعی استفاده کاربر از دکمه Back مرورگر در ناوبری‌های دیگر -->
 <input type="hidden" id="page_is_dirty" value="0">
 <div id="credit-request-status" class="hidden" data-status="{{ latest_credit_request_status }}"></div>
-{% if auction.auction.status == 'ongoing' %}
+{% if auction.auction.status == 'ongoing' or auction.auction.status == 'extended' or auction.status == 'ongoing' %}
 <div id="auction-live-config" class="hidden" data-product-id="{{ auction.pk }}"
     data-live-state-url="{{ live_state_url }}"></div>
 {% endif %}
@@ -284,34 +284,43 @@
                         <div class="px-6 sm:px-8 py-5 border-b border-neutral-100 bg-neutral-50/30">
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center gap-2.5">
-                                    {% if auction.auction.status == 'finished' %}
+                                    {% if auction.status == 'finished' %}
                                     {% if auction.winner_id %}
                                     <span class="material-symbols-outlined text-[22px] text-emerald-600">verified</span>
                                     {% else %}
                                     <span class="material-symbols-outlined text-[22px] text-neutral-600">schedule</span>
                                     {% endif %}
-                                    {% elif auction.auction.status == 'ready' %}
+                                    {% elif auction.status == 'ready' %}
                                     <span
                                         class="material-symbols-outlined text-[22px] text-blue-500 animate-pulse">hourglass_empty</span>
                                     {% else %}
                                     <span
-                                        class="material-symbols-outlined text-[22px] text-primary animate-hourglass">hourglass_top</span>
+                                        class="material-symbols-outlined text-[22px] {% if auction.is_in_extension %}text-amber-500 animate-pulse{% else %}text-primary animate-hourglass{% endif %}">hourglass_top</span>
                                     {% endif %}
                                     <div class="flex flex-col">
-                                        {% if auction.auction.status == 'finished' %}
+                                        {% if auction.status == 'finished' %}
                                         <span class="text-xs font-bold text-neutral-700">وضعیت اثر</span>
                                         <span class="text-[10px] text-neutral-400">مزایده این اثر به پایان رسیده است</span>
-                                        {% elif auction.auction.status == 'ready' %}
+                                        {% elif auction.status == 'ready' %}
                                         <span class="text-xs font-bold text-blue-600">زمان باقی‌مانده</span>
                                         <span class="text-[10px] text-neutral-400">تا شروع مزایده</span>
                                         {% else %}
-                                        <span class="text-xs font-bold text-neutral-700">زمان باقی‌مانده</span>
-                                        <span class="text-[10px] text-neutral-400">تا پایان مزایده</span>
+                                        <span class="text-xs font-bold {% if auction.is_in_extension %}text-amber-600 dark:text-amber-400{% else %}text-neutral-700{% endif %}" id="timer-title-text">
+                                            {% if auction.is_in_extension %}زمان باقی‌مانده تمدید{% else %}زمان باقی‌مانده{% endif %}
+                                        </span>
+                                        <span class="text-[10px] text-neutral-400" id="timer-sub-text">
+                                            {% if auction.is_in_extension %}تمدید خودکار ۶ ساعته به دلیل ثبت بید{% else %}تا پایان مزایده{% endif %}
+                                        </span>
                                         {% endif %}
                                     </div>
                                 </div>
 
-                                {% if auction.auction.status == 'finished' %}
+                                <div id="overtime-badge" class="{% if not auction.is_in_extension %}hidden{% endif %} inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-xs font-bold animate-pulse">
+                                    <span class="material-symbols-outlined text-sm">history</span>
+                                    <span>تمدید شده (Soft Close)</span>
+                                </div>
+
+                                {% if auction.status == 'finished' %}
                                 {% if auction.winner_id %}
                                 <div
                                     class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -325,9 +334,9 @@
                                     <span class="text-sm font-black">پایان‌یافته</span>
                                 </div>
                                 {% endif %}
-                                {% elif auction.auction.status == 'ready' %}
+                                {% elif auction.status == 'ready' %}
                                 <div class="flex items-center gap-2 text-blue-600" dir="ltr" id="linear-timer"
-                                    data-endtime="{{ auction.auction.start_date|date:'Y-m-d\\TH:i:s' }}">
+                                    data-endtime="{{ auction.auction.start_date|date:'c' }}">
                                     <div class="flex flex-col items-center">
                                         <span class="text-lg font-bold tabular-nums leading-none" id="l-days">۰۰</span>
                                         <span class="text-[9px] text-neutral-400 uppercase mt-0.5">روز</span>
@@ -352,7 +361,7 @@
                                 </div>
                                 {% else %}
                                 <div class="flex items-center gap-2 text-neutral-800" dir="ltr" id="linear-timer"
-                                    data-endtime="{{ auction.end_time|date:'Y-m-d\\TH:i:s' }}">
+                                    data-endtime="{{ auction.end_time|date:'c' }}">
                                     <div class="flex flex-col items-center">
                                         <span class="text-lg font-bold tabular-nums leading-none" id="l-days">۰۰</span>
                                         <span class="text-[9px] text-neutral-400 uppercase mt-0.5">روز</span>
@@ -386,7 +395,7 @@
                             data-total-with-tax="{{ auction.final_price_with_tax }}"
                             data-min-next="{{ auction.get_min_next_bid }}"
                             data-step-increment="{{ auction.get_current_step_increment }}">
-                            {% if auction.auction.status == 'finished' %}
+                            {% if auction.status == 'finished' %}
                             {% if auction.winner_id %}
                             <div
                                 class="relative overflow-hidden rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-100 p-6 sm:p-7">
@@ -506,7 +515,7 @@
                                 </div>
                             </div>
                             {% endif %}
-                            {% elif auction.auction.status == 'ready' %}
+                            {% elif auction.status == 'ready' %}
                             <div
                                 class="relative overflow-hidden rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 via-white to-blue-100 p-6 sm:p-7">
                                 <div class="relative space-y-5">
@@ -1016,6 +1025,10 @@
                         if (updatedDetailsEl && wasOpen) {
                             updatedDetailsEl.open = true;
                         }
+                    }
+
+                    if (data.end_time && typeof window.updateLinearTimer === 'function') {
+                        window.updateLinearTimer(data.end_time, data.is_extended, data.is_in_extension);
                     }
 
                     if (window.recalcBid) {
@@ -1644,41 +1657,77 @@
 
             // تایمر خطی
             const timerContainer = document.getElementById('linear-timer');
-            if (timerContainer) {
-                const endTimeStr = timerContainer.dataset.endtime;
-                const endTime = new Date(endTimeStr).getTime();
+            let timerInterval = null;
+            let currentTargetEndTime = timerContainer ? new Date(timerContainer.dataset.endtime).getTime() : 0;
 
-                const updateTimer = () => {
-                    const now = new Date().getTime();
-                    const distance = endTime - now;
+            const updateTimer = () => {
+                if (!timerContainer) return;
+                const now = new Date().getTime();
+                const distance = currentTargetEndTime - now;
 
-                    const daysEl = document.getElementById('l-days');
-                    const hoursEl = document.getElementById('l-hours');
-                    const minutesEl = document.getElementById('l-minutes');
-                    const secondsEl = document.getElementById('l-seconds');
+                const daysEl = document.getElementById('l-days');
+                const hoursEl = document.getElementById('l-hours');
+                const minutesEl = document.getElementById('l-minutes');
+                const secondsEl = document.getElementById('l-seconds');
 
-                    if (distance < 0) {
-                        if (daysEl) daysEl.innerText = "۰۰";
-                        if (hoursEl) hoursEl.innerText = "۰۰";
-                        if (minutesEl) minutesEl.innerText = "۰۰";
-                        if (secondsEl) secondsEl.innerText = "۰۰";
-                        clearInterval(interval);
-                        return;
+                if (distance <= 0) {
+                    if (daysEl) daysEl.innerText = "۰۰";
+                    if (hoursEl) hoursEl.innerText = "۰۰";
+                    if (minutesEl) minutesEl.innerText = "۰۰";
+                    if (secondsEl) secondsEl.innerText = "۰۰";
+                    if (timerInterval) {
+                        clearInterval(timerInterval);
+                        timerInterval = null;
                     }
+                    return;
+                }
 
-                    const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-                    const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-                    const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+                const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
 
-                    // اعمال تابع سراسری فارسی‌ساز روی زمان
-                    if (daysEl) daysEl.innerText = toPersianNum(days < 10 ? '0' + days : String(days));
-                    if (hoursEl) hoursEl.innerText = toPersianNum(hours < 10 ? '0' + hours : String(hours));
-                    if (minutesEl) minutesEl.innerText = toPersianNum(minutes < 10 ? '0' + minutes : String(minutes));
-                    if (secondsEl) secondsEl.innerText = toPersianNum(seconds < 10 ? '0' + seconds : String(seconds));
-                };
+                if (daysEl) daysEl.innerText = toPersianNum(days < 10 ? '0' + days : String(days));
+                if (hoursEl) hoursEl.innerText = toPersianNum(hours < 10 ? '0' + hours : String(hours));
+                if (minutesEl) minutesEl.innerText = toPersianNum(minutes < 10 ? '0' + minutes : String(minutes));
+                if (secondsEl) secondsEl.innerText = toPersianNum(seconds < 10 ? '0' + seconds : String(seconds));
+            };
 
-                const interval = setInterval(updateTimer, 1000);
+            window.updateLinearTimer = function(newEndTimeIso, isExtended, isInExtension) {
+                if (!timerContainer || !newEndTimeIso) return;
+                timerContainer.dataset.endtime = newEndTimeIso;
+                currentTargetEndTime = new Date(newEndTimeIso).getTime();
+
+                const overtimeBadge = document.getElementById('overtime-badge');
+                const timerTitle = document.getElementById('timer-title-text');
+                const timerSub = document.getElementById('timer-sub-text');
+
+                if (isExtended || isInExtension) {
+                    if (overtimeBadge) {
+                        overtimeBadge.classList.remove('hidden');
+                        overtimeBadge.classList.add('inline-flex');
+                    }
+                    if (timerTitle) {
+                        timerTitle.textContent = 'زمان باقی‌مانده تمدید';
+                        timerTitle.classList.add('text-amber-600', 'dark:text-amber-400');
+                    }
+                    if (timerSub) {
+                        timerSub.textContent = 'تمدید خودکار ۶ ساعته به دلیل ثبت بید';
+                    }
+                    timerContainer.classList.add('ring-2', 'ring-amber-500/50', 'rounded-lg', 'p-1', 'transition-all');
+                    setTimeout(() => {
+                        timerContainer.classList.remove('ring-2', 'ring-amber-500/50');
+                    }, 2500);
+                }
+
+                if (!timerInterval) {
+                    timerInterval = setInterval(updateTimer, 1000);
+                }
+                updateTimer();
+            };
+
+            if (timerContainer) {
+                timerInterval = setInterval(updateTimer, 1000);
                 updateTimer();
             }
 

@@ -311,6 +311,63 @@ def send_auction_extended_email(auction_id, previous_end=None, expected_end=None
 
 
 @shared_task
+def send_auction_extended_notice_sms(auction_id):
+    """Sent to all active users when the official auction end time arrives,
+    if one or more products have been extended and invoice dispatch is delayed."""
+    try:
+        auction = Auction.objects.get(id=auction_id)
+    except Auction.DoesNotExist:
+        return
+
+    now = timezone.now()
+    if now < auction.end_date - timezone.timedelta(seconds=1):
+        return
+
+    active_extended_count = auction.get_active_extended_products_count(now)
+    if active_extended_count <= 0:
+        return
+
+    claimed_at = _claim_dispatch(auction.id, 'extension_notice_dispatched_at')
+    if claimed_at is None:
+        return
+
+    try:
+        users = get_active_users_for_notifications()
+        for user in users:
+            providers = _get_user_notification_providers(user)
+            if not providers:
+                continue
+            display_name = (
+                getattr(user, 'get_full_name', lambda: '')()
+                or getattr(user, 'full_name', '')
+                or getattr(user, 'username', '')
+                or 'کاربر گرامی'
+            )
+            notification_service.send_template(
+                event='auction.end.extended_notice',
+                template='auction_extended_notice',
+                providers=providers,
+                user=user,
+                context={
+                    'name': display_name,
+                    'NAME': display_name,
+                    'auction_name': auction.name,
+                    'AUCTION_NAME': auction.name,
+                    'number_of_works': str(active_extended_count),
+                    'NUMBER_OF_WORKS': str(active_extended_count),
+                },
+                metadata={
+                    'auction_id': str(auction.pk),
+                    'user_id': str(user.pk),
+                    'sms_pattern': 'auction_extended_notice',
+                },
+            )
+    except Exception:
+        _release_dispatch(auction.id, 'extension_notice_dispatched_at', claimed_at)
+        logger.exception("Extension notice SMS failed for auction %s", auction.pk)
+
+
+@shared_task
 def send_auction_ended_email(auction_id, expected_end=None):
     """Sent when the auction ends and includes winner billing details."""
     try:
@@ -321,7 +378,7 @@ def send_auction_ended_email(auction_id, expected_end=None):
     if not _scheduled_datetime_matches(auction.end_date, expected_end):
         return
 
-    if timezone.now() + timezone.timedelta(seconds=1) < auction.end_date:
+    if timezone.now() + timezone.timedelta(seconds=1) < auction.get_max_end_date():
         return
 
     emails = get_active_users_emails()

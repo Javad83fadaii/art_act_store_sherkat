@@ -16,6 +16,7 @@ from .tasks import (
     send_auction_started_email,
     send_auction_extended_email,
     send_auction_ended_email,
+    send_auction_extended_notice_sms,
 )
 
 
@@ -170,6 +171,10 @@ def schedule_auction_emails(sender, instance, created, **kwargs):
         send_auction_ended_email.apply_async(
             args=(instance.id,),
             kwargs={'expected_end': expected_end},
+            eta=instance.end_date,
+        )
+        send_auction_extended_notice_sms.apply_async(
+            args=(instance.id,),
             eta=instance.end_date,
         )
 

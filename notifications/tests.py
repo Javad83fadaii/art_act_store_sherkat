@@ -145,6 +145,14 @@ class EmailProviderIntegrationTests(TestCase):
                 'name',
             ),
         },
+        'auction_extended_notice': {
+            'code': '810087',
+            'variables': (
+                'NAME',
+                'AUCTION_NAME',
+                'NUMBER_OF_WORKS',
+            ),
+        },
     },
 )
 class SMSProviderIntegrationTests(TestCase):
@@ -334,6 +342,58 @@ class SMSProviderIntegrationTests(TestCase):
                     {
                         'name': 'AUCTIONSTART_DATE',
                         'value': '1405/05/10 18:00',
+                    },
+                ],
+            },
+            headers={
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-API-KEY': 'test-api-key',
+            },
+            timeout=9,
+        )
+
+    @patch('notifications.providers.sms.requests.post')
+    def test_send_template_maps_auction_extended_notice_context_to_sms_pattern_variables(self, post_mock) -> None:
+        response = Mock()
+        response.ok = True
+        response.status_code = 200
+        response.text = '{"status": 1, "message": "موفق", "data": 889900}'
+        response.json.return_value = {
+            'status': 1,
+            'message': 'موفق',
+            'data': 889900,
+        }
+        post_mock.return_value = response
+
+        self.service.send_template(
+            template='auction_extended_notice',
+            channels=['sms'],
+            user=SimpleNamespace(phone_number='09123456789', full_name='علی محمدی'),
+            context={
+                'name': 'علی محمدی',
+                'auction_name': 'مزایده هنری پاییز',
+                'number_of_works': '3',
+            },
+        )
+
+        post_mock.assert_called_once_with(
+            'https://api.sms.ir/v1/send/verify',
+            json={
+                'mobile': '9123456789',
+                'templateId': 810087,
+                'parameters': [
+                    {
+                        'name': 'NAME',
+                        'value': 'علی محمدی',
+                    },
+                    {
+                        'name': 'AUCTION_NAME',
+                        'value': 'مزایده هنری پاییز',
+                    },
+                    {
+                        'name': 'NUMBER_OF_WORKS',
+                        'value': '3',
                     },
                 ],
             },

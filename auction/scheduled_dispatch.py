@@ -7,6 +7,7 @@ from django.utils import timezone
 from .models import Auction
 from .tasks import (
     send_auction_ended_email,
+    send_auction_extended_notice_sms,
     send_auction_started_email,
     send_auction_starting_soon_email,
 )
@@ -21,6 +22,7 @@ def dispatch_due_auction_emails(*, limit=10):
 
     dispatched += _dispatch_starting_soon(now=now, remaining=max(limit - dispatched, 0))
     dispatched += _dispatch_started(now=now, remaining=max(limit - dispatched, 0))
+    dispatched += _dispatch_extension_notice(now=now, remaining=max(limit - dispatched, 0))
     dispatched += _dispatch_ended(now=now, remaining=max(limit - dispatched, 0))
 
     return dispatched
@@ -73,6 +75,26 @@ def _dispatch_started(*, now, remaining):
     return count
 
 
+def _dispatch_extension_notice(*, now, remaining):
+    if remaining <= 0:
+        return 0
+
+    auctions = Auction.objects.filter(
+        extension_notice_dispatched_at__isnull=True,
+        end_date__lte=now + timedelta(seconds=1),
+    ).order_by('end_date')[:remaining]
+
+    count = 0
+    for auction in auctions:
+        if auction.get_active_extended_products_count(now) <= 0:
+            continue
+        try:
+            send_auction_extended_notice_sms(auction.id)
+            count += 1
+        except Exception:
+            logger.exception("Dispatch extension notice SMS failed for auction %s", auction.pk)
+    return count
+
 
 def _dispatch_ended(*, now, remaining):
     if remaining <= 0:
@@ -85,6 +107,8 @@ def _dispatch_ended(*, now, remaining):
 
     count = 0
     for auction in auctions:
+        if auction.status == 'extended':
+            continue
         try:
             send_auction_ended_email(
                 auction.id,

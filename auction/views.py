@@ -4,7 +4,7 @@ from decimal import Decimal, InvalidOperation
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
-from django.db.models import Case, Count, IntegerField, Max, OuterRef, Subquery, Value, When
+from django.db.models import Case, Count, F, IntegerField, Max, OuterRef, Q, Subquery, Value, When
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
@@ -64,15 +64,24 @@ def _has_finished_winner_profile_access(request, product: AuctionProduct, access
 
 
 def _order_auction_products_by_lot(queryset):
+    now = timezone.now()
     return (
         queryset.annotate(
+            _is_active_extended=Case(
+                When(
+                    Q(extended_end_time__gt=now) & Q(extended_end_time__gt=F('auction__end_date')),
+                    then=Value(0),
+                ),
+                default=Value(1),
+                output_field=IntegerField(),
+            ),
             _lot_is_null=Case(
                 When(lot__isnull=True, then=Value(1)),
                 default=Value(0),
                 output_field=IntegerField(),
-            )
+            ),
         )
-        .order_by('_lot_is_null', 'lot', 'created_at', 'pk')
+        .order_by('_is_active_extended', '_lot_is_null', 'lot', 'created_at', 'pk')
     )
 
 
@@ -92,12 +101,19 @@ class AuctionListView(ListView):
             if auction.status == 'ready':
                 target = auction.start_date
                 auction.countdown_label = 'زمان باقی‌مانده تا شروع'
+                auction.extended_count = 0
             elif auction.status == 'ongoing':
                 target = auction.end_date
                 auction.countdown_label = 'زمان باقی‌مانده تا پایان'
+                auction.extended_count = auction.get_active_extended_products_count(now)
+            elif auction.status == 'extended':
+                target = auction.get_max_end_date()
+                auction.countdown_label = 'زمان باقی‌مانده تا پایان تمدید'
+                auction.extended_count = auction.get_active_extended_products_count(now)
             else:
                 target = None
                 auction.countdown_label = 'مزایده به پایان رسید'
+                auction.extended_count = 0
 
             total_seconds = (target - now).total_seconds() if target else 0
             days, hours, minutes, seconds = _split_seconds(total_seconds)
@@ -147,7 +163,7 @@ def auction_product_detail(request, pk: int):
     access_token = request.GET.get('access_token', '').strip()
     has_winner_profile_access = _has_finished_winner_profile_access(request, product, access_token)
     is_ready_auction = product.auction.status == 'ready'
-    is_active_auction = product.auction.status == 'ongoing'
+    is_active_auction = product.auction.status in ('ongoing', 'extended')
     is_finished_auction = product.auction.status == 'finished'
 
     if not is_ready_auction and not is_active_auction and not is_finished_auction and not has_winner_profile_access:
@@ -282,7 +298,7 @@ def auction_product_live_state(request, pk: int):
     product = ensure_auction_product_winner(product)
     access_token = request.GET.get('access_token', '').strip()
     include_user_history = request.GET.get('compact') != '1'
-    is_active_auction = product.auction.status == 'ongoing'
+    is_active_auction = product.auction.status in ('ongoing', 'extended')
     is_finished_auction = product.auction.status == 'finished'
     has_winner_profile_access = _has_finished_winner_profile_access(request, product, access_token)
     if not is_active_auction and not is_finished_auction and not has_winner_profile_access:
@@ -440,12 +456,19 @@ class AuctionGridView(ListView):
             if auction.status == 'ready':
                 target = auction.start_date
                 auction.countdown_label = 'زمان باقی‌مانده تا شروع'
+                auction.extended_count = 0
             elif auction.status == 'ongoing':
                 target = auction.end_date
                 auction.countdown_label = 'زمان باقی‌مانده تا پایان'
+                auction.extended_count = auction.get_active_extended_products_count(now)
+            elif auction.status == 'extended':
+                target = auction.get_max_end_date()
+                auction.countdown_label = 'زمان باقی‌مانده تا پایان تمدید'
+                auction.extended_count = auction.get_active_extended_products_count(now)
             else:
                 target = None
                 auction.countdown_label = 'مزایده به پایان رسید'
+                auction.extended_count = 0
 
             total_seconds = (target - now).total_seconds() if target else 0
             days, hours, minutes, seconds = _split_seconds(total_seconds)
@@ -488,7 +511,7 @@ class AuctionProductsView(ListView):
             for product in products:
                 if (
                     getattr(product, 'auction', None) is not None
-                    and product.auction.status == 'finished'
+                    and (product.auction.status == 'finished' or product.status == 'finished')
                     and product.winner_id == self.request.user.pk
                 ):
                     product.detail_access_token = build_winner_access_token(
@@ -496,6 +519,7 @@ class AuctionProductsView(ListView):
                         product_id=product.pk,
                     )
         context['auction'] = self.auction
+        context['has_active_extended_products'] = self.auction.get_active_extended_products_count() > 0
         context['bid_error'] = self.request.GET.get('bid_error', '')
         context['bid_success'] = self.request.GET.get('bid_success', '')
         latest_credit_request = None
@@ -525,6 +549,7 @@ class AuctionProductsView(ListView):
             {
                 'products': context.get('products', []),
                 'auction': self.auction,
+                'has_active_extended_products': self.auction.get_active_extended_products_count() > 0,
             },
             request=self.request,
         )

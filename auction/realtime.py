@@ -1,6 +1,7 @@
 from decimal import Decimal, InvalidOperation, ROUND_CEILING
 
 from django.template.loader import render_to_string
+from django.utils import timezone
 
 from .models import AuctionProduct, Bid
 from .services import ensure_auction_product_winner
@@ -77,6 +78,8 @@ def build_bid_live_payload(
     current_price_int = _as_int_price(product.current_price or product.base_price)
     step_increment_int = int(product.get_current_step_increment())
     min_next_bid_int = int(product.get_min_next_bid())
+    now = timezone.now()
+    seconds_left = max(0, int((product.end_time - now).total_seconds())) if product.end_time else 0
 
     def _fa_num(val: int) -> str:
         return f'{int(val):,}'.translate(str.maketrans('0123456789', '۰۱۲۳۴۵۶۷۸۹'))
@@ -92,6 +95,12 @@ def build_bid_live_payload(
         'total_with_tax': _as_int_price(product.final_price_with_tax),
         'bid_count': product.bids.count(),
         'has_winner': bool(product.winner_id),
+        'end_time': product.end_time.isoformat() if product.end_time else None,
+        'is_extended': product.is_extended,
+        'is_in_extension': product.is_in_extension,
+        'status': product.status,
+        'extension_count': product.extension_count or 0,
+        'seconds_left': seconds_left,
     }
     if not include_user_history:
         return payload

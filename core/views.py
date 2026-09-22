@@ -8,6 +8,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 # ایمپورت مدل‌های فروشگاه و مزایده
+from django.db.models import Q
 from store.models import Artwork, ProductLike, VisitHistory
 from auction.models import Auction, AuctionProduct, AuctionVisitHistory
 
@@ -37,11 +38,13 @@ def home(request):
     ).order_by('-created_at')[:3]
 
     # ۲. دریافت رویدادهای مزایده فعال
-    # فیلتر مزایده‌هایی که شروع شده‌اند و هنوز تمام نشده‌اند
-    active_auctions = Auction.objects.filter(
-        start_date__lte=now,
-        end_date__gt=now
-    ).order_by('end_date')[:3]  # نمایش نهایتا ۳ مزایده فعال که زودتر تمام می‌شوند
+    # فیلتر مزایده‌هایی که شروع شده‌اند و هنوز تمام نشده‌اند (شامل در حال برگزاری و در حال تمدید)
+    active_auctions = (
+        Auction.objects.filter(start_date__lte=now)
+        .filter(Q(end_date__gt=now) | Q(products__extended_end_time__gt=now))
+        .distinct()
+        .order_by('end_date')[:3]
+    )
 
     user_liked_artworks = set()
     if request.user.is_authenticated:

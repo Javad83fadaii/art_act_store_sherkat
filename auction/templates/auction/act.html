@@ -17,7 +17,7 @@
     <div class="flex flex-col gap-6 items-center max-w-6xl w-full mx-auto mt-6 md:mt-8">
         {% if auctions %}
             {% for auction in auctions %}
-                <div class="group relative w-full {% if auction.status == 'finished' %}bg-white/80 border-gray-200{% else %}bg-white border-primary/10 hover:shadow-gold-glow{% endif %} rounded-[2rem] overflow-hidden shadow-soft-elegant transition-all duration-500 border flex flex-col lg:flex-row min-h-[360px]">
+                <div class="group relative w-full {% if auction.status == 'finished' %}bg-white/80 border-gray-200{% elif auction.status == 'extended' %}bg-white border-amber-500/40 shadow-xl shadow-amber-500/10 ring-1 ring-amber-400/30{% else %}bg-white border-primary/10 hover:shadow-gold-glow{% endif %} rounded-[2rem] overflow-hidden shadow-soft-elegant transition-all duration-500 border flex flex-col lg:flex-row min-h-[360px]">
                     
                     <div class="lg:w-5/12 p-5 lg:p-7 flex flex-col justify-between {% if auction.status == 'finished' %}bg-white/90{% else %}bg-white{% endif %} z-20 text-right order-2 lg:order-1">
                         <div class="space-y-4">
@@ -32,6 +32,11 @@
                                     <div class="flex items-center gap-2 text-emerald-600 bg-emerald-50 px-4 py-2 rounded-full border border-emerald-100">
                                         <span class="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse-soft"></span>
                                         <span class="text-xs sm:text-sm font-bold">در حال برگزاری</span>
+                                    </div>
+                                {% elif auction.status == 'extended' %}
+                                    <div class="flex items-center gap-2 text-amber-700 bg-amber-50 px-4 py-2 rounded-full border border-amber-300 shadow-sm shadow-amber-100">
+                                        <span class="flex h-2 w-2 rounded-full bg-amber-500 animate-ping"></span>
+                                        <span class="text-xs sm:text-sm font-bold">در حال تمدید ({{ auction.extended_count|default:auction.get_active_extended_products_count|fa_digits }} اثر)</span>
                                     </div>
                                 {% elif auction.status == 'ready' %}
                                     <div class="flex items-center gap-2 text-text-muted bg-gray-100 px-4 py-2 rounded-full border border-gray-200">
@@ -85,41 +90,41 @@
 
                                 </div>
 
-                                <div class="p-4 rounded-xl border transition-all duration-300 {% if auction.status == 'ongoing' %}border-[#AB8C58]/30 bg-gradient-to-b from-white to-[#AB8C58]/[0.03] shadow-sm{% else %}border-gray-200 bg-gray-50/50{% endif %}">
+                                <div class="p-4 rounded-xl border transition-all duration-300 {% if auction.status == 'extended' %}border-amber-400/50 bg-gradient-to-b from-white to-amber-50/40 shadow-sm ring-1 ring-amber-300/30{% elif auction.status == 'ongoing' %}border-[#AB8C58]/30 bg-gradient-to-b from-white to-[#AB8C58]/[0.03] shadow-sm{% else %}border-gray-200 bg-gray-50/50{% endif %}">
                                     
-                                    <div class="text-xs sm:text-sm font-bold uppercase tracking-widest mb-4 flex items-center justify-center gap-2 {% if auction.status == 'ongoing' %}text-[#AB8C58]{% else %}text-gray-500{% endif %}">
-                                        <span class="material-symbols-outlined text-base">timer</span>
+                                    <div class="text-xs sm:text-sm font-bold uppercase tracking-widest mb-4 flex items-center justify-center gap-2 {% if auction.status == 'extended' %}text-amber-700{% elif auction.status == 'ongoing' %}text-[#AB8C58]{% else %}text-gray-500{% endif %}">
+                                        <span class="material-symbols-outlined text-base">{% if auction.status == 'extended' %}update{% else %}timer{% endif %}</span>
                                         {{ auction.countdown_label|fa_digits }}
                                     </div>
 
                                     <div class="countdown-timer flex items-center gap-1.5 sm:gap-2.5 justify-center"
                                          data-status="{{ auction.status }}"
-                                         data-target="{% if auction.status == 'ready' %}{{ auction.start_date|date:'c' }}{% else %}{{ auction.end_date|date:'c' }}{% endif %}">
+                                         data-target="{% if auction.status == 'ready' %}{{ auction.start_date|date:'c' }}{% elif auction.status == 'extended' %}{{ auction.get_max_end_date|date:'c' }}{% else %}{{ auction.end_date|date:'c' }}{% endif %}">
                                         
-                                        <div class="flex flex-col items-center justify-center min-w-[3.2rem] sm:min-w-[3.8rem] h-14 sm:h-16 rounded-lg transition-colors {% if auction.status == 'ongoing' %}bg-white border border-[#AB8C58]/30 shadow-[0_2px_10px_-3px_rgba(171,140,88,0.15)]{% else %}bg-white border border-gray-200{% endif %}">
-                                            <span class="time-secs tabular-nums text-xl sm:text-2xl font-en font-black {% if auction.status == 'ongoing' %}text-zinc-800{% else %}text-gray-600{% endif %}">۰۰</span>
-                                            <span class="text-[9px] sm:text-[10px] font-bold mt-0.5 {% if auction.status == 'ongoing' %}text-[#AB8C58]{% else %}text-gray-400{% endif %}">ثانیه</span>
+                                        <div class="flex flex-col items-center justify-center min-w-[3.2rem] sm:min-w-[3.8rem] h-14 sm:h-16 rounded-lg transition-colors {% if auction.status == 'extended' %}bg-white border border-amber-400/40 shadow-[0_2px_10px_-3px_rgba(245,158,11,0.2)]{% elif auction.status == 'ongoing' %}bg-white border border-[#AB8C58]/30 shadow-[0_2px_10px_-3px_rgba(171,140,88,0.15)]{% else %}bg-white border border-gray-200{% endif %}">
+                                            <span class="time-secs tabular-nums text-xl sm:text-2xl font-en font-black {% if auction.status == 'extended' %}text-amber-700{% elif auction.status == 'ongoing' %}text-zinc-800{% else %}text-gray-600{% endif %}">۰۰</span>
+                                            <span class="text-[9px] sm:text-[10px] font-bold mt-0.5 {% if auction.status == 'extended' %}text-amber-600{% elif auction.status == 'ongoing' %}text-[#AB8C58]{% else %}text-gray-400{% endif %}">ثانیه</span>
                                         </div>
 
-                                        <span class="text-lg sm:text-xl font-bold pb-4 {% if auction.status == 'ongoing' %}text-[#AB8C58] animate-pulse{% else %}text-gray-300{% endif %}">:</span>
+                                        <span class="text-lg sm:text-xl font-bold pb-4 {% if auction.status == 'extended' %}text-amber-500 animate-pulse{% elif auction.status == 'ongoing' %}text-[#AB8C58] animate-pulse{% else %}text-gray-300{% endif %}">:</span>
 
-                                        <div class="flex flex-col items-center justify-center min-w-[3.2rem] sm:min-w-[3.8rem] h-14 sm:h-16 rounded-lg transition-colors {% if auction.status == 'ongoing' %}bg-white border border-[#AB8C58]/30 shadow-[0_2px_10px_-3px_rgba(171,140,88,0.15)]{% else %}bg-white border border-gray-200{% endif %}">
-                                            <span class="time-mins tabular-nums text-xl sm:text-2xl font-en font-black {% if auction.status == 'ongoing' %}text-zinc-800{% else %}text-gray-600{% endif %}">۰۰</span>
-                                            <span class="text-[9px] sm:text-[10px] font-bold mt-0.5 {% if auction.status == 'ongoing' %}text-[#AB8C58]{% else %}text-gray-400{% endif %}">دقیقه</span>
+                                        <div class="flex flex-col items-center justify-center min-w-[3.2rem] sm:min-w-[3.8rem] h-14 sm:h-16 rounded-lg transition-colors {% if auction.status == 'extended' %}bg-white border border-amber-400/40 shadow-[0_2px_10px_-3px_rgba(245,158,11,0.2)]{% elif auction.status == 'ongoing' %}bg-white border border-[#AB8C58]/30 shadow-[0_2px_10px_-3px_rgba(171,140,88,0.15)]{% else %}bg-white border border-gray-200{% endif %}">
+                                            <span class="time-mins tabular-nums text-xl sm:text-2xl font-en font-black {% if auction.status == 'extended' %}text-amber-700{% elif auction.status == 'ongoing' %}text-zinc-800{% else %}text-gray-600{% endif %}">۰۰</span>
+                                            <span class="text-[9px] sm:text-[10px] font-bold mt-0.5 {% if auction.status == 'extended' %}text-amber-600{% elif auction.status == 'ongoing' %}text-[#AB8C58]{% else %}text-gray-400{% endif %}">دقیقه</span>
                                         </div>
                                         
-                                        <span class="text-lg sm:text-xl font-bold pb-4 {% if auction.status == 'ongoing' %}text-[#AB8C58] animate-pulse{% else %}text-gray-300{% endif %}">:</span>
+                                        <span class="text-lg sm:text-xl font-bold pb-4 {% if auction.status == 'extended' %}text-amber-500 animate-pulse{% elif auction.status == 'ongoing' %}text-[#AB8C58] animate-pulse{% else %}text-gray-300{% endif %}">:</span>
                                         
-                                        <div class="flex flex-col items-center justify-center min-w-[3.2rem] sm:min-w-[3.8rem] h-14 sm:h-16 rounded-lg transition-colors {% if auction.status == 'ongoing' %}bg-white border border-[#AB8C58]/30 shadow-[0_2px_10px_-3px_rgba(171,140,88,0.15)]{% else %}bg-white border border-gray-200{% endif %}">
-                                            <span class="time-hours tabular-nums text-xl sm:text-2xl font-en font-black {% if auction.status == 'ongoing' %}text-zinc-800{% else %}text-gray-600{% endif %}">۰۰</span>
-                                            <span class="text-[9px] sm:text-[10px] font-bold mt-0.5 {% if auction.status == 'ongoing' %}text-[#AB8C58]{% else %}text-gray-400{% endif %}">ساعت</span>
+                                        <div class="flex flex-col items-center justify-center min-w-[3.2rem] sm:min-w-[3.8rem] h-14 sm:h-16 rounded-lg transition-colors {% if auction.status == 'extended' %}bg-white border border-amber-400/40 shadow-[0_2px_10px_-3px_rgba(245,158,11,0.2)]{% elif auction.status == 'ongoing' %}bg-white border border-[#AB8C58]/30 shadow-[0_2px_10px_-3px_rgba(171,140,88,0.15)]{% else %}bg-white border border-gray-200{% endif %}">
+                                            <span class="time-hours tabular-nums text-xl sm:text-2xl font-en font-black {% if auction.status == 'extended' %}text-amber-700{% elif auction.status == 'ongoing' %}text-zinc-800{% else %}text-gray-600{% endif %}">۰۰</span>
+                                            <span class="text-[9px] sm:text-[10px] font-bold mt-0.5 {% if auction.status == 'extended' %}text-amber-600{% elif auction.status == 'ongoing' %}text-[#AB8C58]{% else %}text-gray-400{% endif %}">ساعت</span>
                                         </div>
 
-                                        <span class="text-lg sm:text-xl font-bold pb-4 {% if auction.status == 'ongoing' %}text-[#AB8C58] animate-pulse{% else %}text-gray-300{% endif %}">:</span>
+                                        <span class="text-lg sm:text-xl font-bold pb-4 {% if auction.status == 'extended' %}text-amber-500 animate-pulse{% elif auction.status == 'ongoing' %}text-[#AB8C58] animate-pulse{% else %}text-gray-300{% endif %}">:</span>
 
-                                        <div class="flex flex-col items-center justify-center min-w-[3.2rem] sm:min-w-[3.8rem] h-14 sm:h-16 rounded-lg transition-colors {% if auction.status == 'ongoing' %}bg-white border border-[#AB8C58]/30 shadow-[0_2px_10px_-3px_rgba(171,140,88,0.15)]{% else %}bg-white border border-gray-200{% endif %}">
-                                            <span class="time-days tabular-nums text-xl sm:text-2xl font-en font-black {% if auction.status == 'ongoing' %}text-zinc-800{% else %}text-gray-600{% endif %}">۰۰</span>
-                                            <span class="text-[9px] sm:text-[10px] font-bold mt-0.5 {% if auction.status == 'ongoing' %}text-[#AB8C58]{% else %}text-gray-400{% endif %}">روز</span>
+                                        <div class="flex flex-col items-center justify-center min-w-[3.2rem] sm:min-w-[3.8rem] h-14 sm:h-16 rounded-lg transition-colors {% if auction.status == 'extended' %}bg-white border border-amber-400/40 shadow-[0_2px_10px_-3px_rgba(245,158,11,0.2)]{% elif auction.status == 'ongoing' %}bg-white border border-[#AB8C58]/30 shadow-[0_2px_10px_-3px_rgba(171,140,88,0.15)]{% else %}bg-white border border-gray-200{% endif %}">
+                                            <span class="time-days tabular-nums text-xl sm:text-2xl font-en font-black {% if auction.status == 'extended' %}text-amber-700{% elif auction.status == 'ongoing' %}text-zinc-800{% else %}text-gray-600{% endif %}">۰۰</span>
+                                            <span class="text-[9px] sm:text-[10px] font-bold mt-0.5 {% if auction.status == 'extended' %}text-amber-600{% elif auction.status == 'ongoing' %}text-[#AB8C58]{% else %}text-gray-400{% endif %}">روز</span>
                                         </div>
 
                                     </div>
@@ -137,7 +142,17 @@
                         </div>
 
                         <div class="pt-6 text-right mt-auto">
-                            {% if auction.status == 'ongoing' %}
+                            {% if auction.status == 'extended' %}
+                                <a class="check-access-btn inline-flex items-center justify-center gap-2 w-full bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-700 hover:to-amber-600 text-white py-3 sm:py-4 px-6 rounded-xl font-bold text-base transition-all shadow-lg shadow-amber-500/30 hover:shadow-amber-500/50 active:scale-[0.98]"
+                                   href="{% url 'auction:auction_products' auction.pk %}"
+                                   data-track-visit="1"
+                                   data-track-guard="auction-access"
+                                   data-track-kind="auction"
+                                   data-track-id="{{ auction.pk }}">
+                                    مشاهده آثار در حال تمدید ({{ auction.extended_count|default:auction.get_active_extended_products_count|fa_digits }} اثر)
+                                    <span class="material-symbols-outlined text-xl">update</span>
+                                </a>
+                            {% elif auction.status == 'ongoing' %}
                                 <a class="check-access-btn inline-flex items-center justify-center gap-2 w-full bg-[#AB8C58] hover:bg-[#967949] text-white py-3 sm:py-4 px-6 rounded-xl font-bold text-base transition-all shadow-lg shadow-[#AB8C58]/30 hover:shadow-[#AB8C58]/50 active:scale-[0.98]"
                                    href="{% url 'auction:auction_products' auction.pk %}"
                                    data-track-visit="1"

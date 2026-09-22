@@ -423,6 +423,14 @@ SMS_PATTERNS = {
             _get_first_setting('SMS_PATTERN_NEW_USER_VARIABLE') or 'name',
         ),
     },
+    'auction_extended_notice': {
+        'code': _get_first_setting('SMS_PATTERN_AUCTION_EXTENDED_NOTICE_CODE') or '810087',
+        'variables': (
+            'NAME',
+            'AUCTION_NAME',
+            'NUMBER_OF_WORKS',
+        ),
+    },
 }
 
 _raw_admin_phone_numbers = _get_first_setting('ADMIN_PHONE_NUMBERS') or ''

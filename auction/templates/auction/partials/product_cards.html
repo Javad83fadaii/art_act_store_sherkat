@@ -1,24 +1,62 @@
 {% load static humanize fa_digits %}
 {% for product in products %}
-    <!-- کارت محصول -->
-    <div class="group bg-white dark:bg-zinc-900 rounded-[1.5rem] overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 border border-neutral-200 dark:border-zinc-800 p-2 pb-5 flex flex-col relative" data-product-card="{{ product.pk }}" data-live-state-url="{% url 'auction:auction_product_live_state' product.pk %}?compact=1" data-has-winner="{% if product.winner_id %}1{% else %}0{% endif %}" data-is-user-winner="{% if request.user.is_authenticated and product.winner_id == request.user.pk %}1{% else %}0{% endif %}">
-        
-        <!-- هاله نورانی بک‌گراند برای حالت انتظار (به صورت پیش‌فرض مخفی) -->
-        <div data-glow="NOT_STARTED" class="absolute inset-0 bg-blue-500/5 dark:bg-blue-400/5 rounded-[1.5rem] opacity-0 transition-opacity duration-700 pointer-events-none z-0"></div>
-        
-        <!-- هاله نورانی بک‌گراند برای حالت پایان یافته (به صورت پیش‌فرض مخفی) -->
-        <div data-glow="ENDED" class="absolute inset-0 bg-red-500/5 dark:bg-red-500/5 rounded-[1.5rem] opacity-0 transition-opacity duration-700 pointer-events-none z-0"></div>
+    {% if forloop.first and product.is_in_extension and not request.GET.load_more %}
+        <!-- عنوان مینی‌مال و لوکس بخش آثار در حال تمدید -->
+        <div class="col-span-full mb-2 pt-1">
+            <div class="flex items-center justify-between pb-3 border-b border-neutral-200/80 dark:border-zinc-800">
+                <div class="flex items-center gap-2.5">
+                    <span class="relative flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                    </span>
+                    <h3 class="text-sm sm:text-base font-bold font-display text-neutral-900 dark:text-white tracking-tight">
+                        آثار در حال تمدید (اضافه وقت)
+                    </h3>
+                    <span class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                        مهلت ۶ ساعته
+                    </span>
+                </div>
+                <span class="text-xs text-neutral-400 font-medium hidden sm:inline-block">تمدید مجزا بر اساس آخرین پیشنهاد</span>
+            </div>
+        </div>
+    {% endif %}
 
-        <div class="relative w-full aspect-[112/135] rounded-xl overflow-hidden mb-4 bg-neutral-100 dark:bg-zinc-800">
-            <div data-sold-badge class="absolute top-3 right-3 z-[16] pointer-events-none {% if auction.status == 'finished' and product.winner_id %}flex{% else %}hidden{% endif %} items-center gap-1 rounded-full border px-3 py-1 text-[11px] font-bold text-white shadow-lg backdrop-blur-md {% if request.user.is_authenticated and product.winner_id == request.user.pk %}border-amber-300/80 bg-amber-500/95 shadow-amber-500/25{% else %}border-emerald-300/70 bg-emerald-500/90 shadow-emerald-500/20{% endif %}">
+    {% if not product.is_in_extension and not forloop.first and not request.GET.load_more and has_active_extended_products %}
+        {% ifchanged product.is_in_extension %}
+            <!-- جداکننده بسیار تمیز و لوکس میان آثار تمدید شده و سایر آثار -->
+            <div class="col-span-full pt-8 pb-3">
+                <div class="flex items-center gap-4">
+                    <div class="h-px bg-neutral-200/80 dark:border-zinc-800/80 flex-grow"></div>
+                    <span class="text-xs font-semibold text-neutral-400 dark:text-neutral-500 tracking-wider px-2 font-display">
+                        سایر آثار مزایده
+                    </span>
+                    <div class="h-px bg-neutral-200/80 dark:border-zinc-800/80 flex-grow"></div>
+                </div>
+            </div>
+        {% endifchanged %}
+    {% endif %}
+
+    <!-- کارت محصول (طراحی مینی‌مال و لوکس: کارت افقی برجسته ۲ ستونه برای آثار تمدید شده، و کارت عمودی استاندارد برای سایر آثار) -->
+    <div class="group bg-white dark:bg-zinc-900 rounded-[1.5rem] sm:rounded-[2rem] overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 border flex {% if product.is_in_extension %}col-span-1 md:col-span-2 border-amber-500/40 dark:border-amber-400/30 bg-gradient-to-br from-amber-500/[0.04] via-white to-amber-500/[0.01] dark:from-amber-500/[0.06] dark:via-zinc-900 dark:to-zinc-900 flex-col sm:flex-row gap-4 sm:gap-6 p-4 sm:p-5{% else %}col-span-1 border-neutral-200 dark:border-zinc-800 flex-col p-3 sm:p-4 pb-5{% endif %} relative"
+         data-product-card="{{ product.pk }}"
+         data-live-state-url="{% url 'auction:auction_product_live_state' product.pk %}?compact=1"
+         data-has-winner="{% if product.winner_id %}1{% else %}0{% endif %}"
+         data-is-user-winner="{% if request.user.is_authenticated and product.winner_id == request.user.pk %}1{% else %}0{% endif %}"
+         data-is-extended="{% if product.is_in_extension %}1{% else %}0{% endif %}"
+         data-end-time="{{ product.end_time|date:'c' }}">
+
+        <div data-card-img-wrap class="relative {% if product.is_in_extension %}w-full sm:w-5/12 lg:w-5/12 aspect-[4/5] sm:aspect-auto rounded-xl sm:rounded-2xl{% else %}w-full aspect-[112/135] rounded-xl mb-3{% endif %} overflow-hidden bg-neutral-100 dark:bg-zinc-800 shrink-0">
+            <!-- بج فروش رفته -->
+            <div data-sold-badge class="absolute top-3 right-3 z-[16] pointer-events-none {% if product.status == 'finished' and product.winner_id %}flex{% else %}hidden{% endif %} items-center gap-1 rounded-full border px-3 py-1 text-[11px] font-bold text-white shadow-lg backdrop-blur-md {% if request.user.is_authenticated and product.winner_id == request.user.pk %}border-amber-300/80 bg-amber-500/95 shadow-amber-500/25{% else %}border-emerald-300/70 bg-emerald-500/90 shadow-emerald-500/20{% endif %}">
                 <span data-sold-badge-icon class="material-symbols-outlined text-[14px]">{% if request.user.is_authenticated and product.winner_id == request.user.pk %}military_tech{% else %}sell{% endif %}</span>
                 <span data-sold-badge-text>{% if request.user.is_authenticated and product.winner_id == request.user.pk %}شما برنده شدید{% else %}به فروش رسید{% endif %}</span>
             </div>
 
-            
-            
-            <!-- اورلی وضعیت پایان یافته -->
-            
+            <!-- بج تمدید شده (طراحی مینیمال و لوکس گالری) -->
+            <div data-overtime-badge class="absolute top-3 right-3 z-[15] pointer-events-none {% if product.is_in_extension and product.status != 'finished' %}flex{% else %}hidden{% endif %} items-center gap-1.5 rounded-full bg-neutral-900/85 dark:bg-white/95 text-white dark:text-neutral-900 px-2.5 py-1 text-[10px] font-medium backdrop-blur-md shadow-sm border border-white/10 dark:border-neutral-800/10">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0"></span>
+                <span>تمدید ۶ ساعته</span>
+            </div>
 
             <!-- افزودن لینک به تصویر -->
             <a href="{% url 'auction:auction_product_detail' product.pk %}"
@@ -33,58 +71,78 @@
                 {% if product.main_image_url %}
                     <img alt="{{ product.title }}"
                          data-product-img="{{ product.pk }}"
-                         class="w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-110"
+                         class="w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-105"
                          src="{{ product.main_image_url }}"/>
                 {% endif %}
             </a>
         </div>
         
-        <div class="px-4 text-right flex-grow flex flex-col relative z-20">
-            {% if product.lot %}
-                <h3 class="block font-bold text-lg sm:text-[1.15rem] text-neutral-900 dark:text-white leading-8 sm:leading-9 mb-3 font-display tracking-tight transition-colors duration-300">
-                    {% include 'partials/lot_badge_title.html' with lot=product.lot title=product.title title_class='inline align-middle text-base sm:text-[1.15rem]' %}
-                </h3>
-            {% else %}
-                <h3 class="font-bold text-base sm:text-[1.15rem] text-neutral-900 dark:text-white leading-7 sm:leading-[1.9rem] mb-3 font-display tracking-tight transition-colors duration-300">
-                    {{ product.title }}
-                </h3>
-            {% endif %}
-            
-            <div class="bg-neutral-50 dark:bg-zinc-800/50 rounded-xl p-4 mb-5 border border-neutral-100 dark:border-zinc-700 transition-colors duration-300">
-                <div class="flex justify-between items-center mb-2">
-                    <span class="text-xs text-neutral-500 dark:text-neutral-400 font-medium">قیمت پایه</span>
-                    <span class="inline-flex items-center gap-1.5 text-sm text-neutral-900 dark:text-white whitespace-nowrap" dir="rtl">
-                        <span class="font-en font-bold">
-                            {{ product.base_price|fa_price }}
-                        </span>
-                        <img src="{% static 'images/toman-1.svg' %}"
-                             alt="تومان"
-                             class="h-5 w-auto shrink-0 opacity-100"
-                             loading="lazy">
-                    </span>
-                </div>
-                <div class="flex justify-between items-center mb-2">
-                    <span class="text-xs text-neutral-500 dark:text-neutral-400 font-medium">قیمت نهایی</span>
-                    <span class="inline-flex items-center gap-1.5 text-base text-primary" data-product-price-display dir="rtl">
-                        <span class="font-en font-bold" data-amount-value>
-                            {{ product.current_price|default:product.base_price|fa_price }}
-                        </span>
-                        <img src="{% static 'images/toman-1.svg' %}"
-                             alt="تومان"
-                             class="h-5 w-auto shrink-0 opacity-100"
-                             loading="lazy">
-                    </span>
-                </div>
-                {% if product.price_description %}
-                    <div class="text-[9px] font-medium text-neutral-400 dark:text-neutral-500 text-left" data-product-price-description>
-                        {{ product.price_description|fa_digits }}
-                    </div>
+        <div class="{% if product.is_in_extension %}px-1 sm:px-2 pt-1 sm:pt-0{% else %}px-2 sm:px-3{% endif %} text-right flex-grow flex flex-col relative z-20 justify-between min-w-0">
+            <div>
+                {% if product.lot %}
+                    <h3 class="block font-bold {% if product.is_in_extension %}text-lg sm:text-xl leading-8 sm:leading-9 mb-3{% else %}text-base sm:text-[1.15rem] leading-8 sm:leading-9 mb-2{% endif %} text-neutral-900 dark:text-white font-display tracking-tight transition-colors duration-300">
+                        {% include 'partials/lot_badge_title.html' with lot=product.lot title=product.title title_class='inline align-middle text-base sm:text-[1.15rem]' %}
+                    </h3>
+                {% else %}
+                    <h3 class="font-bold {% if product.is_in_extension %}text-lg sm:text-xl leading-8 sm:leading-9 mb-3{% else %}text-base sm:text-[1.15rem] leading-7 sm:leading-[1.9rem] mb-2{% endif %} text-neutral-900 dark:text-white font-display tracking-tight transition-colors duration-300">
+                        {{ product.title }}
+                    </h3>
                 {% endif %}
+                
+                <div class="bg-neutral-50 dark:bg-zinc-800/50 rounded-xl p-3 sm:p-3.5 mb-3 border border-neutral-100 dark:border-zinc-700 transition-colors duration-300">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs text-neutral-500 dark:text-neutral-400 font-medium">قیمت پایه</span>
+                        <span class="inline-flex items-center gap-1.5 text-sm text-neutral-900 dark:text-white whitespace-nowrap" dir="rtl">
+                            <span class="font-en font-bold">
+                                {{ product.base_price|fa_price }}
+                            </span>
+                            <img src="{% static 'images/toman-1.svg' %}"
+                                 alt="تومان"
+                                 class="h-4 sm:h-5 w-auto shrink-0 opacity-100"
+                                 loading="lazy">
+                        </span>
+                    </div>
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-xs text-neutral-500 dark:text-neutral-400 font-medium">قیمت فعلی</span>
+                        <span class="inline-flex items-center gap-1.5 text-base text-primary" data-product-price-display dir="rtl">
+                            <span class="font-en font-bold" data-amount-value>
+                                {{ product.current_price|default:product.base_price|fa_price }}
+                            </span>
+                            <img src="{% static 'images/toman-1.svg' %}"
+                                 alt="تومان"
+                                 class="h-4 sm:h-5 w-auto shrink-0 opacity-100"
+                                 loading="lazy">
+                        </span>
+                    </div>
+                    {% if product.price_description %}
+                        <div class="text-[9px] font-medium text-neutral-400 dark:text-neutral-500 text-left mt-1" data-product-price-description>
+                            {{ product.price_description|fa_digits }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- تایمر مستقل منحصراً برای آثار در حال تمدید (طراحی مینیمال و لوکس) -->
+                <div data-card-timer-container class="{% if not product.is_in_extension %}hidden {% endif %}flex items-center justify-between px-3.5 py-2.5 mb-3 rounded-xl bg-amber-500/[0.07] dark:bg-amber-500/[0.12] border border-amber-500/30 dark:border-amber-400/25 transition-all duration-300"
+                     data-card-timer="{{ product.pk }}"
+                     data-end-time="{{ product.end_time|date:'c' }}"
+                     data-is-extended="{% if product.is_in_extension %}1{% else %}0{% endif %}">
+                    <div class="flex items-center gap-2 text-xs text-amber-800 dark:text-amber-300 font-semibold" data-card-timer-label>
+                        <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0"></span>
+                        <span class="text-[11px] font-bold">مهلت تمدید ۶ ساعته</span>
+                    </div>
+                    <div class="flex items-center gap-1 font-en font-black text-xs sm:text-sm dir-ltr tracking-wider text-neutral-900 dark:text-amber-100">
+                        <span class="card-time-days hidden text-neutral-400">0d:</span>
+                        <span class="card-time-hours tabular-nums">۰۰</span>
+                        <span class="text-neutral-400/60">:</span>
+                        <span class="card-time-mins tabular-nums">۰۰</span>
+                        <span class="text-neutral-400/60">:</span>
+                        <span class="card-time-secs tabular-nums text-amber-600 dark:text-amber-400">۰۰</span>
+                    </div>
+                </div>
             </div>
 
-            <div class="mt-auto space-y-2.5">
-                
-                <a class="w-full flex items-center justify-center bg-primary/10 hover:bg-primary text-primary hover:text-white text-sm font-bold py-3 rounded-xl transition-all border border-primary/20 hover:border-primary"
+            <div class="mt-auto space-y-2 pt-1">
+                <a class="w-full flex items-center justify-center bg-primary/10 hover:bg-primary text-primary hover:text-white text-sm font-bold py-2.5 rounded-xl transition-all border border-primary/20 hover:border-primary"
                    data-auction-product-link="1"
                    href="{% url 'auction:auction_product_detail' product.pk %}"
                    data-login-message="برای مشاهده جزئیات محصول مزایده، لطفاً ابتدا وارد حساب کاربری خود شوید."
@@ -99,7 +157,7 @@
                 <button type="button"
                         data-btn-active="1"
                         data-auction-quick-bid="1"
-                        class="w-full flex items-center justify-center gap-2 bg-primary text-white hover:bg-primary-dark text-sm font-bold py-3 rounded-xl transition-all shadow-md shadow-primary/20 hover:shadow-lg ring-2 ring-transparent focus:ring-primary/50"
+                        class="w-full flex items-center justify-center gap-2 bg-primary text-white hover:bg-primary-dark text-sm font-bold py-2.5 rounded-xl transition-all shadow-md shadow-primary/20 hover:shadow-lg ring-2 ring-transparent focus:ring-primary/50"
                         data-login-message="برای ثبت پیشنهاد در مزایده، لطفاً ابتدا وارد حساب کاربری خود شوید."
                         data-product-id="{{ product.pk }}"
                         data-product-title="{{ product.title }}"
@@ -114,7 +172,7 @@
                 <!-- دکمه حالت انتظار (شروع نشده) -->
                 <button type="button"
                         data-btn-waiting="1"
-                        class="hidden w-full items-center justify-center gap-2 bg-blue-50 dark:bg-blue-900/20 text-blue-500 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50 text-sm font-bold py-3 rounded-xl transition-all cursor-not-allowed">
+                        class="hidden w-full items-center justify-center gap-2 bg-blue-50 dark:bg-blue-900/20 text-blue-500 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50 text-sm font-bold py-2.5 rounded-xl transition-all cursor-not-allowed">
                     <span class="material-symbols-outlined text-[18px]">hourglass_top</span>
                     در انتظار شروع
                 </button>
@@ -122,7 +180,7 @@
                 <!-- دکمه حالت پایان یافته -->
                 <button type="button"
                         data-btn-ended="1"
-                        class="hidden w-full items-center justify-center gap-2 bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 border border-red-200 dark:border-red-800/50 text-sm font-bold py-3 rounded-xl transition-all cursor-not-allowed">
+                        class="hidden w-full items-center justify-center gap-2 bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 border border-red-200 dark:border-red-800/50 text-sm font-bold py-2.5 rounded-xl transition-all cursor-not-allowed">
                     <span class="material-symbols-outlined text-[18px]">block</span>
                     مزایده پایان یافت
                 </button>

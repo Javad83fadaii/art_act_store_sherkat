@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load static humanize jalali_tags %}
+{% load static humanize jalali_tags fa_digits %}
 
 {% block content %}
 <style>
@@ -261,6 +261,13 @@
                                                 class="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse-soft shrink-0"></span>
                                             <span class="text-[11px] sm:text-xs font-bold">در حال برگزاری</span>
                                         </div>
+                                        {% elif auction.status == 'extended' %}
+                                        <div
+                                            class="flex items-center gap-2 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-4 py-2 rounded-full border border-amber-300 dark:border-amber-700 whitespace-nowrap shadow-sm">
+                                            <span
+                                                class="flex h-2 w-2 rounded-full bg-amber-500 animate-ping shrink-0"></span>
+                                            <span class="text-[11px] sm:text-xs font-bold">در حال تمدید ({{ auction.get_active_extended_products_count|fa_digits }} اثر)</span>
+                                        </div>
                                         {% elif auction.status == 'ready' %}
                                         <div
                                             class="flex items-center gap-2 text-text-secondary dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-4 py-2 rounded-full border border-gray-200 dark:border-gray-700 whitespace-nowrap">
@@ -357,31 +364,32 @@
 
                                     <!-- تایمر -->
                                     <div
-                                        class="flex items-center gap-4 bg-red-50 dark:bg-gray-800 px-5 py-3 md:py-4 rounded-2xl w-full xl:w-auto border border-red-100 dark:border-gray-700">
+                                        class="flex items-center gap-4 {% if auction.status == 'extended' %}bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700{% else %}bg-red-50 dark:bg-gray-800 border-red-100 dark:border-gray-700{% endif %} px-5 py-3 md:py-4 rounded-2xl w-full xl:w-auto border">
                                         <span class="relative flex h-4 w-4">
                                             <span
-                                                class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                            <span class="relative inline-flex rounded-full h-4 w-4 bg-red-500"></span>
+                                                class="animate-ping absolute inline-flex h-full w-full rounded-full {% if auction.status == 'extended' %}bg-amber-400{% else %}bg-red-400{% endif %} opacity-75"></span>
+                                            <span class="relative inline-flex rounded-full h-4 w-4 {% if auction.status == 'extended' %}bg-amber-500{% else %}bg-red-500{% endif %}"></span>
                                         </span>
                                         <div class="flex flex-col">
                                             <span
-                                                class="text-[10px] md:text-xs text-red-600 dark:text-red-400 font-bold font-body uppercase tracking-wider mb-1">زمان
-                                                باقی‌مانده</span>
-                                            <div class="text-lg md:text-xl font-bold text-red-600 dark:text-red-400 auction-timer flex items-center flex-wrap gap-1"
-                                                dir="rtl" data-endtime="{{ auction.end_date|date:'c' }}">
+                                                class="text-[10px] md:text-xs {% if auction.status == 'extended' %}text-amber-700 dark:text-amber-400{% else %}text-red-600 dark:text-red-400{% endif %} font-bold font-body uppercase tracking-wider mb-1">
+                                                {% if auction.status == 'extended' %}زمان باقی‌مانده تا پایان تمدید{% else %}زمان باقی‌مانده{% endif %}
+                                            </span>
+                                            <div class="text-lg md:text-xl font-bold {% if auction.status == 'extended' %}text-amber-700 dark:text-amber-400{% else %}text-red-600 dark:text-red-400{% endif %} auction-timer flex items-center flex-wrap gap-1"
+                                                dir="rtl" data-endtime="{% if auction.status == 'extended' %}{{ auction.get_max_end_date|date:'c' }}{% else %}{{ auction.end_date|date:'c' }}{% endif %}">
                                                 <span class="font-body text-sm">در حال محاسبه...</span>
                                             </div>
                                         </div>
                                     </div>
 
                                     <!-- دکمه ورود به سالن - اضافه شدن کلاس check-access-btn -->
-                                    <a class="check-access-btn w-full xl:w-auto px-8 py-4 bg-primary hover:bg-primary-dark text-white font-bold rounded-2xl transition-all duration-300 shadow-lg shadow-primary/30 font-body flex items-center justify-center gap-3 group whitespace-nowrap"
+                                    <a class="check-access-btn w-full xl:w-auto px-8 py-4 {% if auction.status == 'extended' %}bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-700 hover:to-amber-600 shadow-amber-500/30{% else %}bg-primary hover:bg-primary-dark shadow-primary/30{% endif %} text-white font-bold rounded-2xl transition-all duration-300 shadow-lg font-body flex items-center justify-center gap-3 group whitespace-nowrap"
                                         href="{% url 'auction:auction_products' auction.pk %}" data-track-visit="1"
                                         data-track-guard="auction-access" data-track-kind="auction"
                                         data-track-id="{{ auction.pk }}">
                                         <span
-                                            class="material-symbols-outlined text-[24px] rtl:rotate-180 group-hover:-translate-x-1 transition-transform">login</span>
-                                        ورود به سالن مزایده
+                                            class="material-symbols-outlined text-[24px] rtl:rotate-180 group-hover:-translate-x-1 transition-transform">{% if auction.status == 'extended' %}update{% else %}login{% endif %}</span>
+                                        {% if auction.status == 'extended' %}مشاهده آثار در حال تمدید{% else %}ورود به سالن مزایده{% endif %}
                                     </a>
 
                                 </div>

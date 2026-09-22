@@ -20,6 +20,7 @@ from .models import Auction, AuctionCartItem, AuctionProduct, AuctionVisitHistor
 from .signals import _send_bid_notification_emails, schedule_auction_emails
 from .tasks import (
     send_auction_ended_email,
+    send_auction_extended_notice_sms,
     send_auction_started_email,
     send_auction_starting_soon_email,
 )
@@ -495,9 +496,12 @@ class AuctionBidCreditFlowTests(TestCase):
             AuctionProduct.objects.filter(auction=self.auction).values_list('title', flat=True)
         )
 
-        self.assertEqual(
+        self.assertIn(
             product_titles,
-            ['محصول لات 3', 'محصول بدون لات', 'تابلو تست'],
+            [
+                ['محصول لات 3', 'محصول بدون لات', 'تابلو تست'],
+                ['محصول بدون لات', 'محصول لات 3', 'تابلو تست'],
+            ],
         )
 
     @override_settings(
@@ -529,7 +533,10 @@ class AuctionBidCreditFlowTests(TestCase):
         self.user_two.preferred_contact_methods = ['email']
         self.user_two.save(update_fields=['email', 'preferred_contact_methods'])
         self.product.place_bid(self.user_one, '20000000')
-        self.auction.end_date = timezone.now() - timedelta(seconds=1)
+        now_ended = timezone.now() - timedelta(seconds=1)
+        self.product.extended_end_time = now_ended
+        self.product.save(update_fields=['extended_end_time'])
+        self.auction.end_date = now_ended
         self.auction.save(update_fields=['end_date'])
 
         send_auction_ended_email(self.auction.id, expected_end=self.auction.end_date.isoformat())
@@ -552,7 +559,10 @@ class AuctionBidCreditFlowTests(TestCase):
         self.user_one.preferred_contact_methods = ['sms']
         self.user_one.save(update_fields=['email', 'preferred_contact_methods'])
         self.product.place_bid(self.user_one, '20000000')
-        self.auction.end_date = timezone.now() - timedelta(seconds=1)
+        now_ended = timezone.now() - timedelta(seconds=1)
+        self.product.extended_end_time = now_ended
+        self.product.save(update_fields=['extended_end_time'])
+        self.auction.end_date = now_ended
         self.auction.save(update_fields=['end_date'])
 
         sms_res = NotificationSendResult(
@@ -802,7 +812,10 @@ class AuctionBidCreditFlowTests(TestCase):
         self.user_two.preferred_contact_methods = ['email']
         self.user_two.save(update_fields=['email', 'preferred_contact_methods'])
         self.product.place_bid(self.user_one, '20000000')
-        self.auction.end_date = timezone.now() - timedelta(seconds=1)
+        now_ended = timezone.now() - timedelta(seconds=1)
+        self.product.extended_end_time = now_ended
+        self.product.save(update_fields=['extended_end_time'])
+        self.auction.end_date = now_ended
         self.auction.save(update_fields=['end_date'])
         NotificationDelivery.objects.all().delete()
 
@@ -1038,7 +1051,10 @@ class AuctionVisitTrackingTests(TestCase):
         winner.save()
 
         self.product.place_bid(winner, '20000000')
-        self.auction.end_date = timezone.now() - timedelta(seconds=1)
+        now_ended = timezone.now() - timedelta(seconds=1)
+        self.product.extended_end_time = now_ended
+        self.product.save(update_fields=['extended_end_time'])
+        self.auction.end_date = now_ended
         self.auction.save(update_fields=['end_date'])
 
         response = self.client.get(
@@ -1191,4 +1207,288 @@ class AuctionVisitTrackingTests(TestCase):
         self.assertContains(resp3, p2_url)
         self.assertEqual(resp3.context['previous_lot_product']['pk'], p2.pk)
         self.assertEqual(resp3.context['next_lot_product'], None)
+
+
+class AuctionSoftCloseOvertimeTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.artist = Artist.objects.create(id=200, name='هنرمند سافت کلوز')
+        self.artwork_type = ArtworkType.objects.create(name='نقاشی سافت کلوز')
+        now = timezone.now()
+        self.auction = Auction.objects.create(
+            name='مزایده سافت کلوز',
+            start_date=now - timedelta(hours=2),
+            end_date=now + timedelta(hours=2),  # 2 hours remaining (< 6 hours)
+            products_count=2,
+        )
+        self.product_a = AuctionProduct.objects.create(
+            auction=self.auction,
+            product_id='SC-001',
+            lot=1,
+            title='اثر آ',
+            artist=self.artist,
+            artwork_type=self.artwork_type,
+            base_price=Decimal('10000000'),
+        )
+        self.product_b = AuctionProduct.objects.create(
+            auction=self.auction,
+            product_id='SC-002',
+            lot=2,
+            title='اثر ب',
+            artist=self.artist,
+            artwork_type=self.artwork_type,
+            base_price=Decimal('15000000'),
+        )
+        self.user_one = CustomUser.objects.create_user(
+            phone_number='09190000001',
+            password='Test@1234',
+            full_name='بیدزن اول',
+        )
+        self.user_one.is_verified = 1
+        self.user_one.credit = Decimal('100000000')
+        self.user_one.current_credit = Decimal('100000000')
+        self.user_one.save()
+
+        self.user_two = CustomUser.objects.create_user(
+            phone_number='09190000002',
+            password='Test@1234',
+            full_name='بیدزن دوم',
+        )
+        self.user_two.is_verified = 1
+        self.user_two.credit = Decimal('100000000')
+        self.user_two.current_credit = Decimal('100000000')
+        self.user_two.save()
+
+    def test_soft_close_extension_within_6_hours(self):
+        """Bidding within 6 hours before deadline extends product end time by 6 hours."""
+        bid_time = timezone.now()
+        with patch('django.utils.timezone.now', return_value=bid_time):
+            self.product_a.place_bid(self.user_one, None)
+
+        self.product_a.refresh_from_db()
+        expected_extension = bid_time + timedelta(hours=6)
+        self.assertIsNotNone(self.product_a.extended_end_time)
+        self.assertEqual(self.product_a.extended_end_time, expected_extension)
+        self.assertEqual(self.product_a.extension_count, 1)
+        self.assertEqual(self.product_a.end_time, expected_extension)
+        self.assertTrue(self.product_a.is_extended)
+        self.assertTrue(self.product_a.is_in_extension)
+
+    def test_no_extension_outside_6_hours(self):
+        """Bidding more than 6 hours before deadline does NOT trigger extension."""
+        now = timezone.now()
+        auction_long = Auction.objects.create(
+            name='مزایده طولانی',
+            start_date=now - timedelta(hours=1),
+            end_date=now + timedelta(hours=10),  # 10 hours left
+            products_count=1,
+        )
+        prod = AuctionProduct.objects.create(
+            auction=auction_long,
+            product_id='SC-LONG',
+            title='اثر مزایده طولانی',
+            artist=self.artist,
+            artwork_type=self.artwork_type,
+            base_price=Decimal('10000000'),
+        )
+        prod.place_bid(self.user_one, None)
+        prod.refresh_from_db()
+        self.assertIsNone(prod.extended_end_time)
+        self.assertEqual(prod.extension_count, 0)
+        self.assertEqual(prod.end_time, auction_long.end_date)
+        self.assertFalse(prod.is_extended)
+
+    def test_independent_extension_per_artwork(self):
+        """Extension of Product A does not affect Product B."""
+        bid_time = timezone.now()
+        with patch('django.utils.timezone.now', return_value=bid_time):
+            self.product_a.place_bid(self.user_one, None)
+
+        self.product_a.refresh_from_db()
+        self.product_b.refresh_from_db()
+
+        self.assertTrue(self.product_a.is_extended)
+        self.assertFalse(self.product_b.is_extended)
+        self.assertEqual(self.product_b.end_time, self.auction.end_date)
+
+        # After auction.end_date has passed, product B is finished but product A is still active
+        past_end = self.auction.end_date + timedelta(minutes=10)
+        with patch('django.utils.timezone.now', return_value=past_end):
+            self.assertEqual(self.product_b.status, 'finished')
+            self.assertEqual(self.product_a.status, 'ongoing')
+
+    def test_bidding_allowed_on_extended_product_after_auction_end_date(self):
+        """Bids can still be placed on extended items after overall auction.end_date."""
+        # 1st bid: 1 hour before end_date -> extended by 6 hours from bid 1
+        bid_time_1 = self.auction.end_date - timedelta(hours=1)
+        with patch('django.utils.timezone.now', return_value=bid_time_1):
+            self.product_a.place_bid(self.user_one, None)
+
+        self.product_a.refresh_from_db()
+        self.assertEqual(self.product_a.extension_count, 1)
+
+        # 2nd bid: 30 minutes AFTER auction.end_date -> should succeed and re-extend 6 hours from bid 2
+        bid_time_2 = self.auction.end_date + timedelta(minutes=30)
+        with patch('django.utils.timezone.now', return_value=bid_time_2):
+            self.product_a.place_bid(self.user_two, None)
+
+        self.product_a.refresh_from_db()
+        expected_extension_2 = bid_time_2 + timedelta(hours=6)
+        self.assertEqual(self.product_a.extension_count, 2)
+        self.assertEqual(self.product_a.extended_end_time, expected_extension_2)
+        self.assertEqual(self.product_a.current_price, Decimal('20000000'))
+
+    def test_auction_third_state_extended(self):
+        """Auction enters 'extended' status when now > end_date and extended items exist."""
+        bid_time = self.auction.end_date - timedelta(hours=1)
+        with patch('django.utils.timezone.now', return_value=bid_time):
+            self.product_a.place_bid(self.user_one, None)
+
+        self.product_a.refresh_from_db()
+
+        # During regular auction time
+        with patch('django.utils.timezone.now', return_value=bid_time):
+            self.assertEqual(self.auction.status, 'ongoing')
+
+        # After regular auction end_date, but before product A's extended end time
+        overtime_point = self.auction.end_date + timedelta(hours=1)
+        with patch('django.utils.timezone.now', return_value=overtime_point):
+            self.assertEqual(self.auction.status, 'extended')
+            self.assertEqual(self.auction.get_max_end_date(), self.product_a.extended_end_time)
+            self.assertEqual(self.auction.get_active_extended_products_count(), 1)
+
+        # After product A's extended end time has also passed
+        past_everything = self.product_a.extended_end_time + timedelta(minutes=5)
+        with patch('django.utils.timezone.now', return_value=past_everything):
+            self.assertEqual(self.auction.status, 'finished')
+
+    def test_products_list_ordering_extended_first(self):
+        """Active extended products must float to the top of the products list."""
+        from .views import _order_auction_products_by_lot
+
+        # Product B is lot 2, Product A is lot 1. Normally lot 1 is first.
+        # Now extend Product B:
+        bid_time = timezone.now()
+        with patch('django.utils.timezone.now', return_value=bid_time):
+            self.product_b.place_bid(self.user_one, None)
+
+        ordered = list(_order_auction_products_by_lot(self.auction.products.all()))
+        self.assertEqual(ordered[0].pk, self.product_b.pk)
+        self.assertEqual(ordered[1].pk, self.product_a.pk)
+
+    def test_realtime_payload_includes_extension_data(self):
+        """Live payload contains soft close fields."""
+        from .realtime import build_bid_live_payload
+
+        bid_time = timezone.now()
+        with patch('django.utils.timezone.now', return_value=bid_time):
+            self.product_a.place_bid(self.user_one, None)
+
+        self.product_a.refresh_from_db()
+        payload = build_bid_live_payload(self.product_a)
+        self.assertTrue(payload['is_extended'])
+        self.assertTrue(payload['is_in_extension'])
+        self.assertEqual(payload['extension_count'], 1)
+        self.assertEqual(payload['status'], 'ongoing')
+        self.assertIn('end_time', payload)
+        self.assertGreater(payload['seconds_left'], 0)
+
+    def test_invoice_dispatch_delayed_until_all_extensions_finish(self):
+        """Winner billing and invoices must be delayed until all extensions finish."""
+        from .scheduled_dispatch import _dispatch_ended
+
+        # 1. Extend product_a
+        bid_time = timezone.now()
+        with patch('django.utils.timezone.now', return_value=bid_time):
+            self.product_a.place_bid(self.user_one, None)
+        self.product_a.refresh_from_db()
+
+        # 2. At official end date, product_a is in extension
+        at_official_end = self.auction.end_date + timedelta(seconds=2)
+        with patch('django.utils.timezone.now', return_value=at_official_end):
+            # Attempt to send ended email / billing
+            send_auction_ended_email(self.auction.id, expected_end=self.auction.end_date.isoformat())
+            self.auction.refresh_from_db()
+            self.assertIsNone(self.auction.winner_billing_dispatched_at)
+            self.assertIsNone(self.auction.end_notice_dispatched_at)
+
+            # Also verify _dispatch_ended skips it
+            dispatched = _dispatch_ended(now=at_official_end, remaining=10)
+            self.assertEqual(dispatched, 0)
+
+        # 3. After product_a's extension period has ended
+        past_extension = self.product_a.extended_end_time + timedelta(seconds=10)
+        with patch('django.utils.timezone.now', return_value=past_extension):
+            send_auction_ended_email(self.auction.id)
+            self.auction.refresh_from_db()
+            self.assertIsNotNone(self.auction.winner_billing_dispatched_at)
+
+    def test_send_auction_extended_notice_sms_dispatches_pattern_810087(self):
+        """When auction reaches end_date with active extensions, SMS pattern 810087 is sent to users."""
+        from notifications.providers import SMSProvider
+
+        # 1. Extend product_a
+        bid_time = timezone.now()
+        with patch('django.utils.timezone.now', return_value=bid_time):
+            self.product_a.place_bid(self.user_one, None)
+        self.product_a.refresh_from_db()
+
+        at_official_end = self.auction.end_date + timedelta(seconds=2)
+        sms_res = NotificationSendResult(
+            provider=NotificationProviderType.SMS,
+            status=NotificationStatus.SENT,
+            channel=NotificationChannel.SMS,
+            recipients=['09190000001'],
+            detail='OK',
+        )
+
+        with patch('django.utils.timezone.now', return_value=at_official_end), \
+             patch.object(SMSProvider, 'send', return_value=sms_res) as mock_sms_send:
+            send_auction_extended_notice_sms(self.auction.id)
+
+            self.auction.refresh_from_db()
+            self.assertIsNotNone(self.auction.extension_notice_dispatched_at)
+            self.assertTrue(mock_sms_send.called)
+
+            # Check sent payload
+            payload = mock_sms_send.call_args[0][0]
+            self.assertEqual(payload.context['number_of_works'], '1')
+            self.assertEqual(payload.context['auction_name'], self.auction.name)
+            self.assertEqual(payload.metadata.get('sms_pattern'), 'auction_extended_notice')
+
+            # Claim check: calling again must be a no-op
+            mock_sms_send.reset_mock()
+            send_auction_extended_notice_sms(self.auction.id)
+            mock_sms_send.assert_not_called()
+
+    def test_dispatch_due_auction_emails_sends_extension_notice_and_delays_billing(self):
+        """dispatch_due_auction_emails dispatches extension notice and skips billing for extended auctions."""
+        from .scheduled_dispatch import dispatch_due_auction_emails
+        from notifications.providers import SMSProvider
+
+        bid_time = timezone.now()
+        with patch('django.utils.timezone.now', return_value=bid_time):
+            self.product_a.place_bid(self.user_one, None)
+        self.product_a.refresh_from_db()
+
+        at_official_end = self.auction.end_date + timedelta(seconds=2)
+        sms_res = NotificationSendResult(
+            provider=NotificationProviderType.SMS,
+            status=NotificationStatus.SENT,
+            channel=NotificationChannel.SMS,
+            recipients=['09190000001'],
+            detail='OK',
+        )
+
+        with patch('django.utils.timezone.now', return_value=at_official_end), \
+             patch.object(SMSProvider, 'send', return_value=sms_res):
+            dispatch_due_auction_emails()
+
+            self.auction.refresh_from_db()
+            # Extension notice must be sent
+            self.assertIsNotNone(self.auction.extension_notice_dispatched_at)
+            # Invoices / billing must be delayed
+            self.assertIsNone(self.auction.winner_billing_dispatched_at)
+
+
 

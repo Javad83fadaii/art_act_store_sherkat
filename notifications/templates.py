@@ -510,6 +510,42 @@ def get_default_notification_templates() -> tuple[NotificationTemplate, ...]:
         )
     )
 
+    auction_extended_notice = NotificationTemplate(
+        key='auction_extended_notice',
+        default_providers=(
+            NotificationProviderType.SMS,
+            NotificationProviderType.EMAIL,
+        ),
+    )
+    auction_extended_notice_body = (
+        '{name} گرامی مزایده {auction_name} به پایان رسیده است، اما فرصت خرید برای {number_of_works} اثر/آثار تمدید شده و همچنان محیا است.\n'
+        'برای مشاهده اثر/آثار و ادامه رقابت، به صفحه مزایده در سایت حراج ماه مراجعه کنید.\n\n'
+        'با آرزوی موفقیت\n'
+        'حراج هنری ماه\n'
+        'Mahauction.com'
+    )
+    auction_extended_notice.register_channel(
+        NotificationChannelTemplate(
+            provider=NotificationProviderType.EMAIL,
+            subject_template='تمدید فرصت خرید آثار مزایده {auction_name}',
+            body_template=auction_extended_notice_body,
+        )
+    )
+    auction_extended_notice.register_channel(
+        NotificationChannelTemplate(
+            provider=NotificationProviderType.SMS,
+            metadata={
+                'sms_pattern': 'auction_extended_notice',
+            },
+            context_map={
+                'name': 'NAME',
+                'auction_name': 'AUCTION_NAME',
+                'number_of_works': 'NUMBER_OF_WORKS',
+            },
+            body_template=auction_extended_notice_body,
+        )
+    )
+
     return (
         verification,
         signup_welcome,
@@ -521,4 +557,5 @@ def get_default_notification_templates() -> tuple[NotificationTemplate, ...]:
         password_reset,
         new_user,
         new_user_title_case,
+        auction_extended_notice,
     )

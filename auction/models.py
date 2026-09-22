@@ -26,6 +26,11 @@ class Auction(models.Model):
     start_notice_dispatched_at = models.DateTimeField(null=True, blank=True)
     end_notice_dispatched_at = models.DateTimeField(null=True, blank=True)
     winner_billing_dispatched_at = models.DateTimeField(null=True, blank=True)
+    extension_notice_dispatched_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='زمان ارسال پیامک تمدید مزایده',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -38,6 +43,28 @@ class Auction(models.Model):
     def __str__(self):
         return self.name or f'Auction #{self.pk}'
 
+    def get_max_end_date(self):
+        if not self.pk:
+            return self.end_date
+        latest_extended = (
+            self.products.filter(extended_end_time__isnull=False)
+            .order_by('-extended_end_time')
+            .values_list('extended_end_time', flat=True)
+            .first()
+        )
+        if latest_extended and latest_extended > self.end_date:
+            return latest_extended
+        return self.end_date
+
+    def get_active_extended_products_count(self, now=None) -> int:
+        if not self.pk:
+            return 0
+        now = now or timezone.now()
+        cutoff = max(now, self.end_date)
+        return self.products.filter(
+            extended_end_time__gt=cutoff,
+        ).count()
+
     @property
     def status(self) -> str:
         now = timezone.now()
@@ -45,6 +72,8 @@ class Auction(models.Model):
             return 'ready'
         if self.start_date <= now <= self.end_date:
             return 'ongoing'
+        if self.get_active_extended_products_count(now) > 0:
+            return 'extended'
         return 'finished'
 
     @staticmethod
@@ -204,6 +233,17 @@ class AuctionProduct(models.Model):
     base_price = models.DecimalField(max_digits=15, decimal_places=0)
     current_price = models.DecimalField(max_digits=15, decimal_places=0, blank=True, null=True)
     price_description = models.CharField(max_length=255, blank=True, null=True, verbose_name='توضیحات قیمت')
+
+    extended_end_time = models.DateTimeField(
+        null=True,
+        blank=True,
+        db_index=True,
+        verbose_name='زمان پایان تمدید شده',
+    )
+    extension_count = models.PositiveIntegerField(
+        default=0,
+        verbose_name='تعداد دفعات تمدید',
+    )
 
     winner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -420,7 +460,28 @@ class AuctionProduct(models.Model):
 
     @property
     def end_time(self):
-        return self.auction.end_date
+        return self.extended_end_time or self.auction.end_date
+
+    @property
+    def is_extended(self) -> bool:
+        if not self.extended_end_time or not self.auction_id:
+            return False
+        return self.extended_end_time > self.auction.end_date
+
+    @property
+    def is_in_extension(self) -> bool:
+        """آیا در حال حاضر در وضعیت تمدید فعال است؟"""
+        now = timezone.now()
+        return bool(self.is_extended and now < self.end_time)
+
+    @property
+    def status(self) -> str:
+        now = timezone.now()
+        if now < self.auction.start_date:
+            return 'ready'
+        if now <= self.end_time:
+            return 'ongoing'
+        return 'finished'
 
     @property
     def medium(self):
@@ -471,8 +532,11 @@ class AuctionProduct(models.Model):
                 .get(pk=self.pk)
             )
 
-            if product.auction.status != 'ongoing':
-                raise ValidationError('مزایده در حال حاضر فعال نیست.')
+            now = timezone.now()
+            if now < product.auction.start_date:
+                raise ValidationError('مزایده هنوز آغاز نشده است.')
+            if now > product.end_time:
+                raise ValidationError('مهلت ثبت پیشنهاد برای این اثر به پایان رسیده است.')
 
             # ارزیابی مجدد حداقل پیشنهاد بر اساس پله جاری پس از اعمال قفل دیتابیس
             min_next = Decimal(str(product.get_min_next_bid()))
@@ -562,9 +626,24 @@ class AuctionProduct(models.Model):
                     is_active=True,
                 )
 
+            # منطق تمدید خودکار (Soft Close / Overtime):
+            # اگر در ۶ ساعت پایانی مانده به اتمام مزایده پیشنهادی روی اثری ثبت شد،
+            # زمان پایان همان محصول باید به مدت ۶ ساعت از لحظه ثبت بید تمدید شود.
+            time_remaining = product.end_time - now
+            soft_close_window = timezone.timedelta(hours=6)
+            soft_close_extension = timezone.timedelta(hours=6)
+
+            update_fields = ['current_price', 'winner', 'updated_at']
+            if time_remaining <= soft_close_window:
+                new_end_time = now + soft_close_extension
+                if not product.extended_end_time or new_end_time > product.extended_end_time:
+                    product.extended_end_time = new_end_time
+                    product.extension_count = (product.extension_count or 0) + 1
+                    update_fields.extend(['extended_end_time', 'extension_count'])
+
             product.current_price = bid_amount
             product.winner = bidder
-            product.save(update_fields=['current_price', 'winner'])
+            product.save(update_fields=update_fields)
 
             bidder.refresh_current_credit()
             if previous_bidder is not None:
