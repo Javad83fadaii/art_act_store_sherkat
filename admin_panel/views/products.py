@@ -799,9 +799,17 @@ def auction_list(request):
         if status in ['upcoming', 'ready']:
             products = products.filter(auction__start_date__gt=now)
         elif status in ['running', 'ongoing']:
-            products = products.filter(auction__start_date__lte=now, auction__end_date__gte=now)
+            products = products.filter(
+                Q(auction__start_date__lte=now) & (
+                    Q(extended_end_time__isnull=False, extended_end_time__gte=now)
+                    | Q(extended_end_time__isnull=True, auction__end_date__gte=now)
+                )
+            )
         elif status == 'finished':
-            products = products.filter(auction__end_date__lt=now)
+            products = products.filter(
+                Q(extended_end_time__isnull=False, extended_end_time__lt=now)
+                | Q(extended_end_time__isnull=True, auction__end_date__lt=now)
+            )
 
     search = request.GET.get('search')
     if search:
@@ -1041,8 +1049,16 @@ def auction_stats(request):
     # وضعیت محصولات بر اساس وضعیت مزایده‌هایشان محاسبه می‌شود
     now = timezone.now()
     ready_count = AuctionProduct.objects.filter(auction__start_date__gt=now).count()
-    ongoing_count = AuctionProduct.objects.filter(auction__start_date__lte=now, auction__end_date__gte=now).count()
-    finished_count = AuctionProduct.objects.filter(auction__end_date__lt=now).count()
+    ongoing_count = AuctionProduct.objects.filter(
+        Q(auction__start_date__lte=now) & (
+            Q(extended_end_time__isnull=False, extended_end_time__gte=now)
+            | Q(extended_end_time__isnull=True, auction__end_date__gte=now)
+        )
+    ).count()
+    finished_count = AuctionProduct.objects.filter(
+        Q(extended_end_time__isnull=False, extended_end_time__lt=now)
+        | Q(extended_end_time__isnull=True, auction__end_date__lt=now)
+    ).count()
 
     status_counts = [
         {'status': 'ready', 'count': ready_count},

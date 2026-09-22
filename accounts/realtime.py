@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
+from django.db.models import Q
 from django.template.loader import render_to_string
 from django.utils import timezone
 
@@ -62,15 +63,15 @@ def build_profile_live_context(user) -> dict:
 
     current_auction_cart_items = [
         item for item in auction_cart_items
-        if item.auction.end_date >= now
+        if item.product.end_time >= now
     ]
     active_cart_items = [
         item for item in auction_cart_items
-        if item.is_active and item.auction.start_date <= now <= item.auction.end_date
+        if item.is_active and item.auction.start_date <= now <= item.product.end_time
     ]
     past_auction_cart_items = [
         item for item in auction_cart_items
-        if item.auction.end_date < now
+        if item.product.end_time < now
     ]
     reserved_credit = sum(
         (item.reserved_amount for item in active_cart_items),
@@ -83,11 +84,18 @@ def build_profile_live_context(user) -> dict:
         .select_related('artwork__artist')
         .order_by('-created_at', '-pk')
     )
-    auction_purchases = list(
-        live_user.won_auction_products.filter(auction__end_date__lt=now)
-        .select_related('artist', 'auction')
-        .order_by('-auction__end_date', '-pk')
-    )
+    auction_purchases = [
+        purchase for purchase in (
+            live_user.won_auction_products
+            .filter(
+                Q(extended_end_time__isnull=False, extended_end_time__lt=now)
+                | Q(extended_end_time__isnull=True, auction__end_date__lt=now)
+            )
+            .select_related('artist', 'auction')
+            .order_by('-auction__end_date', '-pk')
+        )
+        if purchase.end_time < now and not purchase.is_in_extension and purchase.status == 'finished'
+    ]
     for purchase in auction_purchases:
         purchase.detail_access_token = build_winner_access_token(
             user_id=live_user.pk,

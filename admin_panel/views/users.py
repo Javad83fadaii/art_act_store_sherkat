@@ -1142,9 +1142,10 @@ def user_cart_bids_summary_api(request, pk):
             })
 
     active_cart_items = cart_items.filter(
+        Q(product__extended_end_time__isnull=False, product__extended_end_time__gte=now)
+        | Q(product__extended_end_time__isnull=True, auction__end_date__gte=now),
         is_active=True,
         auction__start_date__lte=now,
-        auction__end_date__gte=now,
     )
     active_count = active_cart_items.count()
     reserved_total_amount = sum(
@@ -1201,10 +1202,11 @@ def user_reserved_products_api(request, pk):
     cart_items = (
         AuctionCartItem.objects
         .filter(
+            Q(product__extended_end_time__isnull=False, product__extended_end_time__gte=now)
+            | Q(product__extended_end_time__isnull=True, auction__end_date__gte=now),
             user=user,
             is_active=True,
             auction__start_date__lte=now,
-            auction__end_date__gte=now,
         )
         .select_related('auction', 'product', 'bid')
         .order_by('-created_at')

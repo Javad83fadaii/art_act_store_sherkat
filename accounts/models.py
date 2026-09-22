@@ -134,14 +134,18 @@ class CustomUser(AbstractUser):
 
         AuctionCartItem = apps.get_model('auction', 'AuctionCartItem')
         now = timezone.now()
+        active_filter = (
+            models.Q(product__extended_end_time__isnull=False, product__extended_end_time__gte=now)
+            | models.Q(product__extended_end_time__isnull=True, auction__end_date__gte=now)
+        )
         reserved_total = (
             AuctionCartItem.objects
             .filter(
                 user_id=self.pk,
                 is_active=True,
                 auction__start_date__lte=now,
-                auction__end_date__gte=now,
             )
+            .filter(active_filter)
             .aggregate(total=models.Sum('reserved_amount'))
             .get('total')
         )

@@ -177,7 +177,10 @@ class AuctionBidCreditFlowTests(TestCase):
 
     def test_finished_auction_releases_reserved_credit(self):
         self.product.place_bid(self.user_one, '20000000')
-        self.auction.end_date = timezone.now() - timedelta(seconds=1)
+        now_ended = timezone.now() - timedelta(seconds=1)
+        self.product.extended_end_time = now_ended
+        self.product.save(update_fields=['extended_end_time'])
+        self.auction.end_date = now_ended
         self.auction.save(update_fields=['end_date'])
 
         self.user_one.refresh_current_credit()
@@ -382,7 +385,10 @@ class AuctionBidCreditFlowTests(TestCase):
 
     def test_finished_auction_moves_won_product_to_auction_purchases(self):
         self.product.place_bid(self.user_one, '20000000')
-        self.auction.end_date = timezone.now() - timedelta(seconds=1)
+        now_ended = timezone.now() - timedelta(seconds=1)
+        self.product.extended_end_time = now_ended
+        self.product.save(update_fields=['extended_end_time'])
+        self.auction.end_date = now_ended
         self.auction.save(update_fields=['end_date'])
         self.client.force_login(self.user_one)
 
@@ -394,9 +400,51 @@ class AuctionBidCreditFlowTests(TestCase):
         self.assertContains(response, 'مزایده‌های گذشته')
         self.assertContains(response, 'این محصول به بخش خریدهای مزایده شما منتقل شده است.')
 
+    def test_extended_auction_keeps_reserved_credit_and_stays_in_cart(self):
+        self.product.place_bid(self.user_one, '20000000')
+        # پایان رسمی مزایده سپری شده است
+        self.auction.end_date = timezone.now() - timedelta(seconds=1)
+        self.auction.save(update_fields=['end_date'])
+        # اما اثر تمدید شده و همچنان فعال است
+        self.product.extended_end_time = timezone.now() + timedelta(hours=5)
+        self.product.save(update_fields=['extended_end_time'])
+
+        self.user_one.refresh_current_credit()
+        self.user_one.refresh_from_db()
+
+        # ۱. منطق اعتبار و کیف پول باید دقیقا مثل مزایده در حال اجرا باشد
+        self.assertEqual(self.user_one.get_reserved_auction_credit(), Decimal('20000000'))
+        self.assertEqual(self.user_one.current_credit, Decimal('80000000'))
+
+        # ۲. در پروفایل باید در سبد خرید باشد، نه در خریدهای مزایده
+        self.client.force_login(self.user_one)
+        response = self.client.get(reverse('profile'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'سبد خرید مزایده')
+        self.assertContains(response, 'تمدید شده')
+        self.assertNotContains(response, 'این محصول به بخش خریدهای مزایده شما منتقل شده است.')
+        self.assertEqual(len(response.context['current_auction_cart_items']), 1)
+        self.assertEqual(len(response.context['auction_purchases']), 0)
+
+        # ۳. ثبت درخواست افزایش اعتبار در زمان تمدید فعال باشد
+        credit_resp = self.client.post(
+            reverse('auction:submit_credit_increase_ajax'),
+            {},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+        self.assertEqual(credit_resp.status_code, 200)
+        credit_data = credit_resp.json()
+        self.assertTrue(credit_data['success'])
+        latest_req = CreditIncreaseRequest.objects.filter(user=self.user_one).first()
+        self.assertIsNotNone(latest_req)
+        self.assertEqual(latest_req.current_credit, Decimal('80000000'))
+
     def test_profile_separates_store_purchases_from_auction_purchases(self):
         self.product.place_bid(self.user_one, '20000000')
-        self.auction.end_date = timezone.now() - timedelta(seconds=1)
+        now_ended = timezone.now() - timedelta(seconds=1)
+        self.product.extended_end_time = now_ended
+        self.product.save(update_fields=['extended_end_time'])
+        self.auction.end_date = now_ended
         self.auction.save(update_fields=['end_date'])
 
         store_artwork = Artwork.objects.create(
