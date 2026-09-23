@@ -88,7 +88,9 @@
                         <span class="material-symbols-outlined">chevron_right</span>
                     </button>
 
-                    <img id="gallery-main-img" src="" class="max-h-[78vh] max-w-full object-contain shadow-2xl rounded-xl bg-black/40 select-none touch-none cursor-zoom-in" alt="Gallery View">
+                    <div id="gallery-zoom-viewport" class="relative flex h-full w-full items-center justify-center overflow-hidden rounded-xl touch-none select-none">
+                        <img id="gallery-main-img" src="" class="max-h-[78vh] max-w-full object-contain shadow-2xl rounded-xl bg-black/40 select-none touch-none cursor-zoom-in will-change-transform" alt="Gallery View">
+                    </div>
 
                     <button type="button" onclick="changeGalleryImage(1)" class="absolute left-2 sm:left-3 size-12 rounded-full flex items-center justify-center bg-white/10 hover:bg-white/20 text-white backdrop-blur-md z-50">
                         <span class="material-symbols-outlined">chevron_left</span>
@@ -566,19 +568,32 @@
                 pointerId: null,
                 baseW: 0,
                 baseH: 0,
+                viewportW: 0,
+                viewportH: 0,
+                pointers: new Map(),
+                pinchDistance: 0,
+                pinchMidpoint: null,
             };
 
             const getGalleryModal = () => document.getElementById('gallery-modal');
             const getGalleryImg = () => document.getElementById('gallery-main-img');
+            const getGalleryViewport = () => document.getElementById('gallery-zoom-viewport');
 
             const updateBaseSize = () => {
                 const img = getGalleryImg();
+                const viewport = getGalleryViewport();
                 if (!img) return;
                 const w = img.clientWidth;
                 const h = img.clientHeight;
                 if (w > 0 && h > 0) {
                     galleryState.baseW = w;
                     galleryState.baseH = h;
+                }
+                if (viewport) {
+                    const viewportW = viewport.clientWidth;
+                    const viewportH = viewport.clientHeight;
+                    if (viewportW > 0) galleryState.viewportW = viewportW;
+                    if (viewportH > 0) galleryState.viewportH = viewportH;
                 }
             };
 
@@ -590,18 +605,51 @@
                 }
                 const w = galleryState.baseW || 0;
                 const h = galleryState.baseH || 0;
-                const maxX = w > 0 ? (w * (galleryState.scale - 1)) / 2 : 0;
-                const maxY = h > 0 ? (h * (galleryState.scale - 1)) / 2 : 0;
+                const viewportW = galleryState.viewportW || w;
+                const viewportH = galleryState.viewportH || h;
+                const scaledW = w * galleryState.scale;
+                const scaledH = h * galleryState.scale;
+                const maxX = Math.max(0, (scaledW - viewportW) / 2);
+                const maxY = Math.max(0, (scaledH - viewportH) / 2);
                 galleryState.x = Math.max(-maxX, Math.min(maxX, galleryState.x));
                 galleryState.y = Math.max(-maxY, Math.min(maxY, galleryState.y));
             };
 
             const applyGalleryTransform = () => {
                 const img = getGalleryImg();
+                const viewport = getGalleryViewport();
                 if (!img) return;
                 img.style.transformOrigin = 'center center';
                 img.style.transform = `translate3d(${galleryState.x}px, ${galleryState.y}px, 0) scale(${galleryState.scale})`;
                 img.style.cursor = galleryState.scale > 1 ? (galleryState.drag ? 'grabbing' : 'grab') : 'zoom-in';
+                if (viewport) {
+                    viewport.style.cursor = galleryState.scale > 1 ? (galleryState.drag ? 'grabbing' : 'grab') : 'default';
+                }
+            };
+
+            const getLocalPoint = (clientX, clientY) => {
+                const viewport = getGalleryViewport();
+                if (!viewport) return { x: 0, y: 0 };
+                const rect = viewport.getBoundingClientRect();
+                return {
+                    x: clientX - (rect.left + rect.width / 2),
+                    y: clientY - (rect.top + rect.height / 2),
+                };
+            };
+
+            const zoomGalleryTo = (nextScale, focusX = 0, focusY = 0) => {
+                if (!Number.isFinite(nextScale)) return;
+                updateBaseSize();
+                const previousScale = galleryState.scale;
+                const clampedScale = Math.max(1, Math.min(6, nextScale));
+                if (clampedScale === previousScale) return;
+
+                const scaleRatio = clampedScale / previousScale;
+                galleryState.x = focusX - (focusX - galleryState.x) * scaleRatio;
+                galleryState.y = focusY - (focusY - galleryState.y) * scaleRatio;
+                galleryState.scale = clampedScale;
+                clampPan();
+                applyGalleryTransform();
             };
 
             window.resetGalleryZoom = function() {
@@ -610,6 +658,9 @@
                 galleryState.y = 0;
                 galleryState.drag = false;
                 galleryState.pointerId = null;
+                galleryState.pointers.clear();
+                galleryState.pinchDistance = 0;
+                galleryState.pinchMidpoint = null;
                 updateBaseSize();
                 applyGalleryTransform();
             };
@@ -621,19 +672,13 @@
             window.galleryZoomBy = function(factor) {
                 const f = Number(factor);
                 if (!Number.isFinite(f) || f <= 0) return;
-                updateBaseSize();
-                const next = Math.max(1, Math.min(4, galleryState.scale * f));
-                const ratio = next / galleryState.scale;
-                galleryState.scale = next;
-                galleryState.x *= ratio;
-                galleryState.y *= ratio;
-                clampPan();
-                applyGalleryTransform();
+                zoomGalleryTo(galleryState.scale * f);
             };
 
             const bindGalleryZoom = () => {
                 const img = getGalleryImg();
-                if (!img || img.dataset.zoomBound === '1') return;
+                const viewport = getGalleryViewport();
+                if (!img || !viewport || img.dataset.zoomBound === '1') return;
                 img.dataset.zoomBound = '1';
 
                 img.addEventListener('load', () => {
@@ -643,51 +688,115 @@
                 img.addEventListener('dblclick', (e) => {
                     e.preventDefault();
                     if (galleryState.scale <= 1) {
-                        window.galleryZoomBy(2);
+                        const point = getLocalPoint(e.clientX, e.clientY);
+                        zoomGalleryTo(2, point.x, point.y);
                     } else {
                         window.resetGalleryZoom();
                     }
                 });
 
-                img.addEventListener('wheel', (e) => {
+                viewport.addEventListener('wheel', (e) => {
                     const modal = getGalleryModal();
                     if (!modal || modal.classList.contains('hidden')) return;
                     e.preventDefault();
                     const direction = e.deltaY > 0 ? 1 / 1.15 : 1.15;
-                    window.galleryZoomBy(direction);
+                    const point = getLocalPoint(e.clientX, e.clientY);
+                    zoomGalleryTo(galleryState.scale * direction, point.x, point.y);
                 }, { passive: false });
 
-                img.addEventListener('pointerdown', (e) => {
+                viewport.addEventListener('pointerdown', (e) => {
+                    galleryState.pointers.set(e.pointerId, { clientX: e.clientX, clientY: e.clientY });
+
+                    if (galleryState.pointers.size === 2) {
+                        const points = Array.from(galleryState.pointers.values());
+                        const first = points[0];
+                        const second = points[1];
+                        galleryState.drag = false;
+                        galleryState.pointerId = null;
+                        galleryState.pinchDistance = Math.hypot(second.clientX - first.clientX, second.clientY - first.clientY);
+                        galleryState.pinchMidpoint = getLocalPoint(
+                            (first.clientX + second.clientX) / 2,
+                            (first.clientY + second.clientY) / 2
+                        );
+                        return;
+                    }
+
                     if (galleryState.scale <= 1) return;
+                    if (e.pointerType === 'mouse' && e.button !== 0) return;
+
+                    e.preventDefault();
                     galleryState.drag = true;
                     galleryState.pointerId = e.pointerId;
                     galleryState.startX = e.clientX - galleryState.x;
                     galleryState.startY = e.clientY - galleryState.y;
                     try {
-                        img.setPointerCapture(e.pointerId);
+                        viewport.setPointerCapture(e.pointerId);
                     } catch (_) {
                     }
                     applyGalleryTransform();
                 });
 
-                img.addEventListener('pointermove', (e) => {
+                viewport.addEventListener('pointermove', (e) => {
+                    if (galleryState.pointers.has(e.pointerId)) {
+                        galleryState.pointers.set(e.pointerId, { clientX: e.clientX, clientY: e.clientY });
+                    }
+
+                    if (galleryState.pointers.size === 2) {
+                        e.preventDefault();
+                        const points = Array.from(galleryState.pointers.values());
+                        const first = points[0];
+                        const second = points[1];
+                        const distance = Math.hypot(second.clientX - first.clientX, second.clientY - first.clientY);
+                        if (distance > 0 && galleryState.pinchDistance > 0) {
+                            const midpoint = getLocalPoint(
+                                (first.clientX + second.clientX) / 2,
+                                (first.clientY + second.clientY) / 2
+                            );
+                            const previousMidpoint = galleryState.pinchMidpoint || midpoint;
+                            zoomGalleryTo(galleryState.scale * (distance / galleryState.pinchDistance), midpoint.x, midpoint.y);
+                            galleryState.x += midpoint.x - previousMidpoint.x;
+                            galleryState.y += midpoint.y - previousMidpoint.y;
+                            clampPan();
+                            applyGalleryTransform();
+                            galleryState.pinchDistance = distance;
+                            galleryState.pinchMidpoint = midpoint;
+                        }
+                        return;
+                    }
+
                     if (!galleryState.drag) return;
                     if (galleryState.pointerId !== null && e.pointerId !== galleryState.pointerId) return;
+                    e.preventDefault();
                     galleryState.x = e.clientX - galleryState.startX;
                     galleryState.y = e.clientY - galleryState.startY;
                     clampPan();
                     applyGalleryTransform();
                 });
 
-                const endDrag = () => {
-                    galleryState.drag = false;
-                    galleryState.pointerId = null;
+                const endInteraction = (e) => {
+                    galleryState.pointers.delete(e.pointerId);
+
+                    if (galleryState.pointerId === e.pointerId) {
+                        galleryState.drag = false;
+                        galleryState.pointerId = null;
+                    }
+
+                    if (galleryState.pointers.size < 2) {
+                        galleryState.pinchDistance = 0;
+                        galleryState.pinchMidpoint = null;
+                    }
+
                     applyGalleryTransform();
                 };
 
-                img.addEventListener('pointerup', endDrag);
-                img.addEventListener('pointercancel', endDrag);
-                img.addEventListener('pointerleave', endDrag);
+                viewport.addEventListener('pointerup', endInteraction);
+                viewport.addEventListener('pointercancel', endInteraction);
+                viewport.addEventListener('lostpointercapture', endInteraction);
+                window.addEventListener('resize', () => {
+                    updateBaseSize();
+                    clampPan();
+                    applyGalleryTransform();
+                });
             };
 
             bindGalleryZoom();
