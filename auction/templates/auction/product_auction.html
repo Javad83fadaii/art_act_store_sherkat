@@ -145,7 +145,7 @@
 
                     <div class="w-full h-full bg-contain bg-center bg-no-repeat bg-white transition-opacity duration-300 cursor-pointer"
                         id="product-main-image" data-alt="{{ auction.title|fa_digits }}"
-                        style="background-image: url('{{ auction.main_image_url }}');"
+                        style="background-image: url('{{ auction.gallery_images|first }}');"
                         onclick="openGalleryModal(currentGalleryIndex)">
                     </div>
 
@@ -158,7 +158,7 @@
                     {% if auction.model_360_url %}
                     <div id="product-360-view"
                         class="hidden absolute inset-0 bg-white flex items-center justify-center select-none overflow-hidden">
-                        <model-viewer src="{{ auction.model_360_url }}" poster="{{ auction.main_image_url }}"
+                        <model-viewer src="{{ auction.model_360_url }}" poster="{{ auction.gallery_images|first }}"
                             alt="360 View" camera-controls touch-action="pan-y" exposure="1" shadow-intensity="1"
                             class="w-full h-full"></model-viewer>
                         <div class="absolute bottom-6 inset-x-0 text-center pointer-events-none">
