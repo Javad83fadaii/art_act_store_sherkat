@@ -19,4 +19,6 @@ urlpatterns = [
     # ثبت سفارش و رزرو (API)
     path('artwork/<int:pk>/reserve/', views.reserve_artwork, name='reserve_artwork'),
     path('telegram/purchase-webhook/', views.telegram_purchase_webhook, name='telegram_purchase_webhook'),
+    # دریافت نسخه دقیق OS از Client Hints مرورگر
+    path('client-hints/', views.update_client_hints, name='client_hints'),
 ]

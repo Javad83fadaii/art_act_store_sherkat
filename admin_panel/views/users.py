@@ -117,6 +117,7 @@ def _build_auth_activity_entry(activity):
 def _build_site_visit_entry(log):
     duration_min = getattr(log, 'duration_in_minutes', 0)
     is_closed = bool(getattr(log, 'is_closed', False))
+    operating_system = getattr(log, 'operating_system', '') or ''
     return {
         'source': 'visit',
         'source_label': 'حضور در سایت',
@@ -131,6 +132,7 @@ def _build_site_visit_entry(log):
         'start_time': _safe_iso(log.start_time),
         'last_activity': _safe_iso(log.last_activity),
         'duration_min': duration_min,
+        'operating_system': operating_system,
         'session_key': log.session_key or '',
         'session_key_short': _short_session_key(log.session_key),
         'is_closed': is_closed,
@@ -248,6 +250,7 @@ def history_api_view(request, pk):
             'session_key': log.session_key,
             'session_key_short': _short_session_key(log.session_key),
             'ip': log.ip_address or 'نامشخص',
+            'operating_system': getattr(log, 'operating_system', '') or '',
             'start_time': _safe_iso(log.start_time),
             'last_activity': _safe_iso(log.last_activity),
             'duration_min': getattr(log, 'duration_in_minutes', 0),
@@ -843,6 +846,7 @@ def global_site_visits_api_view(request):
             'user_display': user_display,
             'user_id': user_id,
             'ip_address': log.ip_address or 'نامشخص',
+            'operating_system': getattr(log, 'operating_system', '') or '',
             'start_time': log.start_time.isoformat() if log.start_time else None,
             'last_activity': log.last_activity.isoformat() if log.last_activity else None,
             'duration_minutes': duration,

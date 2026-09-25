@@ -432,6 +432,68 @@
     <!-- JS Files -->
     <script src="{% static 'js/notifications.js' %}"></script>
     <script src="{% static 'js/app.js' %}"></script>
+    <script>
+        /* تشخیص دقیق سیستم‌عامل (Client Hints) — اینلاین تا بدون نیاز به collectstatic اجرا شود.
+         * مشکل: کروم جدید User-Agent را فریز می‌کند (اندروید همیشه «Android 10; K»،
+         * ویندوز همیشه «NT 10.0») و نسخه واقعی فقط از navigator.userAgentData خوانده می‌شود. */
+        (function () {
+            'use strict';
+            function setCookie(name, value, days) {
+                try {
+                    if (!value) return;
+                    var expires = '';
+                    if (days) {
+                        var d = new Date();
+                        d.setTime(d.getTime() + days * 24 * 60 * 60 * 1000);
+                        expires = '; expires=' + d.toUTCString();
+                    }
+                    document.cookie = name + '=' + encodeURIComponent(value) + expires + '; path=/; SameSite=Lax';
+                } catch (_) {}
+            }
+            function sendToServer(data) {
+                try {
+                    var url = '/store/client-hints/';
+                    var payload = JSON.stringify(data);
+                    if (navigator.sendBeacon) {
+                        var blob = new Blob([payload], { type: 'application/json' });
+                        if (navigator.sendBeacon(url, blob)) return;
+                    }
+                    fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: payload,
+                        keepalive: true,
+                        credentials: 'same-origin'
+                    }).catch(function () {});
+                } catch (_) {}
+            }
+            function run() {
+                try {
+                    var uda = navigator.userAgentData;
+                    if (!uda || typeof uda.getHighEntropyValues !== 'function') return;
+                    // فقط یک‌بار در هر نشست: هزینه ناچیز، دقت همیشگی
+                    try {
+                        if (sessionStorage.getItem('ch_os_sent_v1') === '1') return;
+                    } catch (_) {}
+                    uda.getHighEntropyValues(['platform', 'platformVersion', 'model'])
+                        .then(function (v) {
+                            if (!v || (!v.platform && !v.platformVersion)) return;
+                            setCookie('ch_platform', v.platform || '', 30);
+                            setCookie('ch_platform_version', v.platformVersion || '', 30);
+                            if (v.model) setCookie('ch_model', v.model, 30);
+                            try { sessionStorage.setItem('ch_os_sent_v1', '1'); } catch (_) {}
+                            sendToServer({ platform: v.platform || '', platformVersion: v.platformVersion || '', model: v.model || '' });
+                        })
+                        .catch(function () {});
+                } catch (_) {}
+            }
+            if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                setTimeout(run, 0);
+            } else {
+                document.addEventListener('DOMContentLoaded', run);
+            }
+        })();
+    </script>
 
     {% if messages %}
     {% comment %}

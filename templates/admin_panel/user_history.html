@@ -926,10 +926,11 @@ function renderActivityTimelineCard(item, index, page) {
     const metaParts = isVisit
         ? [
             `IP: ${escapeHtml(item.ip || 'نامشخص')}`,
+            item.operating_system ? `سیستم عامل: ${escapeHtml(item.operating_system)}` : '',
             `شروع: ${escapeHtml(formatDate(item.start_time))}`,
             `مدت: ${escapeHtml(formatNumber(item.duration_min || 0))} دقیقه`,
             `نشست: ${escapeHtml(item.session_key_short || '-')}`
-        ]
+        ].filter(Boolean)
         : [
             `نوع رویداد: ${escapeHtml(item.event_label || '-')}`,
             item.details ? `جزئیات: ${escapeHtml(item.details)}` : ''

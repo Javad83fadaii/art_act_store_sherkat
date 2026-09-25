@@ -20,6 +20,7 @@ from django.utils import timezone
 from core.notification_messages import get_notification
 from core.utils import send_admin_notification, invalidate_cache
 from .models import Artwork, ArtworkType, ProductLike, TelegramPurchaseRequest, PurchaseHistory, SiteVisitLog
+from .user_agents import ACCEPT_CH_HEADER, detect_operating_system, detect_operating_system_from_request, should_replace_operating_system
 
 logger = logging.getLogger(__name__)
 
@@ -411,6 +412,7 @@ class ArtworkDetailView(DetailView):
             ip_address = request.META.get('REMOTE_ADDR')
 
         user = request.user if request.user.is_authenticated else None
+        operating_system = detect_operating_system_from_request(request)
 
         # ثبت و بروزرسانی لاگ نشست و حضور در سایت
         if not request.session.session_key:
@@ -428,17 +430,25 @@ class ArtworkDetailView(DetailView):
             site_log.ip_address = ip_address 
             if user and not site_log.user:
                 site_log.user = user
-            site_log.save(update_fields=['last_activity', 'user', 'ip_address'])
+            # هرگز مقدار دقیق را با مقدار فریز/مبهم برنگردان
+            if should_replace_operating_system(site_log.operating_system, operating_system):
+                site_log.operating_system = operating_system
+            site_log.save(update_fields=['last_activity', 'user', 'ip_address', 'operating_system'])
         else:
             # اگر هیچ لاگی یافت نشد، یک رکورد جدید ایجاد می‌کنیم
             SiteVisitLog.objects.create(
                 session_key=session_key,
                 user=user,
                 ip_address=ip_address,
+                operating_system=operating_system or None,
                 start_time=timezone.now(),
                 last_activity=timezone.now()
             )
 
+        try:
+            response["Accept-CH"] = ACCEPT_CH_HEADER
+        except Exception:
+            pass
         return response
 
     def get_context_data(self, **kwargs):
@@ -599,3 +609,63 @@ def reserve_artwork(request, pk):
         'success': True,
         'message': get_notification('store.reserve.success')
     })
+
+
+@csrf_exempt
+@require_POST
+def update_client_hints(request):
+    """دریافت نسخه دقیق OS از JS (navigator.userAgentData) و اصلاح لاگ نشست جاری.
+
+    مرورگرهای جدید User-Agent را فریز می‌کنند (اندروید همیشه 10، ویندوز همیشه NT 10.0)
+    و نسخه واقعی فقط از طریق Client Hints با getHighEntropyValues در دسترس است.
+    این endpoint همان مقادیر را می‌گیرد و رکورد SiteVisitLog را دقیق می‌کند.
+    """
+    try:
+        try:
+            payload = json.loads(request.body.decode("utf-8") or "{}")
+        except Exception:
+            payload = {}
+        if not isinstance(payload, dict):
+            payload = {}
+
+        platform = str(payload.get("platform") or "").strip()
+        platform_version = str(payload.get("platformVersion") or payload.get("platform_version") or "").strip()
+        model = str(payload.get("model") or "").strip()
+
+        # fallback از هدرها هم بخوان
+        if not platform:
+            platform = request.META.get("HTTP_SEC_CH_UA_PLATFORM", "") or ""
+        if not platform_version:
+            platform_version = request.META.get("HTTP_SEC_CH_UA_PLATFORM_VERSION", "") or ""
+
+        user_agent = request.META.get("HTTP_USER_AGENT", "")
+        operating_system = detect_operating_system(
+            user_agent,
+            platform=platform,
+            platform_version=platform_version,
+            model=model,
+        )
+
+        if not request.session.session_key:
+            request.session.create()
+        session_key = request.session.session_key
+
+        updated = ""
+        if operating_system:
+            logs = SiteVisitLog.objects.filter(session_key=session_key, is_closed=False).order_by("-last_activity")
+            for log in logs:
+                if should_replace_operating_system(log.operating_system, operating_system):
+                    log.operating_system = operating_system
+                    log.save(update_fields=["operating_system"])
+            latest = logs.first()
+            updated = latest.operating_system if latest else operating_system
+
+        response = JsonResponse({"success": True, "operating_system": updated or operating_system})
+        try:
+            response["Accept-CH"] = ACCEPT_CH_HEADER
+        except Exception:
+            pass
+        return response
+    except Exception as exc:  # سکوت: نباید تجربه کاربر خراب شود
+        logger.warning("update_client_hints failed: %s", exc)
+        return JsonResponse({"success": False}, status=400)

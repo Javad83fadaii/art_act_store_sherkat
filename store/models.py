@@ -328,6 +328,7 @@ class SiteVisitLog(models.Model):
     session_key = models.CharField(max_length=40, verbose_name="شناسه نشست (Session)")
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="کاربر (در صورت لاگین)")
     ip_address = models.GenericIPAddressField(null=True, blank=True, verbose_name="آدرس IP")
+    operating_system = models.CharField(max_length=120, null=True, blank=True, verbose_name="سیستم عامل")
     
     start_time = models.DateTimeField(default=timezone.now, verbose_name="زمان ورود")
     last_activity = models.DateTimeField(default=timezone.now, verbose_name="آخرین فعالیت")
