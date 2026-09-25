@@ -64,7 +64,118 @@
                 </span>
             </div>
 
-            {% if auction_purchases %}
+            {% if auction_purchase_groups %}
+                <div class="space-y-4">
+                    {% for group in auction_purchase_groups %}
+                        <div class="rounded-2xl border border-white/40 dark:border-gray-600/30 bg-white/20 dark:bg-gray-800/20 backdrop-blur-sm overflow-hidden shadow-sm transition-all duration-300 hover:border-white/60 dark:hover:border-gray-500/50">
+                            <!-- سربرگ کارت مزایده (کلیک برای باز/بسته شدن آکاردئون) -->
+                            <div class="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer select-none bg-white/30 dark:bg-gray-800/30 hover:bg-white/50 dark:hover:bg-gray-700/40 transition-colors" data-auction-toggle="auction-group-items-{{ group.auction.pk|default:forloop.counter }}-{{ forloop.counter }}" onclick="if (!event.target.closest('a') && !event.target.closest('button.no-toggle')) { const target = document.getElementById(this.getAttribute('data-auction-toggle')); if (target) { target.classList.toggle('hidden'); const ch = this.querySelector('[data-auction-chevron]'); if (ch) ch.classList.toggle('rotate-180'); } }">
+                                <div class="flex items-center gap-3.5 min-w-0">
+                                    <div class="w-11 h-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20 shadow-sm">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <h4 class="font-bold text-sm text-gray-900 dark:text-white truncate">
+                                                {{ group.auction.name|default:"مزایده"|fa_digits }}
+                                            </h4>
+                                            {% if group.invoice %}
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary border border-primary/20">
+                                                    شماره {{ group.invoice.invoice_number|fa_digits }}
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="flex flex-wrap items-center gap-2.5 text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                            <span>تاریخ: {{ group.auction.end_date|to_jalali:'%Y/%m/%d'|fa_digits }}</span>
+                                            <span class="text-gray-400">•</span>
+                                            <span class="font-bold text-gray-700 dark:text-gray-300">{{ group.items_count|fa_digits }} اثر برنده شده</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="flex flex-wrap items-center justify-between sm:justify-end gap-3 pt-3 sm:pt-0 border-t sm:border-t-0 border-white/20 dark:border-gray-700/30 w-full sm:w-auto">
+                                    <div class="text-right sm:text-left pl-2">
+                                        <div class="text-[10px] font-medium text-gray-500 dark:text-gray-400">جمع کل قابل پرداخت:</div>
+                                        <div class="text-sm font-black text-emerald-700 dark:text-emerald-300">
+                                            {{ group.total_with_tax|fa_price }} تومان
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center gap-2">
+                                        {% if group.invoice %}
+                                            <a href="{% url 'auction:invoice_pdf' group.invoice.pk %}" onclick="event.stopPropagation()" download class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-primary text-white hover:bg-primary-dark shadow-sm transition-all duration-200 hover:scale-[1.02] shrink-0" title="دانلود فایل PDF فاکتور">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                                <span>دانلود فاکتور</span>
+                                            </a>
+                                        {% else %}
+                                            <a href="{% url 'auction:auction_user_invoice_pdf' group.auction.pk %}" onclick="event.stopPropagation()" download class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-primary text-white hover:bg-primary-dark shadow-sm transition-all duration-200 hover:scale-[1.02] shrink-0" title="دانلود فایل PDF فاکتور">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                                <span>دانلود فاکتور</span>
+                                            </a>
+                                        {% endif %}
+
+                                        <button type="button" class="w-8 h-8 rounded-xl bg-white/40 dark:bg-gray-700/50 flex items-center justify-center text-gray-700 dark:text-gray-200 pointer-events-none transition-transform duration-300" aria-label="مشاهده ریز محصولات">
+                                            <svg class="w-4 h-4 transition-transform duration-300" data-auction-chevron fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- بخش آکاردئونی ریز محصولات -->
+                            <div id="auction-group-items-{{ group.auction.pk|default:forloop.counter }}-{{ forloop.counter }}" class="hidden border-t border-white/30 dark:border-gray-700/40 p-3 sm:p-4 bg-white/10 dark:bg-gray-900/10 space-y-3">
+                                <div class="space-y-2">
+                                    {% for purchase in group.items %}
+                                        <a href="{% url 'auction:auction_product_detail' purchase.pk %}?access_token={{ purchase.detail_access_token|urlencode }}" class="flex flex-col sm:flex-row sm:items-center gap-3 p-2.5 bg-white/30 dark:bg-gray-800/30 hover:bg-white/50 dark:hover:bg-gray-700/50 border border-white/20 dark:border-gray-700/30 rounded-xl transition duration-200" data-track-visit="1" data-track-kind="auction_product" data-track-id="{{ purchase.pk }}">
+                                            <div class="flex items-center gap-3 flex-1 min-w-0">
+                                                {% if purchase.main_image_url %}
+                                                    <img src="{{ purchase.main_image_url }}" alt="{{ purchase.title|fa_digits }}" class="w-12 h-12 object-cover rounded-xl shadow-sm shrink-0">
+                                                {% endif %}
+                                                <div class="min-w-0 flex-1">
+                                                    <h5 class="font-bold text-xs sm:text-sm text-gray-900 dark:text-white truncate">
+                                                        {% include 'partials/lot_badge_title.html' with lot=purchase.lot title=purchase.title %}
+                                                    </h5>
+                                                    <p class="text-[11px] text-gray-600 dark:text-gray-400 mt-0.5 truncate">
+                                                        {{ purchase.artist.name|default:"هنرمند"|fa_digits }}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center justify-between sm:justify-end gap-3 mt-1 sm:mt-0 px-1 sm:px-0">
+                                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-primary/10 text-primary border border-primary/20 whitespace-nowrap">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                                    برنده مزایده
+                                                </span>
+                                                <div class="text-right sm:text-left">
+                                                    <span class="text-[10px] text-gray-500 dark:text-gray-400 block sm:inline">قیمت خالص چکش:</span>
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-black bg-emerald-100/60 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-700/50 mr-1">
+                                                        {{ purchase.pure_price|fa_price }} تومان
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </a>
+                                    {% endfor %}
+                                </div>
+
+                                <!-- باکس خلاصه مالی مزایده در انتهای آکاردئون -->
+                                <div class="rounded-xl bg-white/40 dark:bg-gray-800/40 p-3 sm:p-4 border border-white/40 dark:border-gray-700/40 text-xs space-y-1.5">
+                                    <div class="flex items-center justify-between text-gray-600 dark:text-gray-300">
+                                        <span>جمع مبالغ چکش‌خورده خالص:</span>
+                                        <span class="font-bold text-gray-900 dark:text-white">{{ group.total_pure_price|fa_price }} تومان</span>
+                                    </div>
+                                    <div class="flex items-center justify-between text-gray-600 dark:text-gray-300 pt-1.5 border-t border-dashed border-gray-200 dark:border-gray-700">
+                                        <span>حق‌العمل حراج‌گزار (۱۰٪ کارمزد و خدمات قانونی):</span>
+                                        <span class="font-bold text-gray-900 dark:text-white">{{ group.tax_amount|fa_price }} تومان</span>
+                                    </div>
+                                    <div class="flex items-center justify-between text-gray-900 dark:text-white font-black text-sm pt-2 border-t border-gray-200 dark:border-gray-700">
+                                        <span>مبلغ کل قابل پرداخت (خالص + ۱۰٪):</span>
+                                        <span class="text-emerald-700 dark:text-emerald-400">{{ group.total_with_tax|fa_price }} تومان</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% elif auction_purchases %}
+                <!-- Fallback in case auction_purchase_groups is not populated -->
                 <div class="space-y-3">
                     {% for purchase in auction_purchases %}
                         <a href="{% url 'auction:auction_product_detail' purchase.pk %}?access_token={{ purchase.detail_access_token|urlencode }}" class="flex flex-col sm:flex-row sm:items-center gap-4 p-3 bg-white/20 dark:bg-gray-800/20 backdrop-blur-sm hover:bg-white/40 dark:hover:bg-gray-700/40 border border-white/30 dark:border-gray-600/20 hover:border-white/60 dark:hover:border-gray-500/50 rounded-2xl transition-all duration-300 shadow-[0_4px_20px_rgba(0,0,0,0.03)]" data-track-visit="1" data-track-kind="auction_product" data-track-id="{{ purchase.pk }}">
@@ -104,3 +215,27 @@
         </section>
     </div>
 </div>
+
+<script>
+    window.toggleAuctionAccordion = function(headerEl) {
+        if (!headerEl) return;
+        const targetId = headerEl.getAttribute('data-auction-toggle');
+        const targetEl = document.getElementById(targetId);
+        if (targetEl) {
+            targetEl.classList.toggle('hidden');
+            const chevron = headerEl.querySelector('[data-auction-chevron]');
+            if (chevron) {
+                chevron.classList.toggle('rotate-180');
+            }
+        }
+    };
+
+    if (!window._auctionAccordionInitialized) {
+        window._auctionAccordionInitialized = true;
+        document.addEventListener('click', function(e) {
+            const toggleHeader = e.target.closest('[data-auction-toggle]');
+            if (!toggleHeader || e.target.closest('a') || e.target.closest('button.no-toggle')) return;
+            window.toggleAuctionAccordion(toggleHeader);
+        });
+    }
+</script>

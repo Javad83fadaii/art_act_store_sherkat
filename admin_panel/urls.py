@@ -40,6 +40,7 @@ urlpatterns = [
     # Bids
     path('products/reports/bids/', products.bid_reports, name='products-bid-reports'),
     path('products/auction/<int:pk>/bids/', products.product_bids, name='products-auction-bids'),
+    path('products/auction/invoices/', products.auction_invoices_list, name='products-auction-invoices-list'),
     
     # ==========================
     # Requests
@@ -67,6 +68,8 @@ urlpatterns = [
     path('users/<uuid:pk>/purchase-requests-summary/', users.user_purchase_requests_summary_api, name='user-purchase-requests-summary-api'),
     path('users/<uuid:pk>/reserved-products/', users.user_reserved_products_api, name='user-reserved-products-api'),
     path('users/<uuid:pk>/telegram-requests/', users.user_telegram_requests_api, name='user-telegram-requests-api'),
+    path('users/<uuid:pk>/invoices/', users.user_auction_invoices_api, name='user-auction-invoices-api'),
+
     
     # ==========================
     # Saved Filters

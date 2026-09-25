@@ -8,6 +8,7 @@ from django.db.models.functions import Coalesce
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.template.loader import render_to_string
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
@@ -1315,3 +1316,59 @@ def user_telegram_requests_api(request, pk):
         'pages': paginator.num_pages,
         'current_page': page_obj.number,
     })
+
+
+@require_http_methods(['GET'])
+@staff_required
+def user_auction_invoices_api(request, pk):
+    """
+    API دریافت فاکتورهای مزایده صادر شده برای کاربر به همراه لینک دانلود PDF
+    """
+    user = get_object_or_404(CustomUser, pk=pk)
+    from auction.models import AuctionInvoice
+
+    invoices = (
+        AuctionInvoice.objects.filter(user=user)
+        .select_related('auction')
+        .order_by('-issued_at')
+    )
+
+    search = request.GET.get('search', '').strip()
+    if search:
+        invoices = invoices.filter(
+            Q(invoice_number__icontains=search)
+            | Q(auction__name__icontains=search)
+        )
+
+    status_filter = request.GET.get('status', '').strip()
+    if status_filter:
+        invoices = invoices.filter(status=status_filter)
+
+    paginator = Paginator(invoices, 20)
+    page_obj = paginator.get_page(request.GET.get('page', 1))
+
+    results = []
+    for inv in page_obj.object_list:
+        results.append({
+            'id': inv.id,
+            'invoice_number': inv.invoice_number,
+            'auction_id': inv.auction_id,
+            'auction_name': inv.auction.name if inv.auction else '-',
+            'total_hammer_price': str(inv.total_hammer_price),
+            'buyers_premium': str(inv.buyers_premium),
+            'total_amount': str(inv.total_amount),
+            'status': inv.status,
+            'status_display': inv.get_status_display(),
+            'issued_at': inv.issued_at.isoformat() if inv.issued_at else None,
+            'jalali_issued_at': inv.jalali_issued_at,
+            'pdf_url': reverse('auction:invoice_pdf', args=[inv.pk]),
+            'detail_url': reverse('auction:invoice_detail', args=[inv.pk]),
+        })
+
+    return JsonResponse({
+        'results': results,
+        'total': paginator.count,
+        'pages': paginator.num_pages,
+        'current_page': page_obj.number,
+    })
+

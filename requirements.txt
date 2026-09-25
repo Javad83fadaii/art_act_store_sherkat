@@ -57,6 +57,9 @@ pure_eval==0.2.3
 Pygments==2.19.2
 pyTelegramBotAPI==4.30.0
 python-dateutil==2.9.0.post0
+python-bidi==0.6.11
+arabic-reshaper==3.0.1
+reportlab==5.0.1
 python-telegram-bot==22.6
 pytz==2025.2
 pyzmq==27.1.0

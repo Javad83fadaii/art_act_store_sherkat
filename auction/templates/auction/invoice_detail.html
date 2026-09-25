@@ -1,0 +1,192 @@
+{% load static jalali_tags humanize fa_digits %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>فاکتور شماره {{ invoice.invoice_number }} | {{ invoice.auction.name|default:"مزایده" }}</title>
+    <link rel="stylesheet" href="{% static 'css/tailwind.css' %}">
+    <style>
+        @font-face {
+            font-family: 'Morabba';
+            src: url("{% static 'fonts/Morabba-Regular.ttf' %}") format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'Morabba';
+            src: url("{% static 'fonts/Morabba-Bold.ttf' %}") format('truetype');
+            font-weight: bold;
+            font-style: normal;
+        }
+        body {
+            font-family: 'Morabba', Tahoma, sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            body {
+                background-color: #ffffff;
+                margin: 0;
+                padding: 0;
+            }
+            .invoice-sheet {
+                box-shadow: none !important;
+                border: none !important;
+                margin: 0 !important;
+                max-width: 100% !important;
+                padding: 10mm 15mm !important;
+            }
+        }
+    </style>
+</head>
+<body class="py-6 px-4 sm:px-6 lg:px-8">
+    <!-- Top Action Bar (hidden in print) -->
+    <div class="max-w-4xl mx-auto mb-6 flex items-center justify-between no-print">
+        <a href="javascript:history.back()" class="inline-flex items-center gap-2 text-sm font-bold text-gray-600 hover:text-gray-900 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+            بازگشت
+        </a>
+        <div class="flex items-center gap-3">
+            <button onclick="window.print()" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 shadow-sm transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                چاپ فاکتور
+            </button>
+            <a href="{% url 'auction:invoice_pdf' invoice.pk %}" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-[#AB8C58] text-white hover:bg-[#967746] shadow-md transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                دانلود فایل PDF
+            </a>
+        </div>
+    </div>
+
+    <!-- Official Invoice Sheet -->
+    <div class="invoice-sheet max-w-4xl mx-auto bg-white rounded-3xl border border-gray-200 shadow-xl p-8 sm:p-12">
+        <!-- Header -->
+        <div class="border-b-2 border-gray-200 pb-6 mb-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h1 class="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">صورتحساب رسمی فروش مزایده</h1>
+                    <p class="text-sm text-gray-500 mt-1">سند قطعی تسویه حساب برندگان رویداد مزایده</p>
+                </div>
+                <div class="text-left sm:text-left bg-gray-50 p-3 rounded-2xl border border-gray-100">
+                    <div class="text-xs font-bold text-gray-500">شماره فاکتور:</div>
+                    <div class="text-base font-black text-gray-900 tracking-wider dir-ltr text-right">{{ invoice.invoice_number }}</div>
+                    <div class="text-xs text-gray-500 mt-1">تاریخ صدور: <span class="font-bold text-gray-700">{{ invoice.jalali_issued_at|fa_digits }}</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Meta Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 rounded-2xl bg-gray-50/80 border border-gray-200/80 mb-8">
+            <!-- Buyer Details -->
+            <div class="space-y-1.5 text-sm">
+                <div class="text-xs font-bold text-[#AB8C58] uppercase tracking-wider mb-2">مشخصات خریدار (برنده مزایده)</div>
+                <div class="flex items-center gap-2">
+                    <span class="text-gray-500">نام و نام خانوادگی:</span>
+                    <span class="font-bold text-gray-900">{{ invoice.user.get_full_name|default:invoice.user.full_name|default:"کاربر گرامی" }}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-gray-500">شماره تماس:</span>
+                    <span class="font-bold text-gray-900">{{ invoice.user.phone_number|fa_digits }}</span>
+                </div>
+                {% if invoice.user.email %}
+                <div class="flex items-center gap-2">
+                    <span class="text-gray-500">پست الکترونیک:</span>
+                    <span class="font-bold text-gray-900">{{ invoice.user.email }}</span>
+                </div>
+                {% endif %}
+                {% if invoice.user.address_city %}
+                <div class="flex items-center gap-2">
+                    <span class="text-gray-500">شهر / نشانی:</span>
+                    <span class="font-bold text-gray-900">{{ invoice.user.address_city }}</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Auction Details -->
+            <div class="space-y-1.5 text-sm">
+                <div class="text-xs font-bold text-[#AB8C58] uppercase tracking-wider mb-2">مشخصات رویداد مزایده</div>
+                <div class="flex items-center gap-2">
+                    <span class="text-gray-500">عنوان مزایده:</span>
+                    <span class="font-bold text-gray-900">{{ invoice.auction.name|default:"مزایده"|fa_digits }}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-gray-500">تاریخ پایان قطعی:</span>
+                    <span class="font-bold text-gray-900">{{ invoice.auction.end_date|to_jalali:'%Y/%m/%d %H:%M'|fa_digits }}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-gray-500">وضعیت پرداخت:</span>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold {% if invoice.status == 'paid' %}bg-emerald-100 text-emerald-800 border border-emerald-300{% elif invoice.status == 'canceled' %}bg-red-100 text-red-800 border border-red-300{% else %}bg-amber-100 text-amber-800 border border-amber-300{% endif %}">
+                        {{ invoice.get_status_display }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Items Table -->
+        <div class="overflow-x-auto rounded-2xl border border-gray-200 mb-8">
+            <table class="w-full text-right text-sm">
+                <thead class="bg-gray-100/80 text-gray-700 text-xs font-black border-b border-gray-200">
+                    <tr>
+                        <th class="p-3.5 text-center w-12">#</th>
+                        <th class="p-3.5 w-28 text-center">کد / لات</th>
+                        <th class="p-3.5">عنوان اثر</th>
+                        <th class="p-3.5">هنرمند</th>
+                        <th class="p-3.5 text-left w-44">قیمت چکش‌خورده خالص</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for item in invoice.items.all %}
+                        <tr class="hover:bg-gray-50/60 transition">
+                            <td class="p-3.5 text-center font-bold text-gray-500">{{ forloop.counter|fa_digits }}</td>
+                            <td class="p-3.5 text-center font-bold text-gray-700">
+                                {% if item.lot %}
+                                    <span class="px-2 py-1 bg-gray-100 rounded-lg text-xs font-black">لات {{ item.lot|fa_digits }}</span>
+                                {% else %}
+                                    <span class="text-xs text-gray-500">{{ item.product_code|fa_digits }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="p-3.5 font-bold text-gray-900">{{ item.title|fa_digits }}</td>
+                            <td class="p-3.5 text-gray-600">{{ item.artist_name|default:"-"|fa_digits }}</td>
+                            <td class="p-3.5 text-left font-black text-gray-900">{{ item.hammer_price|fa_price }} تومان</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="5" class="p-6 text-center text-gray-500">هیچ اثری در این فاکتور ثبت نشده است.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Totals Breakdown -->
+        <div class="flex justify-end mb-8">
+            <div class="w-full sm:w-80 rounded-2xl bg-gray-50 p-4 border border-gray-200 space-y-2.5 text-sm">
+                <div class="flex justify-between items-center text-gray-600">
+                    <span>جمع مبالغ چکش‌خورده خالص:</span>
+                    <span class="font-bold text-gray-900">{{ invoice.total_hammer_price|fa_price }} تومان</span>
+                </div>
+                <div class="flex justify-between items-center text-gray-600 pt-2 border-t border-dashed border-gray-200">
+                    <span>حق‌العمل حراج‌گزار (۱۰٪ کارمزد):</span>
+                    <span class="font-bold text-gray-900">{{ invoice.buyers_premium|fa_price }} تومان</span>
+                </div>
+                <div class="flex justify-between items-center text-base font-black text-gray-900 pt-2.5 border-t-2 border-gray-300">
+                    <span>مبلغ کل قابل پرداخت:</span>
+                    <span class="text-emerald-700">{{ invoice.total_amount|fa_price }} تومان</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="rounded-2xl bg-amber-50/50 p-4 border border-amber-200/60 text-xs text-gray-600 space-y-1">
+            <div class="font-bold text-amber-900 mb-1">توضیحات و شرایط قانونی:</div>
+            <div>۱. این صورتحساب رسمی پس از اتمام قطعی مزایده به صورت سیستمی صادر گردیده و متعلق به برنده قطعی می‌باشد.</div>
+            <div>۲. کارمزد و خدمات قانونی حراج‌گزار ۱۰٪ محاسبه شده و به مبالغ چکش‌خورده خالص اضافه شده است.</div>
+            <div>۳. کلیه مبالغ مندرج در این فاکتور به واحد پول تومان می‌باشد.</div>
+        </div>
+    </div>
+</body>
+</html>

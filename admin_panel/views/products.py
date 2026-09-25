@@ -1159,3 +1159,62 @@ def product_bids(request, pk):
         'pages': paginator.num_pages,
         'current_page': page_obj.number,
     })
+
+
+@superuser_required
+def auction_invoices_list(request):
+    """
+    لیست و فیلتر تمام فاکتورهای مزایده برای ادمین
+    """
+    from auction.models import AuctionInvoice
+    from django.urls import reverse
+    queryset = AuctionInvoice.objects.select_related('auction', 'user').order_by('-issued_at')
+
+    search = request.GET.get('search', '').strip()
+    if search:
+        queryset = queryset.filter(
+            Q(invoice_number__icontains=search)
+            | Q(auction__name__icontains=search)
+            | Q(user__full_name__icontains=search)
+            | Q(user__phone_number__icontains=search)
+        )
+
+    auction_id = request.GET.get('auction_id')
+    if auction_id:
+        queryset = queryset.filter(auction_id=auction_id)
+
+    status_filter = request.GET.get('status', '').strip()
+    if status_filter:
+        queryset = queryset.filter(status=status_filter)
+
+    paginator = Paginator(queryset, 20)
+    page_obj = paginator.get_page(request.GET.get('page', 1))
+
+    results = []
+    for inv in page_obj.object_list:
+        results.append({
+            'id': inv.id,
+            'invoice_number': inv.invoice_number,
+            'auction_id': inv.auction_id,
+            'auction_name': inv.auction.name if inv.auction else '-',
+            'user_id': str(inv.user_id),
+            'user_fullname': inv.user.get_full_name() or inv.user.full_name or '-',
+            'user_phone': inv.user.phone_number or '-',
+            'total_hammer_price': str(inv.total_hammer_price),
+            'buyers_premium': str(inv.buyers_premium),
+            'total_amount': str(inv.total_amount),
+            'status': inv.status,
+            'status_display': inv.get_status_display(),
+            'issued_at': inv.issued_at.isoformat() if inv.issued_at else None,
+            'jalali_issued_at': inv.jalali_issued_at,
+            'pdf_url': reverse('auction:invoice_pdf', args=[inv.pk]),
+            'detail_url': reverse('auction:invoice_detail', args=[inv.pk]),
+        })
+
+    return JsonResponse({
+        'results': results,
+        'total': paginator.count,
+        'pages': paginator.num_pages,
+        'current_page': page_obj.number,
+    })
+

@@ -5,21 +5,23 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.db.models import Case, Count, F, IntegerField, Max, OuterRef, Q, Subquery, Value, When
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse, HttpResponseForbidden, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
 from django.views.generic import DetailView, ListView
 
-from .models import Auction, AuctionCartItem, AuctionProduct, Bid
+from .models import Auction, AuctionCartItem, AuctionProduct, Bid, AuctionInvoice
 from .realtime import build_bid_live_payload
 from .services import (
     ensure_auction_product_winner,
     ensure_products_have_finished_winners,
     has_valid_winner_access_token,
     build_winner_access_token,
+    create_or_get_invoice_for_winner,
 )
+from .invoice_pdf import generate_invoice_pdf_buffer
 from accounts.models import VerificationRequest, CreditIncreaseRequest  # CreditIncreaseRequest اضافه شد
 from store.models import Artwork
 
@@ -599,3 +601,84 @@ def submit_credit_increase_ajax(request):
         })
         
     return JsonResponse({'success': False, 'message': 'درخواست نامعتبر است.'}, status=400)
+
+
+@login_required
+def download_invoice_pdf(request, pk: int):
+    """
+    دانلود فایل PDF فاکتور رسمی مزایده
+    کاربر برنده یا پرسنل/ادمین مجاز به دریافت هستند.
+    """
+    invoice = get_object_or_404(
+        AuctionInvoice.objects.select_related('auction', 'user').prefetch_related('items'),
+        pk=pk,
+    )
+    if request.user != invoice.user and not (request.user.is_staff or request.user.is_superuser):
+        return HttpResponseForbidden("دسترسی غیرمجاز به این فاکتور.")
+
+    pdf_buffer = generate_invoice_pdf_buffer(invoice)
+    response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
+    filename = f"invoice-{invoice.invoice_number}.pdf"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+@login_required
+def view_invoice_html(request, pk: int):
+    """
+    مشاهده نسخه تحت وب / قابل چاپ فاکتور رسمی مزایده
+    """
+    invoice = get_object_or_404(
+        AuctionInvoice.objects.select_related('auction', 'user').prefetch_related('items'),
+        pk=pk,
+    )
+    if request.user != invoice.user and not (request.user.is_staff or request.user.is_superuser):
+        return HttpResponseForbidden("دسترسی غیرمجاز به این فاکتور.")
+
+    return render(request, 'auction/invoice_detail.html', {'invoice': invoice})
+
+
+@login_required
+def download_auction_user_invoice_pdf(request, auction_id: int):
+    """
+    دانلود فاکتور کاربر در یک مزایده خاص (ایجاد خودکار در صورت نیاز پس از پایان قطعی)
+    """
+    auction = get_object_or_404(Auction, pk=auction_id)
+    if auction.status != 'finished':
+        return HttpResponseForbidden("فاکتور رسمی تنها پس از پایان قطعی مزایده صادر می‌شود.")
+
+    invoice = create_or_get_invoice_for_winner(auction, request.user)
+    if not invoice:
+        raise Http404("فاکتوری برای شما در این مزایده صادر نشده است.")
+
+    pdf_buffer = generate_invoice_pdf_buffer(invoice)
+    response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
+    filename = f"invoice-{invoice.invoice_number}.pdf"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+def download_admin_auction_user_invoice_pdf(request, auction_id: int, user_id):
+    """
+    دانلود فاکتور کاربر توسط ادمین در پنل مدیریت
+    """
+    if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+        return HttpResponseForbidden("دسترسی غیرمجاز.")
+
+    user_model = get_user_model()
+    target_user = get_object_or_404(user_model, pk=user_id)
+    auction = get_object_or_404(Auction, pk=auction_id)
+
+    if auction.status != 'finished':
+        return HttpResponseForbidden("فاکتور رسمی تنها پس از پایان قطعی مزایده صادر می‌شود.")
+
+    invoice = create_or_get_invoice_for_winner(auction, target_user)
+    if not invoice:
+        raise Http404("فاکتوری برای این کاربر در این مزایده صادر نشده است.")
+
+    pdf_buffer = generate_invoice_pdf_buffer(invoice)
+    response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
+    filename = f"invoice-{invoice.invoice_number}.pdf"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+

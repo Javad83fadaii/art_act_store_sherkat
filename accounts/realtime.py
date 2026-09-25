@@ -1,12 +1,17 @@
-from decimal import Decimal
+from collections import OrderedDict
+from decimal import Decimal, ROUND_CEILING
 
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from django.template.loader import render_to_string
 from django.utils import timezone
 
-from auction.models import AuctionCartItem, Bid
-from auction.services import build_winner_access_token, ensure_products_have_finished_winners
+from auction.models import AuctionCartItem, Bid, AuctionInvoice
+from auction.services import (
+    build_winner_access_token,
+    ensure_products_have_finished_winners,
+    create_or_get_invoice_for_winner,
+)
 from store.models import PurchaseHistory
 from .forms import PublicProfileUpdateForm
 
@@ -102,6 +107,41 @@ def build_profile_live_context(user) -> dict:
             product_id=purchase.pk,
         )
 
+    groups_map = OrderedDict()
+    for purchase in auction_purchases:
+        auction_obj = purchase.auction
+        if auction_obj.pk not in groups_map:
+            groups_map[auction_obj.pk] = {
+                'auction': auction_obj,
+                'items': [],
+                'total_pure_price': Decimal('0'),
+                'items_count': 0,
+            }
+        groups_map[auction_obj.pk]['items'].append(purchase)
+        groups_map[auction_obj.pk]['total_pure_price'] += purchase.pure_price
+        groups_map[auction_obj.pk]['items_count'] += 1
+
+    auction_purchase_groups = []
+    for auction_id, group in groups_map.items():
+        auction_obj = group['auction']
+        total_pure = group['total_pure_price']
+        tax = (total_pure * Decimal('0.10')).to_integral_value(rounding=ROUND_CEILING)
+        total_with_tax = total_pure + tax
+
+        invoice = None
+        if auction_obj.status == 'finished':
+            invoice = AuctionInvoice.objects.filter(auction_id=auction_id, user=live_user).first()
+            if not invoice:
+                try:
+                    invoice = create_or_get_invoice_for_winner(auction_obj, live_user, group['items'])
+                except Exception:
+                    invoice = None
+
+        group['tax_amount'] = tax
+        group['total_with_tax'] = total_with_tax
+        group['invoice'] = invoice
+        auction_purchase_groups.append(group)
+
     return {
         'user': live_user,
         'edit_form': PublicProfileUpdateForm(instance=live_user, has_auction_opt_in=has_auction_opt_in),
@@ -116,6 +156,7 @@ def build_profile_live_context(user) -> dict:
         'auction_reserved_credit': reserved_credit,
         'store_purchases': store_purchases,
         'auction_purchases': auction_purchases,
+        'auction_purchase_groups': auction_purchase_groups,
         'live_credit': available_credit,
         'auction_total_credit': total_credit,
         'is_verified': int(getattr(live_user, 'is_verified', 0) or 0) == 1,

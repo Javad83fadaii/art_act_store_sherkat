@@ -758,3 +758,153 @@ class Bid(models.Model):
 
     def __str__(self) -> str:
         return f'{self.product_id} - {self.bid_amount}'
+
+
+class AuctionInvoice(models.Model):
+    class Status(models.TextChoices):
+        PENDING = 'pending', 'در انتظار پرداخت'
+        PAID = 'paid', 'پرداخت شده'
+        CANCELED = 'canceled', 'لغو شده'
+
+    invoice_number = models.CharField(
+        max_length=64,
+        unique=True,
+        db_index=True,
+        verbose_name='شماره فاکتور',
+    )
+    auction = models.ForeignKey(
+        Auction,
+        on_delete=models.CASCADE,
+        related_name='invoices',
+        verbose_name='مزایده',
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='auction_invoices',
+        verbose_name='خریدار',
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING,
+        verbose_name='وضعیت پرداخت',
+    )
+    issued_at = models.DateTimeField(
+        default=timezone.now,
+        verbose_name='تاریخ صدور',
+    )
+    total_hammer_price = models.DecimalField(
+        max_digits=15,
+        decimal_places=0,
+        default=0,
+        verbose_name='جمع مبالغ چکش‌خورده خالص',
+    )
+    buyers_premium = models.DecimalField(
+        max_digits=15,
+        decimal_places=0,
+        default=0,
+        verbose_name='حق‌العمل حراج‌گزار (۱۰٪)',
+    )
+    total_amount = models.DecimalField(
+        max_digits=15,
+        decimal_places=0,
+        default=0,
+        verbose_name='مبلغ کل قابل پرداخت',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'auction_invoice'
+        verbose_name = 'فاکتور مزایده'
+        verbose_name_plural = 'فاکتورهای مزایده'
+        unique_together = ('auction', 'user')
+        ordering = ['-issued_at', '-id']
+
+    def __str__(self) -> str:
+        return f'{self.invoice_number} ({self.auction.name or self.auction_id})'
+
+    @property
+    def jalali_issued_at(self) -> str:
+        if not self.issued_at:
+            return '-'
+        try:
+            import jdatetime
+            loc_dt = timezone.localtime(self.issued_at)
+            j_dt = jdatetime.datetime.fromgregorian(datetime=loc_dt)
+            return j_dt.strftime('%Y/%m/%d')
+        except Exception:
+            return self.issued_at.strftime('%Y/%m/%d')
+
+    @property
+    def jalali_issued_at_full(self) -> str:
+        if not self.issued_at:
+            return '-'
+        try:
+            import jdatetime
+            loc_dt = timezone.localtime(self.issued_at)
+            j_dt = jdatetime.datetime.fromgregorian(datetime=loc_dt)
+            return j_dt.strftime('%Y/%m/%d %H:%M')
+        except Exception:
+            return self.issued_at.strftime('%Y/%m/%d %H:%M')
+
+
+class AuctionInvoiceItem(models.Model):
+    invoice = models.ForeignKey(
+        AuctionInvoice,
+        on_delete=models.CASCADE,
+        related_name='items',
+        verbose_name='فاکتور',
+    )
+    product = models.ForeignKey(
+        AuctionProduct,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='invoice_items',
+        verbose_name='اثر',
+    )
+    lot = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        verbose_name='شماره لات',
+    )
+    product_code = models.CharField(
+        max_length=64,
+        verbose_name='کد اثر',
+    )
+    title = models.CharField(
+        max_length=255,
+        verbose_name='نام اثر',
+    )
+    artist_name = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name='نام هنرمند',
+    )
+    hammer_price = models.DecimalField(
+        max_digits=15,
+        decimal_places=0,
+        verbose_name='قیمت چکش‌خورده خالص',
+    )
+    buyers_premium = models.DecimalField(
+        max_digits=15,
+        decimal_places=0,
+        verbose_name='حق‌العمل حراج‌گزار (۱۰٪)',
+    )
+    total_price = models.DecimalField(
+        max_digits=15,
+        decimal_places=0,
+        verbose_name='مبلغ کل اثر با احتساب ۱۰٪',
+    )
+
+    class Meta:
+        db_table = 'auction_invoice_item'
+        verbose_name = 'قلم فاکتور مزایده'
+        verbose_name_plural = 'اقلام فاکتور مزایده'
+        ordering = ['lot', 'id']
+
+    def __str__(self) -> str:
+        return f'{self.title} ({self.product_code})'
+

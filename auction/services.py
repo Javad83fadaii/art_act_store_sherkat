@@ -158,3 +158,144 @@ def has_valid_winner_access_token(*, token: str, user_id: int, product_id: int) 
         and int(payload.get('user_id') or 0) == int(user_id)
         and int(payload.get('product_id') or 0) == int(product_id)
     )
+
+
+def generate_invoice_number(issued_at=None) -> str:
+    """
+    شماره فاکتور یکتا و استاندارد بر اساس سال شمسی: INV-1405-0001
+    """
+    from .models import AuctionInvoice
+    import jdatetime
+
+    now = issued_at or timezone.now()
+    loc_now = timezone.localtime(now)
+    try:
+        j_year = jdatetime.datetime.fromgregorian(datetime=loc_now).year
+    except Exception:
+        j_year = loc_now.year
+
+    prefix = f"INV-{j_year}-"
+    last_invoice = (
+        AuctionInvoice.objects.filter(invoice_number__startswith=prefix)
+        .order_by('-invoice_number')
+        .first()
+    )
+    if last_invoice and last_invoice.invoice_number:
+        try:
+            seq_part = last_invoice.invoice_number.split('-')[-1]
+            next_seq = int(seq_part) + 1
+        except (ValueError, IndexError):
+            next_seq = AuctionInvoice.objects.filter(invoice_number__startswith=prefix).count() + 1
+    else:
+        next_seq = 1
+
+    while True:
+        candidate = f"{prefix}{next_seq:04d}"
+        if not AuctionInvoice.objects.filter(invoice_number=candidate).exists():
+            return candidate
+        next_seq += 1
+
+
+def create_or_get_invoice_for_winner(auction, user, products=None):
+    """
+    ایجاد یا دریافت فاکتور رسمی برنده مزایده پس از پایان قطعی مزایده
+    """
+    from django.db import transaction
+    from .models import AuctionInvoice, AuctionInvoiceItem
+
+    if auction.status != 'finished':
+        return None
+
+    existing = AuctionInvoice.objects.filter(auction=auction, user=user).first()
+    if existing:
+        return existing
+
+    if products is None:
+        products = list(
+            auction.products.filter(winner=user)
+            .select_related('artist')
+            .order_by('lot', 'pk')
+        )
+    else:
+        products = [p for p in products if p.winner_id == user.pk]
+
+    if not products:
+        return None
+
+    with transaction.atomic():
+        existing = AuctionInvoice.objects.filter(auction=auction, user=user).first()
+        if existing:
+            return existing
+
+        total_hammer = Decimal('0')
+        invoice_items_data = []
+
+        for product in products:
+            hammer_price = product.pure_price
+            premium = (hammer_price * Decimal('0.10')).to_integral_value(rounding=ROUND_CEILING)
+            total_item_price = hammer_price + premium
+            total_hammer += hammer_price
+
+            artist_name = product.artist.name if product.artist else ''
+            invoice_items_data.append({
+                'product': product,
+                'lot': product.lot,
+                'product_code': product.product_id,
+                'title': product.title,
+                'artist_name': artist_name,
+                'hammer_price': hammer_price,
+                'buyers_premium': premium,
+                'total_price': total_item_price,
+            })
+
+        buyers_premium = (total_hammer * Decimal('0.10')).to_integral_value(rounding=ROUND_CEILING)
+        total_amount = total_hammer + buyers_premium
+        issued_at = timezone.now()
+        inv_number = generate_invoice_number(issued_at=issued_at)
+
+        invoice = AuctionInvoice.objects.create(
+            invoice_number=inv_number,
+            auction=auction,
+            user=user,
+            status=AuctionInvoice.Status.PENDING,
+            issued_at=issued_at,
+            total_hammer_price=total_hammer,
+            buyers_premium=buyers_premium,
+            total_amount=total_amount,
+        )
+
+        for item_data in invoice_items_data:
+            AuctionInvoiceItem.objects.create(
+                invoice=invoice,
+                **item_data
+            )
+
+        return invoice
+
+
+def generate_invoices_for_auction(auction, products=None) -> list:
+    """
+    صدور خودکار فاکتور برای تمام برندگان مزایده پس از پایان قطعی آن
+    """
+    if auction.status != 'finished':
+        return []
+
+    if products is None:
+        products = list(auction.products.select_related('winner', 'artist').all())
+
+    ensure_products_have_finished_winners(products)
+
+    from collections import defaultdict
+    winners_products = defaultdict(list)
+    for product in products:
+        if product.winner:
+            winners_products[product.winner].append(product)
+
+    invoices = []
+    for winner, user_products in winners_products.items():
+        invoice = create_or_get_invoice_for_winner(auction, winner, user_products)
+        if invoice:
+            invoices.append(invoice)
+
+    return invoices
+

@@ -28,7 +28,7 @@ from notifications.enums import NotificationProviderType
 from notifications.services import notification_service
 
 from .models import Auction
-from .services import ensure_products_have_finished_winners
+from .services import ensure_products_have_finished_winners, generate_invoices_for_auction
 
 
 logger = logging.getLogger(__name__)
@@ -422,8 +422,13 @@ def send_auction_ended_email(auction_id, expected_end=None):
                 logger.exception("Ended email failed for auction %s", auction.pk)
 
     products = ensure_products_have_finished_winners(
-        auction.products.select_related('winner').all()
+        auction.products.select_related('winner', 'artist').all()
     )
+    try:
+        generate_invoices_for_auction(auction, products=products)
+    except Exception:
+        logger.exception("Failed to generate invoices for auction %s", auction.pk)
+
     billing_claimed_at = _claim_dispatch(auction.id, 'winner_billing_dispatched_at')
     if billing_claimed_at is None:
         return

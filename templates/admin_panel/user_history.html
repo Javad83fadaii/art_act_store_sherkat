@@ -1229,6 +1229,21 @@ function renderPagination(containerId, totalPages, currentPage, onPageChange) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Auction items accordion toggle handler for purchase requests tab
+    document.addEventListener('click', function(e) {
+        const toggleHeader = e.target.closest('[data-auction-toggle]');
+        if (!toggleHeader || e.target.closest('a') || e.target.closest('button.no-toggle')) return;
+        const targetId = toggleHeader.getAttribute('data-auction-toggle');
+        const targetEl = document.getElementById(targetId);
+        if (targetEl) {
+            targetEl.classList.toggle('hidden');
+            const chevron = toggleHeader.querySelector('[data-auction-chevron]');
+            if (chevron) {
+                chevron.classList.toggle('rotate-180');
+            }
+        }
+    });
+
     document.querySelectorAll('.summary-tab-card').forEach((card) => {
         card.addEventListener('click', () => {
             const targetTab = card.dataset.summaryTab;

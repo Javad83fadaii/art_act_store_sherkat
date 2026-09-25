@@ -16,7 +16,15 @@ from notifications.models import NotificationDelivery
 from notifications.providers import NotificationSendResult
 from store.models import Artist, Artwork, ArtworkType, PurchaseHistory
 
-from .models import Auction, AuctionCartItem, AuctionProduct, AuctionVisitHistory
+from .models import (
+    Auction,
+    AuctionCartItem,
+    AuctionProduct,
+    AuctionVisitHistory,
+    Bid,
+    AuctionInvoice,
+    AuctionInvoiceItem,
+)
 from .signals import _send_bid_notification_emails, schedule_auction_emails
 from .tasks import (
     send_auction_ended_email,
@@ -1537,6 +1545,212 @@ class AuctionSoftCloseOvertimeTests(TestCase):
             self.assertIsNotNone(self.auction.extension_notice_dispatched_at)
             # Invoices / billing must be delayed
             self.assertIsNone(self.auction.winner_billing_dispatched_at)
+
+
+class AuctionInvoiceTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.artist = Artist.objects.create(id=300, name='هنرمند تستی')
+        self.artwork_type = ArtworkType.objects.create(name='نقاشی تستی')
+        now = timezone.now()
+        self.auction = Auction.objects.create(
+            name='مزایده بهاره تست',
+            start_date=now - timedelta(hours=3),
+            end_date=now - timedelta(hours=1),
+            products_count=2,
+        )
+        self.product_1 = AuctionProduct.objects.create(
+            auction=self.auction,
+            product_id='INV-P01',
+            lot=10,
+            title='اثر اول فاکتور',
+            artist=self.artist,
+            artwork_type=self.artwork_type,
+            base_price=Decimal('20000000'),
+            current_price=Decimal('25000000'),
+        )
+        self.product_2 = AuctionProduct.objects.create(
+            auction=self.auction,
+            product_id='INV-P02',
+            lot=11,
+            title='اثر دوم فاکتور',
+            artist=self.artist,
+            artwork_type=self.artwork_type,
+            base_price=Decimal('10000000'),
+            current_price=Decimal('15000000'),
+        )
+        self.winner_user = CustomUser.objects.create_user(
+            phone_number='09121111111',
+            password='TestPassword123',
+            full_name='برنده فاکتور',
+        )
+        self.winner_user.is_verified = 1
+        self.winner_user.save()
+
+        self.other_user = CustomUser.objects.create_user(
+            phone_number='09122222222',
+            password='TestPassword123',
+            full_name='کاربر دیگر',
+        )
+        self.other_user.is_verified = 1
+        self.other_user.save()
+
+        self.admin_user = CustomUser.objects.create_superuser(
+            phone_number='09123333333',
+            password='AdminPassword123',
+            full_name='مدیر سیستم',
+        )
+
+        Bid.objects.create(
+            auction=self.auction,
+            product=self.product_1,
+            user=self.winner_user,
+            user_fullname=self.winner_user.full_name,
+            user_mobile=self.winner_user.phone_number,
+            bid_amount=Decimal('25000000'),
+        )
+        Bid.objects.create(
+            auction=self.auction,
+            product=self.product_2,
+            user=self.winner_user,
+            user_fullname=self.winner_user.full_name,
+            user_mobile=self.winner_user.phone_number,
+            bid_amount=Decimal('15000000'),
+        )
+
+        self.product_1.winner = self.winner_user
+        self.product_1.save()
+        self.product_2.winner = self.winner_user
+        self.product_2.save()
+
+    def test_invoice_not_generated_for_ongoing_auction(self):
+        now = timezone.now()
+        ongoing_auction = Auction.objects.create(
+            name='مزایده جاری',
+            start_date=now - timedelta(hours=1),
+            end_date=now + timedelta(hours=1),
+            products_count=1,
+        )
+        AuctionProduct.objects.create(
+            auction=ongoing_auction,
+            product_id='ONGOING-01',
+            title='اثر جاری',
+            artist=self.artist,
+            artwork_type=self.artwork_type,
+            base_price=Decimal('10000000'),
+            winner=self.winner_user,
+        )
+        from auction.services import create_or_get_invoice_for_winner, generate_invoices_for_auction
+        inv = create_or_get_invoice_for_winner(ongoing_auction, self.winner_user)
+        self.assertIsNone(inv)
+        invs = generate_invoices_for_auction(ongoing_auction)
+        self.assertEqual(len(invs), 0)
+
+    def test_invoice_not_generated_when_extended_products_active(self):
+        now = timezone.now()
+        extended_auction = Auction.objects.create(
+            name='مزایده تمدید شده',
+            start_date=now - timedelta(hours=3),
+            end_date=now - timedelta(minutes=10),
+            products_count=1,
+        )
+        AuctionProduct.objects.create(
+            auction=extended_auction,
+            product_id='EXT-01',
+            title='اثر تمدیدی',
+            artist=self.artist,
+            artwork_type=self.artwork_type,
+            base_price=Decimal('10000000'),
+            extended_end_time=now + timedelta(minutes=15),
+            winner=self.winner_user,
+        )
+        from auction.services import create_or_get_invoice_for_winner, generate_invoices_for_auction
+        self.assertEqual(extended_auction.status, 'extended')
+        inv = create_or_get_invoice_for_winner(extended_auction, self.winner_user)
+        self.assertIsNone(inv)
+        invs = generate_invoices_for_auction(extended_auction)
+        self.assertEqual(len(invs), 0)
+
+    def test_invoice_generation_upon_definitive_finish(self):
+        from auction.models import AuctionInvoice
+        from auction.tasks import send_auction_ended_email
+        self.assertEqual(self.auction.status, 'finished')
+
+        send_auction_ended_email(self.auction.id)
+
+        invoices = AuctionInvoice.objects.filter(auction=self.auction, user=self.winner_user)
+        self.assertEqual(invoices.count(), 1)
+        invoice = invoices.first()
+
+        self.assertEqual(invoice.total_hammer_price, Decimal('40000000'))
+        self.assertEqual(invoice.buyers_premium, Decimal('4000000'))
+        self.assertEqual(invoice.total_amount, Decimal('44000000'))
+        self.assertTrue(invoice.invoice_number.startswith('INV-'))
+        self.assertEqual(invoice.items.count(), 2)
+
+    def test_invoice_pdf_download_permissions(self):
+        from auction.services import create_or_get_invoice_for_winner
+        invoice = create_or_get_invoice_for_winner(self.auction, self.winner_user)
+        self.assertIsNotNone(invoice)
+
+        self.client.force_login(self.winner_user)
+        url = reverse('auction:invoice_pdf', args=[invoice.pk])
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp['Content-Type'], 'application/pdf')
+        self.assertIn(f'attachment; filename="invoice-{invoice.invoice_number}.pdf"', resp['Content-Disposition'])
+        self.assertGreater(len(resp.content), 1000)
+
+        self.client.force_login(self.other_user)
+        resp2 = self.client.get(url)
+        self.assertEqual(resp2.status_code, 403)
+
+        self.client.force_login(self.admin_user)
+        resp3 = self.client.get(url)
+        self.assertEqual(resp3.status_code, 200)
+        self.assertEqual(resp3['Content-Type'], 'application/pdf')
+
+    def test_invoice_html_view(self):
+        from auction.services import create_or_get_invoice_for_winner
+        invoice = create_or_get_invoice_for_winner(self.auction, self.winner_user)
+        self.client.force_login(self.winner_user)
+        url = reverse('auction:invoice_detail', args=[invoice.pk])
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, invoice.invoice_number)
+        self.assertContains(resp, 'اثر اول فاکتور')
+
+    def test_profile_context_groups_by_auction(self):
+        from accounts.realtime import build_profile_live_context
+        ctx = build_profile_live_context(self.winner_user)
+        self.assertIn('auction_purchase_groups', ctx)
+        groups = ctx['auction_purchase_groups']
+        self.assertEqual(len(groups), 1)
+        group = groups[0]
+        self.assertEqual(group['auction'].pk, self.auction.pk)
+        self.assertEqual(group['items_count'], 2)
+        self.assertEqual(group['total_pure_price'], Decimal('40000000'))
+        self.assertEqual(group['total_with_tax'], Decimal('44000000'))
+        self.assertIsNotNone(group['invoice'])
+
+    def test_admin_api_returns_invoices(self):
+        from auction.services import create_or_get_invoice_for_winner
+        invoice = create_or_get_invoice_for_winner(self.auction, self.winner_user)
+        self.client.force_login(self.admin_user)
+
+        url = reverse('admin_panel:user-auction-invoices-api', args=[self.winner_user.pk])
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertEqual(data['total'], 1)
+        self.assertEqual(data['results'][0]['invoice_number'], invoice.invoice_number)
+
+        list_url = reverse('admin_panel:products-auction-invoices-list')
+        list_resp = self.client.get(list_url)
+        self.assertEqual(list_resp.status_code, 200)
+        list_data = list_resp.json()
+        self.assertEqual(list_data['total'], 1)
+
 
 
 
