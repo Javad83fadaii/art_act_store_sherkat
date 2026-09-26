@@ -31,6 +31,11 @@ class Auction(models.Model):
         blank=True,
         verbose_name='زمان ارسال پیامک تمدید مزایده',
     )
+    invoices_dispatched_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='زمان صدور فاکتورها',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -75,6 +80,10 @@ class Auction(models.Model):
         if self.get_active_extended_products_count(now) > 0:
             return 'extended'
         return 'finished'
+
+    @property
+    def invoice_available_at(self):
+        return self.get_max_end_date() + timezone.timedelta(hours=24)
 
     @staticmethod
     def _image_extensions():

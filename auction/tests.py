@@ -1,4 +1,4 @@
-from decimal import Decimal
+﻿from decimal import Decimal
 from datetime import timedelta
 import json
 from unittest.mock import patch
@@ -37,10 +37,10 @@ from .tasks import (
 class AuctionBidCreditFlowTests(TestCase):
     def setUp(self):
         self.client = Client()
-        self.artist = Artist.objects.create(id=1, name='هنرمند تست')
-        self.artwork_type = ArtworkType.objects.create(name='نقاشی')
+        self.artist = Artist.objects.create(id=1, name='Ù‡Ù†Ø±Ù…Ù†Ø¯ ØªØ³Øª')
+        self.artwork_type = ArtworkType.objects.create(name='Ù†Ù‚Ø§Ø´ÛŒ')
         self.auction = Auction.objects.create(
-            name='مزایده تست',
+            name='Ù…Ø²Ø§ÛŒØ¯Ù‡ ØªØ³Øª',
             start_date=timezone.now() - timedelta(hours=1),
             end_date=timezone.now() + timedelta(hours=1),
             products_count=1,
@@ -48,13 +48,13 @@ class AuctionBidCreditFlowTests(TestCase):
         self.product = AuctionProduct.objects.create(
             auction=self.auction,
             product_id='A-1001',
-            title='تابلو تست',
+            title='ØªØ§Ø¨Ù„Ùˆ ØªØ³Øª',
             artist=self.artist,
             artwork_type=self.artwork_type,
             base_price=Decimal('10000000'),
         )
-        self.user_one = self._create_verified_user('09120000001', 'کاربر اول', Decimal('100000000'))
-        self.user_two = self._create_verified_user('09120000002', 'کاربر دوم', Decimal('100000000'))
+        self.user_one = self._create_verified_user('09120000001', 'Ú©Ø§Ø±Ø¨Ø± Ø§ÙˆÙ„', Decimal('100000000'))
+        self.user_two = self._create_verified_user('09120000002', 'Ú©Ø§Ø±Ø¨Ø± Ø¯ÙˆÙ…', Decimal('100000000'))
 
     def _create_verified_user(self, phone_number, full_name, credit):
         user = CustomUser.objects.create_user(
@@ -140,34 +140,34 @@ class AuctionBidCreditFlowTests(TestCase):
         self.assertEqual(self.product.bids.filter(user=self.user_one).count(), 2)
 
     def test_tiered_increments_and_min_next_bid(self):
-        # پله ۱: تا سقف ۵۰ میلیون -> افزایش ۵ میلیون
+        # Ù¾Ù„Ù‡ Û±: ØªØ§ Ø³Ù‚Ù ÛµÛ° Ù…ÛŒÙ„ÛŒÙˆÙ† -> Ø§ÙØ²Ø§ÛŒØ´ Ûµ Ù…ÛŒÙ„ÛŒÙˆÙ†
         self.assertEqual(self.product.get_current_step_increment(Decimal('0')), 5000000)
         self.assertEqual(self.product.get_current_step_increment(Decimal('45000000')), 5000000)
         self.assertEqual(self.product.get_current_step_increment(Decimal('49999999')), 5000000)
         self.assertEqual(self.product.get_min_next_bid(), 15000000)  # base_price 10M + 5M
 
-        # پله ۲: از ۵۰ میلیون تا ۲۰۰ میلیون -> افزایش ۱۰ میلیون
+        # Ù¾Ù„Ù‡ Û²: Ø§Ø² ÛµÛ° Ù…ÛŒÙ„ÛŒÙˆÙ† ØªØ§ Û²Û°Û° Ù…ÛŒÙ„ÛŒÙˆÙ† -> Ø§ÙØ²Ø§ÛŒØ´ Û±Û° Ù…ÛŒÙ„ÛŒÙˆÙ†
         self.assertEqual(self.product.get_current_step_increment(Decimal('50000000')), 10000000)
         self.assertEqual(self.product.get_current_step_increment(Decimal('100000000')), 10000000)
         self.assertEqual(self.product.get_current_step_increment(Decimal('199999999')), 10000000)
 
-        # پله ۳: از ۲۰۰ میلیون تا ۵۰۰ میلیون -> افزایش ۲۰ میلیون
+        # Ù¾Ù„Ù‡ Û³: Ø§Ø² Û²Û°Û° Ù…ÛŒÙ„ÛŒÙˆÙ† ØªØ§ ÛµÛ°Û° Ù…ÛŒÙ„ÛŒÙˆÙ† -> Ø§ÙØ²Ø§ÛŒØ´ Û²Û° Ù…ÛŒÙ„ÛŒÙˆÙ†
         self.assertEqual(self.product.get_current_step_increment(Decimal('200000000')), 20000000)
         self.assertEqual(self.product.get_current_step_increment(Decimal('350000000')), 20000000)
 
-        # پله ۴: از ۵۰۰ میلیون تا ۱ میلیارد -> افزایش ۵۰ میلیون
+        # Ù¾Ù„Ù‡ Û´: Ø§Ø² ÛµÛ°Û° Ù…ÛŒÙ„ÛŒÙˆÙ† ØªØ§ Û± Ù…ÛŒÙ„ÛŒØ§Ø±Ø¯ -> Ø§ÙØ²Ø§ÛŒØ´ ÛµÛ° Ù…ÛŒÙ„ÛŒÙˆÙ†
         self.assertEqual(self.product.get_current_step_increment(Decimal('500000000')), 50000000)
         self.assertEqual(self.product.get_current_step_increment(Decimal('800000000')), 50000000)
 
-        # پله ۵: از ۱ میلیارد تا ۴ میلیارد -> افزایش ۱۰۰ میلیون
+        # Ù¾Ù„Ù‡ Ûµ: Ø§Ø² Û± Ù…ÛŒÙ„ÛŒØ§Ø±Ø¯ ØªØ§ Û´ Ù…ÛŒÙ„ÛŒØ§Ø±Ø¯ -> Ø§ÙØ²Ø§ÛŒØ´ Û±Û°Û° Ù…ÛŒÙ„ÛŒÙˆÙ†
         self.assertEqual(self.product.get_current_step_increment(Decimal('1000000000')), 100000000)
         self.assertEqual(self.product.get_current_step_increment(Decimal('2500000000')), 100000000)
 
-        # پله ۶: از ۴ میلیارد به بالا -> افزایش ۲۰۰ میلیون
+        # Ù¾Ù„Ù‡ Û¶: Ø§Ø² Û´ Ù…ÛŒÙ„ÛŒØ§Ø±Ø¯ Ø¨Ù‡ Ø¨Ø§Ù„Ø§ -> Ø§ÙØ²Ø§ÛŒØ´ Û²Û°Û° Ù…ÛŒÙ„ÛŒÙˆÙ†
         self.assertEqual(self.product.get_current_step_increment(Decimal('4000000000')), 200000000)
         self.assertEqual(self.product.get_current_step_increment(Decimal('10000000000')), 200000000)
 
-        # ثبت بید جدید در پله ۱ و ارزیابی حداقل پیشنهاد بعدی
+        # Ø«Ø¨Øª Ø¨ÛŒØ¯ Ø¬Ø¯ÛŒØ¯ Ø¯Ø± Ù¾Ù„Ù‡ Û± Ùˆ Ø§Ø±Ø²ÛŒØ§Ø¨ÛŒ Ø­Ø¯Ø§Ù‚Ù„ Ù¾ÛŒØ´Ù†Ù‡Ø§Ø¯ Ø¨Ø¹Ø¯ÛŒ
         self.product.place_bid(self.user_one, '20000000')
         self.product.refresh_from_db()
         self.assertEqual(self.product.get_min_next_bid(), 25000000)
@@ -324,15 +324,15 @@ class AuctionBidCreditFlowTests(TestCase):
         self.assertEqual(payload['min_next_bid'], 25000000)
         self.assertEqual(payload['bid_count'], 1)
         self.assertEqual(payload['my_bids_count'], 1)
-        self.assertIn('تاریخچه بیدهای شما', payload['my_bids_html'])
+        self.assertIn('ØªØ§Ø±ÛŒØ®Ú†Ù‡ Ø¨ÛŒØ¯Ù‡Ø§ÛŒ Ø´Ù…Ø§', payload['my_bids_html'])
 
     def test_auction_product_pure_price_tax_amount_and_final_price_with_tax(self):
-        # بررسی مقادیر بدون بید (بر پایه base_price = 10000000)
+        # Ø¨Ø±Ø±Ø³ÛŒ Ù…Ù‚Ø§Ø¯ÛŒØ± Ø¨Ø¯ÙˆÙ† Ø¨ÛŒØ¯ (Ø¨Ø± Ù¾Ø§ÛŒÙ‡ base_price = 10000000)
         self.assertEqual(self.product.pure_price, Decimal('10000000'))
         self.assertEqual(self.product.tax_amount, Decimal('1000000'))
         self.assertEqual(self.product.final_price_with_tax, Decimal('11000000'))
 
-        # بررسی با ثبت بید 25000000
+        # Ø¨Ø±Ø±Ø³ÛŒ Ø¨Ø§ Ø«Ø¨Øª Ø¨ÛŒØ¯ 25000000
         self.product.place_bid(self.user_one, '25000000')
         self.product.refresh_from_db()
         self.assertEqual(self.product.current_price, Decimal('25000000'))
@@ -366,8 +366,8 @@ class AuctionBidCreditFlowTests(TestCase):
         response = self.client.get(reverse('profile'))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'سبد خرید مزایده')
-        self.assertContains(response, 'تابلو تست')
+        self.assertContains(response, 'Ø³Ø¨Ø¯ Ø®Ø±ÛŒØ¯ Ù…Ø²Ø§ÛŒØ¯Ù‡')
+        self.assertContains(response, 'ØªØ§Ø¨Ù„Ùˆ ØªØ³Øª')
 
     def test_profile_shows_outbid_cart_items_as_inactive(self):
         self.product.place_bid(self.user_one, '20000000')
@@ -377,8 +377,8 @@ class AuctionBidCreditFlowTests(TestCase):
         response = self.client.get(reverse('profile'))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'غیرفعال')
-        self.assertContains(response, 'دیگر بالاترین پیشنهاد نیست')
+        self.assertContains(response, 'ØºÛŒØ±ÙØ¹Ø§Ù„')
+        self.assertContains(response, 'Ø¯ÛŒÚ¯Ø± Ø¨Ø§Ù„Ø§ØªØ±ÛŒÙ† Ù¾ÛŒØ´Ù†Ù‡Ø§Ø¯ Ù†ÛŒØ³Øª')
 
     def test_profile_moves_bid_history_into_auction_cart(self):
         self.product.place_bid(self.user_one, '20000000')
@@ -388,8 +388,8 @@ class AuctionBidCreditFlowTests(TestCase):
         response = self.client.get(reverse('profile'))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'تاریخچه بیدهای این محصول')
-        self.assertNotContains(response, 'بیدهای ثبت شده')
+        self.assertContains(response, 'ØªØ§Ø±ÛŒØ®Ú†Ù‡ Ø¨ÛŒØ¯Ù‡Ø§ÛŒ Ø§ÛŒÙ† Ù…Ø­ØµÙˆÙ„')
+        self.assertNotContains(response, 'Ø¨ÛŒØ¯Ù‡Ø§ÛŒ Ø«Ø¨Øª Ø´Ø¯Ù‡')
 
     def test_finished_auction_moves_won_product_to_auction_purchases(self):
         self.product.place_bid(self.user_one, '20000000')
@@ -403,38 +403,38 @@ class AuctionBidCreditFlowTests(TestCase):
         response = self.client.get(reverse('profile'))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'خریدهای مزایده')
-        self.assertContains(response, 'برنده مزایده')
-        self.assertContains(response, 'مزایده‌های گذشته')
-        self.assertContains(response, 'این محصول به بخش خریدهای مزایده شما منتقل شده است.')
+        self.assertContains(response, 'Ø®Ø±ÛŒØ¯Ù‡Ø§ÛŒ Ù…Ø²Ø§ÛŒØ¯Ù‡')
+        self.assertContains(response, 'Ø¨Ø±Ù†Ø¯Ù‡ Ù…Ø²Ø§ÛŒØ¯Ù‡')
+        self.assertContains(response, 'Ù…Ø²Ø§ÛŒØ¯Ù‡â€ŒÙ‡Ø§ÛŒ Ú¯Ø°Ø´ØªÙ‡')
+        self.assertContains(response, 'Ø§ÛŒÙ† Ù…Ø­ØµÙˆÙ„ Ø¨Ù‡ Ø¨Ø®Ø´ Ø®Ø±ÛŒØ¯Ù‡Ø§ÛŒ Ù…Ø²Ø§ÛŒØ¯Ù‡ Ø´Ù…Ø§ Ù…Ù†ØªÙ‚Ù„ Ø´Ø¯Ù‡ Ø§Ø³Øª.')
 
     def test_extended_auction_keeps_reserved_credit_and_stays_in_cart(self):
         self.product.place_bid(self.user_one, '20000000')
-        # پایان رسمی مزایده سپری شده است
+        # Ù¾Ø§ÛŒØ§Ù† Ø±Ø³Ù…ÛŒ Ù…Ø²Ø§ÛŒØ¯Ù‡ Ø³Ù¾Ø±ÛŒ Ø´Ø¯Ù‡ Ø§Ø³Øª
         self.auction.end_date = timezone.now() - timedelta(seconds=1)
         self.auction.save(update_fields=['end_date'])
-        # اما اثر تمدید شده و همچنان فعال است
+        # Ø§Ù…Ø§ Ø§Ø«Ø± ØªÙ…Ø¯ÛŒØ¯ Ø´Ø¯Ù‡ Ùˆ Ù‡Ù…Ú†Ù†Ø§Ù† ÙØ¹Ø§Ù„ Ø§Ø³Øª
         self.product.extended_end_time = timezone.now() + timedelta(hours=5)
         self.product.save(update_fields=['extended_end_time'])
 
         self.user_one.refresh_current_credit()
         self.user_one.refresh_from_db()
 
-        # ۱. منطق اعتبار و کیف پول باید دقیقا مثل مزایده در حال اجرا باشد
+        # Û±. Ù…Ù†Ø·Ù‚ Ø§Ø¹ØªØ¨Ø§Ø± Ùˆ Ú©ÛŒÙ Ù¾ÙˆÙ„ Ø¨Ø§ÛŒØ¯ Ø¯Ù‚ÛŒÙ‚Ø§ Ù…Ø«Ù„ Ù…Ø²Ø§ÛŒØ¯Ù‡ Ø¯Ø± Ø­Ø§Ù„ Ø§Ø¬Ø±Ø§ Ø¨Ø§Ø´Ø¯
         self.assertEqual(self.user_one.get_reserved_auction_credit(), Decimal('20000000'))
         self.assertEqual(self.user_one.current_credit, Decimal('80000000'))
 
-        # ۲. در پروفایل باید در سبد خرید باشد، نه در خریدهای مزایده
+        # Û². Ø¯Ø± Ù¾Ø±ÙˆÙØ§ÛŒÙ„ Ø¨Ø§ÛŒØ¯ Ø¯Ø± Ø³Ø¨Ø¯ Ø®Ø±ÛŒØ¯ Ø¨Ø§Ø´Ø¯ØŒ Ù†Ù‡ Ø¯Ø± Ø®Ø±ÛŒØ¯Ù‡Ø§ÛŒ Ù…Ø²Ø§ÛŒØ¯Ù‡
         self.client.force_login(self.user_one)
         response = self.client.get(reverse('profile'))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'سبد خرید مزایده')
-        self.assertContains(response, 'تمدید شده')
-        self.assertNotContains(response, 'این محصول به بخش خریدهای مزایده شما منتقل شده است.')
+        self.assertContains(response, 'Ø³Ø¨Ø¯ Ø®Ø±ÛŒØ¯ Ù…Ø²Ø§ÛŒØ¯Ù‡')
+        self.assertContains(response, 'ØªÙ…Ø¯ÛŒØ¯ Ø´Ø¯Ù‡')
+        self.assertNotContains(response, 'Ø§ÛŒÙ† Ù…Ø­ØµÙˆÙ„ Ø¨Ù‡ Ø¨Ø®Ø´ Ø®Ø±ÛŒØ¯Ù‡Ø§ÛŒ Ù…Ø²Ø§ÛŒØ¯Ù‡ Ø´Ù…Ø§ Ù…Ù†ØªÙ‚Ù„ Ø´Ø¯Ù‡ Ø§Ø³Øª.')
         self.assertEqual(len(response.context['current_auction_cart_items']), 1)
         self.assertEqual(len(response.context['auction_purchases']), 0)
 
-        # ۳. ثبت درخواست افزایش اعتبار در زمان تمدید فعال باشد
+        # Û³. Ø«Ø¨Øª Ø¯Ø±Ø®ÙˆØ§Ø³Øª Ø§ÙØ²Ø§ÛŒØ´ Ø§Ø¹ØªØ¨Ø§Ø± Ø¯Ø± Ø²Ù…Ø§Ù† ØªÙ…Ø¯ÛŒØ¯ ÙØ¹Ø§Ù„ Ø¨Ø§Ø´Ø¯
         credit_resp = self.client.post(
             reverse('auction:submit_credit_increase_ajax'),
             {},
@@ -456,10 +456,10 @@ class AuctionBidCreditFlowTests(TestCase):
         self.auction.save(update_fields=['end_date'])
 
         store_artwork = Artwork.objects.create(
-            title='اثر فروشگاه',
+            title='Ø§Ø«Ø± ÙØ±ÙˆØ´Ú¯Ø§Ù‡',
             artist=self.artist,
             artwork_type=self.artwork_type,
-            description='توضیح تست',
+            description='ØªÙˆØ¶ÛŒØ­ ØªØ³Øª',
             price=Decimal('500'),
             is_sold=Artwork.IsSoldStatus.SOLD,
         )
@@ -469,10 +469,10 @@ class AuctionBidCreditFlowTests(TestCase):
         response = self.client.get(reverse('profile'))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'خریدهای فروشگاه')
-        self.assertContains(response, 'خریدهای مزایده')
-        self.assertContains(response, 'اثر فروشگاه')
-        self.assertContains(response, 'تابلو تست')
+        self.assertContains(response, 'Ø®Ø±ÛŒØ¯Ù‡Ø§ÛŒ ÙØ±ÙˆØ´Ú¯Ø§Ù‡')
+        self.assertContains(response, 'Ø®Ø±ÛŒØ¯Ù‡Ø§ÛŒ Ù…Ø²Ø§ÛŒØ¯Ù‡')
+        self.assertContains(response, 'Ø§Ø«Ø± ÙØ±ÙˆØ´Ú¯Ø§Ù‡')
+        self.assertContains(response, 'ØªØ§Ø¨Ù„Ùˆ ØªØ³Øª')
 
     def test_finished_auction_products_page_shows_sold_badge_for_winner(self):
         self.product.place_bid(self.user_one, '20000000')
@@ -482,14 +482,14 @@ class AuctionBidCreditFlowTests(TestCase):
         response = self.client.get(reverse('auction:auction_products', kwargs={'pk': self.auction.pk}))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'به فروش رسید')
+        self.assertContains(response, 'Ø¨Ù‡ ÙØ±ÙˆØ´ Ø±Ø³ÛŒØ¯')
         self.assertContains(response, 'data-has-winner="1"')
 
     def test_auction_products_page_orders_items_by_lot_number(self):
         AuctionProduct.objects.create(
             auction=self.auction,
             product_id='A-1002',
-            title='محصول لات 10',
+            title='Ù…Ø­ØµÙˆÙ„ Ù„Ø§Øª 10',
             lot=10,
             artist=self.artist,
             artwork_type=self.artwork_type,
@@ -498,7 +498,7 @@ class AuctionBidCreditFlowTests(TestCase):
         AuctionProduct.objects.create(
             auction=self.auction,
             product_id='A-1003',
-            title='محصول لات 2',
+            title='Ù…Ø­ØµÙˆÙ„ Ù„Ø§Øª 2',
             lot=2,
             artist=self.artist,
             artwork_type=self.artwork_type,
@@ -507,7 +507,7 @@ class AuctionBidCreditFlowTests(TestCase):
         AuctionProduct.objects.create(
             auction=self.auction,
             product_id='A-1004',
-            title='محصول بدون لات',
+            title='Ù…Ø­ØµÙˆÙ„ Ø¨Ø¯ÙˆÙ† Ù„Ø§Øª',
             lot=None,
             artist=self.artist,
             artwork_type=self.artwork_type,
@@ -523,7 +523,7 @@ class AuctionBidCreditFlowTests(TestCase):
         product_titles = [product.title for product in response.context['products']]
         self.assertEqual(
             product_titles,
-            ['محصول لات 2', 'محصول لات 10', 'تابلو تست', 'محصول بدون لات'],
+            ['Ù…Ø­ØµÙˆÙ„ Ù„Ø§Øª 2', 'Ù…Ø­ØµÙˆÙ„ Ù„Ø§Øª 10', 'ØªØ§Ø¨Ù„Ùˆ ØªØ³Øª', 'Ù…Ø­ØµÙˆÙ„ Ø¨Ø¯ÙˆÙ† Ù„Ø§Øª'],
         )
 
     def test_auction_product_model_default_ordering_uses_lot_number(self):
@@ -532,7 +532,7 @@ class AuctionBidCreditFlowTests(TestCase):
         AuctionProduct.objects.create(
             auction=self.auction,
             product_id='A-1005',
-            title='محصول لات 3',
+            title='Ù…Ø­ØµÙˆÙ„ Ù„Ø§Øª 3',
             lot=3,
             artist=self.artist,
             artwork_type=self.artwork_type,
@@ -541,7 +541,7 @@ class AuctionBidCreditFlowTests(TestCase):
         AuctionProduct.objects.create(
             auction=self.auction,
             product_id='A-1006',
-            title='محصول بدون لات',
+            title='Ù…Ø­ØµÙˆÙ„ Ø¨Ø¯ÙˆÙ† Ù„Ø§Øª',
             lot=None,
             artist=self.artist,
             artwork_type=self.artwork_type,
@@ -555,8 +555,8 @@ class AuctionBidCreditFlowTests(TestCase):
         self.assertIn(
             product_titles,
             [
-                ['محصول لات 3', 'محصول بدون لات', 'تابلو تست'],
-                ['محصول بدون لات', 'محصول لات 3', 'تابلو تست'],
+                ['Ù…Ø­ØµÙˆÙ„ Ù„Ø§Øª 3', 'Ù…Ø­ØµÙˆÙ„ Ø¨Ø¯ÙˆÙ† Ù„Ø§Øª', 'ØªØ§Ø¨Ù„Ùˆ ØªØ³Øª'],
+                ['Ù…Ø­ØµÙˆÙ„ Ø¨Ø¯ÙˆÙ† Ù„Ø§Øª', 'Ù…Ø­ØµÙˆÙ„ Ù„Ø§Øª 3', 'ØªØ§Ø¨Ù„Ùˆ ØªØ³Øª'],
             ],
         )
 
@@ -599,16 +599,16 @@ class AuctionBidCreditFlowTests(TestCase):
 
         email_deliveries = list(NotificationDelivery.objects.filter(provider='email'))
         subjects = [item.subject for item in email_deliveries]
-        self.assertIn(f"مزایده «{self.auction.name}» به پایان رسید", subjects)
-        self.assertIn("نتیجه مزایده و صورتحساب خرید", subjects)
+        self.assertIn(f"Ù…Ø²Ø§ÛŒØ¯Ù‡ Â«{self.auction.name}Â» Ø¨Ù‡ Ù¾Ø§ÛŒØ§Ù† Ø±Ø³ÛŒØ¯", subjects)
+        self.assertIn("Ù†ØªÛŒØ¬Ù‡ Ù…Ø²Ø§ÛŒØ¯Ù‡ Ùˆ ØµÙˆØ±ØªØ­Ø³Ø§Ø¨ Ø®Ø±ÛŒØ¯", subjects)
         winner_messages = [item for item in email_deliveries if item.recipients == ['winner@example.com']]
         self.assertTrue(winner_messages)
         winner_mail = next(
             item for item in winner_messages
-            if item.subject == "نتیجه مزایده و صورتحساب خرید"
+            if item.subject == "Ù†ØªÛŒØ¬Ù‡ Ù…Ø²Ø§ÛŒØ¯Ù‡ Ùˆ ØµÙˆØ±ØªØ­Ø³Ø§Ø¨ Ø®Ø±ÛŒØ¯"
         )
-        self.assertIn('صورتحساب خرید شما صادر شده است', winner_mail.body)
-        self.assertIn('جمع مبلغ نهایی پیشنهاد', winner_mail.body)
+        self.assertIn('ØµÙˆØ±ØªØ­Ø³Ø§Ø¨ Ø®Ø±ÛŒØ¯ Ø´Ù…Ø§ ØµØ§Ø¯Ø± Ø´Ø¯Ù‡ Ø§Ø³Øª', winner_mail.body)
+        self.assertIn('Ø¬Ù…Ø¹ Ù…Ø¨Ù„Øº Ù†Ù‡Ø§ÛŒÛŒ Ù¾ÛŒØ´Ù†Ù‡Ø§Ø¯', winner_mail.body)
 
     def test_send_auction_ended_email_sends_sms_billing_for_sms_only_winner(self):
         self.user_one.email = ''
@@ -656,7 +656,7 @@ class AuctionBidCreditFlowTests(TestCase):
         future_end = future_start + timedelta(hours=12)
 
         auction = Auction.objects.create(
-            name='مزایده آینده',
+            name='Ù…Ø²Ø§ÛŒØ¯Ù‡ Ø¢ÛŒÙ†Ø¯Ù‡',
             start_date=future_start,
             end_date=future_end,
             products_count=1,
@@ -706,7 +706,7 @@ class AuctionBidCreditFlowTests(TestCase):
 
         email_deliveries = list(NotificationDelivery.objects.filter(provider='email'))
         self.assertEqual(len(email_deliveries), 2)
-        self.assertTrue(all('یادآوری شروع مزایده' in item.subject for item in email_deliveries))
+        self.assertTrue(all('ÛŒØ§Ø¯Ø¢ÙˆØ±ÛŒ Ø´Ø±ÙˆØ¹ Ù…Ø²Ø§ÛŒØ¯Ù‡' in item.subject for item in email_deliveries))
         self.assertEqual(
             {item.recipients[0] for item in email_deliveries},
             {'first@example.com', 'second@example.com'},
@@ -744,7 +744,7 @@ class AuctionBidCreditFlowTests(TestCase):
 
         email_deliveries = list(NotificationDelivery.objects.filter(provider='email'))
         self.assertEqual(len(email_deliveries), 1)
-        self.assertIn('شروع مزایده', email_deliveries[0].subject)
+        self.assertIn('Ø´Ø±ÙˆØ¹ Ù…Ø²Ø§ÛŒØ¯Ù‡', email_deliveries[0].subject)
 
     def test_send_auction_starting_soon_email_respects_user_preferred_contact_methods(self):
         self.user_one.email = 'first@example.com'
@@ -844,7 +844,7 @@ class AuctionBidCreditFlowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         email_deliveries = list(NotificationDelivery.objects.filter(provider='email'))
         self.assertEqual(len(email_deliveries), 2)
-        self.assertTrue(all('یادآوری شروع مزایده' in item.subject for item in email_deliveries))
+        self.assertTrue(all('ÛŒØ§Ø¯Ø¢ÙˆØ±ÛŒ Ø´Ø±ÙˆØ¹ Ù…Ø²Ø§ÛŒØ¯Ù‡' in item.subject for item in email_deliveries))
 
         cache.clear()
         second_response = self.client.get(reverse('auction:action'))
@@ -880,19 +880,19 @@ class AuctionBidCreditFlowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         email_deliveries = list(NotificationDelivery.objects.filter(provider='email'))
         subjects = [item.subject for item in email_deliveries]
-        self.assertIn(f"مزایده «{self.auction.name}» به پایان رسید", subjects)
-        self.assertIn("نتیجه مزایده و صورتحساب خرید", subjects)
+        self.assertIn(f"Ù…Ø²Ø§ÛŒØ¯Ù‡ Â«{self.auction.name}Â» Ø¨Ù‡ Ù¾Ø§ÛŒØ§Ù† Ø±Ø³ÛŒØ¯", subjects)
+        self.assertIn("Ù†ØªÛŒØ¬Ù‡ Ù…Ø²Ø§ÛŒØ¯Ù‡ Ùˆ ØµÙˆØ±ØªØ­Ø³Ø§Ø¨ Ø®Ø±ÛŒØ¯", subjects)
 
         cache.clear()
         second_response = self.client.get(reverse('auction:action'))
 
         self.assertEqual(second_response.status_code, 200)
         self.assertEqual(
-            len([item for item in NotificationDelivery.objects.filter(provider='email') if item.subject == f"مزایده «{self.auction.name}» به پایان رسید"]),
+            len([item for item in NotificationDelivery.objects.filter(provider='email') if item.subject == f"Ù…Ø²Ø§ÛŒØ¯Ù‡ Â«{self.auction.name}Â» Ø¨Ù‡ Ù¾Ø§ÛŒØ§Ù† Ø±Ø³ÛŒØ¯"]),
             1,
         )
         self.assertEqual(
-            len([item for item in NotificationDelivery.objects.filter(provider='email') if item.subject == "نتیجه مزایده و صورتحساب خرید"]),
+            len([item for item in NotificationDelivery.objects.filter(provider='email') if item.subject == "Ù†ØªÛŒØ¬Ù‡ Ù…Ø²Ø§ÛŒØ¯Ù‡ Ùˆ ØµÙˆØ±ØªØ­Ø³Ø§Ø¨ Ø®Ø±ÛŒØ¯"]),
             1,
         )
         self.auction.refresh_from_db()
@@ -951,10 +951,10 @@ class AuctionBidCreditFlowTests(TestCase):
 class AuctionVisitTrackingTests(TestCase):
     def setUp(self):
         self.client = Client()
-        self.artist = Artist.objects.create(id=2, name='هنرمند بازدید')
-        self.artwork_type = ArtworkType.objects.create(name='مجسمه')
+        self.artist = Artist.objects.create(id=2, name='Ù‡Ù†Ø±Ù…Ù†Ø¯ Ø¨Ø§Ø²Ø¯ÛŒØ¯')
+        self.artwork_type = ArtworkType.objects.create(name='Ù…Ø¬Ø³Ù…Ù‡')
         self.auction = Auction.objects.create(
-            name='مزایده بازدید',
+            name='Ù…Ø²Ø§ÛŒØ¯Ù‡ Ø¨Ø§Ø²Ø¯ÛŒØ¯',
             start_date=timezone.now() - timedelta(hours=1),
             end_date=timezone.now() + timedelta(hours=1),
             products_count=1,
@@ -962,7 +962,7 @@ class AuctionVisitTrackingTests(TestCase):
         self.product = AuctionProduct.objects.create(
             auction=self.auction,
             product_id='A-2001',
-            title='اثر بازدید',
+            title='Ø§Ø«Ø± Ø¨Ø§Ø²Ø¯ÛŒØ¯',
             artist=self.artist,
             artwork_type=self.artwork_type,
             base_price=Decimal('100'),
@@ -1001,14 +1001,14 @@ class AuctionVisitTrackingTests(TestCase):
         response = self.client.get(reverse('auction:auction_product_detail', kwargs={'pk': self.product.pk}))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'ورود جهت ثبت پیشنهاد')
+        self.assertContains(response, 'ÙˆØ±ÙˆØ¯ Ø¬Ù‡Øª Ø«Ø¨Øª Ù¾ÛŒØ´Ù†Ù‡Ø§Ø¯')
         self.assertEqual(AuctionVisitHistory.objects.count(), 0)
 
     def test_auction_product_detail_page_is_public_for_unverified_users(self):
         unverified_user = CustomUser.objects.create_user(
             phone_number='09120000110',
             password='Test@1234',
-            full_name='کاربر تاییدنشد‌ه',
+            full_name='Ú©Ø§Ø±Ø¨Ø± ØªØ§ÛŒÛŒØ¯Ù†Ø´Ø¯â€ŒÙ‡',
         )
         self.client.force_login(unverified_user)
 
@@ -1021,7 +1021,7 @@ class AuctionVisitTrackingTests(TestCase):
         winner = CustomUser.objects.create_user(
             phone_number='09120000111',
             password='Test@1234',
-            full_name='برنده مزایده',
+            full_name='Ø¨Ø±Ù†Ø¯Ù‡ Ù…Ø²Ø§ÛŒØ¯Ù‡',
         )
         winner.is_verified = 1
         winner.credit = Decimal('100000000')
@@ -1038,11 +1038,11 @@ class AuctionVisitTrackingTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'مزایده این اثر به پایان رسیده است')
-        self.assertContains(response, 'این اثر دارای برنده نهایی است.')
-        self.assertNotContains(response, 'این صفحه برای مشاهده عمومی باز است و ثبت بید غیرفعال شده است.')
+        self.assertContains(response, 'Ù…Ø²Ø§ÛŒØ¯Ù‡ Ø§ÛŒÙ† Ø§Ø«Ø± Ø¨Ù‡ Ù¾Ø§ÛŒØ§Ù† Ø±Ø³ÛŒØ¯Ù‡ Ø§Ø³Øª')
+        self.assertContains(response, 'Ø§ÛŒÙ† Ø§Ø«Ø± Ø¯Ø§Ø±Ø§ÛŒ Ø¨Ø±Ù†Ø¯Ù‡ Ù†Ù‡Ø§ÛŒÛŒ Ø§Ø³Øª.')
+        self.assertNotContains(response, 'Ø§ÛŒÙ† ØµÙØ­Ù‡ Ø¨Ø±Ø§ÛŒ Ù…Ø´Ø§Ù‡Ø¯Ù‡ Ø¹Ù…ÙˆÙ…ÛŒ Ø¨Ø§Ø² Ø§Ø³Øª Ùˆ Ø«Ø¨Øª Ø¨ÛŒØ¯ ØºÛŒØ±ÙØ¹Ø§Ù„ Ø´Ø¯Ù‡ Ø§Ø³Øª.')
         self.assertNotContains(response, 'id="bid-submit-form"', html=False)
-        self.assertNotContains(response, 'ورود جهت ثبت پیشنهاد')
+        self.assertNotContains(response, 'ÙˆØ±ÙˆØ¯ Ø¬Ù‡Øª Ø«Ø¨Øª Ù¾ÛŒØ´Ù†Ù‡Ø§Ø¯')
 
     def test_auction_products_page_marks_product_detail_links_for_guarded_visit_tracking(self):
         response = self.client.get(
@@ -1055,7 +1055,7 @@ class AuctionVisitTrackingTests(TestCase):
         self.assertIn(reverse('auction:auction_product_detail', kwargs={'pk': self.product.pk}), html)
         self.assertIn('data-auction-product-link="1"', html)
         self.assertIn('data-auction-quick-bid="1"', html)
-        self.assertIn('data-login-message="برای مشاهده جزئیات محصول مزایده، لطفاً ابتدا وارد حساب کاربری خود شوید."', html)
+        self.assertIn('data-login-message="Ø¨Ø±Ø§ÛŒ Ù…Ø´Ø§Ù‡Ø¯Ù‡ Ø¬Ø²Ø¦ÛŒØ§Øª Ù…Ø­ØµÙˆÙ„ Ù…Ø²Ø§ÛŒØ¯Ù‡ØŒ Ù„Ø·ÙØ§Ù‹ Ø§Ø¨ØªØ¯Ø§ ÙˆØ§Ø±Ø¯ Ø­Ø³Ø§Ø¨ Ú©Ø§Ø±Ø¨Ø±ÛŒ Ø®ÙˆØ¯ Ø´ÙˆÛŒØ¯."', html)
         self.assertIn('data-track-kind="auction_product"', html)
         self.assertIn('data-track-guard="auction-access"', html)
         self.assertIn('data-product-image-link="1"', html)
@@ -1064,7 +1064,7 @@ class AuctionVisitTrackingTests(TestCase):
         winner = CustomUser.objects.create_user(
             phone_number='09120000112',
             password='Test@1234',
-            full_name='برنده مزایده عمومی',
+            full_name='Ø¨Ø±Ù†Ø¯Ù‡ Ù…Ø²Ø§ÛŒØ¯Ù‡ Ø¹Ù…ÙˆÙ…ÛŒ',
         )
         winner.is_verified = 1
         winner.credit = Decimal('100000000')
@@ -1099,7 +1099,7 @@ class AuctionVisitTrackingTests(TestCase):
         winner = CustomUser.objects.create_user(
             phone_number='09120000111',
             password='Test@1234',
-            full_name='برنده مزایده',
+            full_name='Ø¨Ø±Ù†Ø¯Ù‡ Ù…Ø²Ø§ÛŒØ¯Ù‡',
         )
         winner.is_verified = 1
         winner.credit = Decimal('100000000')
@@ -1119,11 +1119,11 @@ class AuctionVisitTrackingTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'مزایده این اثر به پایان رسیده است')
-        self.assertContains(response, 'این اثر دارای برنده نهایی است.')
-        self.assertNotContains(response, 'این صفحه برای مشاهده عمومی باز است و ثبت بید غیرفعال شده است.')
+        self.assertContains(response, 'Ù…Ø²Ø§ÛŒØ¯Ù‡ Ø§ÛŒÙ† Ø§Ø«Ø± Ø¨Ù‡ Ù¾Ø§ÛŒØ§Ù† Ø±Ø³ÛŒØ¯Ù‡ Ø§Ø³Øª')
+        self.assertContains(response, 'Ø§ÛŒÙ† Ø§Ø«Ø± Ø¯Ø§Ø±Ø§ÛŒ Ø¨Ø±Ù†Ø¯Ù‡ Ù†Ù‡Ø§ÛŒÛŒ Ø§Ø³Øª.')
+        self.assertNotContains(response, 'Ø§ÛŒÙ† ØµÙØ­Ù‡ Ø¨Ø±Ø§ÛŒ Ù…Ø´Ø§Ù‡Ø¯Ù‡ Ø¹Ù…ÙˆÙ…ÛŒ Ø¨Ø§Ø² Ø§Ø³Øª Ùˆ Ø«Ø¨Øª Ø¨ÛŒØ¯ ØºÛŒØ±ÙØ¹Ø§Ù„ Ø´Ø¯Ù‡ Ø§Ø³Øª.')
         self.assertNotContains(response, 'id="bid-submit-form"', html=False)
-        self.assertNotContains(response, 'ورود جهت ثبت پیشنهاد')
+        self.assertNotContains(response, 'ÙˆØ±ÙˆØ¯ Ø¬Ù‡Øª Ø«Ø¨Øª Ù¾ÛŒØ´Ù†Ù‡Ø§Ø¯')
 
     def test_auction_products_page_marks_product_detail_links_for_guarded_visit_tracking(self):
         response = self.client.get(
@@ -1136,7 +1136,7 @@ class AuctionVisitTrackingTests(TestCase):
         self.assertIn(reverse('auction:auction_product_detail', kwargs={'pk': self.product.pk}), html)
         self.assertIn('data-auction-product-link="1"', html)
         self.assertIn('data-auction-quick-bid="1"', html)
-        self.assertIn('data-login-message="برای مشاهده جزئیات محصول مزایده، لطفاً ابتدا وارد حساب کاربری خود شوید."', html)
+        self.assertIn('data-login-message="Ø¨Ø±Ø§ÛŒ Ù…Ø´Ø§Ù‡Ø¯Ù‡ Ø¬Ø²Ø¦ÛŒØ§Øª Ù…Ø­ØµÙˆÙ„ Ù…Ø²Ø§ÛŒØ¯Ù‡ØŒ Ù„Ø·ÙØ§Ù‹ Ø§Ø¨ØªØ¯Ø§ ÙˆØ§Ø±Ø¯ Ø­Ø³Ø§Ø¨ Ú©Ø§Ø±Ø¨Ø±ÛŒ Ø®ÙˆØ¯ Ø´ÙˆÛŒØ¯."', html)
         self.assertIn('data-track-kind="auction_product"', html)
         self.assertIn('data-track-guard="auction-access"', html)
         self.assertIn('data-product-image-link="1"', html)
@@ -1145,7 +1145,7 @@ class AuctionVisitTrackingTests(TestCase):
         winner = CustomUser.objects.create_user(
             phone_number='09120000112',
             password='Test@1234',
-            full_name='برنده مزایده عمومی',
+            full_name='Ø¨Ø±Ù†Ø¯Ù‡ Ù…Ø²Ø§ÛŒØ¯Ù‡ Ø¹Ù…ÙˆÙ…ÛŒ',
         )
         winner.is_verified = 1
         winner.credit = Decimal('100000000')
@@ -1190,7 +1190,7 @@ class AuctionVisitTrackingTests(TestCase):
 
     def test_product_detail_page_accessible_when_auction_not_started(self):
         ready_auction = Auction.objects.create(
-            name='مزایده به زودی',
+            name='Ù…Ø²Ø§ÛŒØ¯Ù‡ Ø¨Ù‡ Ø²ÙˆØ¯ÛŒ',
             start_date=timezone.now() + timedelta(days=1),
             end_date=timezone.now() + timedelta(days=2),
             products_count=1,
@@ -1198,7 +1198,7 @@ class AuctionVisitTrackingTests(TestCase):
         ready_product = AuctionProduct.objects.create(
             auction=ready_auction,
             product_id='A-9999',
-            title='اثر پیش‌نمایش',
+            title='Ø§Ø«Ø± Ù¾ÛŒØ´â€ŒÙ†Ù…Ø§ÛŒØ´',
             artist=self.artist,
             artwork_type=self.artwork_type,
             base_price=Decimal('500'),
@@ -1206,8 +1206,8 @@ class AuctionVisitTrackingTests(TestCase):
         response = self.client.get(reverse('auction:auction_product_detail', kwargs={'pk': ready_product.pk}))
         self.assertEqual(response.status_code, 200)
         html = response.content.decode()
-        self.assertIn('اثر پیش‌نمایش', html)
-        self.assertIn('در انتظار شروع مزایده', html)
+        self.assertIn('Ø§Ø«Ø± Ù¾ÛŒØ´â€ŒÙ†Ù…Ø§ÛŒØ´', html)
+        self.assertIn('Ø¯Ø± Ø§Ù†ØªØ¸Ø§Ø± Ø´Ø±ÙˆØ¹ Ù…Ø²Ø§ÛŒØ¯Ù‡', html)
 
     def test_product_detail_back_button_and_lot_navigation(self):
         # Create 3 products with lots 1, 2, 3
@@ -1218,7 +1218,7 @@ class AuctionVisitTrackingTests(TestCase):
             auction=self.auction,
             product_id='A-102',
             lot=2,
-            title='اثر لات دوم',
+            title='Ø§Ø«Ø± Ù„Ø§Øª Ø¯ÙˆÙ…',
             artist=self.artist,
             artwork_type=self.artwork_type,
             base_price=Decimal('20000000'),
@@ -1227,7 +1227,7 @@ class AuctionVisitTrackingTests(TestCase):
             auction=self.auction,
             product_id='A-103',
             lot=3,
-            title='اثر لات سوم',
+            title='Ø§Ø«Ø± Ù„Ø§Øª Ø³ÙˆÙ…',
             artist=self.artist,
             artwork_type=self.artwork_type,
             base_price=Decimal('30000000'),
@@ -1242,7 +1242,7 @@ class AuctionVisitTrackingTests(TestCase):
         resp1 = self.client.get(p1_url)
         self.assertEqual(resp1.status_code, 200)
         self.assertContains(resp1, auction_back_url)
-        self.assertContains(resp1, 'بازگشت به مزایده')
+        self.assertContains(resp1, 'Ø¨Ø§Ø²Ú¯Ø´Øª Ø¨Ù‡ Ù…Ø²Ø§ÛŒØ¯Ù‡')
         self.assertContains(resp1, p2_url)
         self.assertEqual(resp1.context['previous_lot_product'], None)
         self.assertEqual(resp1.context['next_lot_product']['pk'], p2.pk)
@@ -1268,11 +1268,11 @@ class AuctionVisitTrackingTests(TestCase):
 class AuctionSoftCloseOvertimeTests(TestCase):
     def setUp(self):
         self.client = Client()
-        self.artist = Artist.objects.create(id=200, name='هنرمند سافت کلوز')
-        self.artwork_type = ArtworkType.objects.create(name='نقاشی سافت کلوز')
+        self.artist = Artist.objects.create(id=200, name='Ù‡Ù†Ø±Ù…Ù†Ø¯ Ø³Ø§ÙØª Ú©Ù„ÙˆØ²')
+        self.artwork_type = ArtworkType.objects.create(name='Ù†Ù‚Ø§Ø´ÛŒ Ø³Ø§ÙØª Ú©Ù„ÙˆØ²')
         now = timezone.now()
         self.auction = Auction.objects.create(
-            name='مزایده سافت کلوز',
+            name='Ù…Ø²Ø§ÛŒØ¯Ù‡ Ø³Ø§ÙØª Ú©Ù„ÙˆØ²',
             start_date=now - timedelta(hours=2),
             end_date=now + timedelta(hours=2),  # 2 hours remaining (< 6 hours)
             products_count=2,
@@ -1281,7 +1281,7 @@ class AuctionSoftCloseOvertimeTests(TestCase):
             auction=self.auction,
             product_id='SC-001',
             lot=1,
-            title='اثر آ',
+            title='Ø§Ø«Ø± Ø¢',
             artist=self.artist,
             artwork_type=self.artwork_type,
             base_price=Decimal('10000000'),
@@ -1290,7 +1290,7 @@ class AuctionSoftCloseOvertimeTests(TestCase):
             auction=self.auction,
             product_id='SC-002',
             lot=2,
-            title='اثر ب',
+            title='Ø§Ø«Ø± Ø¨',
             artist=self.artist,
             artwork_type=self.artwork_type,
             base_price=Decimal('15000000'),
@@ -1298,7 +1298,7 @@ class AuctionSoftCloseOvertimeTests(TestCase):
         self.user_one = CustomUser.objects.create_user(
             phone_number='09190000001',
             password='Test@1234',
-            full_name='بیدزن اول',
+            full_name='Ø¨ÛŒØ¯Ø²Ù† Ø§ÙˆÙ„',
         )
         self.user_one.is_verified = 1
         self.user_one.credit = Decimal('100000000')
@@ -1308,7 +1308,7 @@ class AuctionSoftCloseOvertimeTests(TestCase):
         self.user_two = CustomUser.objects.create_user(
             phone_number='09190000002',
             password='Test@1234',
-            full_name='بیدزن دوم',
+            full_name='Ø¨ÛŒØ¯Ø²Ù† Ø¯ÙˆÙ…',
         )
         self.user_two.is_verified = 1
         self.user_two.credit = Decimal('100000000')
@@ -1334,7 +1334,7 @@ class AuctionSoftCloseOvertimeTests(TestCase):
         """Bidding more than 6 hours before deadline does NOT trigger extension."""
         now = timezone.now()
         auction_long = Auction.objects.create(
-            name='مزایده طولانی',
+            name='Ù…Ø²Ø§ÛŒØ¯Ù‡ Ø·ÙˆÙ„Ø§Ù†ÛŒ',
             start_date=now - timedelta(hours=1),
             end_date=now + timedelta(hours=10),  # 10 hours left
             products_count=1,
@@ -1342,7 +1342,7 @@ class AuctionSoftCloseOvertimeTests(TestCase):
         prod = AuctionProduct.objects.create(
             auction=auction_long,
             product_id='SC-LONG',
-            title='اثر مزایده طولانی',
+            title='Ø§Ø«Ø± Ù…Ø²Ø§ÛŒØ¯Ù‡ Ø·ÙˆÙ„Ø§Ù†ÛŒ',
             artist=self.artist,
             artwork_type=self.artwork_type,
             base_price=Decimal('10000000'),
@@ -1508,7 +1508,7 @@ class AuctionSoftCloseOvertimeTests(TestCase):
 
             # Check sent payload
             payload = mock_sms_send.call_args[0][0]
-            self.assertIn(payload.context['number_of_works'], ('1', '۱'))
+            self.assertIn(payload.context['number_of_works'], ('1', 'Û±'))
             self.assertEqual(payload.context['auction_name'], self.auction.name)
             self.assertEqual(payload.metadata.get('sms_pattern'), 'auction_extended_notice')
 
@@ -1550,11 +1550,11 @@ class AuctionSoftCloseOvertimeTests(TestCase):
 class AuctionInvoiceTests(TestCase):
     def setUp(self):
         self.client = Client()
-        self.artist = Artist.objects.create(id=300, name='هنرمند تستی')
-        self.artwork_type = ArtworkType.objects.create(name='نقاشی تستی')
+        self.artist = Artist.objects.create(id=300, name='Ù‡Ù†Ø±Ù…Ù†Ø¯ ØªØ³ØªÛŒ')
+        self.artwork_type = ArtworkType.objects.create(name='Ù†Ù‚Ø§Ø´ÛŒ ØªØ³ØªÛŒ')
         now = timezone.now()
         self.auction = Auction.objects.create(
-            name='مزایده بهاره تست',
+            name='Ù…Ø²Ø§ÛŒØ¯Ù‡ Ø¨Ù‡Ø§Ø±Ù‡ ØªØ³Øª',
             start_date=now - timedelta(hours=3),
             end_date=now - timedelta(hours=1),
             products_count=2,
@@ -1563,7 +1563,7 @@ class AuctionInvoiceTests(TestCase):
             auction=self.auction,
             product_id='INV-P01',
             lot=10,
-            title='اثر اول فاکتور',
+            title='Ø§Ø«Ø± Ø§ÙˆÙ„ ÙØ§Ú©ØªÙˆØ±',
             artist=self.artist,
             artwork_type=self.artwork_type,
             base_price=Decimal('20000000'),
@@ -1573,7 +1573,7 @@ class AuctionInvoiceTests(TestCase):
             auction=self.auction,
             product_id='INV-P02',
             lot=11,
-            title='اثر دوم فاکتور',
+            title='Ø§Ø«Ø± Ø¯ÙˆÙ… ÙØ§Ú©ØªÙˆØ±',
             artist=self.artist,
             artwork_type=self.artwork_type,
             base_price=Decimal('10000000'),
@@ -1582,7 +1582,7 @@ class AuctionInvoiceTests(TestCase):
         self.winner_user = CustomUser.objects.create_user(
             phone_number='09121111111',
             password='TestPassword123',
-            full_name='برنده فاکتور',
+            full_name='Ø¨Ø±Ù†Ø¯Ù‡ ÙØ§Ú©ØªÙˆØ±',
         )
         self.winner_user.is_verified = 1
         self.winner_user.save()
@@ -1590,7 +1590,7 @@ class AuctionInvoiceTests(TestCase):
         self.other_user = CustomUser.objects.create_user(
             phone_number='09122222222',
             password='TestPassword123',
-            full_name='کاربر دیگر',
+            full_name='Ú©Ø§Ø±Ø¨Ø± Ø¯ÛŒÚ¯Ø±',
         )
         self.other_user.is_verified = 1
         self.other_user.save()
@@ -1598,7 +1598,7 @@ class AuctionInvoiceTests(TestCase):
         self.admin_user = CustomUser.objects.create_superuser(
             phone_number='09123333333',
             password='AdminPassword123',
-            full_name='مدیر سیستم',
+            full_name='Ù…Ø¯ÛŒØ± Ø³ÛŒØ³ØªÙ…',
         )
 
         Bid.objects.create(
@@ -1626,7 +1626,7 @@ class AuctionInvoiceTests(TestCase):
     def test_invoice_not_generated_for_ongoing_auction(self):
         now = timezone.now()
         ongoing_auction = Auction.objects.create(
-            name='مزایده جاری',
+            name='Ù…Ø²Ø§ÛŒØ¯Ù‡ Ø¬Ø§Ø±ÛŒ',
             start_date=now - timedelta(hours=1),
             end_date=now + timedelta(hours=1),
             products_count=1,
@@ -1634,7 +1634,7 @@ class AuctionInvoiceTests(TestCase):
         AuctionProduct.objects.create(
             auction=ongoing_auction,
             product_id='ONGOING-01',
-            title='اثر جاری',
+            title='Ø§Ø«Ø± Ø¬Ø§Ø±ÛŒ',
             artist=self.artist,
             artwork_type=self.artwork_type,
             base_price=Decimal('10000000'),
@@ -1649,7 +1649,7 @@ class AuctionInvoiceTests(TestCase):
     def test_invoice_not_generated_when_extended_products_active(self):
         now = timezone.now()
         extended_auction = Auction.objects.create(
-            name='مزایده تمدید شده',
+            name='Ù…Ø²Ø§ÛŒØ¯Ù‡ ØªÙ…Ø¯ÛŒØ¯ Ø´Ø¯Ù‡',
             start_date=now - timedelta(hours=3),
             end_date=now - timedelta(minutes=10),
             products_count=1,
@@ -1657,7 +1657,7 @@ class AuctionInvoiceTests(TestCase):
         AuctionProduct.objects.create(
             auction=extended_auction,
             product_id='EXT-01',
-            title='اثر تمدیدی',
+            title='Ø§Ø«Ø± ØªÙ…Ø¯ÛŒØ¯ÛŒ',
             artist=self.artist,
             artwork_type=self.artwork_type,
             base_price=Decimal('10000000'),
@@ -1672,11 +1672,20 @@ class AuctionInvoiceTests(TestCase):
         self.assertEqual(len(invs), 0)
 
     def test_invoice_generation_upon_definitive_finish(self):
+        """
+        send_auction_ended_email فاکتور صادر نمی‌کند؛ dispatch_delayed_invoices را ۲۴ ساعت بعد schedule می‌کند.
+        """
         from auction.models import AuctionInvoice
-        from auction.tasks import send_auction_ended_email
+        from auction.tasks import send_auction_ended_email, dispatch_delayed_invoices
         self.assertEqual(self.auction.status, 'finished')
 
+        # پس از send_auction_ended_email فاکتوری نباید صادر شده باشد
         send_auction_ended_email(self.auction.id)
+        self.assertEqual(AuctionInvoice.objects.filter(auction=self.auction, user=self.winner_user).count(), 0)
+
+        # فراخوانی مستقیم dispatch_delayed_invoices (شبیه‌سازی اجرا بعد از ۲۴ ساعت)
+        expected = self.auction.invoice_available_at.isoformat()
+        dispatch_delayed_invoices(self.auction.id, expected_available_at=expected)
 
         invoices = AuctionInvoice.objects.filter(auction=self.auction, user=self.winner_user)
         self.assertEqual(invoices.count(), 1)
@@ -1718,7 +1727,7 @@ class AuctionInvoiceTests(TestCase):
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, invoice.invoice_number)
-        self.assertContains(resp, 'اثر اول فاکتور')
+        self.assertContains(resp, 'Ø§Ø«Ø± Ø§ÙˆÙ„ ÙØ§Ú©ØªÙˆØ±')
 
     def test_profile_context_groups_by_auction(self):
         from accounts.realtime import build_profile_live_context

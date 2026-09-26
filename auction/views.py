@@ -289,6 +289,18 @@ def auction_product_detail(request, pk: int):
         'total_lots_count': total_lots_count,
     }
 
+    # --- اطلاعات فاکتور برای برنده ---
+    user_is_winner = (
+        is_finished_auction
+        and request.user.is_authenticated
+        and product.winner_id == request.user.pk
+    )
+    context['user_is_winner'] = user_is_winner
+    if is_finished_auction and request.user.is_authenticated:
+        invoice_available_at = product.auction.invoice_available_at
+        context['invoice_available_at_iso'] = invoice_available_at.isoformat()
+        context['invoice_available_at_passed'] = timezone.now() >= invoice_available_at
+
     context['bid_error'] = request.GET.get('bid_error', '') or context['bid_error']
     context['bid_success'] = request.GET.get('bid_success', '') or context['bid_success']
 

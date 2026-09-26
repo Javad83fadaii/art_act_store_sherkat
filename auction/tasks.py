@@ -383,7 +383,7 @@ def send_auction_extended_notice_sms(auction_id):
 
 @shared_task
 def send_auction_ended_email(auction_id, expected_end=None):
-    """Sent when the auction ends and includes winner billing details."""
+    """Sent when the auction ends; schedules delayed invoice dispatch for 24h later."""
     try:
         auction = Auction.objects.get(id=auction_id)
     except Auction.DoesNotExist:
@@ -403,7 +403,7 @@ def send_auction_ended_email(auction_id, expected_end=None):
 
 مزایده «{auction.name}» به پایان رسید.
 
-نتایج نهایی این مزایده ثبت شده است و کاربران برنده، ایمیل صورتحساب و فاکتور اولیه خود را دریافت می‌کنند.
+فاکتور رسمی برندگان ۲۴ ساعت پس از پایان قطعی مزایده صادر می‌شود.
 
 با سپاس
 تیم ماه آکشن"""
@@ -421,17 +421,52 @@ def send_auction_ended_email(auction_id, expected_end=None):
                 _release_dispatch(auction.id, 'end_notice_dispatched_at', end_notice_claimed_at)
                 logger.exception("Ended email failed for auction %s", auction.pk)
 
+    # زمان‌بندی صدور فاکتور ۲۴ ساعت بعد از پایان واقعی مزایده
+    invoice_available_at = auction.invoice_available_at
+    dispatch_delayed_invoices.apply_async(
+        kwargs={
+            'auction_id': auction.pk,
+            'expected_available_at': invoice_available_at.isoformat(),
+        },
+        eta=invoice_available_at,
+    )
+
+
+@shared_task
+def dispatch_delayed_invoices(auction_id, expected_available_at=None):
+    """
+    صدور فاکتور برای برندگان مزایده، ۲۴ ساعت پس از پایان واقعی.
+    از invoices_dispatched_at برای جلوگیری از اجرای مضاعف استفاده می‌شود.
+    """
+    try:
+        auction = Auction.objects.get(id=auction_id)
+    except Auction.DoesNotExist:
+        return
+
+    if not _scheduled_datetime_matches(auction.invoice_available_at, expected_available_at):
+        return
+
+    if auction.status != 'finished':
+        return
+
+    claimed_at = _claim_dispatch(auction.id, 'invoices_dispatched_at')
+    if claimed_at is None:
+        return
+
     products = ensure_products_have_finished_winners(
         auction.products.select_related('winner', 'artist').all()
     )
     try:
         generate_invoices_for_auction(auction, products=products)
     except Exception:
+        _release_dispatch(auction.id, 'invoices_dispatched_at', claimed_at)
         logger.exception("Failed to generate invoices for auction %s", auction.pk)
+        return
 
     billing_claimed_at = _claim_dispatch(auction.id, 'winner_billing_dispatched_at')
     if billing_claimed_at is None:
         return
+
     winners_map = defaultdict(list)
     for product in products:
         winner = getattr(product, 'winner', None)
@@ -488,5 +523,5 @@ def send_auction_ended_email(auction_id, expected_end=None):
             )
         except Exception:
             _release_dispatch(auction.id, 'winner_billing_dispatched_at', billing_claimed_at)
-            logger.exception("Winner billing email failed for auction %s", auction.pk)
+            logger.exception("Winner billing notification failed for auction %s", auction.pk)
             return
