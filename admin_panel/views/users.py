@@ -1344,10 +1344,6 @@ def user_auction_invoices_api(request, pk):
             | Q(auction__name__icontains=search)
         )
 
-    status_filter = request.GET.get('status', '').strip()
-    if status_filter:
-        invoices = invoices.filter(status=status_filter)
-
     paginator = Paginator(invoices, 20)
     page_obj = paginator.get_page(request.GET.get('page', 1))
 
@@ -1361,8 +1357,6 @@ def user_auction_invoices_api(request, pk):
             'total_hammer_price': str(inv.total_hammer_price),
             'buyers_premium': str(inv.buyers_premium),
             'total_amount': str(inv.total_amount),
-            'status': inv.status,
-            'status_display': inv.get_status_display(),
             'issued_at': inv.issued_at.isoformat() if inv.issued_at else None,
             'jalali_issued_at': inv.jalali_issued_at,
             'pdf_url': reverse('auction:invoice_pdf', args=[inv.pk]),

@@ -162,38 +162,48 @@ def has_valid_winner_access_token(*, token: str, user_id: int, product_id: int) 
 
 def generate_invoice_number(issued_at=None) -> str:
     """
-    شماره فاکتور یکتا و استاندارد بر اساس سال شمسی: INV-1405-0001
+    شماره فاکتور ۹ رقمی شمسی: SSSDDMMYY
+    - SSS: شماره ترتیبی فاکتور (۰۰۱، ۰۰۲، ...)
+    - DD: روز صدور شمسی
+    - MM: ماه صدور شمسی
+    - YY: دو رقم آخر سال شمسی
+    مثال: اولین فاکتور در ۵ مهر ۱۴۰۵ → 001050705
     """
     from .models import AuctionInvoice
     import jdatetime
+    import re
 
     now = issued_at or timezone.now()
     loc_now = timezone.localtime(now)
     try:
-        j_year = jdatetime.datetime.fromgregorian(datetime=loc_now).year
+        j_dt = jdatetime.datetime.fromgregorian(datetime=loc_now)
+        j_day = j_dt.day
+        j_month = j_dt.month
+        j_year_2 = j_dt.year % 100
     except Exception:
-        j_year = loc_now.year
+        j_day = loc_now.day
+        j_month = loc_now.month
+        j_year_2 = loc_now.year % 100
 
-    prefix = f"INV-{j_year}-"
-    last_invoice = (
-        AuctionInvoice.objects.filter(invoice_number__startswith=prefix)
-        .order_by('-invoice_number')
-        .first()
-    )
-    if last_invoice and last_invoice.invoice_number:
-        try:
-            seq_part = last_invoice.invoice_number.split('-')[-1]
-            next_seq = int(seq_part) + 1
-        except (ValueError, IndexError):
-            next_seq = AuctionInvoice.objects.filter(invoice_number__startswith=prefix).count() + 1
-    else:
-        next_seq = 1
+    date_suffix = f"{j_day:02d}{j_month:02d}{j_year_2:02d}"
 
-    while True:
-        candidate = f"{prefix}{next_seq:04d}"
+    next_seq = 1
+    for inv_number in AuctionInvoice.objects.values_list('invoice_number', flat=True):
+        if inv_number and re.fullmatch(r'\d{9}', inv_number):
+            try:
+                seq = int(inv_number[:3])
+                if seq >= next_seq:
+                    next_seq = seq + 1
+            except ValueError:
+                continue
+
+    while next_seq <= 999:
+        candidate = f"{next_seq:03d}{date_suffix}"
         if not AuctionInvoice.objects.filter(invoice_number=candidate).exists():
             return candidate
         next_seq += 1
+
+    raise ValueError('سقف شماره ترتیبی فاکتور (۹۹۹) پر شده است.')
 
 
 def create_or_get_invoice_for_winner(auction, user, products=None):
@@ -213,7 +223,6 @@ def create_or_get_invoice_for_winner(auction, user, products=None):
     if products is None:
         products = list(
             auction.products.filter(winner=user)
-            .select_related('artist')
             .order_by('lot', 'pk')
         )
     else:
@@ -236,13 +245,11 @@ def create_or_get_invoice_for_winner(auction, user, products=None):
             total_item_price = hammer_price + premium
             total_hammer += hammer_price
 
-            artist_name = product.artist.name if product.artist else ''
             invoice_items_data.append({
                 'product': product,
                 'lot': product.lot,
                 'product_code': product.product_id,
                 'title': product.title,
-                'artist_name': artist_name,
                 'hammer_price': hammer_price,
                 'buyers_premium': premium,
                 'total_price': total_item_price,
@@ -257,7 +264,6 @@ def create_or_get_invoice_for_winner(auction, user, products=None):
             invoice_number=inv_number,
             auction=auction,
             user=user,
-            status=AuctionInvoice.Status.PENDING,
             issued_at=issued_at,
             total_hammer_price=total_hammer,
             buyers_premium=buyers_premium,
@@ -281,7 +287,7 @@ def generate_invoices_for_auction(auction, products=None) -> list:
         return []
 
     if products is None:
-        products = list(auction.products.select_related('winner', 'artist').all())
+        products = list(auction.products.select_related('winner').all())
 
     ensure_products_have_finished_winners(products)
 

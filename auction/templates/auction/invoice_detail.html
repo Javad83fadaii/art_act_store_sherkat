@@ -117,12 +117,6 @@
                     <span class="text-gray-500">تاریخ پایان قطعی:</span>
                     <span class="font-bold text-gray-900">{{ invoice.auction.end_date|to_jalali:'%Y/%m/%d %H:%M'|fa_digits }}</span>
                 </div>
-                <div class="flex items-center gap-2">
-                    <span class="text-gray-500">وضعیت پرداخت:</span>
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold {% if invoice.status == 'paid' %}bg-emerald-100 text-emerald-800 border border-emerald-300{% elif invoice.status == 'canceled' %}bg-red-100 text-red-800 border border-red-300{% else %}bg-amber-100 text-amber-800 border border-amber-300{% endif %}">
-                        {{ invoice.get_status_display }}
-                    </span>
-                </div>
             </div>
         </div>
 
@@ -134,7 +128,6 @@
                         <th class="p-3.5 text-center w-12">#</th>
                         <th class="p-3.5 w-28 text-center">کد / لات</th>
                         <th class="p-3.5">عنوان اثر</th>
-                        <th class="p-3.5">هنرمند</th>
                         <th class="p-3.5 text-left w-44">قیمت چکش‌خورده خالص</th>
                     </tr>
                 </thead>
@@ -150,12 +143,11 @@
                                 {% endif %}
                             </td>
                             <td class="p-3.5 font-bold text-gray-900">{{ item.title|fa_digits }}</td>
-                            <td class="p-3.5 text-gray-600">{{ item.artist_name|default:"-"|fa_digits }}</td>
                             <td class="p-3.5 text-left font-black text-gray-900">{{ item.hammer_price|fa_price }} تومان</td>
                         </tr>
                     {% empty %}
                         <tr>
-                            <td colspan="5" class="p-6 text-center text-gray-500">هیچ اثری در این فاکتور ثبت نشده است.</td>
+                            <td colspan="4" class="p-6 text-center text-gray-500">هیچ اثری در این فاکتور ثبت نشده است.</td>
                         </tr>
                     {% endfor %}
                 </tbody>

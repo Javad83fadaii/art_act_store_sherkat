@@ -44,7 +44,7 @@ class AuctionVisitHistoryAdmin(admin.ModelAdmin):
 class AuctionInvoiceItemInline(admin.TabularInline):
     model = AuctionInvoiceItem
     extra = 0
-    readonly_fields = ('lot', 'product_code', 'title', 'artist_name', 'hammer_price', 'buyers_premium', 'total_price')
+    readonly_fields = ('lot', 'product_code', 'title', 'hammer_price', 'buyers_premium', 'total_price')
     can_delete = False
 
 
@@ -57,11 +57,10 @@ class AuctionInvoiceAdmin(admin.ModelAdmin):
         'total_hammer_price',
         'buyers_premium',
         'total_amount',
-        'status',
         'issued_at',
         'download_pdf_button',
     )
-    list_filter = ('status', 'auction', 'issued_at')
+    list_filter = ('auction', 'issued_at')
     search_fields = ('invoice_number', 'user__full_name', 'user__phone_number', 'auction__name')
     ordering = ('-issued_at', '-id')
     inlines = [AuctionInvoiceItemInline]

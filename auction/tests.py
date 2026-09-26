@@ -1685,7 +1685,7 @@ class AuctionInvoiceTests(TestCase):
         self.assertEqual(invoice.total_hammer_price, Decimal('40000000'))
         self.assertEqual(invoice.buyers_premium, Decimal('4000000'))
         self.assertEqual(invoice.total_amount, Decimal('44000000'))
-        self.assertTrue(invoice.invoice_number.startswith('INV-'))
+        self.assertRegex(invoice.invoice_number, r'^\d{9}$')
         self.assertEqual(invoice.items.count(), 2)
 
     def test_invoice_pdf_download_permissions(self):

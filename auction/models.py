@@ -761,11 +761,6 @@ class Bid(models.Model):
 
 
 class AuctionInvoice(models.Model):
-    class Status(models.TextChoices):
-        PENDING = 'pending', 'در انتظار پرداخت'
-        PAID = 'paid', 'پرداخت شده'
-        CANCELED = 'canceled', 'لغو شده'
-
     invoice_number = models.CharField(
         max_length=64,
         unique=True,
@@ -783,12 +778,6 @@ class AuctionInvoice(models.Model):
         on_delete=models.CASCADE,
         related_name='auction_invoices',
         verbose_name='خریدار',
-    )
-    status = models.CharField(
-        max_length=20,
-        choices=Status.choices,
-        default=Status.PENDING,
-        verbose_name='وضعیت پرداخت',
     )
     issued_at = models.DateTimeField(
         default=timezone.now,
@@ -877,11 +866,6 @@ class AuctionInvoiceItem(models.Model):
     title = models.CharField(
         max_length=255,
         verbose_name='نام اثر',
-    )
-    artist_name = models.CharField(
-        max_length=255,
-        blank=True,
-        verbose_name='نام هنرمند',
     )
     hammer_price = models.DecimalField(
         max_digits=15,

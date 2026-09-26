@@ -97,14 +97,13 @@ def generate_invoice_pdf_buffer(invoice) -> io.BytesIO:
     buyer_phone = getattr(invoice.user, 'phone_number', '') or '-'
     auction_name = invoice.auction.name or f"مزایده شماره {invoice.auction_id}"
     issued_date = invoice.jalali_issued_at
-    status_text = invoice.get_status_display() if hasattr(invoice, 'get_status_display') else invoice.status
 
     # Header Table: Col 0 is LEFT, Col 1 is RIGHT
     header_data = [
         [fa_text('صورتحساب رسمی فروش مزایده'), ''],
         [fa_text(f'شماره فاکتور: {invoice.invoice_number}'), fa_text(f'نام خریدار: {buyer_name}')],
         [fa_text(f'تاریخ صدور: {issued_date}'), fa_text(f'رویداد مزایده: {auction_name}')],
-        [fa_text(f'وضعیت پرداخت: {status_text}'), fa_text(f'شماره تماس: {buyer_phone}')],
+        [fa_text(f'شماره تماس: {buyer_phone}'), ''],
     ]
 
     header_table = Table(header_data, colWidths=[260, 260])
@@ -127,16 +126,14 @@ def generate_invoice_pdf_buffer(invoice) -> io.BytesIO:
     elements.append(Spacer(1, 14))
 
     # Items Table (RTL Column Order):
-    # Col 0 (LEFT): قیمت خالص (تومان) [120]
-    # Col 1: هنرمند [100]
-    # Col 2: عنوان اثر [190]
-    # Col 3: کد / لات [70]
-    # Col 4 (RIGHT): ردیف [40]
+    # Col 0 (LEFT): قیمت خالص (تومان) [140]
+    # Col 1: عنوان اثر [270]
+    # Col 2: کد / لات [70]
+    # Col 3 (RIGHT): ردیف [40]
     # Total width = 520
     items_data = [
         [
             fa_text('قیمت خالص (تومان)'),
-            fa_text('هنرمند'),
             fa_text('عنوان اثر'),
             fa_text('کد / لات'),
             fa_text('ردیف'),
@@ -148,46 +145,45 @@ def generate_invoice_pdf_buffer(invoice) -> io.BytesIO:
         lot_label = f"لات {item.lot}" if item.lot else (item.product_code or '-')
         items_data.append([
             fa_text(format_amount(item.hammer_price)),
-            fa_text(item.artist_name or '-'),
             fa_text(item.title or '-'),
             fa_text(lot_label),
             fa_text(str(index)),
         ])
 
-    # Totals rows: labels on the RIGHT (Cols 1 to 4 spanned), amounts on the LEFT (Col 0)
+    # Totals rows: labels on the RIGHT (Cols 1 to 3 spanned), amounts on the LEFT (Col 0)
     total_hammer = format_amount(invoice.total_hammer_price) + ' تومان'
     premium = format_amount(invoice.buyers_premium) + ' تومان'
     grand_total = format_amount(invoice.total_amount) + ' تومان'
 
     items_data.append([
         fa_text(total_hammer),
-        fa_text('جمع مبالغ چکش‌خورده خالص:'), '', '', '',
+        fa_text('جمع مبالغ چکش‌خورده خالص:'), '', '',
     ])
     items_data.append([
         fa_text(premium),
-        fa_text('۱۰٪ حق‌العمل حراج‌گزار (کارمزد و خدمات قانونی):'), '', '', '',
+        fa_text('۱۰٪ حق‌العمل حراج‌گزار (کارمزد و خدمات قانونی):'), '', '',
     ])
     items_data.append([
         fa_text(grand_total),
-        fa_text('مبلغ کل قابل پرداخت (مجموع خالص + ۱۰٪):'), '', '', '',
+        fa_text('مبلغ کل قابل پرداخت (مجموع خالص + ۱۰٪):'), '', '',
     ])
 
     num_rows = len(items_data)
-    items_table = Table(items_data, colWidths=[120, 100, 190, 70, 40], repeatRows=1)
+    items_table = Table(items_data, colWidths=[140, 270, 70, 40], repeatRows=1)
     items_table.setStyle(TableStyle([
         ('FONT', (0, 0), (-1, -1), 'Tahoma'),
         ('FONT', (0, 0), (-1, 0), 'Tahoma-Bold'),
         ('FONT', (0, num_rows - 3), (-1, num_rows - 1), 'Tahoma-Bold'),
         ('FONTSIZE', (0, 0), (-1, -1), 8.5),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('ALIGN', (1, 1), (2, num_rows - 4), 'RIGHT'),
+        ('ALIGN', (1, 1), (1, num_rows - 4), 'RIGHT'),
         ('ALIGN', (1, num_rows - 3), (1, num_rows - 1), 'RIGHT'),
         ('ALIGN', (0, 1), (0, -1), 'CENTER'),
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F1F5F9')),
         ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
-        ('SPAN', (1, num_rows - 3), (4, num_rows - 3)),
-        ('SPAN', (1, num_rows - 2), (4, num_rows - 2)),
-        ('SPAN', (1, num_rows - 1), (4, num_rows - 1)),
+        ('SPAN', (1, num_rows - 3), (3, num_rows - 3)),
+        ('SPAN', (1, num_rows - 2), (3, num_rows - 2)),
+        ('SPAN', (1, num_rows - 1), (3, num_rows - 1)),
         ('BACKGROUND', (0, num_rows - 3), (-1, num_rows - 3), colors.HexColor('#F8FAFC')),
         ('BACKGROUND', (0, num_rows - 2), (-1, num_rows - 2), colors.HexColor('#F8FAFC')),
         ('BACKGROUND', (0, num_rows - 1), (-1, num_rows - 1), colors.HexColor('#E2E8F0')),
