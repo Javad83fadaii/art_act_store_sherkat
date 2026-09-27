@@ -225,14 +225,17 @@ def _serialize_request_list_item(request_type, item):
             'status': _request_status_to_api(item.status),
         }
 
+    current_credit_raw = getattr(item.user, 'current_credit', None) if item.user_id else None
+    total_credit_raw = getattr(item.user, 'credit', None) if item.user_id else None
+    requested_credit_raw = item.current_credit
     return {
         'id': item.id,
         'user_id': str(item.user_id) if getattr(item, 'user_id', None) else None,
         'user': _request_user_label(item.user),
-        'product': _format_currency(getattr(item.user, 'current_credit', None)) if item.user_id else 'نامشخص',
-        'current_credit': _format_currency(getattr(item.user, 'current_credit', None)) if item.user_id else 'نامشخص',
-        'requested_credit': _format_currency(item.current_credit) if item.current_credit is not None else 'مبلغ نامشخص',
-        'total_credit': _format_currency(getattr(item.user, 'credit', 0) if item.user_id else None),
+        'product': str(int(current_credit_raw)) if current_credit_raw is not None else 'نامشخص',
+        'current_credit': str(int(current_credit_raw)) if current_credit_raw is not None else 'نامشخص',
+        'requested_credit': str(int(requested_credit_raw)) if requested_credit_raw is not None else 'مبلغ نامشخص',
+        'total_credit': str(int(total_credit_raw)) if total_credit_raw is not None else 'نامشخص',
         'created_at': item.created_at.isoformat() if getattr(item, 'created_at', None) else None,
         'status': _request_status_to_api(item.status),
     }
