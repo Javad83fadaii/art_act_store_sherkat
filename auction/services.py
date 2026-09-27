@@ -162,43 +162,54 @@ def has_valid_winner_access_token(*, token: str, user_id: int, product_id: int) 
 
 def generate_invoice_number(issued_at=None) -> str:
     """
-    شماره فاکتور ۹ رقمی شمسی: SSSDDMMYY
-    - SSS: شماره ترتیبی فاکتور (۰۰۱، ۰۰۲، ...)
-    - DD: روز صدور شمسی
-    - MM: ماه صدور شمسی
+    شماره فاکتور ۹ رقمی شمسی: YYMMDDSSS
     - YY: دو رقم آخر سال شمسی
-    مثال: اولین فاکتور در ۵ مهر ۱۴۰۵ → 001050705
+    - MM: ماه صدور شمسی
+    - DD: روز صدور شمسی
+    - SSS: شماره ترتیبی فاکتور (۰۰۱، ۰۰۲، ...)
+    مثال: اولین فاکتور در ۵ مهر ۱۴۰۵ → 050705001
     """
     from .models import AuctionInvoice
     import jdatetime
     import re
 
-    now = issued_at or timezone.now()
-    loc_now = timezone.localtime(now)
-    try:
-        j_dt = jdatetime.datetime.fromgregorian(datetime=loc_now)
-        j_day = j_dt.day
-        j_month = j_dt.month
-        j_year_2 = j_dt.year % 100
-    except Exception:
-        j_day = loc_now.day
-        j_month = loc_now.month
-        j_year_2 = loc_now.year % 100
+    def _get_jalali_parts(dt):
+        local_dt = timezone.localtime(dt)
+        try:
+            j_dt = jdatetime.datetime.fromgregorian(datetime=local_dt)
+            return j_dt.year % 100, j_dt.month, j_dt.day
+        except Exception:
+            return local_dt.year % 100, local_dt.month, local_dt.day
 
-    date_suffix = f"{j_day:02d}{j_month:02d}{j_year_2:02d}"
+    now = issued_at or timezone.now()
+    j_year_2, j_month, j_day = _get_jalali_parts(now)
+    date_prefix = f"{j_year_2:02d}{j_month:02d}{j_day:02d}"
 
     next_seq = 1
-    for inv_number in AuctionInvoice.objects.values_list('invoice_number', flat=True):
-        if inv_number and re.fullmatch(r'\d{9}', inv_number):
-            try:
+    for invoice in AuctionInvoice.objects.only('invoice_number', 'issued_at'):
+        inv_number = invoice.invoice_number
+        if not inv_number or not re.fullmatch(r'\d{9}', inv_number):
+            continue
+
+        inv_year_2, inv_month, inv_day = _get_jalali_parts(invoice.issued_at or now)
+        current_prefix = f"{inv_year_2:02d}{inv_month:02d}{inv_day:02d}"
+        legacy_suffix = f"{inv_day:02d}{inv_month:02d}{inv_year_2:02d}"
+
+        try:
+            if inv_number.startswith(current_prefix):
+                seq = int(inv_number[-3:])
+            elif inv_number.endswith(legacy_suffix):
                 seq = int(inv_number[:3])
-                if seq >= next_seq:
-                    next_seq = seq + 1
-            except ValueError:
+            else:
                 continue
+        except ValueError:
+            continue
+
+        if seq >= next_seq:
+            next_seq = seq + 1
 
     while next_seq <= 999:
-        candidate = f"{next_seq:03d}{date_suffix}"
+        candidate = f"{date_prefix}{next_seq:03d}"
         if not AuctionInvoice.objects.filter(invoice_number=candidate).exists():
             return candidate
         next_seq += 1

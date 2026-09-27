@@ -1,7 +1,8 @@
-﻿from decimal import Decimal
-from datetime import timedelta
+from decimal import Decimal
+from datetime import datetime, timedelta
 import json
 from unittest.mock import patch
+import jdatetime
 
 from django.core.cache import cache
 from django.core import mail
@@ -1696,6 +1697,36 @@ class AuctionInvoiceTests(TestCase):
         self.assertEqual(invoice.total_amount, Decimal('44000000'))
         self.assertRegex(invoice.invoice_number, r'^\d{9}$')
         self.assertEqual(invoice.items.count(), 2)
+
+    def test_generate_invoice_number_uses_yy_mm_dd_then_sequence(self):
+        from auction.services import generate_invoice_number
+
+        gregorian_dt = jdatetime.datetime(1405, 7, 5, 12, 0, 0).togregorian()
+        issued_at = timezone.make_aware(datetime.combine(gregorian_dt, datetime.min.time().replace(hour=12)))
+
+        invoice_number = generate_invoice_number(issued_at=issued_at)
+
+        self.assertEqual(invoice_number, '050705001')
+
+    def test_generate_invoice_number_preserves_sequence_with_legacy_format(self):
+        from auction.services import generate_invoice_number
+
+        gregorian_dt = jdatetime.datetime(1405, 7, 5, 12, 0, 0).togregorian()
+        issued_at = timezone.make_aware(datetime.combine(gregorian_dt, datetime.min.time().replace(hour=12)))
+
+        AuctionInvoice.objects.create(
+            invoice_number='001050705',
+            auction=self.auction,
+            user=self.other_user,
+            issued_at=issued_at,
+            total_hammer_price=Decimal('1'),
+            buyers_premium=Decimal('0'),
+            total_amount=Decimal('1'),
+        )
+
+        invoice_number = generate_invoice_number(issued_at=issued_at)
+
+        self.assertEqual(invoice_number, '050705002')
 
     def test_invoice_pdf_download_permissions(self):
         from auction.services import create_or_get_invoice_for_winner
