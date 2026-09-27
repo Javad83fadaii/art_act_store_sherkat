@@ -65,6 +65,52 @@ class CustomLoginView(LoginView):
     form_class = CustomLoginForm  
     redirect_authenticated_user = True  
 
+    def _handle_pending_verification_user(self, request, user):
+        auth_login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+
+        if _user_requires_email_verification(user):
+            ok, error_message = _send_email_verification_code_for_user(user=user, email=user.email)
+            if ok:
+                _remember_sent_verification_code(request, user.email)
+                request.session["email_verification_alert"] = {
+                    "type": "info",
+                    "message": "کد تأیید به ایمیل شما ارسال شد. لطفاً تایید حساب خود را انجام دهید تا حساب کاربری شما فعال شود.",
+                }
+            else:
+                request.session["email_verification_alert"] = {
+                    "type": "error",
+                    "message": error_message or "ارسال کد تایید با خطا مواجه شد.",
+                }
+            return redirect(reverse("email_verification"))
+
+        if _user_requires_sms_verification(user):
+            ok, error_message = _send_sms_verification_code_for_user(user=user, phone_number=user.phone_number)
+            if ok:
+                _remember_sent_sms_verification_code(request, user.phone_number)
+                request.session[SMS_VERIFICATION_ALERT_SESSION_KEY] = {
+                    "type": "info",
+                    "message": "کد تأیید پیامکی برای شما ارسال شد. لطفاً تایید حساب خود را انجام دهید تا حساب کاربری شما فعال شود.",
+                }
+            else:
+                request.session[SMS_VERIFICATION_ALERT_SESSION_KEY] = {
+                    "type": "error",
+                    "message": error_message or "ارسال کد تایید پیامکی با خطا مواجه شد.",
+                }
+            return redirect(reverse("sms_verification"))
+
+        return redirect(reverse("home"))
+
+    def post(self, request, *args, **kwargs):
+        phone_raw = request.POST.get('username') or ''
+        normalized_phone = _normalize_phone_number(phone_raw)
+
+        if normalized_phone:
+            user = CustomUser.objects.filter(phone_number=normalized_phone).first()
+            if user and getattr(user, 'is_pending_verification', False):
+                return self._handle_pending_verification_user(request, user)
+
+        return super().post(request, *args, **kwargs)
+
     def form_valid(self, form):
         previous_session_key = self.request.session.session_key
         response = super().form_valid(form)
@@ -88,6 +134,9 @@ class CustomLoginView(LoginView):
                 if current_session_key:
                     guest_visit_log.session_key = current_session_key
                 guest_visit_log.save(update_fields=['user', 'session_key'])
+
+        if getattr(logged_in_user, 'is_pending_verification', False):
+            return self._handle_pending_verification_user(self.request, logged_in_user)
 
         if _user_requires_email_verification(logged_in_user):
             success_url = super().get_success_url()
@@ -298,10 +347,13 @@ class SignupView(View):
 
         if form.is_valid():
             user = form.save()
-            if _user_has_sms_contact_method(user) and user.is_active:
+            if (_user_has_sms_contact_method(user) or _user_requires_email_verification(user)) and user.is_active:
                 user.is_active = False
-                user.is_sms_verified = False
-                user.save(update_fields=["is_active", "is_sms_verified"])
+                update_fields = ["is_active"]
+                if _user_has_sms_contact_method(user):
+                    user.is_sms_verified = False
+                    update_fields.append("is_sms_verified")
+                user.save(update_fields=update_fields)
             auth_login(request, user, backend="django.contrib.auth.backends.ModelBackend")
 
             sms_verification_error = None
@@ -679,7 +731,8 @@ def _verify_email_code_for_user(*, user, email, code):
 
     user.email = email_value
     user.is_email_verified = True
-    user.save(update_fields=["email", "is_email_verified"])
+    user.is_active = True
+    user.save(update_fields=["email", "is_email_verified", "is_active"])
 
     notification_service.send(
         event='accounts.signup.verified',
@@ -1006,6 +1059,28 @@ def verify_email_code(request):
 
     _clear_sent_verification_code(request)
     return JsonResponse({"message": "Email verified successfully."})
+
+
+def check_phone_verification_view(request):
+    """
+    بررسی هوشمند شماره موبایل جهت تشخیص کاربران در انتظار تایید (Verify).
+    """
+    phone_raw = request.GET.get('phone_number') or request.POST.get('phone_number') or ''
+    normalized_phone = _normalize_phone_number(phone_raw)
+    if not normalized_phone or len(normalized_phone) < 11:
+        return JsonResponse({"found": False, "pending_verification": False})
+
+    user = CustomUser.objects.filter(phone_number=normalized_phone).first()
+    if not user:
+        return JsonResponse({"found": False, "pending_verification": False})
+
+    is_pending = bool(getattr(user, "is_pending_verification", False))
+    return JsonResponse({
+        "found": True,
+        "pending_verification": is_pending,
+        "user_name": user.get_full_name() or "",
+        "message": "کد تأیید برای شما ارسال می‌شود. تایید حساب خود را انجام دهید تا حساب کاربری شما فعال شود." if is_pending else ""
+    })
 
 
 # ==============================================================================

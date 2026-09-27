@@ -201,7 +201,7 @@
 
         <!-- هدر سایت -->
         {% block header %}
-            {% if request.resolver_match.url_name != 'login' and request.resolver_match.url_name != 'signup' and request.resolver_match.url_name != 'profile' %}
+            {% if request.resolver_match.url_name != 'login' and request.resolver_match.url_name != 'signup' and request.resolver_match.url_name != 'profile' and request.resolver_match.url_name != 'email_verification' and request.resolver_match.url_name != 'sms_verification' %}
                 {% include 'partials/header.html' %}
             {% endif %}
         {% endblock %}
@@ -216,7 +216,7 @@
 
         <!-- فوتر سایت (اضافه شدن شرط برای مخفی شدن در صفحات لاگین و ثبت‌نام) -->
         {% block footer %}
-            {% if request.resolver_match.url_name != 'login' and request.resolver_match.url_name != 'signup' and request.resolver_match.url_name != 'profile' %}
+            {% if request.resolver_match.url_name != 'login' and request.resolver_match.url_name != 'signup' and request.resolver_match.url_name != 'profile' and request.resolver_match.url_name != 'email_verification' and request.resolver_match.url_name != 'sms_verification' %}
                 {% include 'partials/footer.html' %}
             {% endif %}
         {% endblock %}

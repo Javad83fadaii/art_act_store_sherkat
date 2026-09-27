@@ -83,8 +83,21 @@
                         {% endif %}
                     </div>
 
+                    <!-- بنر هوشمند حساب در انتظار تایید -->
+                    <div id="pendingVerificationNotice" class="hidden transform transition-all duration-300 bg-amber-500/15 border border-amber-500/40 text-amber-900 dark:text-amber-200 rounded-2xl p-4 text-sm flex flex-col gap-2 shadow-sm">
+                        <div class="flex items-start gap-2.5">
+                            <span class="material-symbols-outlined text-amber-600 dark:text-amber-400 text-xl shrink-0 mt-0.5">mark_email_unread</span>
+                            <div class="flex-1">
+                                <h4 class="font-bold text-amber-800 dark:text-amber-300 text-sm">حساب کاربری شما در انتظار تایید است</h4>
+                                <p class="text-xs leading-relaxed mt-1 text-amber-900/80 dark:text-amber-200/90" id="pendingVerificationMsg">
+                                    کد تأیید برای شما ارسال می‌شود. لطفاً تایید حساب خود را انجام دهید تا حساب کاربری شما فعال شود.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- رمز عبور -->
-                    <div class="flex flex-col gap-2">
+                    <div id="passwordContainer" class="flex flex-col gap-2 transition-all duration-300">
                         <div class="flex items-center justify-between mr-1">
                             <label for="{{ form.password.id_for_label }}" class="text-sm font-bold text-gray-900 dark:text-white">
                                 رمز عبور <span class="text-red-500">*</span>
@@ -110,8 +123,9 @@
 
                 <!-- دکمه ورود نهایی -->
                 <div class="pt-6">
-                    <button type="submit" class="!m-0 w-full flex items-center justify-center gap-2 px-6 py-4 text-base font-bold text-white bg-primary hover:bg-primary/90 rounded-2xl transition-all duration-300 shadow-lg shadow-primary/20 active:scale-[0.98]">
-                        ورود به حساب
+                    <button type="submit" id="loginSubmitBtn" class="!m-0 w-full flex items-center justify-center gap-2 px-6 py-4 text-base font-bold text-white bg-primary hover:bg-primary/90 rounded-2xl transition-all duration-300 shadow-lg shadow-primary/20 active:scale-[0.98]">
+                        <span id="loginSubmitIcon" class="material-symbols-outlined text-[20px]">login</span>
+                        <span id="loginSubmitText">ورود به حساب</span>
                     </button>
                 </div>
             </form>
@@ -160,5 +174,120 @@
             }
         }
     }
+
+    // تبدیل ارقام فارسی و عربی به انگلیسی
+    function normalizeDigits(str) {
+        if (!str) return '';
+        const persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+        const arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+        let res = String(str);
+        for (let i = 0; i < 10; i++) {
+            res = res.replaceAll(persianDigits[i], i).replaceAll(arabicDigits[i], i);
+        }
+        return res.replace(/[^0-9]/g, '');
+    }
+
+    // بررسی هوشمند وضعیت کاربر به محض وارد کردن شماره موبایل
+    document.addEventListener('DOMContentLoaded', function() {
+        const usernameInput = document.getElementById('id_username');
+        const passwordField = document.getElementById('id_password');
+        const passwordContainer = document.getElementById('passwordContainer');
+        const pendingNotice = document.getElementById('pendingVerificationNotice');
+        const pendingMsg = document.getElementById('pendingVerificationMsg');
+        const submitBtn = document.getElementById('loginSubmitBtn');
+        const submitText = document.getElementById('loginSubmitText');
+        const submitIcon = document.getElementById('loginSubmitIcon');
+
+        let checkTimeout = null;
+        let isPendingMode = false;
+
+        function checkPhoneStatus() {
+            if (!usernameInput) return;
+            const raw = usernameInput.value.trim();
+            const cleanPhone = normalizeDigits(raw);
+
+            if (cleanPhone.length >= 11 && cleanPhone.startsWith('0')) {
+                fetch('/accounts/check-phone-verification/?phone_number=' + encodeURIComponent(cleanPhone))
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.found && data.pending_verification) {
+                            // حالت کاربر در انتظار تایید
+                            isPendingMode = true;
+                            if (pendingMsg && data.message) {
+                                pendingMsg.textContent = data.message;
+                            }
+                            if (pendingNotice) {
+                                pendingNotice.classList.remove('hidden');
+                            }
+                            if (passwordContainer) {
+                                passwordContainer.classList.add('opacity-40', 'pointer-events-none');
+                            }
+                            if (passwordField) {
+                                passwordField.removeAttribute('required');
+                                if (!passwordField.value) {
+                                    passwordField.value = 'dummy_pass_1234';
+                                }
+                            }
+                            if (submitBtn) {
+                                submitBtn.classList.remove('bg-primary');
+                                submitBtn.classList.add('bg-amber-600', 'hover:bg-amber-700');
+                            }
+                            if (submitIcon) {
+                                submitIcon.innerText = 'send';
+                            }
+                            if (submitText) {
+                                submitText.innerText = 'ارسال کد تأیید و فعال‌سازی حساب';
+                            }
+                        } else {
+                            resetPendingMode();
+                        }
+                    })
+                    .catch(() => {
+                        resetPendingMode();
+                    });
+            } else {
+                resetPendingMode();
+            }
+        }
+
+        function resetPendingMode() {
+            if (!isPendingMode) return;
+            isPendingMode = false;
+            if (pendingNotice) {
+                pendingNotice.classList.add('hidden');
+            }
+            if (passwordContainer) {
+                passwordContainer.classList.remove('opacity-40', 'pointer-events-none');
+            }
+            if (passwordField) {
+                passwordField.setAttribute('required', 'required');
+                if (passwordField.value === 'dummy_pass_1234') {
+                    passwordField.value = '';
+                }
+            }
+            if (submitBtn) {
+                submitBtn.classList.add('bg-primary');
+                submitBtn.classList.remove('bg-amber-600', 'hover:bg-amber-700');
+            }
+            if (submitIcon) {
+                submitIcon.innerText = 'login';
+            }
+            if (submitText) {
+                submitText.innerText = 'ورود به حساب';
+            }
+        }
+
+        if (usernameInput) {
+            usernameInput.addEventListener('input', function() {
+                clearTimeout(checkTimeout);
+                checkTimeout = setTimeout(checkPhoneStatus, 300);
+            });
+            usernameInput.addEventListener('blur', checkPhoneStatus);
+            // بررسی اولیه در صورت وجود مقدار قبلی
+            if (usernameInput.value) {
+                checkPhoneStatus();
+            }
+        }
+    });
 </script>
 {% endblock %}

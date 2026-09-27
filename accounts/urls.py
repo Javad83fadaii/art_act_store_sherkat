@@ -34,6 +34,7 @@ urlpatterns = [
     path('verification/sms/', views.SMSVerificationView.as_view(), name='sms_verification'),
     path('verification/send-email-code/', views.send_email_verification, name='send_email_verification'),
     path('verification/verify-email-code/', views.verify_email_code, name='verify_email_code'),
+    path('check-phone-verification/', views.check_phone_verification_view, name='check_phone_verification'),
 
     path('credit/requests/', views.credit_increase_requests, name='credit_increase_requests'),
 ]

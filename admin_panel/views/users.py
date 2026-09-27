@@ -66,6 +66,8 @@ def _serialize_user_detail(user):
         "address_street": user.address_street or "",
         "description": user.description or "",
         "is_active": user.is_active,
+        "user_status": getattr(user, "user_status", "active" if user.is_active else "inactive"),
+        "user_status_label": getattr(user, "user_status_label", "فعال" if user.is_active else "غیرفعال"),
         "is_staff": user.is_staff,
         "is_superuser": user.is_superuser,
         "is_verified": int(user.is_verified or 0),
@@ -527,10 +529,16 @@ def list_view(request):
     else:
         status = request.GET.get('status')
         if status:
+            pending_condition = (
+                models.Q(email__isnull=False, is_email_verified=False)
+                | models.Q(is_sms_verified=False)
+            )
             if status == 'active':
-                users = users.filter(is_active=True)
+                users = users.filter(is_active=True).exclude(pending_condition)
+            elif status == 'pending_verification':
+                users = users.filter(pending_condition)
             elif status == 'inactive':
-                users = users.filter(is_active=False)
+                users = users.filter(is_active=False).exclude(pending_condition)
 
         search = request.GET.get('search')
         if search:
@@ -568,6 +576,8 @@ def list_view(request):
             'name': user.get_full_name() or user.email,
             'username': user.username or '',
             'is_active': user.is_active,
+            'user_status': getattr(user, 'user_status', 'active' if user.is_active else 'inactive'),
+            'user_status_label': getattr(user, 'user_status_label', 'فعال' if user.is_active else 'غیرفعال'),
             'is_staff': user.is_staff,
             'is_superuser': user.is_superuser,
             'is_verified': int(user.is_verified or 0),

@@ -123,6 +123,52 @@ class CustomUser(AbstractUser):
         return bool(str(self.email or "").strip()) and bool(self.is_email_verified)
 
     @property
+    def is_pending_verification(self):
+        """
+        بررسی اینکه آیا کاربر در انتظار تایید (Verify) اولیه است یا خیر.
+        اگر کاربر ایمیل داشته باشد و تایید نشده باشد، یا نیاز به تایید پیامک داشته باشد.
+        """
+        user_email = str(self.email or "").strip()
+        preferred_methods = [
+            str(m).strip().lower()
+            for m in (self.preferred_contact_methods or [])
+            if str(m).strip()
+        ]
+        
+        requires_email = bool(user_email) and not self.is_email_verified and (
+            not preferred_methods or "email" in preferred_methods
+        )
+        requires_sms = ("sms" in preferred_methods) and not getattr(self, "is_sms_verified", True)
+
+        return requires_email or requires_sms
+
+    @property
+    def user_status(self):
+        """
+        کد وضعیت کاربر:
+        - pending_verification: در انتظار تایید
+        - active: فعال
+        - inactive: غیرفعال
+        """
+        if self.is_pending_verification:
+            return "pending_verification"
+        if self.is_active:
+            return "active"
+        return "inactive"
+
+    @property
+    def user_status_label(self):
+        """
+        برچسب فارسی وضعیت کاربر.
+        """
+        status_labels = {
+            "pending_verification": "در انتظار تایید",
+            "active": "فعال",
+            "inactive": "غیرفعال",
+        }
+        return status_labels.get(self.user_status, "نامشخص")
+
+    @property
     def has_pending_auction_request(self):
         return self.verification_requests.filter(
             status=VerificationRequest.RequestStatus.PENDING
