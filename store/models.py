@@ -202,11 +202,29 @@ class Artwork(models.Model):
         full_dir_path = static_root / relative_path
         images_urls = []
         if full_dir_path.exists() and full_dir_path.is_dir():
-            for file_path in full_dir_path.iterdir():
-                if file_path.is_file() and file_path.suffix.lower() in ['.jpg', '.jpeg', '.png', '.webp']:
-                    url = f"{settings.STATIC_URL}images/artwork/{self.product_id}/{file_path.name}"
-                    images_urls.append(url)
-        images_urls.sort()
+            def _sort_key(p):
+                stem = p.stem.lower()
+                pid = str(self.product_id).lower()
+                if stem == pid:
+                    return (0, p.name.lower())
+                if stem in ('main', 'cover', 'primary', '1'):
+                    return (1, p.name.lower())
+                return (2, p.name.lower())
+
+            image_files = [
+                f for f in full_dir_path.iterdir()
+                if f.is_file() and f.suffix.lower() in ['.jpg', '.jpeg', '.png', '.webp']
+            ]
+            image_files.sort(key=_sort_key)
+            for file_path in image_files:
+                url = f"{settings.STATIC_URL}images/artwork/{self.product_id}/{file_path.name}"
+                images_urls.append(url)
+
+        main_url = self.main_image_url
+        if main_url and 'no-image' not in main_url:
+            if main_url not in images_urls:
+                images_urls.insert(0, main_url)
+
         return images_urls
 
     @property

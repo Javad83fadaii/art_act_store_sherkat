@@ -465,12 +465,53 @@ class ArtworkDetailView(DetailView):
 
         related_artworks = (
             Artwork.objects
-            .filter(artist=artwork.artist)
             .exclude(pk=artwork.pk)
             .exclude(is_sold=Artwork.IsSoldStatus.SOLD)
-            .order_by('-created_at')[:4]
         )
-        context['related_artworks'] = related_artworks
+        if artwork.artwork_type:
+            same_type = related_artworks.filter(artwork_type=artwork.artwork_type)
+            if same_type.exists():
+                related_artworks = same_type
+        context['related_artworks'] = related_artworks.order_by('-created_at')[:4]
+
+        user_liked_artworks = set()
+        if self.request.user.is_authenticated:
+            user_liked_artworks = set(
+                ProductLike.objects.filter(user=self.request.user).values_list('product_id', flat=True)
+            )
+        context['user_liked_artworks'] = user_liked_artworks
+
+        # ناوبری بین آثار فروشگاه (مشابه بخش مزایده)
+        all_store_artworks = list(
+            Artwork.objects
+            .exclude(is_sold=Artwork.IsSoldStatus.SOLD)
+            .order_by('-created_at', '-pk')
+            .values('pk', 'title')
+        )
+        if not any(item['pk'] == artwork.pk for item in all_store_artworks):
+            all_store_artworks = list(
+                Artwork.objects
+                .order_by('-created_at', '-pk')
+                .values('pk', 'title')
+            )
+
+        total_artworks_count = len(all_store_artworks)
+        current_idx = next((i for i, item in enumerate(all_store_artworks) if item['pk'] == artwork.pk), -1)
+        previous_artwork = None
+        next_artwork = None
+        current_artwork_index = None
+
+        if current_idx != -1:
+            current_artwork_index = current_idx + 1
+            if current_idx > 0:
+                previous_artwork = all_store_artworks[current_idx - 1]
+            if current_idx < total_artworks_count - 1:
+                next_artwork = all_store_artworks[current_idx + 1]
+
+        context['previous_artwork'] = previous_artwork
+        context['next_artwork'] = next_artwork
+        context['current_artwork_index'] = current_artwork_index
+        context['total_artworks_count'] = total_artworks_count
         return context
 
 # --- ویو برای لایک کردن محصول ---
