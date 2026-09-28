@@ -11,6 +11,10 @@ def get_auction_product_group_name(product_pk: int) -> str:
     return f'auction_product_{product_pk}'
 
 
+def get_auction_page_group_name(auction_pk: int) -> str:
+    return f'auction_page_{auction_pk}'
+
+
 def _as_int_price(value) -> int:
     try:
         amount = Decimal(str(value or 0))
@@ -138,6 +142,29 @@ def broadcast_product_bid_update(product_pk: int) -> bool:
         {
             'type': 'auction.bid.update',
             'product_pk': product_pk,
+        },
+    )
+    return True
+
+
+def broadcast_auction_page_refresh(auction_pk: int, *, product_pk: int | None = None, reason: str = 'product_extended') -> bool:
+    try:
+        from asgiref.sync import async_to_sync
+        from channels.layers import get_channel_layer
+    except ImportError:
+        return False
+
+    channel_layer = get_channel_layer()
+    if channel_layer is None:
+        return False
+
+    async_to_sync(channel_layer.group_send)(
+        get_auction_page_group_name(auction_pk),
+        {
+            'type': 'auction.page.refresh',
+            'auction_pk': int(auction_pk),
+            'product_pk': int(product_pk) if product_pk is not None else None,
+            'reason': reason,
         },
     )
     return True

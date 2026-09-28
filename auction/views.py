@@ -13,7 +13,7 @@ from django.utils import timezone
 from django.views.generic import DetailView, ListView
 
 from .models import Auction, AuctionCartItem, AuctionProduct, Bid, AuctionInvoice
-from .realtime import build_bid_live_payload
+from .realtime import build_bid_live_payload, broadcast_auction_page_refresh
 from .services import (
     ensure_auction_product_winner,
     ensure_products_have_finished_winners,
@@ -336,6 +336,7 @@ def auction_product_live_state(request, pk: int):
 @login_required
 def place_bid(request, pk: int):
     auction = get_object_or_404(AuctionProduct, pk=pk)
+    previous_extension_count = int(auction.extension_count or 0)
     
     # بررسی اینکه آیا درخواست از نوع AJAX (Fetch) است یا خیر
     is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.content_type == 'application/json'
@@ -434,8 +435,11 @@ def place_bid(request, pk: int):
         # return redirect(f'{next_url}?{urlencode({"toast_message": message, "toast_type": "error"})}')
         return redirect(next_url)
 
+    auction.refresh_from_db()
+    if int(auction.extension_count or 0) > previous_extension_count:
+        broadcast_auction_page_refresh(auction.auction_id, product_pk=auction.pk)
+
     if is_ajax:
-        auction.refresh_from_db()
         return JsonResponse(
             {
                 'success': True,
