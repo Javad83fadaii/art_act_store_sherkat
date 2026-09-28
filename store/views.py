@@ -463,35 +463,17 @@ class ArtworkDetailView(DetailView):
         context['whatsapp_link'] = f"https://wa.me/989123456789?text=درخواست خرید {artwork.title}"
         context['telegram_link'] = f"https://t.me/admin_username?text=درخواست خرید {artwork.title}"
 
-        related_artworks = (
-            Artwork.objects
-            .exclude(pk=artwork.pk)
-            .exclude(is_sold=Artwork.IsSoldStatus.SOLD)
-        )
-        if artwork.artwork_type:
-            same_type = related_artworks.filter(artwork_type=artwork.artwork_type)
-            if same_type.exists():
-                related_artworks = same_type
-        context['related_artworks'] = related_artworks.order_by('-created_at')[:4]
-
-        user_liked_artworks = set()
-        if self.request.user.is_authenticated:
-            user_liked_artworks = set(
-                ProductLike.objects.filter(user=self.request.user).values_list('product_id', flat=True)
-            )
-        context['user_liked_artworks'] = user_liked_artworks
-
-        # ناوبری بین آثار فروشگاه (مشابه بخش مزایده)
+        # ناوبری بین آثار فروشگاه (ترتیب صعودی بر اساس شناسه و زمان ایجاد)
         all_store_artworks = list(
             Artwork.objects
             .exclude(is_sold=Artwork.IsSoldStatus.SOLD)
-            .order_by('-created_at', '-pk')
+            .order_by('created_at', 'pk')
             .values('pk', 'title')
         )
         if not any(item['pk'] == artwork.pk for item in all_store_artworks):
             all_store_artworks = list(
                 Artwork.objects
-                .order_by('-created_at', '-pk')
+                .order_by('created_at', 'pk')
                 .values('pk', 'title')
             )
 
