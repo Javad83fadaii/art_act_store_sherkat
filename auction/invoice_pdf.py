@@ -73,6 +73,60 @@ def format_amount(value) -> str:
         return str(value or 0)
 
 
+def number_to_words_fa(n: int) -> str:
+    """تبدیل عدد صحیح به حروف فارسی"""
+    if n == 0:
+        return 'صفر'
+
+    ones = ['', 'یک', 'دو', 'سه', 'چهار', 'پنج', 'شش', 'هفت', 'هشت', 'نه',
+            'ده', 'یازده', 'دوازده', 'سیزده', 'چهارده', 'پانزده', 'شانزده',
+            'هفده', 'هجده', 'نوزده']
+    tens = ['', '', 'بیست', 'سی', 'چهل', 'پنجاه', 'شصت', 'هفتاد', 'هشتاد', 'نود']
+    hundreds = ['', 'یکصد', 'دویست', 'سیصد', 'چهارصد', 'پانصد', 'ششصد',
+                'هفتصد', 'هشتصد', 'نهصد']
+    scales = ['', 'هزار', 'میلیون', 'میلیارد', 'تریلیون']
+
+    def _three_digits(num: int) -> str:
+        if num == 0:
+            return ''
+        parts = []
+        h = num // 100
+        remainder = num % 100
+        if h:
+            parts.append(hundreds[h])
+        if remainder < 20:
+            if remainder:
+                parts.append(ones[remainder])
+        else:
+            t = remainder // 10
+            o = remainder % 10
+            parts.append(tens[t])
+            if o:
+                parts.append(ones[o])
+        return ' و '.join(parts)
+
+    if n < 0:
+        return 'منفی ' + number_to_words_fa(-n)
+
+    groups = []
+    temp = n
+    while temp > 0:
+        groups.append(temp % 1000)
+        temp //= 1000
+
+    parts = []
+    for i in range(len(groups) - 1, -1, -1):
+        g = groups[i]
+        if g == 0:
+            continue
+        word = _three_digits(g)
+        if i > 0:
+            word = word + ' ' + scales[i]
+        parts.append(word)
+
+    return ' و '.join(parts)
+
+
 def generate_invoice_pdf_buffer(invoice) -> io.BytesIO:
     _register_fonts()
     buffer = io.BytesIO()
@@ -155,6 +209,11 @@ def generate_invoice_pdf_buffer(invoice) -> io.BytesIO:
     premium = format_amount(invoice.buyers_premium) + ' تومان'
     grand_total = format_amount(invoice.total_amount) + ' تومان'
 
+    try:
+        grand_total_words = number_to_words_fa(int(Decimal(str(invoice.total_amount or 0)))) + ' تومان'
+    except Exception:
+        grand_total_words = ''
+
     items_data.append([
         fa_text(total_hammer),
         fa_text('جمع مبالغ چکش‌خورده خالص:'), '', '',
@@ -167,26 +226,32 @@ def generate_invoice_pdf_buffer(invoice) -> io.BytesIO:
         fa_text(grand_total),
         fa_text('مبلغ کل قابل پرداخت (مجموع خالص + ۱۰٪):'), '', '',
     ])
+    items_data.append([
+        fa_text(grand_total_words),
+        fa_text('مبلغ به حروف:'), '', '',
+    ])
 
     num_rows = len(items_data)
     items_table = Table(items_data, colWidths=[140, 270, 70, 40], repeatRows=1)
     items_table.setStyle(TableStyle([
         ('FONT', (0, 0), (-1, -1), 'Tahoma'),
         ('FONT', (0, 0), (-1, 0), 'Tahoma-Bold'),
-        ('FONT', (0, num_rows - 3), (-1, num_rows - 1), 'Tahoma-Bold'),
+        ('FONT', (0, num_rows - 4), (-1, num_rows - 1), 'Tahoma-Bold'),
         ('FONTSIZE', (0, 0), (-1, -1), 8.5),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('ALIGN', (1, 1), (1, num_rows - 4), 'RIGHT'),
-        ('ALIGN', (1, num_rows - 3), (1, num_rows - 1), 'RIGHT'),
+        ('ALIGN', (1, 1), (1, num_rows - 5), 'RIGHT'),
+        ('ALIGN', (1, num_rows - 4), (1, num_rows - 1), 'RIGHT'),
         ('ALIGN', (0, 1), (0, -1), 'CENTER'),
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F1F5F9')),
         ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
+        ('SPAN', (1, num_rows - 4), (3, num_rows - 4)),
         ('SPAN', (1, num_rows - 3), (3, num_rows - 3)),
         ('SPAN', (1, num_rows - 2), (3, num_rows - 2)),
         ('SPAN', (1, num_rows - 1), (3, num_rows - 1)),
+        ('BACKGROUND', (0, num_rows - 4), (-1, num_rows - 4), colors.HexColor('#F8FAFC')),
         ('BACKGROUND', (0, num_rows - 3), (-1, num_rows - 3), colors.HexColor('#F8FAFC')),
-        ('BACKGROUND', (0, num_rows - 2), (-1, num_rows - 2), colors.HexColor('#F8FAFC')),
-        ('BACKGROUND', (0, num_rows - 1), (-1, num_rows - 1), colors.HexColor('#E2E8F0')),
+        ('BACKGROUND', (0, num_rows - 2), (-1, num_rows - 2), colors.HexColor('#E2E8F0')),
+        ('BACKGROUND', (0, num_rows - 1), (-1, num_rows - 1), colors.HexColor('#DBEAFE')),
         ('TOPPADDING', (0, 0), (-1, -1), 5),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
     ]))
