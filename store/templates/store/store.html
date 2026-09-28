@@ -74,7 +74,7 @@
                 
                 <!-- بخش عدد -->
                 <span class="text-base font-bold text-gray-700 dark:text-white dir-ltr leading-none pt-1">
-                    {{ page_obj.paginator.count|intcomma|fa_digits }}
+                    {{ page_obj.paginator.count|fa_price }}
                 </span>
             </div>
 
@@ -137,7 +137,7 @@
                             <div class="flex justify-between items-center mb-1">
                                 <span class="text-xs text-neutral-500 dark:text-neutral-400 font-medium">قیمت اثر</span>
                                 <span class="inline-flex items-center gap-1.5 text-base text-primary" dir="rtl">
-                                    <span class="font-en font-bold">{{ artwork.price|intcomma|fa_digits }}</span>
+                                    <span class="font-en font-bold">{{ artwork.price|fa_price }}</span>
                                     <span class="text-xs font-bold text-primary/80">تومان</span>
                                 </span>
                             </div>
@@ -159,39 +159,16 @@
                         </div>
                     </div>
 
-                    <!-- دکمه‌ها -->
+                    <!-- دکمه مشاهده و خرید -->
                     <div class="mt-auto space-y-2 pt-1">
-                        <a class="w-full flex items-center justify-center bg-primary/10 hover:bg-primary text-primary hover:text-white text-sm font-bold py-2.5 rounded-xl transition-all border border-primary/20 hover:border-primary"
+                        <a class="w-full flex items-center justify-center gap-2 bg-primary text-white hover:bg-primary-dark text-sm font-bold py-2.5 rounded-xl transition-all shadow-md shadow-primary/20 hover:shadow-lg"
                            href="{% url 'store:artwork_detail' artwork.pk %}"
                            data-track-visit="1"
                            data-track-kind="store_product"
                            data-track-id="{{ artwork.pk }}">
-                            مشاهده جزئیات کامل
+                            <span class="material-symbols-outlined text-[18px]">shopping_bag</span>
+                            مشاهده و خرید اثر
                         </a>
-                        {% if artwork.is_sold == 1 %}
-                            <button type="button"
-                                    class="w-full flex items-center justify-center gap-2 bg-neutral-100 dark:bg-neutral-800/50 text-neutral-400 text-sm font-bold py-2.5 rounded-xl cursor-not-allowed border border-neutral-200 dark:border-zinc-700"
-                                    disabled>
-                                <span class="material-symbols-outlined text-[18px]">block</span>
-                                فروخته شده
-                            </button>
-                        {% elif artwork.is_sold == 2 %}
-                            <button type="button"
-                                    class="w-full flex items-center justify-center gap-2 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 text-sm font-bold py-2.5 rounded-xl cursor-not-allowed"
-                                    disabled>
-                                <span class="material-symbols-outlined text-[18px]">hourglass_top</span>
-                                رزرو شده
-                            </button>
-                        {% else %}
-                            <a class="w-full flex items-center justify-center gap-2 bg-primary text-white hover:bg-primary-dark text-sm font-bold py-2.5 rounded-xl transition-all shadow-md shadow-primary/20 hover:shadow-lg"
-                               href="{% url 'store:artwork_detail' artwork.pk %}"
-                               data-track-visit="1"
-                               data-track-kind="store_product"
-                               data-track-id="{{ artwork.pk }}">
-                                <span class="material-symbols-outlined text-[18px]">shopping_bag</span>
-                                خرید اثر
-                            </a>
-                        {% endif %}
                     </div>
                 </div>
             </div>
