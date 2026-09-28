@@ -101,7 +101,7 @@ def _dispatch_ended(*, now, remaining):
         return 0
 
     auctions = Auction.objects.filter(
-        Q(end_notice_dispatched_at__isnull=True) | Q(winner_billing_dispatched_at__isnull=True),
+        end_notice_dispatched_at__isnull=True,
         end_date__lte=now + timedelta(seconds=1),
     ).order_by('end_date')[:remaining]
 

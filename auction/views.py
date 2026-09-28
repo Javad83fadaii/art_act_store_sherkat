@@ -296,10 +296,13 @@ def auction_product_detail(request, pk: int):
         and product.winner_id == request.user.pk
     )
     context['user_is_winner'] = user_is_winner
+    invoice_issued = False
     if is_finished_auction and request.user.is_authenticated:
+        invoice_issued = product.auction.invoices_dispatched_at is not None
         invoice_available_at = product.auction.invoice_available_at
         context['invoice_available_at_iso'] = invoice_available_at.isoformat()
-        context['invoice_available_at_passed'] = timezone.now() >= invoice_available_at
+        context['invoice_available_at_passed'] = invoice_issued
+    context['invoice_issued'] = invoice_issued
 
     context['bid_error'] = request.GET.get('bid_error', '') or context['bid_error']
     context['bid_success'] = request.GET.get('bid_success', '') or context['bid_success']
@@ -662,6 +665,9 @@ def download_auction_user_invoice_pdf(request, auction_id: int):
     auction = get_object_or_404(Auction, pk=auction_id)
     if auction.status != 'finished':
         return HttpResponseForbidden("فاکتور رسمی تنها پس از پایان قطعی مزایده صادر می‌شود.")
+
+    if auction.invoices_dispatched_at is None:
+        return HttpResponseForbidden("فاکتورهای این مزایده هنوز توسط مدیریت تایید و صادر نشده است.")
 
     invoice = create_or_get_invoice_for_winner(auction, request.user)
     if not invoice:

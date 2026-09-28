@@ -217,19 +217,22 @@ def generate_invoice_number(issued_at=None) -> str:
     raise ValueError('سقف شماره ترتیبی فاکتور (۹۹۹) پر شده است.')
 
 
-def create_or_get_invoice_for_winner(auction, user, products=None):
+def create_or_get_invoice_for_winner(auction, user, products=None, force=False):
     """
     ایجاد یا دریافت فاکتور رسمی برنده مزایده پس از پایان قطعی مزایده
     """
     from django.db import transaction
     from .models import AuctionInvoice, AuctionInvoiceItem
 
-    if auction.status != 'finished':
+    if auction.status != 'finished' and not force:
         return None
 
     existing = AuctionInvoice.objects.filter(auction=auction, user=user).first()
     if existing:
         return existing
+
+    if not force and auction.invoices_dispatched_at is None:
+        return None
 
     if products is None:
         products = list(
@@ -290,11 +293,11 @@ def create_or_get_invoice_for_winner(auction, user, products=None):
         return invoice
 
 
-def generate_invoices_for_auction(auction, products=None) -> list:
+def generate_invoices_for_auction(auction, products=None, force=False) -> list:
     """
-    صدور خودکار فاکتور برای تمام برندگان مزایده پس از پایان قطعی آن
+    صدور فاکتور برای تمام برندگان مزایده پس از پایان قطعی و تایید آن
     """
-    if auction.status != 'finished':
+    if auction.status != 'finished' and not force:
         return []
 
     if products is None:
@@ -310,9 +313,119 @@ def generate_invoices_for_auction(auction, products=None) -> list:
 
     invoices = []
     for winner, user_products in winners_products.items():
-        invoice = create_or_get_invoice_for_winner(auction, winner, user_products)
+        invoice = create_or_get_invoice_for_winner(auction, winner, user_products, force=force)
         if invoice:
             invoices.append(invoice)
 
     return invoices
+
+
+def issue_auction_invoices_and_billing(
+    auction,
+    *,
+    send_notifications: bool = True,
+    force: bool = False,
+) -> dict:
+    """
+    بررسی، صدور قطعی فاکتورهای مزایده و ارسال پیامک و ایمیل صورت‌حساب به برندگان.
+    این تابع توسط دستور مدیریتی سرور یا فرآیند دستی ادمین فراخوانی می‌شود.
+    """
+    from collections import defaultdict
+    from django.db import transaction
+    from notifications.services import notification_service
+    from .models import Auction
+    from .tasks import _get_user_notification_providers, _build_sms_line_items_text, _format_amount
+
+    if auction.status != 'finished' and not force:
+        raise ValueError(f"مزایده «{auction.name or auction.pk}» هنوز به پایان نرسیده است.")
+
+    with transaction.atomic():
+        auction_obj = Auction.objects.select_for_update().get(pk=auction.pk)
+
+        products = ensure_products_have_finished_winners(
+            auction_obj.products.select_related('winner', 'artist').all()
+        )
+
+        if auction_obj.invoices_dispatched_at is None:
+            auction_obj.invoices_dispatched_at = timezone.now()
+            auction_obj.save(update_fields=['invoices_dispatched_at'])
+
+        invoices = generate_invoices_for_auction(auction_obj, products=products, force=True)
+
+    notifications_sent = 0
+    notification_errors = []
+
+    if send_notifications:
+        winners_map = defaultdict(list)
+        for product in products:
+            winner = getattr(product, 'winner', None)
+            if winner and _get_user_notification_providers(winner):
+                winners_map[winner.pk].append(product)
+
+        for product_list in winners_map.values():
+            winner = product_list[0].winner
+            providers = _get_user_notification_providers(winner)
+            if not providers:
+                continue
+
+            display_name = (
+                getattr(winner, 'get_full_name', lambda: '')()
+                or getattr(winner, 'full_name', '')
+                or 'کاربر گرامی'
+            )
+            line_items = []
+            total_amount = Decimal('0')
+            for product in product_list:
+                product_total = Decimal(str(product.current_price or 0))
+                total_amount += product_total
+                lot_label = f"لات {product.lot}" if product.lot else f"کد {product.product_id}"
+                line_items.append(
+                    f"- {product.title} ({lot_label}) | مبلغ نهایی: {_format_amount(product_total)} تومان"
+                )
+
+            line_items_text = '\n'.join(line_items)
+            sms_line_items_text = _build_sms_line_items_text(product_list)
+            formatted_total_amount = _format_amount(total_amount)
+            first_product = product_list[0]
+            first_title = first_product.title if len(product_list) == 1 else f"{first_product.title} و {len(product_list)-1} اثر دیگر"
+            lot_number = str(first_product.lot or first_product.product_id or '')
+
+            try:
+                notification_service.send_template(
+                    event='auction.winner.billing',
+                    template='auction_Invoice',
+                    providers=providers,
+                    user=winner,
+                    context={
+                        'auction_name': auction_obj.name,
+                        'name': display_name,
+                        'product_title': first_title,
+                        'lot_number': lot_number,
+                        'number_of_products': str(len(product_list)),
+                        'final_bid_amount': formatted_total_amount,
+                        'line_items_text': line_items_text,
+                        'sms_line_items_text': sms_line_items_text,
+                        'formatted_total_amount': formatted_total_amount,
+                    },
+                    metadata={
+                        'auction_id': str(auction_obj.pk),
+                        'winner_id': str(winner.pk),
+                    },
+                )
+                notifications_sent += 1
+            except Exception as e:
+                notification_errors.append({'user': winner, 'error': str(e)})
+
+        if winners_map and notifications_sent > 0:
+            auction_obj.winner_billing_dispatched_at = timezone.now()
+            auction_obj.save(update_fields=['winner_billing_dispatched_at'])
+
+    return {
+        'auction': auction_obj,
+        'invoices': invoices,
+        'invoices_count': len(invoices),
+        'notifications_sent': notifications_sent,
+        'notification_errors': notification_errors,
+    }
+
 

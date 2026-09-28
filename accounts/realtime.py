@@ -131,7 +131,7 @@ def build_profile_live_context(user) -> dict:
         invoice = None
         if auction_obj.status == 'finished':
             invoice = AuctionInvoice.objects.filter(auction_id=auction_id, user=live_user).first()
-            if not invoice:
+            if not invoice and auction_obj.invoices_dispatched_at is not None:
                 try:
                     invoice = create_or_get_invoice_for_winner(auction_obj, live_user, group['items'])
                 except Exception:

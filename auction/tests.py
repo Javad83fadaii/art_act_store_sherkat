@@ -1730,6 +1730,8 @@ class AuctionInvoiceTests(TestCase):
 
     def test_invoice_pdf_download_permissions(self):
         from auction.services import create_or_get_invoice_for_winner
+        self.auction.invoices_dispatched_at = timezone.now()
+        self.auction.save(update_fields=['invoices_dispatched_at'])
         invoice = create_or_get_invoice_for_winner(self.auction, self.winner_user)
         self.assertIsNotNone(invoice)
 
@@ -1752,6 +1754,8 @@ class AuctionInvoiceTests(TestCase):
 
     def test_invoice_html_view(self):
         from auction.services import create_or_get_invoice_for_winner
+        self.auction.invoices_dispatched_at = timezone.now()
+        self.auction.save(update_fields=['invoices_dispatched_at'])
         invoice = create_or_get_invoice_for_winner(self.auction, self.winner_user)
         self.client.force_login(self.winner_user)
         url = reverse('auction:invoice_detail', args=[invoice.pk])
@@ -1762,6 +1766,10 @@ class AuctionInvoiceTests(TestCase):
 
     def test_profile_context_groups_by_auction(self):
         from accounts.realtime import build_profile_live_context
+        from auction.services import create_or_get_invoice_for_winner
+        self.auction.invoices_dispatched_at = timezone.now()
+        self.auction.save(update_fields=['invoices_dispatched_at'])
+        create_or_get_invoice_for_winner(self.auction, self.winner_user)
         ctx = build_profile_live_context(self.winner_user)
         self.assertIn('auction_purchase_groups', ctx)
         groups = ctx['auction_purchase_groups']
@@ -1775,6 +1783,8 @@ class AuctionInvoiceTests(TestCase):
 
     def test_admin_api_returns_invoices(self):
         from auction.services import create_or_get_invoice_for_winner
+        self.auction.invoices_dispatched_at = timezone.now()
+        self.auction.save(update_fields=['invoices_dispatched_at'])
         invoice = create_or_get_invoice_for_winner(self.auction, self.winner_user)
         self.client.force_login(self.admin_user)
 
@@ -1794,3 +1804,20 @@ class AuctionInvoiceTests(TestCase):
 
 
 
+
+    def test_invoice_not_generated_without_admin_approval(self):
+        from auction.models import AuctionInvoice
+        from auction.services import create_or_get_invoice_for_winner
+        self.assertIsNone(self.auction.invoices_dispatched_at)
+        inv = create_or_get_invoice_for_winner(self.auction, self.winner_user)
+        self.assertIsNone(inv)
+        self.assertEqual(AuctionInvoice.objects.filter(auction=self.auction).count(), 0)
+
+    def test_issue_auction_invoices_command(self):
+        from django.core.management import call_command
+        from auction.models import AuctionInvoice
+        self.assertIsNone(self.auction.invoices_dispatched_at)
+        call_command('issue_auction_invoices', str(self.auction.id), force_yes=True, skip_notifications=True)
+        self.auction.refresh_from_db()
+        self.assertIsNotNone(self.auction.invoices_dispatched_at)
+        self.assertEqual(AuctionInvoice.objects.filter(auction=self.auction, user=self.winner_user).count(), 1)

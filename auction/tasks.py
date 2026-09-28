@@ -403,7 +403,7 @@ def send_auction_ended_email(auction_id, expected_end=None):
 
 مزایده «{auction.name}» به پایان رسید.
 
-فاکتور رسمی برندگان ۲۴ ساعت پس از پایان قطعی مزایده صادر می‌شود.
+فاکتور رسمی برندگان پس از بررسی نهایی صادر و در پروفایل کاربری قرار خواهد گرفت.
 
 با سپاس
 تیم ماه آکشن"""
@@ -421,15 +421,8 @@ def send_auction_ended_email(auction_id, expected_end=None):
                 _release_dispatch(auction.id, 'end_notice_dispatched_at', end_notice_claimed_at)
                 logger.exception("Ended email failed for auction %s", auction.pk)
 
-    # زمان‌بندی صدور فاکتور ۲۴ ساعت بعد از پایان واقعی مزایده
-    invoice_available_at = auction.invoice_available_at
-    dispatch_delayed_invoices.apply_async(
-        kwargs={
-            'auction_id': auction.pk,
-            'expected_available_at': invoice_available_at.isoformat(),
-        },
-        eta=invoice_available_at,
-    )
+    # صدور فاکتور و اطلاع‌رسانی برندگان به صورت خودکار انجام نمی‌شود و نیازمند تایید دستی ادمین از طریق دستور سرور است.
+    return
 
 
 @shared_task
@@ -457,7 +450,7 @@ def dispatch_delayed_invoices(auction_id, expected_available_at=None):
         auction.products.select_related('winner', 'artist').all()
     )
     try:
-        generate_invoices_for_auction(auction, products=products)
+        generate_invoices_for_auction(auction, products=products, force=True)
     except Exception:
         _release_dispatch(auction.id, 'invoices_dispatched_at', claimed_at)
         logger.exception("Failed to generate invoices for auction %s", auction.pk)
