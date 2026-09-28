@@ -199,70 +199,113 @@
                         </div>
                     </div>
 
-                    <div class="bg-white rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-neutral-200 space-y-6 animate-fadeIn"
+                    <div class="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-neutral-200 animate-fadeIn overflow-hidden"
                         style="animation-delay: 0.2s;">
-                        <div>
-                            <div class="flex justify-between items-baseline mb-2">
-                                <span class="text-sm text-secondary-text font-medium">قیمت اثر</span>
+
+                        <!-- بخش ۱: وضعیت اثر -->
+                        <div class="px-6 sm:px-8 py-5 border-b border-neutral-100 bg-neutral-50/30">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2.5">
+                                    {% if artwork.is_sold == 1 %}
+                                        <span class="material-symbols-outlined text-[22px] text-neutral-500">block</span>
+                                        <div class="flex flex-col">
+                                            <span class="text-xs font-bold text-neutral-700">وضعیت اثر</span>
+                                            <span class="text-[10px] text-neutral-400">این اثر فروخته شده است</span>
+                                        </div>
+                                    {% elif artwork.is_sold == 2 %}
+                                        <span class="material-symbols-outlined text-[22px] text-amber-500">hourglass_top</span>
+                                        <div class="flex flex-col">
+                                            <span class="text-xs font-bold text-amber-600">وضعیت اثر</span>
+                                            <span class="text-[10px] text-neutral-400">این اثر رزرو شده است</span>
+                                        </div>
+                                    {% else %}
+                                        <span class="material-symbols-outlined text-[22px] text-emerald-500">check_circle</span>
+                                        <div class="flex flex-col">
+                                            <span class="text-xs font-bold text-neutral-700">وضعیت اثر</span>
+                                            <span class="text-[10px] text-neutral-400">موجود و آماده خرید</span>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                {% if artwork.is_sold == 1 %}
+                                    <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-neutral-100 text-neutral-600 border border-neutral-200">
+                                        <span class="material-symbols-outlined text-[18px]">block</span>
+                                        <span class="text-sm font-black">فروخته‌شده</span>
+                                    </div>
+                                {% elif artwork.is_sold == 2 %}
+                                    <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-50 text-amber-600 border border-amber-200">
+                                        <span class="material-symbols-outlined text-[18px]">hourglass_top</span>
+                                        <span class="text-sm font-black">رزرو شده</span>
+                                    </div>
+                                {% else %}
+                                    <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                        <span class="material-symbols-outlined text-[18px]">storefront</span>
+                                        <span class="text-sm font-black">موجود</span>
+                                    </div>
+                                {% endif %}
                             </div>
-                            {% comment %} {% if request.user.is_authenticated %} {% endcomment %}
-                                <div class="text-4xl font-bold text-neutral-900 tracking-tight">
-                                    <span id="product-price">{{ artwork.price|intcomma|fa_digits }} </span> <span
-                                        class="text-lg font-bold text-neutral-500 align-top mr-1">تومان</span>
+                        </div>
+
+                        <!-- بخش ۲: قیمت و دکمه خرید -->
+                        <div class="p-6 sm:p-8 space-y-6">
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-neutral-500 font-bold bg-neutral-100 px-2 py-1 rounded">قیمت اثر</span>
+                                </div>
+                                <div class="flex items-start justify-start gap-1">
+                                    <span id="product-price" class="text-5xl font-extrabold text-neutral-900 tracking-tight leading-none">
+                                        {{ artwork.price|intcomma|fa_digits }}
+                                    </span>
+                                    <span class="text-lg font-bold text-neutral-500 mt-1.5">تومان</span>
                                 </div>
                                 {% if artwork.price_description %}
-                                    <div class="mt-2 text-xs font-medium text-neutral-400">
+                                    <div class="text-xs font-medium text-neutral-400">
                                         {{ artwork.price_description|fa_digits }}
                                     </div>
                                 {% endif %}
-                            {% comment %} {% else %}
-                                <button type="button" class="text-lg font-bold text-primary hover:text-primary-dark transition-colors" onclick="window.openLoginRequiredModal(window.location.pathname + window.location.search, 'برای مشاهده قیمت این اثر، لطفاً ابتدا وارد حساب کاربری خود شوید.')">
-                                    ورود برای مشاهده قیمت
-                                </button>
-                            {% endif %} {% endcomment %}
-                        </div>
-                        <div class="border-t border-neutral-100 my-4"></div>
+                            </div>
 
-                        <!-- ============ بخش دکمه خرید ============ -->
-                        <div class="flex gap-3 pt-2 items-stretch relative z-50">
-                            {% if artwork.is_sold == 1 %}
-                                <button type="button"
-                                    class="flex-1 bg-neutral-200 text-neutral-500 text-lg font-bold h-14 rounded-xl cursor-not-allowed flex items-center justify-center gap-2"
-                                    disabled>
-                                    <span class="material-symbols-outlined">block</span>
-                                     فروخته شده
-                                </button>
-                            {% elif artwork.is_sold == 2 %}
-                                <button type="button"
-                                    class="flex-1 bg-amber-100 text-amber-600 text-lg font-bold h-14 rounded-xl cursor-not-allowed flex items-center justify-center gap-2 opacity-80"
-                                    disabled>
-                                    <span class="material-symbols-outlined">hourglass_top</span>
-                                    رزرو شده
-                                </button>
-                            {% else %}
-                                <div class="flex-1 relative">
-                                    <!-- دکمه اصلی -->
+                            <!-- دکمه‌های خرید و علاقه‌مندی -->
+                            <div class="flex gap-3 items-stretch">
+                                {% if artwork.is_sold == 1 %}
+                                    <button type="button"
+                                        class="flex-1 bg-neutral-200 text-neutral-500 text-lg font-bold h-14 rounded-xl cursor-not-allowed flex items-center justify-center gap-2"
+                                        disabled>
+                                        <span class="material-symbols-outlined">block</span>
+                                        فروخته شده
+                                    </button>
+                                {% elif artwork.is_sold == 2 %}
+                                    <button type="button"
+                                        class="flex-1 bg-amber-100 text-amber-600 text-lg font-bold h-14 rounded-xl cursor-not-allowed flex items-center justify-center gap-2 opacity-80"
+                                        disabled>
+                                        <span class="material-symbols-outlined">hourglass_top</span>
+                                        رزرو شده
+                                    </button>
+                                {% else %}
                                     <button id="btn-toggle-cart" type="button"
-                                        class="w-full h-14 bg-primary hover:bg-primary-hover text-white text-lg font-bold rounded-xl shadow-lg shadow-neutral-900/10 transition-all hover:translate-y-[-2px] active:translate-y-[1px] flex items-center justify-center gap-2"
-                                             onclick="openConfirmModal()">
+                                        class="flex-1 h-14 bg-primary hover:bg-primary-dark text-white text-lg font-bold rounded-xl shadow-lg shadow-primary/30 transition-all hover:translate-y-[-2px] active:translate-y-[1px] flex items-center justify-center gap-2 transform"
+                                        onclick="openConfirmModal()">
                                         <span class="material-symbols-outlined">shopping_bag</span>
                                         خرید اثر
                                     </button>
-                                </div>
-                            {% endif %}
+                                {% endif %}
 
-                            <!-- ============ دکمه علاقه‌مندی ============ -->
-                            <button type="button"
-                                id="like-button"
-                                onclick="toggleLike({{ artwork.id }})"
-                                class="size-14 bg-white hover:bg-neutral-50 border transition-colors rounded-xl flex items-center justify-center group {% if is_liked %}text-red-600 border-red-200{% else %}text-neutral-400 border-neutral-200{% endif %}"
-                                title="{% if is_liked %}حذف از علاقه‌مندی‌ها{% else %}افزودن به علاقه‌مندی‌ها{% endif %}">
-                                <!-- نکته مهم: کلاس filled توسط css تعریف شده در بالا کنترل می‌شود -->
-                                <span class="material-symbols-outlined text-[24px] group-hover:filled transition-all {% if is_liked %}filled{% endif %}">favorite</span>
-                            </button>
-                            <!-- =================================================== -->
+                                <button type="button"
+                                    id="like-button"
+                                    onclick="toggleLike({{ artwork.id }})"
+                                    class="size-14 bg-white hover:bg-neutral-50 border transition-colors rounded-xl flex items-center justify-center group {% if is_liked %}text-red-600 border-red-200{% else %}text-neutral-400 border-neutral-200{% endif %}"
+                                    title="{% if is_liked %}حذف از علاقه‌مندی‌ها{% else %}افزودن به علاقه‌مندی‌ها{% endif %}">
+                                    <span class="material-symbols-outlined text-[24px] group-hover:filled transition-all {% if is_liked %}filled{% endif %}">favorite</span>
+                                </button>
+                            </div>
                         </div>
 
+                        <!-- فوتر -->
+                        <div class="bg-neutral-50 border-t border-neutral-200 px-6 py-3 flex justify-between items-center text-[11px] text-neutral-500 font-medium">
+                            <span class="flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-[16px] text-neutral-400">local_shipping</span>
+                                هزینه حمل‌ونقل: محاسبه جداگانه
+                            </span>
+                        </div>
                     </div>
                     <div class="divide-y divide-neutral-200">
                         <details class="group py-4" open="">
