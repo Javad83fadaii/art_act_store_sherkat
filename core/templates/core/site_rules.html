@@ -1,214 +1,396 @@
 {% extends "base.html" %}
 
-{% block title %}قوانین و مقررات | حراج ماه{% endblock %}
+{% block title %}شرایط و قوانین شرکت در حراج آنلاین | حراج ماه{% endblock %}
 
 {% block content %}
-<!-- نوار پیشرفت مطالعه -->
+<!-- نوار پیشرفت مطالعه در بالای صفحه -->
 <div id="progress-bar" class="fixed top-0 left-0 h-1 bg-primary z-50 transition-all duration-150" style="width: 0%;"></div>
 
-<div class="relative min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
-    <!-- المان‌های تزئینی پس‌زمینه (مخفی در چاپ) -->
-    <div class="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 rounded-full bg-primary/10 blur-3xl print:hidden pointer-events-none"></div>
-    <div class="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 rounded-full bg-secondary/10 blur-3xl print:hidden pointer-events-none"></div>
+<div class="relative min-h-screen bg-gray-50/70 dark:bg-gray-900 transition-colors duration-300 py-10">
+    <div class="container mx-auto px-4 max-w-5xl relative z-10">
 
-    <div class="container mx-auto px-4 py-12 max-w-5xl relative z-10">
-        
-        <!-- بخش Hero -->
-        <div class="text-center mb-16 print:mb-8">
-            <span class="inline-block py-1 px-3 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4 print:hidden">
-                Legal Framework
+        <!-- هدر صفحه -->
+        <div class="text-center mb-8 print:mb-4">
+            <span class="inline-block py-1 px-3.5 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-3 print:hidden">
+                سند رسمی و چارچوب حقوقی
             </span>
-            <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white mb-6">
+            <h1 class="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white mb-3 tracking-tight">
                 شرایط و قوانین شرکت در حراج آنلاین
             </h1>
+            <p class="text-gray-500 dark:text-gray-400 text-sm max-w-2xl mx-auto">
+                حراج ماه • شرایط عمومی و اختصاصی مشارکت خریداران، مالکین آثار و حراج‌گزار
+            </p>
         </div>
 
-        <!-- محتوای اصلی قوانین (یکپارچه در یک باکس) -->
-        <div class="w-full space-y-10">
-            <div class="policy-card bg-white dark:bg-gray-800 rounded-2xl p-8 md:p-12 shadow-sm hover:shadow-md transition-shadow duration-300 border border-gray-100 dark:border-gray-700 print:shadow-none print:border-gray-300">
-                
-                <!-- مقدمه -->
-                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-4">
-                    کلیه شروط مندرج در این سند در خصوص شرایط حراج و خرید و فروش آثار هنری و فرم جداگانه ثبت‌نام شرکت در حراج و همچنین توضیحات مندرج در کاتالوگ‌ها در مجموع به صورت یک کل یکپارچه شرایط عمومی حراج ماه (که زین پس شرایط عمومی حراج نامیده می‌شود) را تشکیل می‌دهند و حراج ماه بر اساس آنها آثار هنری را ارایه و به متقاضیان به فروش می‌رساند. ثبت‌نام شما برای شرکت در حراج به منزله قبول کلیه شرایط عمومی حراج بوده و از لحظه ثبت‌نام لازم‌الاجرا می‌باشند. خواهشمند است قبل ازثبت‌نام موارد ذیل را با دقت مطالعه نمایید.
-                </p>
-                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-4">
-                    متقاضیان می‌توانند از زمان مقرر با ثبت‌نام در سایت حراج ماه، لینک شرکت در مزایده را دریافت و در زمان مقرر حراج، در آن شرکت کنند. ثبت‌نام در سایت حراج نیازمند موارد ذیل است:
-                </p>
-                <ul class="list-disc list-inside text-gray-700 dark:text-gray-300 leading-8 space-y-2 mb-4">
-                    <li>مطالعه کامل و قبول شرایط عمومی حراج ماه و شرایط اختصاصی حراج ماه.</li>
-                    <li>تکمیل و یا تایید موارد مندرج در فرم ثبت‌نام آنلاین.</li>
-                    <li>احراز هویت و دریافت کد شرکت در حراج</li>
-                </ul>
-                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-4">
-                    مالکین آثار می‌توانند در صورت تمایل رضایت بدهند که شرایطی فراهم شود تا در لحظات آخر حراج آنلاین، اگر هیچ متقاضی برای اثر ایشان پیشنهاد ندهد، برای جلوگیری از به فروش نرسیدن اثر، حراج گزار با مبلغی پایین تر از پیشنهاد کمینه اثر را به فروش برساند.
-                </p>
-                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-8 font-bold">
-                    بدینوسیله حراج‌گزار (حراج ماه)، شرکت‌کنندگان در حراج را از جزئیات حراج به شرح ذیل مطلع می‌نماید:
-                </p>
+        <!-- نوار دسترسی سریع به فصول (Sticky Navigation) -->
+        <div class="sticky top-4 z-40 mb-8 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl p-3 shadow-md print:hidden">
+            <div class="flex items-center gap-2 mb-2 text-xs font-bold text-gray-500 dark:text-gray-400">
+                <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/></svg>
+                <span>دسترسی سریع به فصول و بندها:</span>
+            </div>
+            <div class="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs">
+                <a href="#intro" class="whitespace-nowrap px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-primary hover:text-white dark:bg-gray-700 dark:hover:bg-primary transition-colors font-medium">مقدمه</a>
+                <a href="#rule-1" class="whitespace-nowrap px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-primary hover:text-white dark:bg-gray-700 dark:hover:bg-primary transition-colors font-medium">۱. انتخاب آثار</a>
+                <a href="#rule-2" class="whitespace-nowrap px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-primary hover:text-white dark:bg-gray-700 dark:hover:bg-primary transition-colors font-medium">۲. تمدید زمان</a>
+                <a href="#rule-3" class="whitespace-nowrap px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-primary hover:text-white dark:bg-gray-700 dark:hover:bg-primary transition-colors font-medium">۳. سلب خیارات</a>
+                <a href="#rule-4" class="whitespace-nowrap px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-primary hover:text-white dark:bg-gray-700 dark:hover:bg-primary transition-colors font-medium">۴. اهلیت شرکت</a>
+                <a href="#rule-5" class="whitespace-nowrap px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-primary hover:text-white dark:bg-gray-700 dark:hover:bg-primary transition-colors font-medium">۵. نمایندگی</a>
+                <a href="#rule-6" class="whitespace-nowrap px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-primary hover:text-white dark:bg-gray-700 dark:hover:bg-primary transition-colors font-medium">۶. اصالت اثر</a>
+                <a href="#rule-7" class="whitespace-nowrap px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-primary hover:text-white dark:bg-gray-700 dark:hover:bg-primary transition-colors font-medium font-bold text-primary">۷. پلکان قیمت</a>
+                <a href="#rule-8" class="whitespace-nowrap px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-primary hover:text-white dark:bg-gray-700 dark:hover:bg-primary transition-colors font-medium font-bold text-primary">۸. نحوه پرداخت</a>
+                <a href="#rule-9" class="whitespace-nowrap px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-primary hover:text-white dark:bg-gray-700 dark:hover:bg-primary transition-colors font-medium">۹. حق‌العمل</a>
+                <a href="#rule-10" class="whitespace-nowrap px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-primary hover:text-white dark:bg-gray-700 dark:hover:bg-primary transition-colors font-medium">۱۰. محرمانگی</a>
+                <a href="#rule-11" class="whitespace-nowrap px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-primary hover:text-white dark:bg-gray-700 dark:hover:bg-primary transition-colors font-medium">۱۱. سایر شرایط</a>
+                <a href="#rule-12" class="whitespace-nowrap px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-primary hover:text-white dark:bg-gray-700 dark:hover:bg-primary transition-colors font-medium">۱۲. حل اختلافات</a>
+                <a href="#rule-13" class="whitespace-nowrap px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-primary hover:text-white dark:bg-gray-700 dark:hover:bg-primary transition-colors font-medium">۱۳. قانون حاکم</a>
+                <a href="#rule-14" class="whitespace-nowrap px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-primary hover:text-white dark:bg-gray-700 dark:hover:bg-primary transition-colors font-medium">۱۴. فورس‌ماژور</a>
+            </div>
+        </div>
 
-                <!-- بند ۱ و ۲ -->
-                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-4">
-                    <strong>۱.</strong> آثار هنري بر مبناي ارزش کيفي آنها و بر حسب علاقه‌مندي متقاضيان، توسط برگزارکنندگان حراج، انتخاب و بر اساس قيمت پايه مورد توافق با مالک اثر در حراج ارائه خواهد شد. آثار انتخاب‌شده در نمایشگاهی به مدت چهار روز در معرض مشاهده علاقه‌مندان بوده و از ساعت ۱۸ روز نخست تا ساعت ۱۸ روز سوم از طریق لینک ارسالی برای ثبت نام کنندگان متقاضی خرید، به صورت آنلاین به حراج گذاشته خواهد شد. ثبت نام کنندگان محترم، از زمان آغاز نمایشگاه تا پایان مزایده مجاز به ورود به لینک حراج زنده به منظور شرکت در مزایده خرید آثار آنلاین می باشند. مهلت پایانی شرکت در مزایده حراج تا ساعت ۱۸ روز سوم بوده و در طول این مدت هر فردی می تواند به مراجعه به سایت، به صورت لحظه ای از آخرین قیمت آثار مطلع شود.
-                </p>
-                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-4">
-                    <strong>۲.</strong> حراج در زمان مقرر پایان می‌یابد، مگر اینکه در ۶ ساعت پایانی، پیشنهاد قیمت جدیدی ثبت شود. در این صورت، زمان پایان حراج به مدت ۶ ساعت از زمان ثبت آخرین پیشنهاد جدید تمدید می‌شود. این روند هر بار که پیشنهاد جدیدی در ۶ ساعت پایانی ثبت شود، دوباره تکرار خواهد شد. بنابراین، حراج زمانی پایان‌یافته محسوب می‌شود که ۶ ساعت از آخرین پیشنهاد قیمت گذشته باشد و در این مدت پیشنهاد جدیدی ثبت نشود.
-                </p>
+        <!-- ======================= فصول و بندها (هر فصل در یک باکس گرافیکی) ======================= -->
+        <div class="space-y-6">
 
-                <!-- بند ۳ تا ۶ -->
-                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-4">
-                    <strong>۳.</strong> خريدار کليه خيارات قانوني و مربوط به معاملات از جمله خيار غبن فاحش و افحش ولو به اعلا درجه را از خود سلب و ساقط نمود و قرارداد بيع لازم‌الاجرا است.
-                </p>
-                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-4">
-                    <strong>۴.</strong> تنها متقاضياني که پيشاپيش طبق شرايط عمومي حراج در وبسایت رسمی حراج ثبت‌نام نموده و لینک ورود به حراج آنلاین برای آنان ارسال شده مجاز به شرکت در حراج مي‌باشند. براي خريد آثار از نظر تعداد محدوديتي وجود ندارد.
-                </p>
-                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-4">
-                    <strong>۵.</strong> حراج‌گزار، مالک اثر نبوده و صرفاً به نمايندگي از طرف مالک اثر، براي فروش آن اقدام مي‌نمايد و هيچ‌گونه انتقال مالکيتي در خصوص اثر به حراج‌گزار صورت نمي‌پذيرد.
-                </p>
-                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-4">
-                    <strong>۶.</strong> حق‌الزحمه (حق العمل) حراج‌گزار صرفاً بابت آماده‌سازي شرايط حراج و برگزاري نمایشگاه آن و فراهم نمودن تسهيلات اجراي اين معامله است. حراج‌گزار هيچ‌گونه مالکيتي و يا حقوق مالکانه ديگري چه جزئي و چه کلي، در آثار ارايه شده براي فروش در حراج ندارد. مالک اثر سابقاً کليه اختيارات لازم جهت اجرا و تحقق مفاد شرايط عمومي حراج آنلاین ماه را به حراج‌گزار اعطا نموده است و خريدار در اين خصوص عالم بوده و حق هيچ‌گونه اعتراضي را ندارد و نخواهد داشت.
-                </p>
-
-                <!-- بند ۷ -->
-                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-4">
-                    <strong>۷. اصالت اثر:</strong><br>
-                    با توجه به آنکه آثار ارايه شده در حراج به مدت چهار روز جهت رؤيت متقاضيان در معرض بازديد عموم قرار مي‌گيرد، متقاضيان اين امکان را جهت بررسي هاي کارشناسي متعارف از جانب کارشناسان منتخب خود در مدت مزبور دارا مي باشند.
-                </p>
-                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-4">
-                    <strong>۷/۱</strong> چنانچه در هر يک از مراحل برگزاري حراج تا پيش از فروش اثر، حراج‌گزار نسبت به اصالت اثر، مالکيت اثر، ساير اطلاعات اعلام شده از سوي مالک اثر و يا هر دليل ديگري ترديد و يا شبهه‌اي پيدا کند مي‌تواند اثر را بي هيچ قيد و شرطي از حراج خارج نمايد.
-                </p>
-
-                <!-- بند ۸ -->
-                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-4">
-                    <strong>۸. روش شرکت در حراج:</strong>
-                </p>
-                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-2">
-                    <strong>۸/۱</strong> شرکت در مراسم حراج فقط به صورت آنلاین و از طریق لینک ارسالی توسط حراج گذار و بعد از ثبت نام متقاضی شرکت در حراج و احراز شرایط خریدار و تایید توسط حراج گذار امکان پذیر است.
-                </p>
-                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-4">
-                    <strong>۸/۲</strong> براي هر اثر برآورد کمينه ای مشخص می‌شودکه مزايده از آن شروع و با هر بار درخواست قیمت ۵٪ افزایش پیدا می کند.
-                </p>
-
-                <!-- بند ۹ -->
-                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-4">
-                    <strong>۹. نحوه پرداخت و ضمانت اجراي عدم پرداخت:</strong>
-                </p>
-                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-4">
-                    <strong>۹/۱</strong> خریدار مکلف است مبلغی معادل ده درصد (۱۰٪) از مبلغ ثمن اثر خریداری شده را بعنوان حق الزحمه (حق العمل) حراج گزار در مدت مقرر به حراج گزار پرداخت نماید. در صورت تاخیر می بایست علاوه بر پرداخت اصل مبلغ مذکور، روزانه مبلغی معادل يک درصد (۱٪) از مبلغ ثمن اثر خریداری شده را به عنوان وجه التزام به حراج گزار پرداخت نمايد.
-                </p>
-                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-4">
-                    <strong>۹/۲</strong> خريدار موظف است کل مبلغ ثمن اثر خريداري‌شده (رقم چکش خورده نهایی) به علاوه حق‌الزحمه (حق العمل) حراج‌گزار را حداکثر ظرف مدت پنج روز پس از اتمام حراج و خريد اثر به حراج‌گزار، که نماينده مالک اثر مي‌باشد، پرداخت کند.
-                </p>
-                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-4">
-                    <strong>۹/۳</strong> آثار خريداري‌شده پس از دريافت کل مبلغ ثمن اثر خريداري‌شده به علاوه حق‌الزحمه (حق العمل) حراج‌گزار و وجه التزام مذکور در بند ۸.۱ ، در ايران در محل دفتر حراج ماه تحويل خواهد شد.
-                </p>
-                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-4">
-                    <strong>۹/۴</strong> در صورتي که خريدار ظرف مهلت مذکور در بند ۸.۲ اقدام به پرداخت کامل مبلغ ثمن اثر خريداري‌شده (رقم چکش خورده نهایی) و حق‌الزحمه (حق العمل) حراج‌گزار ننمايد، حراج‌گزار مي‌تواند ظرف مدت پانزده روز از تاريخ پايان مهلت تعيين شده در بند ۸.۲ ، صرفاً از طريق اعلام کتبي به نشانی و یا شماره همراه و یا آدرس ايميل‌هاي اعلامي از جانب خريدار در فرم ثبت‌نام، بيع را به صورت يک‌جانبه فسخ نمايد. بديهي است در این صورت حراج‌گزار هيچ‌گونه تعهدي نسبت به تحويل اثر به خريدار ندارد و در صورت دریافت اثر توسط خریدار وی موظف به استرداد آن به حراج‌گزار خواهد بود. در صورت اعمال حق فسخ مندرج در اين بند، بعنوان توافقي مستقل از قرارداد، خريدار موظف است حق الزحمه (حق العمل) حراج گزار یعنی مبلغی معادل ده درصد (۱۰٪) از مبلغ ثمن اثر (رقم چکش خورده نهائی) را به حراج گزار پرداخت نماید. عدم اعمال حق فسخ مزبور از جانب حراج‌گزار، رافع مسئوليت خريدار به پرداخت وجه التزام مقرر در بند ۸.۱ نمي‌باشد.
-                </p>
-                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-4">
-                    <strong>۹/۵</strong> خریدار تا زمان پرداخت کامل مبلغ ثمن اثر خريداري‌شده (رقم چکش خورده نهایی) به علاوه حق‌الزحمه (حق العمل) حراج‌گزار و وجه التزام مقرر در بند ۸.۱، حق انتقال اثر را به غیر ندارد و در صورت عمل بر خلاف این بند، انتقال انجام شده به غیر، باطل می باشد.
-                </p>
-
-                <!-- بند ۱۰ (حق‌العمل) -->
-                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-4">
-                    <strong>۱۰. حق‌العمل) حراج‌گزار):</strong><br>
-                    مالک اثر نیز بابت هزينه معرفي و فروش اثر و برگزاري مراسم حراج، موظف به پرداخت حق الزحمه (حق‌العمل) حراج‌گزار به شرح زير است که اين مبلغ از درآمد فروش اثر کسر و مابقي به مالک اثر پرداخت خواهد شد:
-                </p>
-                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-2">
-                    الف) براي فروش تا مبلغ ۱,۰۰۰,۰۰۰,۰۰۰ ریال مبلغی معادل ۱۵٪ رقم چکش‌خورده نهايي.
-                </p>
-                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-2">
-                    ب‌) براي فروش بيش از ۱,۰۰۰,۰۰۰,۰۰۰ ریال تا مبلغ ۵,۰۰۰,۰۰۰,۰۰۰ ریال مبلغی معادل ۱۲٪ رقم چکش‌خورده نهايي.
-                </p>
-                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-4">
-                    ج‌) براي فروش بيش از ۵,۰۰۰,۰۰۰,۰۰۰ ریال مبلغی معادل ۱۰٪ رقم چکش‌خورده نهايي.
-                </p>
-
-                <!-- بند ۱۱ (محرمانگی) -->
-                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-4">
-                    <strong>۱۱- محرمانگي:</strong><br>
-                    کليه اطلاعات شخصي و اطلاعات بانکي اشخاص شرکت‌کننده در حراج، در صورتي که از جانب آنها به صورت کتبي در زمان ثبت‌نام درخواست شود، به صورت محرمانه نزد حراج‌گزار حفظ و نگهداري خواهد شد و به هيچ عنوان در معرض اطلاع عموم و يا در دسترس اشخاص ثالث قرار نخواهد گرفت مگر:
-                </p>
-                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-2">
-                    الف) به دستور مقام قضايي که در آن صورت حراج‌گزار موظف خواهد بود که اطلاعات مزبور را در حد موضوع دستور در اختيار مقامات مربوطه قراردهد.
-                </p>
-                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-4">
-                    ب) هريک از خريداران يا فروشندگان که جهت پيگيري قانوني و مطالبه حقوق خود طبق شرايط عمومي حراج به اين اطلاعات نياز داشته باشند.
-                </p>
-                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-4">
-                    <strong>۱۱/۱</strong> حراج‌گزار مختار است که در خصوص قيمت نهايي آثار به فروش‌رفته و همچنين نام خريدار و يا فروشنده اثر جهت تبليغات و يا هر منظور ديگري اطلاع‌رساني نمايد، مگر آنکه خريدار يا فروشنده اثر کتباً حراج‌گزار را از اين امر منع نمايند. لازم به ذکر است در صورتي که اطلاعات مندرج در اين ماده از هر طريق ديگري به جز از طرف حراج‌گزار (براي مثال از طريق ساير شرکت‌کنندگان در حراج) نشر پيدا کند، حراج‌گزار طبيعتاً مسئول نخواهد بود.
-                </p>
-
-                <!-- بند ۱۲ -->
-                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-4">
-                    <strong>۱۲- ساير شرايط:</strong><br>
-                    از آنجا که حراج‌گزار همانطور که در ماده ۴ بدان تاکيد شد، چه کلاً و چه جزئاً مالک آثار ارايه شده در حراج نمي‌باشد، هيچ‌گونه مسئوليت و تعهدي در پرداخت ماليات، عوارض و هر‌گونه کسورات قانوني ديگري که مربوط به نقل و انتقال مالکيت آثار و خريد و فروش آنها بوده ندارد. وظيفه پرداخت هرگونه عوارض قانوني، ماليات و ساير کسورات قانوني بر اساس قوانين و مقررات مربوطه ناشي از خريد يا فروش اثر، بر عهده خريدار و يا فروشنده آن بوده و حراج‌گزار مسئوليتي در این خصوص ندارد.
-                </p>
-                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-4">
-                    <strong>۱۲/۱</strong> به منظور تأمين هزينه‌هاي نگهداري، حمل و نقل و پوشش بيمه‌ آتش سوزی در طول برگزاری مراسم حراج، مالک اثر موظف است مبلغی معادل دو درصد (۲٪) رقم نهايي فروش اثر را بابت حق بيمه و هزينه‌هاي مزبور پرداخت نمايد.
-                </p>
-
-                <!-- بند ۱۳ -->
-                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-4">
-                    <strong>۱۳- حل و فصل اختلافات:</strong><br>
-                    کليه اختلافات ناشي از شرايط عمومي حراج و هرگونه خريد و فروش آثار هنري از اين طريق و دعاوي ناشي از آن و يا راجع به آن از جمله وجود، انعقاد، اعتبار، فسخ، نقض، تفسير يا اجرا آن جهت حل و فصل نهايي به هيات داوري سه نفره به ترتيب ذيل ارجاع و راي داوري صادره قطعي، براي طرفين لازم الاتباع و لازم الاجرا مي باشد.
-                </p>
-                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-4">
-                    <strong>۱۳/۱</strong> در صورت بروز هرگونه اختلاف هر يک از طرفين مي‌تواند با معرفی و ارائه نامه قبولی داور اختصاصی خود که دارای تابعیت ایرانی می باشد از طريق اظهارنامه درخواست ارجاع به داوري را به طرف ديگر اعلام نمايد. طرف مقابل مکلف است ظرف مهلت ده روز داور اختصاصي خود را که داراي تابعيت ايراني مي‌باشد از طريق اظهارنامه به همراه نامه قبولي داور اختصاصي خود معرفي نمايد. دو داور اختصاصي طرفين ظرف مهلت ده روز داور سوم را تعيين مي‌نمايند. در صورت عدم حصول توافق در تعيين داور سوم، داور سوم از طريق دادگاه صالح تعيين مي‌گردد.
-                </p>
-                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-4">
-                    <strong>۱۳/۲</strong> در صورت عدم معرفي داور اختصاصی به همراه نامه قبولي وی در مدت زمان مقرر در ماده ۱۲.۱ ، داور اعلامي از جانب طرف ديگر به عنوان داور مرضي‌الطرفين تلقي شده و به صورت انفرادي و مستقل اقدام به صدور راي مي‌نمايد. (عدم ارائه نامه قبولی داور اختصاصی در مدت مزبور به منزله عدم معرفی داور اختصاصی می باشد)
-                </p>
-                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-4">
-                    <strong>۱۳/۳</strong> هيات داوري ظرف مهلت يک ماه (سي روز) از تاريخ دريافت قبولي داور سوم، موظف به رسيدگي به موضوع اختلاف بوده و مکلف به صدور راي طي مدت مزبور مي‌باشد. در صورتي‌که وفق ماده ۱۲.۲. داور واحد مرضي‌الطرفين موظف به رسيدگي در موضوع اختلاف باشد، زمان شروع داوري از تاريخ انقضاي مهلت ده روزه مقرر در ماده ۱۲.۱ مي‌باشد.
-                </p>
-                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-4">
-                    <strong>۱۳/۴</strong> راي صادره قاطع دعوي و براي طرفين دعوي لازم‌الاتباع مي‌باشد. اجراي راي داوري وفق قانون با دادگاه صالح به رسيدگي به اصل دعوي مي‌باشد.
-                </p>
-                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-4">
-                    <strong>۱۳/۵</strong> هيات داوري يا داور موظف است راي صادره را حداکثر ظرف مهلت ۵ روز از تاريخ اتمام مهلت يک ماه مقرر در ماده ۱۲.۳ از طريق اظهارنامه به طرفين ابلاغ نمايد.
-                </p>
-                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-4">
-                    <strong>۱۳/۶</strong> قانون حاکم بر شرايط عمومي حراج و شرط داوري قوانين کشور جمهوري اسلامي ايران بوده و مقر داوري شهر قم مي‌باشد.
-                </p>
-                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-4">
-                    <strong>۱۳/۷</strong> شرط داوري مندرج در اين ماده شرط مستقلي از قرارداد بوده و ابطال، فسخ، انفساخ و اقاله و انقضاي اين قرارداد تاثيري در آن ندارد.
-                </p>
-
-                <!-- بند ۱۴ و ۱۵ -->
-                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-6">
-                    <strong>۱۴- قانون حاکم:</strong><br>
-                    قانون حاکم بر اين قرارداد قانون و مقررات کشور جمهوري اسلامي ايران مي‌باشد، حتي اگر قرارداد در خارج از خاک ايران تنظيم شده باشد، هر گونه اختلاف يا ادعايي که مرتبط با اين قرارداد باشد، بايد بر اساس قوانين جمهوري اسلامي ايران تفسير و مورد رسيدگي قرار گيرد.
-                </p>
-                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-12">
-                    <strong>۱۵- فورس‌ماژور:</strong><br>
-                    در صورت بروز حوادث غير‌مترقبه و فورس‌ماژور از قبيل، ولي نه محدود به، بلاياي‌طبيعي مانند سيل، زلزله، آتش‌سوزي، اعتصاب، شورش، جنگ، اپيدمي، پاندمي و قرنطينه، تغييرات اقتصادي و يا سياسي غير‌مترقبه، انقلاب، کودتا، اقدامات تروريستي و امثال موارد مذکور اجراي شرايط عمومي حراج، تا زمان برطرف شدن محدوديت‌هاي ناشي از فورس‌ماژور و بازگشت شرايط به حالت عادي به حالت تعليق درخواهد آمد.
-                </p>
-
-                <!-- بخش امضاها -->
-                <div class="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700 flex flex-col md:flex-row justify-between items-end gap-6 print:mt-12">
-                    <div class="space-y-4 w-full md:w-1/2">
-                        <p class="text-gray-700 dark:text-gray-300"><strong>نام و نام خانوادگی:</strong> ........................................</p>
-                        <p class="text-gray-700 dark:text-gray-300"><strong>شماره ملی یا شماره ویزا:</strong> ........................................</p>
-                    </div>
-                    <div class="space-y-4 w-full md:w-1/2 text-right md:text-left">
-                        <p class="text-gray-700 dark:text-gray-300"><strong>تاریخ:</strong> ........................................</p>
-                        <p class="text-gray-700 dark:text-gray-300"><strong>امضاء:</strong> ........................................</p>
-                    </div>
+            <!-- فصل مقدمه و شرایط ثبت‌نام -->
+            <div id="intro" class="scroll-mt-28 bg-white dark:bg-gray-800 rounded-2xl p-6 md:p-8 shadow-sm border border-gray-200/90 dark:border-gray-700/80 hover:border-primary/50 transition-all duration-200 relative overflow-hidden">
+                <div class="flex items-center gap-3 pb-3 mb-4 border-b border-gray-100 dark:border-gray-700/70">
+                    <span class="w-8 h-8 rounded-lg bg-primary/10 text-primary font-bold text-sm flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </span>
+                    <h2 class="text-base md:text-lg font-bold text-gray-900 dark:text-white">مقدمه و شروط کلی مشارکت</h2>
                 </div>
 
+                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-4 text-justify">
+                    کلیه‌ی شروط مندرج در این سند در خصوص شرایط حراج و خرید و فروش آثار هنری و فرم جداگانه‌ی ثبت‌نام شرکت در حراج و همچنین توضیحات مندرج در کاتالوگ‌ها در مجموع به صورت یک کل یکپارچه، شرایط عمومی حراج ماه (که زین پس شرایط عمومی حراج نامیده می‌شود) را تشکیل می‌دهند و حراج ماه بر اساس آن‌ها آثار هنری را ارائه و به فروش می‌رساند. ثبت‌نام شما برای شرکت در حراج به منزله‌ی قبول کلیه‌ی شرایط حراج بوده و از لحظه‌ی ثبت‌نام لازم‌الاجرا می‌باشند. خواهشمند است قبل از ثبت‌نام موارد ذیل را با دقت مطالعه نمایید.
+                </p>
+
+                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-3 text-justify font-semibold">
+                    متقاضیان می‌توانند با ثبت‌نام در سایت حراج آنلاین ماه، در زمان مقرر که اطلاع‌رسانی نیز خواهد شد در حراج شرکت کنند:
+                </p>
+
+                <ul class="list-disc list-inside text-gray-700 dark:text-gray-300 leading-8 space-y-1.5 mb-4 pr-3">
+                    <li>تکمیل و تایید موارد مندرج در فرم ثبت‌نام</li>
+                    <li>احراز هویت و دریافت کد کاربری</li>
+                </ul>
+
+                <p class="text-gray-800 dark:text-gray-200 font-bold text-sm">
+                    بدین‌وسیله حراج‌گزار (حراج ماه)، شرکت‌کنندگان در حراج را از جزئیات حراج به شرح ذیل مطلع می‌نماید:
+                </p>
             </div>
 
-            <!-- Footer/Support area -->
-            <div class="mt-12 text-center print:hidden">
-                <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                    آخرین بروزرسانی: خرداد ۱۴۰۵
+            <!-- بند ۱ -->
+            <div id="rule-1" class="scroll-mt-28 bg-white dark:bg-gray-800 rounded-2xl p-6 md:p-8 shadow-sm border border-gray-200/90 dark:border-gray-700/80 hover:border-primary/50 transition-all duration-200">
+                <div class="flex items-center gap-3 pb-3 mb-4 border-b border-gray-100 dark:border-gray-700/70">
+                    <span class="w-8 h-8 rounded-lg bg-primary/10 text-primary font-bold text-sm flex items-center justify-center flex-shrink-0">۱</span>
+                    <h2 class="text-base md:text-lg font-bold text-gray-900 dark:text-white">انتخاب و ارائه آثار هنری در حراج</h2>
+                </div>
+                <p class="text-gray-700 dark:text-gray-300 leading-8 text-justify">
+                    آثار هنری بر مبنای ارزش کیفی آن‌ها و بر حسب علاقه‌مندی متقاضیان، توسط برگزارکنندگان حراج، انتخاب و بر اساس قیمت پایه‌ی مورد توافق با مالک اثر در حراج ارائه خواهد شد. آثار انتخاب‌شده در نمایشگاهی به مدت ۲ روز در معرض مشاهده‌ی علاقه‌مندان بوده و از ساعت ۹ صبح روز سوم به مدت ۴۸ ساعت از طریق وب‌سایت حراج ماه به مزایده گذاشته خواهد شد.
                 </p>
-                <a href="/about" class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-primary hover:bg-primary/90 transition-colors duration-200">
-                    تماس با پشتیبانی
-                </a>
+            </div>
+
+            <!-- بند ۲ -->
+            <div id="rule-2" class="scroll-mt-28 bg-white dark:bg-gray-800 rounded-2xl p-6 md:p-8 shadow-sm border border-gray-200/90 dark:border-gray-700/80 hover:border-primary/50 transition-all duration-200">
+                <div class="flex items-center gap-3 pb-3 mb-4 border-b border-gray-100 dark:border-gray-700/70">
+                    <span class="w-8 h-8 rounded-lg bg-primary/10 text-primary font-bold text-sm flex items-center justify-center flex-shrink-0">۲</span>
+                    <h2 class="text-base md:text-lg font-bold text-gray-900 dark:text-white">زمان پایان حراج و قاعده تمدید ۶ ساعته</h2>
+                </div>
+                <p class="text-gray-700 dark:text-gray-300 leading-8 text-justify">
+                    حراج در زمان مقرر پایان می‌یابد، مگر اینکه در ۶ ساعت پایانی حراج، پیشنهاد قیمتی جدید برای اثری ثبت شود. در این‌صورت، زمان پایان برای آن اثر به مدت ۶ ساعت از زمان ثبت آخرین پیشنهاد تمدید می‌شود. این روند هر بار که پیشنهاد جدیدی در ۶ ساعت پایانی ثبت شود، دوباره تکرار خواهد شد. بنابراین، حراج زمانی پایان‌یافته محسوب می‌شود که ۶ ساعت از آخرین پیشنهاد قیمت گذشته باشد و در این مدت پیشنهاد جدیدی ثبت نشود.
+                </p>
+            </div>
+
+            <!-- بند ۳ -->
+            <div id="rule-3" class="scroll-mt-28 bg-white dark:bg-gray-800 rounded-2xl p-6 md:p-8 shadow-sm border border-gray-200/90 dark:border-gray-700/80 hover:border-primary/50 transition-all duration-200">
+                <div class="flex items-center gap-3 pb-3 mb-4 border-b border-gray-100 dark:border-gray-700/70">
+                    <span class="w-8 h-8 rounded-lg bg-primary/10 text-primary font-bold text-sm flex items-center justify-center flex-shrink-0">۳</span>
+                    <h2 class="text-base md:text-lg font-bold text-gray-900 dark:text-white">اسقاط کافه خیارات قانونی</h2>
+                </div>
+                <p class="text-gray-700 dark:text-gray-300 leading-8 text-justify">
+                    خریدار کلیه‌ی خیارات قانونی و مربوط به معاملات از جمله خیار غبن فاحش و افحش ولو به اعلا درجه را از خود سلب و ساقط نمود و قرارداد بیع لازم‌الاجرا است.
+                </p>
+            </div>
+
+            <!-- بند ۴ -->
+            <div id="rule-4" class="scroll-mt-28 bg-white dark:bg-gray-800 rounded-2xl p-6 md:p-8 shadow-sm border border-gray-200/90 dark:border-gray-700/80 hover:border-primary/50 transition-all duration-200">
+                <div class="flex items-center gap-3 pb-3 mb-4 border-b border-gray-100 dark:border-gray-700/70">
+                    <span class="w-8 h-8 rounded-lg bg-primary/10 text-primary font-bold text-sm flex items-center justify-center flex-shrink-0">۴</span>
+                    <h2 class="text-base md:text-lg font-bold text-gray-900 dark:text-white">اهلیت متقاضیان و عدم محدودیت خرید</h2>
+                </div>
+                <p class="text-gray-700 dark:text-gray-300 leading-8 text-justify">
+                    تنها متقاضیانی که پیشاپیش طبق شرایط عمومی حراج در وب‌سایت رسمی حراج ثبت‌نام نموده و احراز هویت شده‌اند مجاز به شرکت در حراج می‌باشند. برای خرید آثار از نظر تعداد محدودیتی وجود ندارد.
+                </p>
+            </div>
+
+            <!-- بند ۵ -->
+            <div id="rule-5" class="scroll-mt-28 bg-white dark:bg-gray-800 rounded-2xl p-6 md:p-8 shadow-sm border border-gray-200/90 dark:border-gray-700/80 hover:border-primary/50 transition-all duration-200">
+                <div class="flex items-center gap-3 pb-3 mb-4 border-b border-gray-100 dark:border-gray-700/70">
+                    <span class="w-8 h-8 rounded-lg bg-primary/10 text-primary font-bold text-sm flex items-center justify-center flex-shrink-0">۵</span>
+                    <h2 class="text-base md:text-lg font-bold text-gray-900 dark:text-white">نمایندگی حراج‌گزار و حدود اختیارات</h2>
+                </div>
+                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-4 text-justify">
+                    حراج‌گزار، مالک اثر نبوده و صرفاً به نمایندگی از طرف مالک اثر، برای فروش آن اقدام می‌نماید و هیچ‌گونه انتقال مالکیتی در خصوص اثر به حراج‌گزار صورت نمی‌پذیرد.
+                </p>
+
+                <div class="p-4 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/70 dark:border-gray-700">
+                    <p class="text-gray-700 dark:text-gray-300 leading-8 text-justify">
+                        <strong class="text-primary font-bold">۵.۱ - </strong>
+                        حق‌الزحمه (حق‌العمل) حراج‌گزار صرفاً بابت آماده‌سازی شرایط حراج و برگزاری نمایشگاه آن و فراهم نمودن تسهیلات اجرای این معامله است. حراج‌گزار هیچ‌گونه مالکیتی و یا حقوق مالکانه‌ی دیگری چه جزئی و چه کلی، در آثار ارائه شده برای فروش در حراج ندارد. مالک اثر سابقاً کلیه‌ی اختیارات لازم جهت اجرا و تحقق مفاد شرایط عمومی حراج آنلاین ماه را به حراج‌گزار اعطا نموده است و خریدار در این خصوص عالم بوده و حق هیچ‌گونه اعتراضی را ندارد و نخواهد داشت.
+                    </p>
+                </div>
+            </div>
+
+            <!-- بند ۶ -->
+            <div id="rule-6" class="scroll-mt-28 bg-white dark:bg-gray-800 rounded-2xl p-6 md:p-8 shadow-sm border border-gray-200/90 dark:border-gray-700/80 hover:border-primary/50 transition-all duration-200">
+                <div class="flex items-center gap-3 pb-3 mb-4 border-b border-gray-100 dark:border-gray-700/70">
+                    <span class="w-8 h-8 rounded-lg bg-primary/10 text-primary font-bold text-sm flex items-center justify-center flex-shrink-0">۶</span>
+                    <h2 class="text-base md:text-lg font-bold text-gray-900 dark:text-white">اصالت اثر</h2>
+                </div>
+                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-3 text-justify">
+                    با توجه به آنکه آثار ارائه شده در حراج به مدت دو روز جهت رؤیت متقاضیان در معرض بازدید عموم قرار می‌گیرد، متقاضیان این امکان را جهت بررسی‌های کارشناسی متعارف از جانب کارشناسان منتخب خود در مدت مزبور دارا می‌باشند.
+                </p>
+                <p class="text-gray-700 dark:text-gray-300 leading-8 text-justify">
+                    چنانچه در هر یک از مراحل برگزاری حراج تا پیش از فروش اثر، حراج‌گزار نسبت به اصالت اثر، مالکیت اثر، سایر اطلاعات اعلام شده از سوی مالک اثر و یا هر دلیل دیگری تردید و یا شبهه‌ای پیدا کند می‌تواند اثر را بی‌ هیچ قید و شرطی از حراج خارج نماید.
+                </p>
+            </div>
+
+            <!-- بند ۷ -->
+            <div id="rule-7" class="scroll-mt-28 bg-white dark:bg-gray-800 rounded-2xl p-6 md:p-8 shadow-sm border border-primary/40 dark:border-primary/30 hover:border-primary transition-all duration-200">
+                <div class="flex items-center gap-3 pb-3 mb-4 border-b border-gray-100 dark:border-gray-700/70">
+                    <span class="w-8 h-8 rounded-lg bg-primary text-white font-bold text-sm flex items-center justify-center flex-shrink-0">۷</span>
+                    <h2 class="text-base md:text-lg font-bold text-gray-900 dark:text-white">روش شرکت در حراج</h2>
+                </div>
+                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-3 text-justify">
+                    شرکت در مراسم حراج فقط به صورت آنلاین و از طریق وب‌سایت رسمی حراج ماه، بعد از ثبت‌نام متقاضی شرکت در حراج و احراز هویت امکان‌پذیر است.
+                </p>
+                <p class="text-gray-800 dark:text-gray-200 font-semibold leading-8 mb-3 text-justify">
+                    برای هر اثر برآورد کمینه‌ای مشخص می‌شود که مزایده از آن شروع و با هر بار درخواست، قیمت به ترتیب زیر افزایش پیدا خواهد کرد:
+                </p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                    <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/80 dark:border-gray-700 text-sm flex items-center justify-between">
+                        <span class="font-medium text-gray-700 dark:text-gray-300">الف) تا مبلغ ۵۰ میلیون تومان</span>
+                        <span class="font-bold text-primary">هر بار ۵ میلیون تومان افزایش</span>
+                    </div>
+                    <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/80 dark:border-gray-700 text-sm flex items-center justify-between">
+                        <span class="font-medium text-gray-700 dark:text-gray-300">ب) از مبلغ ۵۰ تا ۲۰۰ میلیون تومان</span>
+                        <span class="font-bold text-primary">هر بار ۱۰ میلیون تومان افزایش</span>
+                    </div>
+                    <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/80 dark:border-gray-700 text-sm flex items-center justify-between">
+                        <span class="font-medium text-gray-700 dark:text-gray-300">پ) از مبلغ ۲۰۰ تا ۵۰۰ میلیون تومان</span>
+                        <span class="font-bold text-primary">هر بار ۲۰ میلیون تومان افزایش</span>
+                    </div>
+                    <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/80 dark:border-gray-700 text-sm flex items-center justify-between">
+                        <span class="font-medium text-gray-700 dark:text-gray-300">ت) از مبلغ ۵۰۰ تا ۱ میلیارد تومان</span>
+                        <span class="font-bold text-primary">هر بار ۵۰ میلیون تومان افزایش</span>
+                    </div>
+                    <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/80 dark:border-gray-700 text-sm flex items-center justify-between">
+                        <span class="font-medium text-gray-700 dark:text-gray-300">ث) از مبلغ ۱ تا ۴ میلیارد تومان</span>
+                        <span class="font-bold text-primary">هر بار ۱۰۰ میلیون تومان افزایش</span>
+                    </div>
+                    <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/80 dark:border-gray-700 text-sm flex items-center justify-between">
+                        <span class="font-medium text-gray-700 dark:text-gray-300">ح) از مبلغ ۴ میلیارد تومان به بالا</span>
+                        <span class="font-bold text-primary">هر بار ۲۰۰ میلیون تومان افزایش</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- بند ۸ -->
+            <div id="rule-8" class="scroll-mt-28 bg-white dark:bg-gray-800 rounded-2xl p-6 md:p-8 shadow-sm border border-gray-200/90 dark:border-gray-700/80 hover:border-primary/50 transition-all duration-200">
+                <div class="flex items-center gap-3 pb-3 mb-4 border-b border-gray-100 dark:border-gray-700/70">
+                    <span class="w-8 h-8 rounded-lg bg-primary/10 text-primary font-bold text-sm flex items-center justify-center flex-shrink-0">۸</span>
+                    <h2 class="text-base md:text-lg font-bold text-gray-900 dark:text-white">نحوه پرداخت و ضمانت اجرای عدم پرداخت</h2>
+                </div>
+
+                <div class="space-y-3.5">
+                    <div class="p-4 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/70 dark:border-gray-700">
+                        <p class="text-gray-700 dark:text-gray-300 leading-8 text-justify">
+                            <strong class="text-primary font-bold">۸.۱ - </strong>
+                            خریدار مکلف است مبلغی معادل ده درصد (۱۰٪) از مبلغ ثمن اثر خریداری‌شده را به عنوان حق‌الزحمه (حق‌العمل) حراج‌گزار در مدت مقرر به حراج‌گزار پرداخت نماید. در صورت تاخیر می‌بایست علاوه بر پرداخت اصل مبلغ مذکور، روزانه مبلغی معادل یک درصد (۱٪) از مبلغ ثمن اثر خریداری‌شده را به عنوان وجه التزام به حراج‌گزار پرداخت نماید.
+                        </p>
+                    </div>
+
+                    <div class="p-4 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/70 dark:border-gray-700">
+                        <p class="text-gray-700 dark:text-gray-300 leading-8 text-justify">
+                            <strong class="text-primary font-bold">۸.۲ - </strong>
+                            خریدار موظف است کل مبلغ ثمن اثر خریداری‌شده (رقم چکش‌خورده‌ی نهایی) به علاوه‌ی حق‌الزحمه (حق‌العمل) حراج‌گزار را حداکثر ظرف مدت پنج روز پس از اتمام حراج و خرید اثر به حراج‌گزار، که نماینده‌ی مالک اثر می‌باشد، پرداخت کند.<br>
+                            آثار خریداری‌شده پس از دریافت کل مبلغ ثمن اثر خریداری‌شده به علاوه‌ی حق‌الزحمه (حق‌العمل) حراج‌گزار و وجه التزام مذکور در بند ۸.۱، در ایران در محل دفتر حراج ماه تحویل خواهد شد.
+                        </p>
+                    </div>
+
+                    <div class="p-4 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/70 dark:border-gray-700">
+                        <p class="text-gray-700 dark:text-gray-300 leading-8 text-justify">
+                            <strong class="text-primary font-bold">۸.۳ - </strong>
+                            در صورتی که خریدار ظرف مهلت مذکور در بند ۸.۲ اقدام به پرداخت کامل مبلغ ثمن اثر خریداری‌شده (رقم چکش‌خورده‌ی نهایی) و حق‌الزحمه (حق‌العمل) حراج‌گزار ننماید، حراج‌گزار می‌تواند ظرف مدت پانزده روز از تاریخ پایان مهلت تعیین‌شده در بند ۸.۲، صرفاً از طریق اعلام کتبی به نشانی و یا شماره‌ی همراه و یا آدرس ایمیل‌های اعلامی از جانب خریدار در فرم ثبت‌نام، بیع را به صورت یک‌جانبه فسخ نماید. بدیهی است در این صورت حراج‌گزار هیچ‌گونه تعهدی نسبت به تحویل اثر به خریدار ندارد و در صورت دریافت اثر توسط خریدار وی موظف به استرداد آن به حراج‌گزار خواهد بود. در صورت اعمال حق فسخ مندرج در این بند، به عنوان توافقی مستقل از قرارداد، خریدار موظف است حق‌الزحمه (حق‌العمل) حراج‌گزار یعنی مبلغی معادل ده درصد (۱۰٪) از مبلغ ثمن اثر (رقم چکش‌خورده‌ی نهایی) را به حراج‌گزار پرداخت نماید. عدم اعمال حق فسخ مزبور از جانب حراج‌گزار، رافع مسئولیت خریدار به پرداخت وجه التزام مقرر در بند ۸.۱ نمی‌باشد.
+                        </p>
+                    </div>
+
+                    <div class="p-4 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/70 dark:border-gray-700">
+                        <p class="text-gray-700 dark:text-gray-300 leading-8 text-justify">
+                            <strong class="text-primary font-bold">۸.۴ - </strong>
+                            خریدار تا زمان پرداخت کامل مبلغ ثمن اثر خریداری‌شده (رقم چکش‌خورده‌ی نهایی) به علاوه‌ی حق‌الزحمه (حق‌العمل) حراج‌گزار و وجه التزام مقرر در بند ۸.۱، حق انتقال اثر را به غیر ندارد و در صورت عمل بر خلاف این بند، انتقال انجام‌شده به غیر، باطل می‌باشد.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- بند ۹ -->
+            <div id="rule-9" class="scroll-mt-28 bg-white dark:bg-gray-800 rounded-2xl p-6 md:p-8 shadow-sm border border-gray-200/90 dark:border-gray-700/80 hover:border-primary/50 transition-all duration-200">
+                <div class="flex items-center gap-3 pb-3 mb-4 border-b border-gray-100 dark:border-gray-700/70">
+                    <span class="w-8 h-8 rounded-lg bg-primary/10 text-primary font-bold text-sm flex items-center justify-center flex-shrink-0">۹</span>
+                    <h2 class="text-base md:text-lg font-bold text-gray-900 dark:text-white">حق‌العمل (حراج‌گزار)</h2>
+                </div>
+                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-4 text-justify">
+                    مالک اثر نیز بابت هزینه‌ی معرفی و فروش اثر و برگزاری مراسم حراج، موظف به پرداخت حق‌الزحمه (حق‌العمل) حراج‌گزار به شرح زیر است که این مبلغ از درآمد فروش اثر کسر و مابقی به مالک اثر پرداخت خواهد شد:
+                </p>
+                <div class="space-y-2">
+                    <div class="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/80 dark:border-gray-700 flex items-center justify-between text-sm">
+                        <span class="text-gray-700 dark:text-gray-300 font-medium">الف) برای فروش تا مبلغ ۱,۰۰۰,۰۰۰,۰۰۰ ریال</span>
+                        <span class="font-bold text-primary">مبلغی معادل ۱۵ درصد رقم چکش‌خورده‌ی نهایی</span>
+                    </div>
+                    <div class="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/80 dark:border-gray-700 flex items-center justify-between text-sm">
+                        <span class="text-gray-700 dark:text-gray-300 font-medium">ب) برای فروش بیش از ۱,۰۰۰,۰۰۰,۰۰۰ ریال تا مبلغ ۵,۰۰۰,۰۰۰,۰۰۰ ریال</span>
+                        <span class="font-bold text-primary">مبلغی معادل ۱۲ درصد رقم چکش‌خورده‌ی نهایی</span>
+                    </div>
+                    <div class="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/80 dark:border-gray-700 flex items-center justify-between text-sm">
+                        <span class="text-gray-700 dark:text-gray-300 font-medium">ج) برای فروش بیش از ۵,۰۰۰,۰۰۰,۰۰۰ ریال</span>
+                        <span class="font-bold text-primary">مبلغی معادل ۱۰ درصد رقم چکش‌خورده‌ی نهایی</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- بند ۱۰ -->
+            <div id="rule-10" class="scroll-mt-28 bg-white dark:bg-gray-800 rounded-2xl p-6 md:p-8 shadow-sm border border-gray-200/90 dark:border-gray-700/80 hover:border-primary/50 transition-all duration-200">
+                <div class="flex items-center gap-3 pb-3 mb-4 border-b border-gray-100 dark:border-gray-700/70">
+                    <span class="w-8 h-8 rounded-lg bg-primary/10 text-primary font-bold text-sm flex items-center justify-center flex-shrink-0">۱۰</span>
+                    <h2 class="text-base md:text-lg font-bold text-gray-900 dark:text-white">محرمانگی</h2>
+                </div>
+                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-3 text-justify">
+                    کلیه‌ی اطلاعات شخصی و اطلاعات بانکی اشخاص شرکت‌کننده در حراج، در صورتی که از جانب آن‌ها به صورت کتبی در زمان ثبت‌نام درخواست شود، به صورت محرمانه نزد حراج‌گزار حفظ و نگهداری خواهد شد و به هیچ عنوان در معرض اطلاع عموم و یا در دسترس اشخاص ثالث قرار نخواهد گرفت مگر:
+                </p>
+                <ul class="list-none space-y-2 mb-4 pr-3 text-sm">
+                    <li class="p-3 rounded-xl bg-gray-50 dark:bg-gray-750 border border-gray-200/70 dark:border-gray-700 text-gray-700 dark:text-gray-300 leading-7">
+                        <strong>الف)</strong> به دستور مقام قضایی که در آن‌صورت حراج‌گزار موظف خواهد بود که اطلاعات مزبور را در حد موضوع دستور در اختیار مقامات مربوطه قرار دهد.
+                    </li>
+                    <li class="p-3 rounded-xl bg-gray-50 dark:bg-gray-750 border border-gray-200/70 dark:border-gray-700 text-gray-700 dark:text-gray-300 leading-7">
+                        <strong>ب)</strong> هر یک از خریداران یا فروشندگان که جهت پیگیری قانونی و مطالبه‌ی حقوق خود طبق شرایط عمومی حراج به این اطلاعات نیاز داشته باشند.
+                    </li>
+                </ul>
+                <div class="p-4 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/70 dark:border-gray-700">
+                    <p class="text-gray-700 dark:text-gray-300 leading-8 text-justify">
+                        <strong class="text-primary font-bold">۱۰.۱ - </strong>
+                        حراج‌گزار مختار است در خصوص قیمت نهایی آثار به فروش‌رفته و همچنین نام خریدار و یا فروشنده‌ی اثر جهت تبلیغات و یا هر منظور دیگری اطلاع‌رسانی نماید، مگر آنکه خریدار یا فروشنده‌ی اثر کتباً حراج‌گزار را از این امر منع نمایند.<br>
+                        لازم به ذکر است در صورتی که اطلاعات مندرج در این ماده از هر طریق دیگری به جز از طرف حراج‌گزار (برای مثال از طریق سایر شرکت‌کنندگان در حراج) نشر پیدا کند، طبیعتاً حراج‌گزار مسئول نخواهد بود.
+                    </p>
+                </div>
+            </div>
+
+            <!-- بند ۱۱ -->
+            <div id="rule-11" class="scroll-mt-28 bg-white dark:bg-gray-800 rounded-2xl p-6 md:p-8 shadow-sm border border-gray-200/90 dark:border-gray-700/80 hover:border-primary/50 transition-all duration-200">
+                <div class="flex items-center gap-3 pb-3 mb-4 border-b border-gray-100 dark:border-gray-700/70">
+                    <span class="w-8 h-8 rounded-lg bg-primary/10 text-primary font-bold text-sm flex items-center justify-center flex-shrink-0">۱۱</span>
+                    <h2 class="text-base md:text-lg font-bold text-gray-900 dark:text-white">سایر شرایط</h2>
+                </div>
+                <p class="text-gray-700 dark:text-gray-300 leading-8 text-justify">
+                    از آنجا که حراج‌گزار همان‌طور که در ماده‌ی ۵.۱ بدان تاکید شد، چه کلاً و چه جزئاً مالک آثار ارائه شده در حراج نمی‌باشد، هیچ‌گونه مسئولیت و تعهدی در پرداخت مالیات، عوارض و هرگونه کسورات قانونی دیگری که مربوط به نقل و انتقال مالکیت آثار و خرید و فروش آن‌ها بوده ندارد. وظیفه‌ی پرداخت هرگونه عوارض قانونی، مالیات و سایر کسورات قانونی بر اساس قوانین و مقررات مربوطه ناشی از خرید یا فروش اثر، بر عهده‌ی خریدار و یا فروشنده‌ی آن بوده و حراج‌گزار مسئولیتی در این خصوص ندارد.
+                </p>
+            </div>
+
+            <!-- بند ۱۲ -->
+            <div id="rule-12" class="scroll-mt-28 bg-white dark:bg-gray-800 rounded-2xl p-6 md:p-8 shadow-sm border border-gray-200/90 dark:border-gray-700/80 hover:border-primary/50 transition-all duration-200">
+                <div class="flex items-center gap-3 pb-3 mb-4 border-b border-gray-100 dark:border-gray-700/70">
+                    <span class="w-8 h-8 rounded-lg bg-primary/10 text-primary font-bold text-sm flex items-center justify-center flex-shrink-0">۱۲</span>
+                    <h2 class="text-base md:text-lg font-bold text-gray-900 dark:text-white">حل و فصل اختلافات</h2>
+                </div>
+                <p class="text-gray-700 dark:text-gray-300 leading-8 mb-4 text-justify">
+                    کلیه‌ی اختلافات ناشی از شرایط عمومی حراج و هرگونه خرید و فروش آثار هنری از این طریق و دعاوی ناشی از آن و یا راجع به آن از جمله وجود، انعقاد، اعتبار، فسخ، نقض، تفسیر یا اجرای آن جهت حل و فصل نهایی به هیئت داوری سه نفره به ترتیب ذیل ارجاع و رای داوری صادره قطعی، برای طرفین لازم‌الاتباع و لازم‌الاجرا می‌باشد:
+                </p>
+
+                <div class="space-y-3">
+                    <div class="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/70 dark:border-gray-700">
+                        <p class="text-gray-700 dark:text-gray-300 leading-8 text-justify">
+                            <strong class="text-primary font-bold">۱۲.۱ - </strong>
+                            در صورت بروز هرگونه اختلاف هر یک از طرفین می‌تواند با معرفی و ارائه‌ی نامه‌ی قبولی داور اختصاصی خود که دارای تابعیت ایرانی می‌باشد از طریق اظهارنامه درخواست ارجاع به داوری را به طرف دیگر اعلام نماید. طرف مقابل مکلف است ظرف مهلت ده روز داور اختصاصی خود را که دارای تابعیت ایرانی می‌باشد از طریق اظهارنامه به همراه نامه‌ی قبولی داور اختصاصی خود معرفی نماید. دو داور اختصاصی طرفین ظرف مهلت ده روز داور سوم را تعیین می‌نمایند. در صورت عدم حصول توافق در تعیین داور سوم، داور سوم از طریق دادگاه صالح تعیین می‌گردد.
+                        </p>
+                    </div>
+
+                    <div class="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/70 dark:border-gray-700">
+                        <p class="text-gray-700 dark:text-gray-300 leading-8 text-justify">
+                            <strong class="text-primary font-bold">۱۲.۲ - </strong>
+                            در صورت عدم معرفی داور اختصاصی به همراه نامه‌ی قبولی وی در مدت زمان مقرر در ماده‌ی ۱۲.۱، داور اعلامی از جانب طرف دیگر به عنوان داور مرضی‌الطرفین تلقی شده و به صورت انفرادی و مستقل اقدام به صدور رای می‌نماید. (عدم ارائه‌ی نامه‌ی قبولی داور اختصاصی در مدت مزبور به منزله‌ی عدم معرفی داور اختصاصی می‌باشد.)
+                        </p>
+                    </div>
+
+                    <div class="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/70 dark:border-gray-700">
+                        <p class="text-gray-700 dark:text-gray-300 leading-8 text-justify">
+                            <strong class="text-primary font-bold">۱۲.۳ - </strong>
+                            هیئت داوری ظرف مهلت یک ماه (سی روز) از تاریخ دریافت قبولی داور سوم، موظف به رسیدگی به موضوع اختلاف بوده و مکلف به صدور رای طی مدت مزبور می‌باشد. در صورتی‌که وفق ماده‌ی ۱۲.۲ داور واحد مرضی‌الطرفین موظف به رسیدگی در موضوع اختلاف باشد، زمان شروع داوری از تاریخ انقضای مهلت ده روزه‌ی مقرر در ماده‌ی ۱۲.۱ می‌باشد.
+                        </p>
+                    </div>
+
+                    <div class="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/70 dark:border-gray-700">
+                        <p class="text-gray-700 dark:text-gray-300 leading-8 text-justify">
+                            <strong class="text-primary font-bold">۱۲.۴ - </strong>
+                            رای صادره قاطع دعوی و برای طرفین دعوی لازم‌الاتباع می‌باشد. اجرای رای داوری وفق قانون با دادگاه صالح به رسیدگی به اصل دعوی می‌باشد.
+                        </p>
+                    </div>
+
+                    <div class="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/70 dark:border-gray-700">
+                        <p class="text-gray-700 dark:text-gray-300 leading-8 text-justify">
+                            <strong class="text-primary font-bold">۱۲.۵ - </strong>
+                            هیئت داوری یا داور موظف است رای صادره را حداکثر ظرف مهلت ۵ روز از تاریخ اتمام مهلت یک ماه مقرر در ماده‌ی ۱۲.۳ از طریق اظهارنامه به طرفین ابلاغ نماید.
+                        </p>
+                    </div>
+
+                    <div class="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/70 dark:border-gray-700">
+                        <p class="text-gray-700 dark:text-gray-300 leading-8 text-justify">
+                            <strong class="text-primary font-bold">۱۲.۶ - </strong>
+                            قانون حاکم بر شرایط عمومی حراج و شرط داوری قوانین کشور جمهوری اسلامی ایران بوده و مقر داوری شهر قم می‌باشد.
+                        </p>
+                    </div>
+
+                    <div class="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/70 dark:border-gray-700">
+                        <p class="text-gray-700 dark:text-gray-300 leading-8 text-justify">
+                            <strong class="text-primary font-bold">۱۲.۷ - </strong>
+                            شرط داوری مندرج در این ماده شرط مستقلی از قرارداد بوده و ابطال، فسخ، انفساخ، اقاله و انقضای این قرارداد تاثیری در آن ندارد.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- بند ۱۳ -->
+            <div id="rule-13" class="scroll-mt-28 bg-white dark:bg-gray-800 rounded-2xl p-6 md:p-8 shadow-sm border border-gray-200/90 dark:border-gray-700/80 hover:border-primary/50 transition-all duration-200">
+                <div class="flex items-center gap-3 pb-3 mb-4 border-b border-gray-100 dark:border-gray-700/70">
+                    <span class="w-8 h-8 rounded-lg bg-primary/10 text-primary font-bold text-sm flex items-center justify-center flex-shrink-0">۱۳</span>
+                    <h2 class="text-base md:text-lg font-bold text-gray-900 dark:text-white">قانون حاکم</h2>
+                </div>
+                <p class="text-gray-700 dark:text-gray-300 leading-8 text-justify">
+                    قانون حاکم بر این قرارداد، قانون و مقررات کشور جمهوری اسلامی ایران می‌باشد؛ حتی اگر قرارداد در خارج از خاک ایران تنظیم شده باشد، هرگونه اختلاف یا ادعایی که مرتبط با این قرارداد باشد، باید بر اساس قوانین جمهوری اسلامی ایران تفسیر و مورد رسیدگی قرار گیرد.
+                </p>
+            </div>
+
+            <!-- بند ۱۴ -->
+            <div id="rule-14" class="scroll-mt-28 bg-white dark:bg-gray-800 rounded-2xl p-6 md:p-8 shadow-sm border border-gray-200/90 dark:border-gray-700/80 hover:border-primary/50 transition-all duration-200">
+                <div class="flex items-center gap-3 pb-3 mb-4 border-b border-gray-100 dark:border-gray-700/70">
+                    <span class="w-8 h-8 rounded-lg bg-primary/10 text-primary font-bold text-sm flex items-center justify-center flex-shrink-0">۱۴</span>
+                    <h2 class="text-base md:text-lg font-bold text-gray-900 dark:text-white">فورس‌ماژور</h2>
+                </div>
+                <p class="text-gray-700 dark:text-gray-300 leading-8 text-justify">
+                    در صورت بروز حوادث غیرمترقبه و فورس‌ماژور از قبیل — ولی نه محدود به — بلایای طبیعی مانند سیل، زلزله، آتش‌سوزی، اعتصاب، شورش، جنگ، اپیدمی، پاندمی و قرنطینه، تغییرات اقتصادی و یا سیاسی غیرمترقبه، انقلاب، کودتا، اقدامات تروریستی، قطعی یا اختلال گسترده و یا سراسری اینترنت و امثال موارد مذکور، اجرای شرایط عمومی حراج تا زمان برطرف‌شدن محدودیت‌های ناشی از فورس‌ماژور و بازگشت شرایط به حالت عادی به حالت تعلیق درخواهد آمد.
+                </p>
             </div>
 
         </div>
+
+        <!-- فوتر و دکمه پشتیبانی -->
+        <div class="mt-10 text-center print:hidden">
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                آخرین بروزرسانی: خرداد ۱۴۰۵ • نسخه رسمی حراج ماه
+            </p>
+            <a href="/about" class="inline-flex items-center justify-center px-6 py-2.5 border border-transparent text-sm font-medium rounded-xl text-white bg-primary hover:bg-primary-dark transition-colors duration-200 shadow-sm">
+                تماس با پشتیبانی
+            </a>
+        </div>
+
     </div>
 </div>
 
@@ -216,12 +398,13 @@
     document.addEventListener("DOMContentLoaded", function () {
         const progressBar = document.getElementById("progress-bar");
 
-        // اسکرول بار پیشرفت
         window.addEventListener("scroll", () => {
             const scrollTop = window.scrollY;
             const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-            const scrollPercent = (scrollTop / docHeight) * 100;
-            progressBar.style.width = scrollPercent + "%";
+            const scrollPercent = (scrollTop / (docHeight || 1)) * 100;
+            if (progressBar) {
+                progressBar.style.width = scrollPercent + "%";
+            }
         });
     });
 </script>
