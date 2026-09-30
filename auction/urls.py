@@ -16,6 +16,7 @@ urlpatterns = [
     
     # مسیر جدید اضافه شده برای ثبت درخواست افزایش اعتبار از طریق پنجره پاپ‌آپ (AJAX)
     path('ajax/request-credit-increase/', views.submit_credit_increase_ajax, name='submit_credit_increase_ajax'),
+    path('ajax/<int:pk>/user-stories/', views.get_user_auction_stories_ajax, name='user_stories_ajax'),
     
     # فاکتورهای مزایده
     path('invoices/<int:pk>/pdf/', views.download_invoice_pdf, name='invoice_pdf'),

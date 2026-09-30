@@ -10,16 +10,21 @@
              id="menu-overlay"
              onclick="closeMenu()"></div>
 
-        <main class="flex-grow w-full max-w-[1300px] mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <main class="flex-grow w-full max-w-[1300px] mx-auto px-4 sm:px-6 lg:px-8 py-10 {% if auction %}xl:pr-44{% endif %}">
             <div class="mb-10 text-center max-w-3xl mx-auto space-y-4 animate-fadeIn" style="animation-delay: 0.1s;">
                 <h2 class="text-3xl md:text-5xl font-bold leading-tight tracking-tight text-text-main dark:text-white font-display">
-                    {% if auction %}محصولات مزایده{% else %}مزایده{% endif %}
+                    {% if auction %}{{ auction.name|default:auction }}{% else %}مزایده{% endif %}
                 </h2>
-                <p class="text-text-muted dark:text-neutral-400 text-lg md:text-xl font-medium leading-relaxed font-body">
-                    {% if auction %}{{ auction.name|default:auction }}{% else %}فرصتی بی‌نظیر برای سرمایه‌گذاری در هنر. آثار نفیس از هنرمندان معاصر و کلاسیک در مزایده آنلاین.{% endif %}
-                </p>
+                {% if not auction %}
+                    <p class="text-text-muted dark:text-neutral-400 text-lg md:text-xl font-medium leading-relaxed font-body">
+                        فرصتی بی‌نظیر برای سرمایه‌گذاری در هنر. آثار نفیس از هنرمندان معاصر و کلاسیک در مزایده آنلاین.
+                    </p>
+                {% endif %}
                 <div class="w-16 h-0.5 bg-primary mx-auto mt-8 opacity-80"></div>
             </div>
+
+            <!-- بخش استوری‌های اینستاگرامی سبد خرید مزایده کاربر -->
+            {% include 'auction/partials/auction_user_stories.html' %}
 
             <div class="mb-12 flex flex-col lg:flex-row items-center justify-between gap-6 pb-6 border-b border-neutral-200 dark:border-zinc-800"></div>
 
@@ -32,43 +37,50 @@
                      data-extended-count="{{ auction.get_active_extended_products_count }}"></div>
                 <div id="credit-request-status" class="hidden" data-status="{{ latest_credit_request_status }}"></div>
                 
-                <div class="mb-10 flex flex-col items-center animate-fadeIn" style="animation-delay: 0.2s; min-height: 120px;">
-                    <!-- لیبل تایمر -->
-                    <div id="timer-label" class="text-xs sm:text-sm font-bold uppercase tracking-widest mb-4 flex items-center justify-center gap-2 text-primary transition-all duration-300">
-                        <span class="material-symbols-outlined text-[20px]">pending</span>
-                        در حال محاسبه وضعیت...
-                    </div>
-                    
-                    <!-- کانتینر شمارش معکوس -->
-                    <div id="auction-main-countdown" class="flex items-center gap-2 justify-center transition-all duration-500">
-                        <div class="flex flex-col items-center justify-center min-w-[3.2rem] h-14 bg-white dark:bg-zinc-800 rounded-lg border border-neutral-200 dark:border-zinc-700 shadow-sm transition-colors duration-300 timer-box">
-                            <span id="main-secs" class="tabular-nums text-2xl font-en font-black text-neutral-900 dark:text-white">۰۰</span>
-                            <span class="text-[10px] font-bold text-neutral-400">ثانیه</span>
+                <div class="mb-10 animate-fadeIn lg:mb-0 lg:fixed lg:top-1/2 lg:right-4 xl:right-8 lg:z-40 lg:-translate-y-1/2" style="animation-delay: 0.2s;">
+                    <div class="mx-auto w-full max-w-[21rem] rounded-[2rem] border border-neutral-200/80 bg-white/92 p-4 shadow-[0_20px_60px_rgba(15,23,42,0.10)] backdrop-blur-xl dark:border-zinc-700/80 dark:bg-zinc-900/88 lg:w-[11.5rem] lg:max-w-none">
+                        <div class="mb-3 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="h-2.5 w-2.5 rounded-full bg-primary shadow-[0_0_16px_rgba(171,140,88,0.55)]"></span>
+                                <span class="text-[11px] font-bold tracking-[0.18em] text-neutral-400 dark:text-neutral-500">AUCTION</span>
+                            </div>
+                            <span class="rounded-full bg-neutral-100 px-2.5 py-1 text-[10px] font-bold text-neutral-500 dark:bg-zinc-800 dark:text-neutral-300">LIVE</span>
                         </div>
-                        <span class="text-xl text-neutral-300 font-bold pb-4">:</span>
-                        <div class="flex flex-col items-center justify-center min-w-[3.2rem] h-14 bg-white dark:bg-zinc-800 rounded-lg border border-neutral-200 dark:border-zinc-700 shadow-sm transition-colors duration-300 timer-box">
-                            <span id="main-mins" class="tabular-nums text-2xl font-en font-black text-neutral-900 dark:text-white">۰۰</span>
-                            <span class="text-[10px] font-bold text-neutral-400">دقیقه</span>
-                        </div>
-                        <span class="text-xl text-neutral-300 font-bold pb-4">:</span>
-                        <div class="flex flex-col items-center justify-center min-w-[3.2rem] h-14 bg-white dark:bg-zinc-800 rounded-lg border border-neutral-200 dark:border-zinc-700 shadow-sm transition-colors duration-300 timer-box">
-                            <span id="main-hours" class="tabular-nums text-2xl font-en font-black text-neutral-900 dark:text-white">۰۰</span>
-                            <span class="text-[10px] font-bold text-neutral-400">ساعت</span>
-                        </div>
-                        <span class="text-xl text-neutral-300 font-bold pb-4">:</span>
-                        <div class="flex flex-col items-center justify-center min-w-[3.2rem] h-14 bg-white dark:bg-zinc-800 rounded-lg border border-neutral-200 dark:border-zinc-700 shadow-sm transition-colors duration-300 timer-box">
-                            <span id="main-days" class="tabular-nums text-2xl font-en font-black text-neutral-900 dark:text-white">۰۰</span>
-                            <span class="text-[10px] font-bold text-neutral-400">روز</span>
-                        </div>
-                    </div>
 
-                    <!-- باکس پایان مزایده -->
-                    <div id="auction-main-ended" class="hidden animate-fadeIn flex flex-col items-center justify-center w-full max-w-lg">
-                        <div class="w-14 h-14 bg-red-50 dark:bg-red-500/10 rounded-2xl border border-red-100 dark:border-red-500/20 flex items-center justify-center mb-4">
-                            <span class="material-symbols-outlined text-3xl text-red-500">gavel</span>
+                        <!-- لیبل تایمر -->
+                        <div id="timer-label" class="mb-3 flex items-center justify-center gap-1.5 text-[11px] sm:text-xs font-bold leading-5 text-primary transition-all duration-300 text-center min-h-[2.5rem]">
+                            <span class="material-symbols-outlined text-[18px]">pending</span>
+                            در حال محاسبه وضعیت...
                         </div>
-                        <h3 class="text-xl md:text-2xl font-bold text-neutral-900 dark:text-white mb-2 font-display">این مزایده به پایان رسیده است</h3>
-                        <p class="text-sm md:text-base text-neutral-500 dark:text-neutral-400 font-medium">فرصت شرکت و ثبت پیشنهاد در این رویداد تمام شده است.</p>
+
+                        <!-- کانتینر شمارش معکوس -->
+                        <div id="auction-main-countdown" class="grid grid-cols-2 gap-2 transition-all duration-500">
+                            <div class="flex flex-col items-center justify-center rounded-[1.25rem] border border-neutral-200/80 bg-gradient-to-b from-white to-neutral-50 px-2 py-3 dark:border-zinc-700/80 dark:from-zinc-800 dark:to-zinc-900 transition-colors duration-300 timer-box">
+                                <span class="mb-1 text-[10px] font-bold text-neutral-400">ساعت</span>
+                                <span id="main-hours" class="tabular-nums text-[1.55rem] font-en font-black leading-none text-neutral-900 dark:text-white">۰۰</span>
+                            </div>
+                            <div class="flex flex-col items-center justify-center rounded-[1.25rem] border border-neutral-200/80 bg-gradient-to-b from-white to-neutral-50 px-2 py-3 dark:border-zinc-700/80 dark:from-zinc-800 dark:to-zinc-900 transition-colors duration-300 timer-box">
+                                <span class="mb-1 text-[10px] font-bold text-neutral-400">روز</span>
+                                <span id="main-days" class="tabular-nums text-[1.55rem] font-en font-black leading-none text-neutral-900 dark:text-white">۰۰</span>
+                            </div>
+                            <div class="flex flex-col items-center justify-center rounded-[1.25rem] border border-neutral-200/80 bg-gradient-to-b from-white to-neutral-50 px-2 py-3 dark:border-zinc-700/80 dark:from-zinc-800 dark:to-zinc-900 transition-colors duration-300 timer-box">
+                                <span class="mb-1 text-[10px] font-bold text-neutral-400">ثانیه</span>
+                                <span id="main-secs" class="tabular-nums text-[1.55rem] font-en font-black leading-none text-neutral-900 dark:text-white">۰۰</span>
+                            </div>
+                            <div class="flex flex-col items-center justify-center rounded-[1.25rem] border border-neutral-200/80 bg-gradient-to-b from-white to-neutral-50 px-2 py-3 dark:border-zinc-700/80 dark:from-zinc-800 dark:to-zinc-900 transition-colors duration-300 timer-box">
+                                <span class="mb-1 text-[10px] font-bold text-neutral-400">دقیقه</span>
+                                <span id="main-mins" class="tabular-nums text-[1.55rem] font-en font-black leading-none text-neutral-900 dark:text-white">۰۰</span>
+                            </div>
+                        </div>
+
+                        <!-- باکس پایان مزایده -->
+                        <div id="auction-main-ended" class="hidden animate-fadeIn flex flex-col items-center justify-center text-center rounded-[1.5rem] bg-neutral-50/90 px-3 py-5 dark:bg-zinc-800/60">
+                            <div class="w-12 h-12 bg-red-50 dark:bg-red-500/10 rounded-full border border-red-100 dark:border-red-500/20 flex items-center justify-center mb-3">
+                                <span class="material-symbols-outlined text-[1.65rem] text-red-500">gavel</span>
+                            </div>
+                            <h3 class="text-base font-bold text-neutral-900 dark:text-white mb-1.5 font-display">مزایده به پایان رسیده</h3>
+                            <p class="text-xs leading-5 text-neutral-500 dark:text-neutral-400 font-medium">فرصت شرکت در این رویداد تمام شده است.</p>
+                        </div>
                     </div>
                 </div>
             {% endif %}
@@ -737,6 +749,10 @@
                 }
                 recalcQuickBid();
             }
+
+            if (typeof window.updateAuctionUserStory === 'function') {
+                window.updateAuctionUserStory(productId, data);
+            }
         }
 
         function setInfiniteScrollStatus({ loading = false, hasNext = false } = {}) {
@@ -1228,6 +1244,9 @@
                     const submittedProductId = currentBidButton?.getAttribute('data-product-id');
                     if (submittedProductId) {
                         applyProductLiveState(submittedProductId, data);
+                        if (typeof window.onUserBidPlaced === 'function') {
+                            window.onUserBidPlaced(submittedProductId, data);
+                        }
                     }
                     closeQuickBidModal();
                     if (window.showToast) {

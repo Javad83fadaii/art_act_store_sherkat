@@ -87,6 +87,68 @@ def _order_auction_products_by_lot(queryset):
     )
 
 
+def get_user_auction_cart_stories(user, auction=None) -> dict:
+    """
+    اطلاعات سبد پیشنهادات (استوری‌ها) کاربر در مزایده را بازمی‌گرداند.
+    شامل وضعیت پیشتازی یا عقب‌افتادگی کاربر بر روی هر اثر.
+    """
+    if not user or not getattr(user, 'is_authenticated', False):
+        return {
+            'user_auction_cart_items': [],
+            'user_winning_items_count': 0,
+            'user_outbid_items_count': 0,
+            'user_total_cart_items_count': 0,
+        }
+
+    filters = {'user': user}
+    if auction is not None:
+        filters['auction'] = auction
+
+    raw_cart_items = list(
+        AuctionCartItem.objects.filter(**filters)
+        .select_related('product__artist', 'auction', 'bid')
+        .order_by('-is_active', '-updated_at', '-created_at')
+    )
+
+    items = []
+    cart_map = {}
+    winning_count = 0
+    outbid_count = 0
+
+    for item in raw_cart_items:
+        if item.product_id in cart_map:
+            continue
+        cart_map[item.product_id] = item
+
+        prod = item.product
+        try:
+            item.step_increment = prod.get_current_step_increment()
+            item.min_next_bid = prod.get_min_next_bid()
+        except Exception:
+            item.step_increment = 0
+            item.min_next_bid = 0
+
+        # محاسبه وضعیت برنده / پیشتاز بودن
+        if prod.status == 'finished' or (getattr(item.auction, 'status', '') == 'finished'):
+            item.is_winning = (prod.winner_id == user.pk)
+        else:
+            item.is_winning = bool(item.is_active)
+
+        if item.is_winning:
+            winning_count += 1
+        else:
+            outbid_count += 1
+
+        items.append(item)
+
+    return {
+        'user_auction_cart_items': items,
+        'user_winning_items_count': winning_count,
+        'user_outbid_items_count': outbid_count,
+        'user_total_cart_items_count': len(items),
+    }
+
+
 class AuctionListView(ListView):
     model = Auction
     template_name = 'auction/act.html'
@@ -288,6 +350,7 @@ def auction_product_detail(request, pk: int):
         'current_lot_index': current_lot_index,
         'total_lots_count': total_lots_count,
     }
+    context.update(get_user_auction_cart_stories(request.user, product.auction))
 
     # --- اطلاعات فاکتور برای برنده ---
     user_is_winner = (
@@ -501,6 +564,7 @@ class AuctionGridView(ListView):
             auction.time_left_str = _format_seconds_as_hhmmss(total_seconds)
         context['bid_error'] = self.request.GET.get('bid_error', '')
         context['bid_success'] = self.request.GET.get('bid_success', '')
+        context.update(get_user_auction_cart_stories(self.request.user, None))
         return context
 
 
@@ -554,6 +618,7 @@ class AuctionProductsView(ListView):
         context['latest_credit_request_status'] = (
             latest_credit_request.status if latest_credit_request is not None else ''
         )
+        context.update(get_user_auction_cart_stories(self.request.user, self.auction))
         return context
 
     def render_to_response(self, context, **response_kwargs):
@@ -703,4 +768,45 @@ def download_admin_auction_user_invoice_pdf(request, auction_id: int, user_id):
     filename = f"invoice-{invoice.invoice_number}.pdf"
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
+
+
+def get_user_auction_stories_ajax(request, pk: int):
+    """
+    اندپوینت ایجکس برای بازیابی زنده و بروزرسانی کارت‌های استوری سبد کاربر
+    """
+    auction = get_object_or_404(Auction, pk=pk)
+    data = get_user_auction_cart_stories(request.user, auction)
+    html = render_to_string(
+        'auction/partials/auction_user_stories.html',
+        {
+            'auction': auction,
+            **data,
+        },
+        request=request,
+    )
+    items_json = []
+    for item in data['user_auction_cart_items']:
+        items_json.append({
+            'product_pk': item.product.pk,
+            'product_id': str(item.product.product_id),
+            'lot': item.product.lot,
+            'title': item.product.display_title,
+            'artist': getattr(item.product.artist, 'name', '') or '',
+            'image': item.product.main_image_url,
+            'is_winning': item.is_winning,
+            'reserved_amount': int(item.reserved_amount or 0),
+            'current_price': int(item.product.current_price or item.product.base_price or 0),
+            'min_next_bid': int(item.min_next_bid or 0),
+            'step_increment': int(item.step_increment or 0),
+            'detail_url': reverse('auction:auction_product_detail', kwargs={'pk': item.product.pk}),
+        })
+
+    return JsonResponse({
+        'success': True,
+        'html': html,
+        'total_count': data['user_total_cart_items_count'],
+        'winning_count': data['user_winning_items_count'],
+        'outbid_count': data['user_outbid_items_count'],
+        'items': items_json,
+    })
 

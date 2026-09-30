@@ -1821,3 +1821,100 @@ class AuctionInvoiceTests(TestCase):
         self.auction.refresh_from_db()
         self.assertIsNotNone(self.auction.invoices_dispatched_at)
         self.assertEqual(AuctionInvoice.objects.filter(auction=self.auction, user=self.winner_user).count(), 1)
+
+
+class AuctionUserStoriesTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.artist = Artist.objects.create(id=999, name='هنرمند تست')
+        self.artwork_type = ArtworkType.objects.create(name='نقاشی')
+        self.auction = Auction.objects.create(
+            name='مزایده بهاره',
+            start_date=timezone.now() - timedelta(hours=2),
+            end_date=timezone.now() + timedelta(hours=5),
+            products_count=2,
+        )
+        self.product1 = AuctionProduct.objects.create(
+            auction=self.auction,
+            product_id='P-101',
+            title='اثر اول',
+            artist=self.artist,
+            artwork_type=self.artwork_type,
+            base_price=Decimal('10000000'),
+            lot=1,
+        )
+        self.product2 = AuctionProduct.objects.create(
+            auction=self.auction,
+            product_id='P-102',
+            title='اثر دوم',
+            artist=self.artist,
+            artwork_type=self.artwork_type,
+            base_price=Decimal('20000000'),
+            lot=2,
+        )
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        self.user1 = User.objects.create_user(
+            username='09121111111',
+            phone_number='09121111111',
+            full_name='کاربر تست ۱',
+            credit=Decimal('200000000'),
+            current_credit=Decimal('200000000'),
+            is_verified=1,
+        )
+        self.user2 = User.objects.create_user(
+            username='09122222222',
+            phone_number='09122222222',
+            full_name='کاربر تست ۲',
+            credit=Decimal('200000000'),
+            current_credit=Decimal('200000000'),
+            is_verified=1,
+        )
+
+    def test_guest_does_not_see_stories(self):
+        url = reverse('auction:auction_products', kwargs={'pk': self.auction.pk})
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(resp.context.get('user_auction_cart_items', [])), 0)
+        self.assertNotContains(resp, 'auction-user-stories-section')
+
+    def test_winning_and_outbid_story_visuals(self):
+        # کاربر ۱ روی هر دو اثر بید می‌زند
+        self.product1.place_bid(self.user1, Decimal('15000000'))
+        self.product2.place_bid(self.user1, Decimal('30000000'))
+
+        # کاربر ۲ روی اثر دوم بید بالاتری می‌زند، در نتیجه کاربر ۱ روی اثر دوم عقب می‌افتد (outbid)
+        self.product2.place_bid(self.user2, Decimal('40000000'))
+
+        self.client.force_login(self.user1)
+        url = reverse('auction:auction_products', kwargs={'pk': self.auction.pk})
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+
+        cart_items = resp.context.get('user_auction_cart_items', [])
+        self.assertEqual(len(cart_items), 2)
+        self.assertEqual(resp.context.get('user_winning_items_count'), 1)
+        self.assertEqual(resp.context.get('user_outbid_items_count'), 1)
+
+        # بررسی وجود لینک‌های مستقیم به صفحه هر محصول در HTML
+        content = resp.content.decode('utf-8')
+        detail_url1 = reverse('auction:auction_product_detail', kwargs={'pk': self.product1.pk})
+        detail_url2 = reverse('auction:auction_product_detail', kwargs={'pk': self.product2.pk})
+        self.assertIn(detail_url1, content)
+        self.assertIn(detail_url2, content)
+        self.assertIn('پیشنهادات شما در این مزایده', content)
+
+    def test_ajax_user_stories_endpoint(self):
+        self.product1.place_bid(self.user1, Decimal('15000000'))
+        self.client.force_login(self.user1)
+
+        url = reverse('auction:user_stories_ajax', kwargs={'pk': self.auction.pk})
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['total_count'], 1)
+        self.assertEqual(data['winning_count'], 1)
+        self.assertEqual(data['outbid_count'], 0)
+        self.assertTrue(data['items'][0]['is_winning'])
+        self.assertIn('auction-user-stories-section', data['html'])
