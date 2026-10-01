@@ -80,9 +80,9 @@
                                                 {{ group.auction.name|default:"مزایده"|fa_digits }}
                                             </h4>
                                             {% if group.invoice %}
-                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary border border-primary/20">
+                                                {% comment %} <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary border border-primary/20">
                                                     شماره {{ group.invoice.invoice_number|fa_digits }}
-                                                </span>
+                                                </span> {% endcomment %}
                                             {% else %}
                                                 <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
                                                     <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
