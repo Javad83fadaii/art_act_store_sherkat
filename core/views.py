@@ -8,6 +8,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 # ایمپورت مدل‌های فروشگاه و مزایده
+from django.db.models import Q
 from store.models import Artwork, ProductLike, VisitHistory
 from auction.models import Auction, AuctionProduct, AuctionVisitHistory
 
@@ -37,11 +38,13 @@ def home(request):
     ).order_by('-created_at')[:3]
 
     # ۲. دریافت رویدادهای مزایده فعال
-    # فیلتر مزایده‌هایی که شروع شده‌اند و هنوز تمام نشده‌اند
-    active_auctions = Auction.objects.filter(
-        start_date__lte=now,
-        end_date__gt=now
-    ).order_by('end_date')[:3]  # نمایش نهایتا ۳ مزایده فعال که زودتر تمام می‌شوند
+    # فیلتر مزایده‌هایی که شروع شده‌اند و هنوز تمام نشده‌اند (شامل در حال برگزاری و در حال تمدید)
+    active_auctions = (
+        Auction.objects.filter(start_date__lte=now)
+        .filter(Q(end_date__gt=now) | Q(products__extended_end_time__gt=now))
+        .distinct()
+        .order_by('end_date')[:3]
+    )
 
     user_liked_artworks = set()
     if request.user.is_authenticated:
@@ -66,6 +69,17 @@ def about(request):
 def site_rules(request):
     """نمایش صفحه قوانین و مقررات سایت"""
     return render(request, 'core/site_rules.html')
+
+
+def enamad_verification_file(request):
+    """ارسال فایل تایید اینماد از ریشه دامنه."""
+    verification_file_path = Path(settings.BASE_DIR) / '62603317.txt'
+    if not verification_file_path.exists() or not verification_file_path.is_file():
+        raise Http404()
+
+    response = FileResponse(open(verification_file_path, 'rb'), content_type='text/plain')
+    response['Content-Disposition'] = 'inline; filename="62603317.txt"'
+    return response
 
 
 def _get_client_ip(request) -> str | None:
@@ -94,7 +108,7 @@ def track_public_visit(request):
     user = request.user if request.user.is_authenticated else None
     ip_address = _get_client_ip(request)
 
-    if visit_kind == 'store_product':
+    if visit_kind in {'product', 'store_product'}:
         product = get_object_or_404(Artwork, pk=object_id)
         VisitHistory.objects.create(
             user=user,

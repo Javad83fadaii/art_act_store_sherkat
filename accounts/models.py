@@ -70,7 +70,12 @@ class CustomUser(AbstractUser):
     # فیلد نام کامل (اجباری)
     full_name = models.CharField(max_length=150)
     
-    preferred_contact_methods = models.JSONField(default=list, blank=True)
+    preferred_contact_methods = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name="تنظیمات کانال‌های دریافت پیام",
+        help_text="کانال‌های ارتباطی فعال کاربر برای دریافت اطلاعیه‌ها (ایمیل، پیامک، تلگرام)",
+    )
     telegram_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
     email = models.EmailField(unique=True, null=True, blank=True)
     address_country = models.CharField(max_length=255, blank=True, null=True)
@@ -79,11 +84,17 @@ class CustomUser(AbstractUser):
     profile_picture = models.ImageField(upload_to='profile_pictures/', null=True, blank=True)
     description = models.TextField(blank=True, null=True)
     is_verified = models.IntegerField(default=0)
+    is_email_verified = models.BooleanField(default=False)
+    is_sms_verified = models.BooleanField(default=True)
     
     # اعتبار کل تخصیص‌یافته به کاربر
     credit = models.DecimalField(max_digits=15, decimal_places=0, default=0)
     # اعتبار قابل استفاده فعلی برای ثبت بید
     current_credit = models.DecimalField(max_digits=15, decimal_places=0, default=0)
+    newsletter_catalog_opt_in = models.BooleanField(
+        default=False,
+        verbose_name="تمایل به دریافت خبرنامه و کاتالوگ",
+    )
 
     objects = CustomUserManager()
 
@@ -101,6 +112,62 @@ class CustomUser(AbstractUser):
     def get_short_name(self):
         return str(self.full_name).strip() if self.full_name else self.phone_number
 
+    def get_enabled_notification_channels(self) -> list[str]:
+        """Return list of enabled notification channel strings ('email', 'sms', 'telegram')."""
+        if not self.preferred_contact_methods or not isinstance(self.preferred_contact_methods, (list, tuple, set)):
+            return []
+        return [str(method).strip().lower() for method in self.preferred_contact_methods if str(method).strip()]
+
+    @property
+    def has_verified_email(self):
+        return bool(str(self.email or "").strip()) and bool(self.is_email_verified)
+
+    @property
+    def is_pending_verification(self):
+        """
+        بررسی اینکه آیا کاربر در انتظار تایید (Verify) اولیه است یا خیر.
+        اگر کاربر ایمیل داشته باشد و تایید نشده باشد، یا نیاز به تایید پیامک داشته باشد.
+        """
+        user_email = str(self.email or "").strip()
+        preferred_methods = [
+            str(m).strip().lower()
+            for m in (self.preferred_contact_methods or [])
+            if str(m).strip()
+        ]
+        
+        requires_email = bool(user_email) and not self.is_email_verified and (
+            not preferred_methods or "email" in preferred_methods
+        )
+        requires_sms = ("sms" in preferred_methods) and not getattr(self, "is_sms_verified", True)
+
+        return requires_email or requires_sms
+
+    @property
+    def user_status(self):
+        """
+        کد وضعیت کاربر:
+        - pending_verification: در انتظار تایید
+        - active: فعال
+        - inactive: غیرفعال
+        """
+        if self.is_pending_verification:
+            return "pending_verification"
+        if self.is_active:
+            return "active"
+        return "inactive"
+
+    @property
+    def user_status_label(self):
+        """
+        برچسب فارسی وضعیت کاربر.
+        """
+        status_labels = {
+            "pending_verification": "در انتظار تایید",
+            "active": "فعال",
+            "inactive": "غیرفعال",
+        }
+        return status_labels.get(self.user_status, "نامشخص")
+
     @property
     def has_pending_auction_request(self):
         return self.verification_requests.filter(
@@ -113,14 +180,18 @@ class CustomUser(AbstractUser):
 
         AuctionCartItem = apps.get_model('auction', 'AuctionCartItem')
         now = timezone.now()
+        active_filter = (
+            models.Q(product__extended_end_time__isnull=False, product__extended_end_time__gte=now)
+            | models.Q(product__extended_end_time__isnull=True, auction__end_date__gte=now)
+        )
         reserved_total = (
             AuctionCartItem.objects
             .filter(
                 user_id=self.pk,
                 is_active=True,
                 auction__start_date__lte=now,
-                auction__end_date__gte=now,
             )
+            .filter(active_filter)
             .aggregate(total=models.Sum('reserved_amount'))
             .get('total')
         )
@@ -372,3 +443,62 @@ class CreditIncreaseRequest(models.Model):
                 amount = Decimal(str(self.current_credit or 0))
                 user_obj.credit = Decimal(str(user_obj.credit or 0)) + amount
                 user_obj.save(refresh_current_credit=True)
+
+
+class EmailVerificationOTP(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="email_otps"
+    )
+    email = models.EmailField()
+    code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["-created_at", "-pk"]
+
+    def is_valid(self):
+        # Checks if the OTP is unused and hasn't expired yet
+        return not self.is_used and timezone.now() <= self.expires_at
+
+    @classmethod
+    def generate_otp(cls, user, email, expire_minutes=10):
+        import random
+        # Generate a random 6-digit code
+        code = f"{random.randint(100000, 999999)}"
+        expires_at = timezone.now() + timezone.timedelta(minutes=expire_minutes)
+        return cls.objects.create(user=user, email=email, code=code, expires_at=expires_at)
+
+
+class SMSVerificationOTP(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="sms_otps"
+    )
+    phone_number = models.CharField(max_length=20)
+    code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def is_valid(self):
+        return not self.is_used and timezone.now() <= self.expires_at
+
+    @classmethod
+    def generate_otp(cls, user, phone_number, expire_minutes=10):
+        import random
+        code = f"{random.randint(100000, 999999)}"
+        expires_at = timezone.now() + timezone.timedelta(minutes=expire_minutes)
+        return cls.objects.create(
+            user=user,
+            phone_number=phone_number,
+            code=code,
+            expires_at=expires_at,
+        )

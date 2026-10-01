@@ -12,13 +12,13 @@ def _add_missing_previous_credit_columns(apps, schema_editor) -> None:
     statements = []
     if "previous_current_credit" not in existing_columns:
         statements.append(
-            "ALTER TABLE `accounts_creditincreaserequest` "
-            "ADD COLUMN `previous_current_credit` DECIMAL(15, 0) NOT NULL DEFAULT 0"
+            f"ALTER TABLE {schema_editor.quote_name(table_name)} "
+            f"ADD COLUMN {schema_editor.quote_name('previous_current_credit')} DECIMAL(15, 0) NOT NULL DEFAULT 0"
         )
     if "previous_total_credit" not in existing_columns:
         statements.append(
-            "ALTER TABLE `accounts_creditincreaserequest` "
-            "ADD COLUMN `previous_total_credit` DECIMAL(15, 0) NOT NULL DEFAULT 0"
+            f"ALTER TABLE {schema_editor.quote_name(table_name)} "
+            f"ADD COLUMN {schema_editor.quote_name('previous_total_credit')} DECIMAL(15, 0) NOT NULL DEFAULT 0"
         )
 
     for sql in statements:

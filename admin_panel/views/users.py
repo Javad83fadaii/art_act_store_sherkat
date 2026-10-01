@@ -8,6 +8,7 @@ from django.db.models.functions import Coalesce
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.template.loader import render_to_string
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
@@ -18,6 +19,7 @@ from accounts.models import CustomUser
 from core.models import SavedFilter
 from auction.models import AuctionCartItem, AuctionVisitHistory, Bid
 from core.decorators import log_admin_action, staff_required, superuser_required
+from core.logging_service import compute_field_diff, format_user_display, record_admin_activity
 from core.models import ActivityLog
 from core.utils import cache_response, invalidate_cache
 from store.models import SiteVisitLog, VisitHistory, PurchaseHistory, TelegramPurchaseRequest
@@ -58,11 +60,14 @@ def _serialize_user_detail(user):
         "email": user.email or "",
         "telegram_id": user.telegram_id or "",
         "preferred_contact_methods": user.preferred_contact_methods or [],
+        "newsletter_catalog_opt_in": bool(getattr(user, "newsletter_catalog_opt_in", False)),
         "address_country": user.address_country or "",
         "address_city": user.address_city or "",
         "address_street": user.address_street or "",
         "description": user.description or "",
         "is_active": user.is_active,
+        "user_status": getattr(user, "user_status", "active" if user.is_active else "inactive"),
+        "user_status_label": getattr(user, "user_status_label", "فعال" if user.is_active else "غیرفعال"),
         "is_staff": user.is_staff,
         "is_superuser": user.is_superuser,
         "is_verified": int(user.is_verified or 0),
@@ -114,6 +119,7 @@ def _build_auth_activity_entry(activity):
 def _build_site_visit_entry(log):
     duration_min = getattr(log, 'duration_in_minutes', 0)
     is_closed = bool(getattr(log, 'is_closed', False))
+    operating_system = getattr(log, 'operating_system', '') or ''
     return {
         'source': 'visit',
         'source_label': 'حضور در سایت',
@@ -128,6 +134,7 @@ def _build_site_visit_entry(log):
         'start_time': _safe_iso(log.start_time),
         'last_activity': _safe_iso(log.last_activity),
         'duration_min': duration_min,
+        'operating_system': operating_system,
         'session_key': log.session_key or '',
         'session_key_short': _short_session_key(log.session_key),
         'is_closed': is_closed,
@@ -245,6 +252,7 @@ def history_api_view(request, pk):
             'session_key': log.session_key,
             'session_key_short': _short_session_key(log.session_key),
             'ip': log.ip_address or 'نامشخص',
+            'operating_system': getattr(log, 'operating_system', '') or '',
             'start_time': _safe_iso(log.start_time),
             'last_activity': _safe_iso(log.last_activity),
             'duration_min': getattr(log, 'duration_in_minutes', 0),
@@ -521,10 +529,16 @@ def list_view(request):
     else:
         status = request.GET.get('status')
         if status:
+            pending_condition = (
+                models.Q(email__isnull=False, is_email_verified=False)
+                | models.Q(is_sms_verified=False)
+            )
             if status == 'active':
-                users = users.filter(is_active=True)
+                users = users.filter(is_active=True).exclude(pending_condition)
+            elif status == 'pending_verification':
+                users = users.filter(pending_condition)
             elif status == 'inactive':
-                users = users.filter(is_active=False)
+                users = users.filter(is_active=False).exclude(pending_condition)
 
         search = request.GET.get('search')
         if search:
@@ -562,11 +576,14 @@ def list_view(request):
             'name': user.get_full_name() or user.email,
             'username': user.username or '',
             'is_active': user.is_active,
+            'user_status': getattr(user, 'user_status', 'active' if user.is_active else 'inactive'),
+            'user_status_label': getattr(user, 'user_status_label', 'فعال' if user.is_active else 'غیرفعال'),
             'is_staff': user.is_staff,
             'is_superuser': user.is_superuser,
             'is_verified': int(user.is_verified or 0),
             'email': user.email or '',
             'telegram_id': user.telegram_id or '',
+            'newsletter_catalog_opt_in': bool(getattr(user, 'newsletter_catalog_opt_in', False)),
             'address_city': user.address_city or '',
             'address_country': user.address_country or '',
             'credit': str(user.credit or 0),
@@ -599,7 +616,7 @@ def list_view(request):
 @log_admin_action('update')
 def detail_view(request, pk):
     """
-    دریافت (GET) و به‌روزرسانی (PUT/POST) اطلاعات یک کاربر خاص.
+    دریافت (GET) و به‌روزرسانی (PUT/POST) اطلاعات یک کاربر خاص به همراه ثبت لاگ تغییرات.
     """
     user = get_object_or_404(CustomUser, pk=pk)
 
@@ -613,8 +630,69 @@ def detail_view(request, pk):
         if not form.is_valid():
             return JsonResponse({'success': False, 'errors': form.errors.get_json_data()}, status=400)
 
+        # ذخیره مقادیر قبلی برای مقایسه و محاسبه تفاوت‌ها (Diff)
+        old_data = {
+            'is_active': user.is_active,
+            'credit': user.credit,
+            'current_credit': user.current_credit,
+            'is_verified': user.is_verified,
+            'is_staff': user.is_staff,
+            'is_superuser': user.is_superuser,
+            'full_name': user.full_name,
+            'phone_number': user.phone_number,
+            'email': user.email,
+            'address_country': user.address_country,
+            'address_city': user.address_city,
+            'address_street': user.address_street,
+            'description': user.description,
+            'newsletter_catalog_opt_in': user.newsletter_catalog_opt_in,
+        }
+
         user = form.save()
         invalidate_cache('admin_users*')
+
+        # برچسب‌های فارسی برای تغییرات فیلدها
+        fields_map = {
+            'is_active': 'وضعیت فعال‌سازی',
+            'credit': 'اعتبار کل',
+            'current_credit': 'اعتبار جاری',
+            'is_verified': 'وضعیت احراز هویت',
+            'is_staff': 'دسترسی مدیریت (Staff)',
+            'is_superuser': 'دسترسی مدیر ارشد (Superuser)',
+            'full_name': 'نام کامل',
+            'phone_number': 'شماره موبایل',
+            'email': 'ایمیل',
+            'address_city': 'شهر',
+            'address_street': 'آدرس',
+            'description': 'توضیحات',
+            'newsletter_catalog_opt_in': 'دریافت خبرنامه',
+        }
+
+        changes, diff_descriptions = compute_field_diff(old_data, user, fields_map)
+        user_repr = format_user_display(user)
+
+        if changes:
+            # تشخیص نوع عملیات بر اساس مهم‌ترین فیلدهای تغییریافته
+            action_code = 'user_update'
+            if 'is_active' in changes:
+                action_code = 'user_activate' if user.is_active else 'user_deactivate'
+            elif 'credit' in changes or 'current_credit' in changes:
+                action_code = 'user_credit_update'
+
+            desc_text = f"ویرایش اطلاعات کاربر «{user_repr}»: " + ' | '.join(diff_descriptions)
+
+            record_admin_activity(
+                admin_user=request.user,
+                action=action_code,
+                description=desc_text,
+                target_type='کاربر',
+                target_id=str(user.pk),
+                target_repr=user_repr,
+                changes=changes,
+                request=request,
+                content_object=user,
+            )
+            request._admin_log_recorded = True
 
         return JsonResponse({'success': True, 'user': _serialize_user_detail(user)})
 
@@ -627,7 +705,7 @@ def detail_view(request, pk):
 @log_admin_action('update')
 def bulk_action(request):
     """
-    انجام عملیات گروهی روی چند کاربر (مانند فعال/غیرفعال سازی دسته‌جمعی).
+    انجام عملیات گروهی روی چند کاربر (مانند فعال/غیرفعال سازی دسته‌جمعی) با ثبت لاگ تفصیلی.
     """
     data = _request_payload(request)
     ids = data.get('ids', [])
@@ -637,13 +715,37 @@ def bulk_action(request):
         return JsonResponse({'error': 'Invalid payload'}, status=400)
 
     queryset = CustomUser.objects.filter(pk__in=ids)
+    users_list = list(queryset)
+
+    if not users_list:
+        return JsonResponse({'error': 'No users found for given IDs'}, status=404)
+
+    target_names = [format_user_display(u) for u in users_list[:4]]
+    extra_count = len(users_list) - len(target_names)
+    names_summary = '، '.join(target_names) + (f' و {extra_count} کاربر دیگر' if extra_count > 0 else '')
 
     if action == 'activate':
         queryset.update(is_active=True)
+        action_code = 'user_bulk_activate'
+        desc_text = f"فعال‌سازی دسته‌جمعی {len(users_list)} کاربر ({names_summary})"
     elif action == 'deactivate':
         queryset.update(is_active=False)
+        action_code = 'user_bulk_deactivate'
+        desc_text = f"غیرفعال‌سازی دسته‌جمعی {len(users_list)} کاربر ({names_summary})"
     else:
         return JsonResponse({'error': 'Unknown action'}, status=400)
+
+    record_admin_activity(
+        admin_user=request.user,
+        action=action_code,
+        description=desc_text,
+        target_type='کاربران (گروهی)',
+        target_id=','.join([str(u.pk) for u in users_list[:10]]),
+        target_repr=names_summary,
+        changes={'action': action, 'affected_user_ids': [str(u.pk) for u in users_list], 'count': len(users_list)},
+        request=request,
+    )
+    request._admin_log_recorded = True
 
     invalidate_cache('admin_users*')
     return JsonResponse({'success': True})
@@ -754,6 +856,7 @@ def global_site_visits_api_view(request):
             'user_display': user_display,
             'user_id': user_id,
             'ip_address': log.ip_address or 'نامشخص',
+            'operating_system': getattr(log, 'operating_system', '') or '',
             'start_time': log.start_time.isoformat() if log.start_time else None,
             'last_activity': log.last_activity.isoformat() if log.last_activity else None,
             'duration_minutes': duration,
@@ -1054,9 +1157,10 @@ def user_cart_bids_summary_api(request, pk):
             })
 
     active_cart_items = cart_items.filter(
+        Q(product__extended_end_time__isnull=False, product__extended_end_time__gte=now)
+        | Q(product__extended_end_time__isnull=True, auction__end_date__gte=now),
         is_active=True,
         auction__start_date__lte=now,
-        auction__end_date__gte=now,
     )
     active_count = active_cart_items.count()
     reserved_total_amount = sum(
@@ -1113,10 +1217,11 @@ def user_reserved_products_api(request, pk):
     cart_items = (
         AuctionCartItem.objects
         .filter(
+            Q(product__extended_end_time__isnull=False, product__extended_end_time__gte=now)
+            | Q(product__extended_end_time__isnull=True, auction__end_date__gte=now),
             user=user,
             is_active=True,
             auction__start_date__lte=now,
-            auction__end_date__gte=now,
         )
         .select_related('auction', 'product', 'bid')
         .order_by('-created_at')
@@ -1225,3 +1330,53 @@ def user_telegram_requests_api(request, pk):
         'pages': paginator.num_pages,
         'current_page': page_obj.number,
     })
+
+
+@require_http_methods(['GET'])
+@staff_required
+def user_auction_invoices_api(request, pk):
+    """
+    API دریافت فاکتورهای مزایده صادر شده برای کاربر به همراه لینک دانلود PDF
+    """
+    user = get_object_or_404(CustomUser, pk=pk)
+    from auction.models import AuctionInvoice
+
+    invoices = (
+        AuctionInvoice.objects.filter(user=user)
+        .select_related('auction')
+        .order_by('-issued_at')
+    )
+
+    search = request.GET.get('search', '').strip()
+    if search:
+        invoices = invoices.filter(
+            Q(invoice_number__icontains=search)
+            | Q(auction__name__icontains=search)
+        )
+
+    paginator = Paginator(invoices, 20)
+    page_obj = paginator.get_page(request.GET.get('page', 1))
+
+    results = []
+    for inv in page_obj.object_list:
+        results.append({
+            'id': inv.id,
+            'invoice_number': inv.invoice_number,
+            'auction_id': inv.auction_id,
+            'auction_name': inv.auction.name if inv.auction else '-',
+            'total_hammer_price': str(inv.total_hammer_price),
+            'buyers_premium': str(inv.buyers_premium),
+            'total_amount': str(inv.total_amount),
+            'issued_at': inv.issued_at.isoformat() if inv.issued_at else None,
+            'jalali_issued_at': inv.jalali_issued_at,
+            'pdf_url': reverse('auction:invoice_pdf', args=[inv.pk]),
+            'detail_url': reverse('auction:invoice_detail', args=[inv.pk]),
+        })
+
+    return JsonResponse({
+        'results': results,
+        'total': paginator.count,
+        'pages': paginator.num_pages,
+        'current_page': page_obj.number,
+    })
+

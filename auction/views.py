@@ -4,22 +4,24 @@ from decimal import Decimal, InvalidOperation
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
-from django.db.models import Case, Count, IntegerField, Max, OuterRef, Subquery, Value, When
-from django.http import JsonResponse
+from django.db.models import Case, Count, F, IntegerField, Max, OuterRef, Q, Subquery, Value, When
+from django.http import JsonResponse, HttpResponse, HttpResponseForbidden, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
 from django.views.generic import DetailView, ListView
 
-from .models import Auction, AuctionCartItem, AuctionProduct, Bid
-from .realtime import build_bid_live_payload
+from .models import Auction, AuctionCartItem, AuctionProduct, Bid, AuctionInvoice
+from .realtime import build_bid_live_payload, broadcast_auction_page_refresh
 from .services import (
     ensure_auction_product_winner,
     ensure_products_have_finished_winners,
     has_valid_winner_access_token,
     build_winner_access_token,
+    create_or_get_invoice_for_winner,
 )
+from .invoice_pdf import generate_invoice_pdf_buffer
 from accounts.models import VerificationRequest, CreditIncreaseRequest  # CreditIncreaseRequest اضافه شد
 from store.models import Artwork
 
@@ -42,9 +44,10 @@ def _split_seconds(total_seconds: int) -> tuple[int, int, int, int]:
 
 def _build_inactive_auction_redirect(product: AuctionProduct):
     list_url = reverse('auction:auction_products', kwargs={'pk': product.auction.pk})
-    return redirect(
-        f'{list_url}?{urlencode({"toast_message": "مزایده فعال نیست.", "toast_type": "warning"})}'
-    )
+    # return redirect(
+    #     f'{list_url}?{urlencode({"toast_message": "مزایده فعال نیست.", "toast_type": "warning"})}'
+    # )
+    return redirect(list_url)
 
 
 def _has_finished_winner_profile_access(request, product: AuctionProduct, access_token: str) -> bool:
@@ -63,16 +66,87 @@ def _has_finished_winner_profile_access(request, product: AuctionProduct, access
 
 
 def _order_auction_products_by_lot(queryset):
+    now = timezone.now()
     return (
         queryset.annotate(
+            _is_active_extended=Case(
+                When(
+                    Q(extended_end_time__gt=now) & Q(extended_end_time__gt=F('auction__end_date')),
+                    then=Value(0),
+                ),
+                default=Value(1),
+                output_field=IntegerField(),
+            ),
             _lot_is_null=Case(
                 When(lot__isnull=True, then=Value(1)),
                 default=Value(0),
                 output_field=IntegerField(),
-            )
+            ),
         )
-        .order_by('_lot_is_null', 'lot', 'created_at', 'pk')
+        .order_by('_is_active_extended', '_lot_is_null', 'lot', 'created_at', 'pk')
     )
+
+
+def get_user_auction_cart_stories(user, auction=None) -> dict:
+    """
+    اطلاعات سبد پیشنهادات (استوری‌ها) کاربر در مزایده را بازمی‌گرداند.
+    شامل وضعیت پیشتازی یا عقب‌افتادگی کاربر بر روی هر اثر.
+    """
+    if not user or not getattr(user, 'is_authenticated', False):
+        return {
+            'user_auction_cart_items': [],
+            'user_winning_items_count': 0,
+            'user_outbid_items_count': 0,
+            'user_total_cart_items_count': 0,
+        }
+
+    filters = {'user': user}
+    if auction is not None:
+        filters['auction'] = auction
+
+    raw_cart_items = list(
+        AuctionCartItem.objects.filter(**filters)
+        .select_related('product__artist', 'auction', 'bid')
+        .order_by('-is_active', '-updated_at', '-created_at')
+    )
+
+    items = []
+    cart_map = {}
+    winning_count = 0
+    outbid_count = 0
+
+    for item in raw_cart_items:
+        if item.product_id in cart_map:
+            continue
+        cart_map[item.product_id] = item
+
+        prod = item.product
+        try:
+            item.step_increment = prod.get_current_step_increment()
+            item.min_next_bid = prod.get_min_next_bid()
+        except Exception:
+            item.step_increment = 0
+            item.min_next_bid = 0
+
+        # محاسبه وضعیت برنده / پیشتاز بودن
+        if prod.status == 'finished' or (getattr(item.auction, 'status', '') == 'finished'):
+            item.is_winning = (prod.winner_id == user.pk)
+        else:
+            item.is_winning = bool(item.is_active)
+
+        if item.is_winning:
+            winning_count += 1
+        else:
+            outbid_count += 1
+
+        items.append(item)
+
+    return {
+        'user_auction_cart_items': items,
+        'user_winning_items_count': winning_count,
+        'user_outbid_items_count': outbid_count,
+        'user_total_cart_items_count': len(items),
+    }
 
 
 class AuctionListView(ListView):
@@ -91,12 +165,19 @@ class AuctionListView(ListView):
             if auction.status == 'ready':
                 target = auction.start_date
                 auction.countdown_label = 'زمان باقی‌مانده تا شروع'
+                auction.extended_count = 0
             elif auction.status == 'ongoing':
                 target = auction.end_date
                 auction.countdown_label = 'زمان باقی‌مانده تا پایان'
+                auction.extended_count = auction.get_active_extended_products_count(now)
+            elif auction.status == 'extended':
+                target = auction.get_max_end_date()
+                auction.countdown_label = 'زمان باقی‌مانده تا پایان تمدید'
+                auction.extended_count = auction.get_active_extended_products_count(now)
             else:
                 target = None
                 auction.countdown_label = 'مزایده به پایان رسید'
+                auction.extended_count = 0
 
             total_seconds = (target - now).total_seconds() if target else 0
             days, hours, minutes, seconds = _split_seconds(total_seconds)
@@ -145,71 +226,67 @@ def auction_product_detail(request, pk: int):
     product = ensure_auction_product_winner(product)
     access_token = request.GET.get('access_token', '').strip()
     has_winner_profile_access = _has_finished_winner_profile_access(request, product, access_token)
-    is_active_auction = product.auction.status == 'ongoing'
+    is_ready_auction = product.auction.status == 'ready'
+    is_active_auction = product.auction.status in ('ongoing', 'extended')
+    is_finished_auction = product.auction.status == 'finished'
 
-    if not is_active_auction and not has_winner_profile_access:
+    if not is_ready_auction and not is_active_auction and not is_finished_auction and not has_winner_profile_access:
         if not request.user.is_authenticated and access_token:
             login_url = f'{reverse("login")}?{urlencode({"next": request.get_full_path()})}'
             return redirect(login_url)
         return _build_inactive_auction_redirect(product)
 
-    if not request.user.is_authenticated:
-        login_url = f'{reverse("login")}?{urlencode({"next": request.path})}'
-        list_url = reverse('auction:auction_products', kwargs={'pk': product.auction.pk})
-        return redirect(
-            f'{list_url}?{urlencode({"toast_message": "برای مشاهده جزئیات مزایده لطفاً وارد شوید.", "toast_type": "warning", "toast_action_label": "ورود", "toast_action_href": login_url})}'
-        )
-
-    if int(getattr(request.user, 'is_verified', 0) or 0) != 1 and not has_winner_profile_access:
-        list_url = reverse('auction:auction_products', kwargs={'pk': product.auction.pk})
-        has_opt_in = request.user.has_pending_auction_request
-
-        if not has_opt_in:
-            edit_url = f'{reverse("edit_profile")}?{urlencode({"next": list_url})}'
-            return redirect(
-                f'{list_url}?{urlencode({"toast_message": "برای شرکت در مزایده، گزینه «شرکت در مزایده» را فعال کنید.", "toast_type": "warning", "toast_action_label": "ویرایش", "toast_action_href": edit_url})}'
-            )
-
-        return redirect(
-            f'{list_url}?{urlencode({"toast_message": "درخواست شما ثبت شده و در انتظار تایید مدیران است.", "toast_type": "warning"})}'
-        )
-
     # ----------------------------------
     # Query های بهینه
     # ----------------------------------
 
-    user_bids_qs = Bid.objects.filter(
-        user=request.user,
-        product_id=product.product_id
-    )
+    my_bids = []
+    my_bids_count = 0
+    latest_credit_request_status = ''
+    highest_user_bid = None
+    latest_user_bid_id = None
 
-    my_bids = list(
-        user_bids_qs
-        .order_by('-created_at', '-pk')[:50]
-    )
+    if request.user.is_authenticated:
+        user_bids_qs = Bid.objects.filter(
+            user=request.user,
+            product_id=product.product_id
+        )
 
-    my_bids_count = user_bids_qs.count()
+        my_bids = list(
+            user_bids_qs
+            .order_by('-created_at', '-pk')[:50]
+        )
+
+        my_bids_count = user_bids_qs.count()
+
+        # بالاترین بید کاربر
+        highest_user_bid = (
+            user_bids_qs
+            .aggregate(max_bid=Max('bid_amount'))
+            .get('max_bid')
+        )
+
+        # آخرین بید کاربر
+        latest_user_bid_id = (
+            user_bids_qs
+            .order_by('-created_at', '-pk')
+            .values_list('id', flat=True)
+            .first()
+        )
+
+        latest_credit_request_status = (
+            CreditIncreaseRequest.objects
+            .filter(user=request.user)
+            .order_by('-updated_at', '-created_at', '-pk')
+            .values_list('status', flat=True)
+            .first() or ''
+        )
 
     # بالاترین بید کل مزایده
     highest_auction_bid = (
         Bid.objects.filter(product_id=product.product_id)
         .aggregate(max_bid=Max('bid_amount'))
         .get('max_bid')
-    )
-
-    # بالاترین بید کاربر
-    highest_user_bid = (
-        user_bids_qs
-        .aggregate(max_bid=Max('bid_amount'))
-        .get('max_bid')
-    )
-
-    # آخرین بید کاربر
-    latest_user_bid_id = (
-        user_bids_qs
-        .order_by('-created_at', '-pk')
-        .values_list('id', flat=True)
-        .first()
     )
 
     # ----------------------------------
@@ -232,6 +309,29 @@ def auction_product_detail(request, pk: int):
             and bid.bid_amount == highest_user_bid
         )
 
+    # ----------------------------------
+    # ناوبری بین لات‌های مزایده (قبلی و بعدی)
+    # ----------------------------------
+    previous_lot_product = None
+    next_lot_product = None
+    current_lot_index = None
+    total_lots_count = 0
+
+    if product.auction_id:
+        sibling_lots = list(
+            _order_auction_products_by_lot(
+                AuctionProduct.objects.filter(auction_id=product.auction_id)
+            ).values('pk', 'lot', 'title')
+        )
+        total_lots_count = len(sibling_lots)
+        current_idx = next((i for i, item in enumerate(sibling_lots) if item['pk'] == product.pk), -1)
+        if current_idx != -1:
+            current_lot_index = current_idx + 1
+            if current_idx > 0:
+                previous_lot_product = sibling_lots[current_idx - 1]
+            if current_idx < total_lots_count - 1:
+                next_lot_product = sibling_lots[current_idx + 1]
+
     context = {
         'auction': product,
         'has_winner_profile_access': has_winner_profile_access,
@@ -244,14 +344,28 @@ def auction_product_detail(request, pk: int):
         'my_bids_count': my_bids_count,
         'bid_success': request.session.pop('bid_success', None),
         'bid_error': request.session.pop('bid_error', None),
-        'latest_credit_request_status': (
-            CreditIncreaseRequest.objects
-            .filter(user=request.user)
-            .order_by('-updated_at', '-created_at', '-pk')
-            .values_list('status', flat=True)
-            .first() or ''
-        ),
+        'latest_credit_request_status': latest_credit_request_status,
+        'previous_lot_product': previous_lot_product,
+        'next_lot_product': next_lot_product,
+        'current_lot_index': current_lot_index,
+        'total_lots_count': total_lots_count,
     }
+    context.update(get_user_auction_cart_stories(request.user, product.auction))
+
+    # --- اطلاعات فاکتور برای برنده ---
+    user_is_winner = (
+        is_finished_auction
+        and request.user.is_authenticated
+        and product.winner_id == request.user.pk
+    )
+    context['user_is_winner'] = user_is_winner
+    invoice_issued = False
+    if is_finished_auction and request.user.is_authenticated:
+        invoice_issued = product.auction.invoices_dispatched_at is not None
+        invoice_available_at = product.auction.invoice_available_at
+        context['invoice_available_at_iso'] = invoice_available_at.isoformat()
+        context['invoice_available_at_passed'] = invoice_issued
+    context['invoice_issued'] = invoice_issued
 
     context['bid_error'] = request.GET.get('bid_error', '') or context['bid_error']
     context['bid_success'] = request.GET.get('bid_success', '') or context['bid_success']
@@ -263,14 +377,24 @@ def auction_product_live_state(request, pk: int):
     product = get_object_or_404(AuctionProduct, pk=pk)
     product = ensure_auction_product_winner(product)
     access_token = request.GET.get('access_token', '').strip()
-    is_active_auction = product.auction.status == 'ongoing'
+    include_user_history = request.GET.get('compact') != '1'
+    is_active_auction = product.auction.status in ('ongoing', 'extended')
+    is_finished_auction = product.auction.status == 'finished'
     has_winner_profile_access = _has_finished_winner_profile_access(request, product, access_token)
-    if not is_active_auction and not has_winner_profile_access:
+    if not is_active_auction and not is_finished_auction and not has_winner_profile_access:
         return JsonResponse({'success': False, 'message': 'مزایده فعال نیست.'}, status=403)
+    live_payload = build_bid_live_payload(
+        product,
+        request.user,
+        include_user_history=include_user_history,
+    )
+    live_payload.setdefault('tax_amount', int(product.tax_amount))
+    live_payload.setdefault('total_with_tax', int(product.final_price_with_tax))
+
     return JsonResponse(
         {
             'success': True,
-            **build_bid_live_payload(product, request.user),
+            **live_payload,
         }
     )
 
@@ -278,9 +402,11 @@ def auction_product_live_state(request, pk: int):
 @login_required
 def place_bid(request, pk: int):
     auction = get_object_or_404(AuctionProduct, pk=pk)
+    previous_extension_count = int(auction.extension_count or 0)
     
     # بررسی اینکه آیا درخواست از نوع AJAX (Fetch) است یا خیر
     is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.content_type == 'application/json'
+    is_quick_bid_request = request.headers.get('x-auction-quick-bid') == '1'
 
     if request.method != 'POST':
         if is_ajax:
@@ -295,25 +421,27 @@ def place_bid(request, pk: int):
         if not has_opt_in:
             msg = "برای ثبت پیشنهاد، گزینه «شرکت در مزایده» را فعال کنید."
             if is_ajax:
-                return JsonResponse({'success': False, 'message': msg})
+                return JsonResponse({'success': False, 'message': msg, 'needs_credit_increase': True, 'credit_request_state': 'request'}, status=400)
                 
             edit_url = f'{reverse("edit_profile")}?{urlencode({"next": next_url})}'
-            return redirect(
-                f'{next_url}?{urlencode({"toast_message": msg, "toast_type": "warning", "toast_action_label": "ویرایش", "toast_action_href": edit_url})}'
-            )
+            return redirect(next_url)
             
         msg_pending = "درخواست شما ثبت شده و در انتظار تایید مدیران است."
         if is_ajax:
-            return JsonResponse({'success': False, 'message': msg_pending})
-        return redirect(
-            f'{next_url}?{urlencode({"toast_message": msg_pending, "toast_type": "warning"})}'
-        )
+            return JsonResponse({'success': False, 'message': msg_pending, 'needs_credit_increase': True, 'credit_request_state': 'pending'}, status=400)
+        # return redirect(
+        #     f'{next_url}?{urlencode({"toast_message": msg_pending, "toast_type": "warning"})}'
+        # )
+        return redirect(next_url)
 
     raw = (amount or "").strip() if isinstance(amount, str) else amount
-    try:
-        new_bid_amount = Decimal(str(raw))
-    except (InvalidOperation, TypeError, ValueError):
-        new_bid_amount = None
+    if raw in (None, ""):
+        new_bid_amount = Decimal(str(auction.get_min_next_bid()))
+    else:
+        try:
+            new_bid_amount = Decimal(str(raw))
+        except (InvalidOperation, TypeError, ValueError):
+            new_bid_amount = None
 
     if new_bid_amount is not None:
         credit = request.user.calculate_current_credit()
@@ -352,16 +480,17 @@ def place_bid(request, pk: int):
                     status=400,
                 )
             
-            toast_payload = {"toast_message": msg_credit, "toast_type": "error"}
-            if not pending_credit_request:
-                credit_url = reverse("credit_increase_requests")
-                toast_payload.update({
-                    "toast_action_label": "درخواست افزایش اعتبار",
-                    "toast_action_href": credit_url,
-                })
-            return redirect(
-                f'{next_url}?{urlencode(toast_payload)}'
-            )
+            # toast_payload = {"toast_message": msg_credit, "toast_type": "error"}
+            # if not pending_credit_request:
+            #     credit_url = reverse("credit_increase_requests")
+            #     toast_payload.update({
+            #         "toast_action_label": "درخواست افزایش اعتبار",
+            #         "toast_action_href": credit_url,
+            #     })
+            # return redirect(
+            #     f'{next_url}?{urlencode(toast_payload)}'
+            # )
+            return redirect(next_url)
 
     try:
         auction.place_bid(request.user, amount)
@@ -369,21 +498,30 @@ def place_bid(request, pk: int):
         message = exc.messages[0] if getattr(exc, 'messages', None) else str(exc)
         if is_ajax:
             return JsonResponse({'success': False, 'message': message})
-        return redirect(f'{next_url}?{urlencode({"toast_message": message, "toast_type": "error"})}')
+        # return redirect(f'{next_url}?{urlencode({"toast_message": message, "toast_type": "error"})}')
+        return redirect(next_url)
+
+    auction.refresh_from_db()
+    if int(auction.extension_count or 0) > previous_extension_count:
+        broadcast_auction_page_refresh(auction.auction_id, product_pk=auction.pk)
 
     if is_ajax:
-        auction.refresh_from_db()
         return JsonResponse(
             {
                 'success': True,
                 'message': 'پیشنهاد شما با موفقیت ثبت شد.',
-                **build_bid_live_payload(auction, request.user),
+                **build_bid_live_payload(
+                    auction,
+                    request.user,
+                    include_user_history=not is_quick_bid_request,
+                ),
             }
         )
 
-    return redirect(
-        f'{next_url}?{urlencode({"toast_message": "بید شما با موفقیت ثبت شد.", "toast_type": "success"})}'
-    )
+    # return redirect(
+    #     f'{next_url}?{urlencode({"toast_message": "بید شما با موفقیت ثبت شد.", "toast_type": "success"})}'
+    # )
+    return redirect(next_url)
 
 
 class AuctionGridView(ListView):
@@ -402,12 +540,19 @@ class AuctionGridView(ListView):
             if auction.status == 'ready':
                 target = auction.start_date
                 auction.countdown_label = 'زمان باقی‌مانده تا شروع'
+                auction.extended_count = 0
             elif auction.status == 'ongoing':
                 target = auction.end_date
                 auction.countdown_label = 'زمان باقی‌مانده تا پایان'
+                auction.extended_count = auction.get_active_extended_products_count(now)
+            elif auction.status == 'extended':
+                target = auction.get_max_end_date()
+                auction.countdown_label = 'زمان باقی‌مانده تا پایان تمدید'
+                auction.extended_count = auction.get_active_extended_products_count(now)
             else:
                 target = None
                 auction.countdown_label = 'مزایده به پایان رسید'
+                auction.extended_count = 0
 
             total_seconds = (target - now).total_seconds() if target else 0
             days, hours, minutes, seconds = _split_seconds(total_seconds)
@@ -419,6 +564,7 @@ class AuctionGridView(ListView):
             auction.time_left_str = _format_seconds_as_hhmmss(total_seconds)
         context['bid_error'] = self.request.GET.get('bid_error', '')
         context['bid_success'] = self.request.GET.get('bid_success', '')
+        context.update(get_user_auction_cart_stories(self.request.user, None))
         return context
 
 
@@ -450,7 +596,7 @@ class AuctionProductsView(ListView):
             for product in products:
                 if (
                     getattr(product, 'auction', None) is not None
-                    and product.auction.status == 'finished'
+                    and (product.auction.status == 'finished' or product.status == 'finished')
                     and product.winner_id == self.request.user.pk
                 ):
                     product.detail_access_token = build_winner_access_token(
@@ -458,6 +604,7 @@ class AuctionProductsView(ListView):
                         product_id=product.pk,
                     )
         context['auction'] = self.auction
+        context['has_active_extended_products'] = self.auction.get_active_extended_products_count() > 0
         context['bid_error'] = self.request.GET.get('bid_error', '')
         context['bid_success'] = self.request.GET.get('bid_success', '')
         latest_credit_request = None
@@ -471,6 +618,7 @@ class AuctionProductsView(ListView):
         context['latest_credit_request_status'] = (
             latest_credit_request.status if latest_credit_request is not None else ''
         )
+        context.update(get_user_auction_cart_stories(self.request.user, self.auction))
         return context
 
     def render_to_response(self, context, **response_kwargs):
@@ -487,6 +635,7 @@ class AuctionProductsView(ListView):
             {
                 'products': context.get('products', []),
                 'auction': self.auction,
+                'has_active_extended_products': self.auction.get_active_extended_products_count() > 0,
             },
             request=self.request,
         )
@@ -536,3 +685,128 @@ def submit_credit_increase_ajax(request):
         })
         
     return JsonResponse({'success': False, 'message': 'درخواست نامعتبر است.'}, status=400)
+
+
+@login_required
+def download_invoice_pdf(request, pk: int):
+    """
+    دانلود فایل PDF فاکتور رسمی مزایده
+    کاربر برنده یا پرسنل/ادمین مجاز به دریافت هستند.
+    """
+    invoice = get_object_or_404(
+        AuctionInvoice.objects.select_related('auction', 'user').prefetch_related('items'),
+        pk=pk,
+    )
+    if request.user != invoice.user and not (request.user.is_staff or request.user.is_superuser):
+        return HttpResponseForbidden("دسترسی غیرمجاز به این فاکتور.")
+
+    pdf_buffer = generate_invoice_pdf_buffer(invoice)
+    response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
+    filename = f"invoice-{invoice.invoice_number}.pdf"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+@login_required
+def view_invoice_html(request, pk: int):
+    """
+    مشاهده نسخه تحت وب / قابل چاپ فاکتور رسمی مزایده
+    """
+    invoice = get_object_or_404(
+        AuctionInvoice.objects.select_related('auction', 'user').prefetch_related('items'),
+        pk=pk,
+    )
+    if request.user != invoice.user and not (request.user.is_staff or request.user.is_superuser):
+        return HttpResponseForbidden("دسترسی غیرمجاز به این فاکتور.")
+
+    return render(request, 'auction/invoice_detail.html', {'invoice': invoice})
+
+
+@login_required
+def download_auction_user_invoice_pdf(request, auction_id: int):
+    """
+    دانلود فاکتور کاربر در یک مزایده خاص (ایجاد خودکار در صورت نیاز پس از پایان قطعی)
+    """
+    auction = get_object_or_404(Auction, pk=auction_id)
+    if auction.status != 'finished':
+        return HttpResponseForbidden("فاکتور رسمی تنها پس از پایان قطعی مزایده صادر می‌شود.")
+
+    if auction.invoices_dispatched_at is None:
+        return HttpResponseForbidden("فاکتورهای این مزایده هنوز توسط مدیریت تایید و صادر نشده است.")
+
+    invoice = create_or_get_invoice_for_winner(auction, request.user)
+    if not invoice:
+        raise Http404("فاکتوری برای شما در این مزایده صادر نشده است.")
+
+    pdf_buffer = generate_invoice_pdf_buffer(invoice)
+    response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
+    filename = f"invoice-{invoice.invoice_number}.pdf"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+def download_admin_auction_user_invoice_pdf(request, auction_id: int, user_id):
+    """
+    دانلود فاکتور کاربر توسط ادمین در پنل مدیریت
+    """
+    if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+        return HttpResponseForbidden("دسترسی غیرمجاز.")
+
+    user_model = get_user_model()
+    target_user = get_object_or_404(user_model, pk=user_id)
+    auction = get_object_or_404(Auction, pk=auction_id)
+
+    if auction.status != 'finished':
+        return HttpResponseForbidden("فاکتور رسمی تنها پس از پایان قطعی مزایده صادر می‌شود.")
+
+    invoice = create_or_get_invoice_for_winner(auction, target_user)
+    if not invoice:
+        raise Http404("فاکتوری برای این کاربر در این مزایده صادر نشده است.")
+
+    pdf_buffer = generate_invoice_pdf_buffer(invoice)
+    response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
+    filename = f"invoice-{invoice.invoice_number}.pdf"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+def get_user_auction_stories_ajax(request, pk: int):
+    """
+    اندپوینت ایجکس برای بازیابی زنده و بروزرسانی کارت‌های استوری سبد کاربر
+    """
+    auction = get_object_or_404(Auction, pk=pk)
+    data = get_user_auction_cart_stories(request.user, auction)
+    html = render_to_string(
+        'auction/partials/auction_user_stories.html',
+        {
+            'auction': auction,
+            **data,
+        },
+        request=request,
+    )
+    items_json = []
+    for item in data['user_auction_cart_items']:
+        items_json.append({
+            'product_pk': item.product.pk,
+            'product_id': str(item.product.product_id),
+            'lot': item.product.lot,
+            'title': item.product.display_title,
+            'artist': getattr(item.product.artist, 'name', '') or '',
+            'image': item.product.main_image_url,
+            'is_winning': item.is_winning,
+            'reserved_amount': int(item.reserved_amount or 0),
+            'current_price': int(item.product.current_price or item.product.base_price or 0),
+            'min_next_bid': int(item.min_next_bid or 0),
+            'step_increment': int(item.step_increment or 0),
+            'detail_url': reverse('auction:auction_product_detail', kwargs={'pk': item.product.pk}),
+        })
+
+    return JsonResponse({
+        'success': True,
+        'html': html,
+        'total_count': data['user_total_cart_items_count'],
+        'winning_count': data['user_winning_items_count'],
+        'outbid_count': data['user_outbid_items_count'],
+        'items': items_json,
+    })
+

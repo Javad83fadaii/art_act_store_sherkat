@@ -172,13 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const message = q.get('toast_message');
         if (!message) return;
         window.__TOAST_QUERY_HANDLED = true;
-        const type = q.get('toast_type') || 'info';
-        const position = q.get('toast_position') || 'bottom-left';
-        const actionLabel = q.get('toast_action_label') || '';
-        const actionHref = q.get('toast_action_href') || '';
-        if (window.showToast) {
-            window.showToast(message, type, position, { actionLabel, actionHref });
-        }
+        // Notification display disabled by request. We only clean the URL params.
         q.delete('toast_message');
         q.delete('toast_type');
         q.delete('toast_position');
@@ -590,8 +584,9 @@ window.openBidModal = function(triggerEl) {
     if (form && action) form.setAttribute('action', action);
 
     if (minNextEl) {
-        const parsed = Number(String(minNextRaw).replace(/,/g, ''));
-        minNextEl.textContent = Number.isFinite(parsed) && parsed > 0 ? `حداقل پیشنهاد بعدی: ${parsed.toLocaleString('fa-IR')} دلار` : '';
+        const parsed = Number(String(minNextRaw).replace(/[,\u066C]/g, ''));
+        const formatted = Number.isFinite(parsed) && parsed > 0 ? parsed.toLocaleString('fa-IR').replace(/٬/g, ',') : '';
+        minNextEl.textContent = formatted ? `حداقل پیشنهاد بعدی: ${formatted} تومان` : '';
     }
 
     modal.classList.remove('hidden');
