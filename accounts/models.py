@@ -162,11 +162,45 @@ class CustomUser(AbstractUser):
         برچسب فارسی وضعیت کاربر.
         """
         status_labels = {
-            "pending_verification": "در انتظار تایید",
+            "pending_verification": "تکمیل نشده",
             "active": "فعال",
             "inactive": "غیرفعال",
         }
         return status_labels.get(self.user_status, "نامشخص")
+
+    @classmethod
+    def get_pending_verification_q(cls):
+        has_email = models.Q(email__isnull=False) & ~models.Q(email='')
+        email_pending = has_email & models.Q(is_email_verified=False) & (
+            models.Q(preferred_contact_methods__isnull=True)
+            | models.Q(preferred_contact_methods=[])
+            | models.Q(preferred_contact_methods__contains='email')
+        )
+        sms_pending = models.Q(preferred_contact_methods__contains='sms', is_sms_verified=False)
+        return email_pending | sms_pending
+
+    @classmethod
+    def get_status_q(cls, status):
+        pending_q = cls.get_pending_verification_q()
+        if status == 'pending_verification':
+            return pending_q
+        elif status == 'active':
+            return models.Q(is_active=True) & ~pending_q
+        elif status == 'inactive':
+            return models.Q(is_active=False) & ~pending_q
+        return models.Q()
+
+    @classmethod
+    def search_q(cls, query):
+        q = str(query or "").strip()
+        if not q:
+            return models.Q()
+        return (
+            models.Q(full_name__icontains=q)
+            | models.Q(phone_number__icontains=q)
+            | models.Q(email__icontains=q)
+            | models.Q(username__icontains=q)
+        )
 
     @property
     def has_pending_auction_request(self):

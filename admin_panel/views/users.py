@@ -3,7 +3,7 @@ from decimal import Decimal
 from datetime import datetime
 
 from django.core.paginator import Paginator
-from django.db.models import Count, Q, Max, Subquery, OuterRef, IntegerField, DateTimeField
+from django.db.models import Count, Q, Max, Subquery, OuterRef, IntegerField, DateTimeField, Case, When, Value
 from django.db.models.functions import Coalesce
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
@@ -476,11 +476,18 @@ def list_view(request):
         .values('total')[:1]
     )
 
+    pending_q = CustomUser.get_pending_verification_q()
     users = (
         CustomUser.objects
         .all()
         .prefetch_related('verification_requests')
         .annotate(
+            status_order=Case(
+                When(pending_q, then=Value(2)),
+                When(is_active=True, then=Value(1)),
+                default=Value(3),
+                output_field=IntegerField(),
+            ),
             last_activity_time=Subquery(activity_subquery, output_field=DateTimeField()),
             store_visits_count=Coalesce(Subquery(store_visits_subquery, output_field=IntegerField()), 0),
             auction_visits_count=Coalesce(Subquery(auction_visits_subquery, output_field=IntegerField()), 0),
@@ -511,10 +518,9 @@ def list_view(request):
             filter_kwargs = {}
             for key, value in default_filter.criteria.items():
                 if key == 'status':
-                    if value == 'active':
-                        filter_kwargs['is_active'] = True
-                    elif value == 'inactive':
-                        filter_kwargs['is_active'] = False
+                    status_q = CustomUser.get_status_q(value)
+                    if status_q:
+                        users = users.filter(status_q)
                     continue
                 if '__gte' in key or '__lte' in key or 'date_joined' in key:
                     try:
@@ -529,25 +535,43 @@ def list_view(request):
     else:
         status = request.GET.get('status')
         if status:
-            pending_condition = (
-                models.Q(email__isnull=False, is_email_verified=False)
-                | models.Q(is_sms_verified=False)
-            )
-            if status == 'active':
-                users = users.filter(is_active=True).exclude(pending_condition)
-            elif status == 'pending_verification':
-                users = users.filter(pending_condition)
-            elif status == 'inactive':
-                users = users.filter(is_active=False).exclude(pending_condition)
+            status_q = CustomUser.get_status_q(status)
+            if status_q:
+                users = users.filter(status_q)
 
         search = request.GET.get('search')
         if search:
             users = users.filter(CustomUser.search_q(search))
 
+        if request.GET.get('date_joined__gte'):
+            try:
+                val = datetime.fromisoformat(request.GET.get('date_joined__gte')).date()
+                users = users.filter(date_joined__date__gte=val)
+            except (ValueError, AttributeError):
+                pass
+
+        if request.GET.get('date_joined__lte'):
+            try:
+                val = datetime.fromisoformat(request.GET.get('date_joined__lte')).date()
+                users = users.filter(date_joined__date__lte=val)
+            except (ValueError, AttributeError):
+                pass
+
+        if request.GET.get('is_staff'):
+            users = users.filter(is_staff=request.GET.get('is_staff').lower() in ('1', 'true'))
+
     # مرتب‌سازی پایه
     sort_param = request.GET.get('sort', '-date_joined')
     if sort_param:
-        sort_fields = [s.strip() for s in sort_param.split(',') if s.strip()]
+        raw_fields = [s.strip() for s in sort_param.split(',') if s.strip()]
+        sort_fields = []
+        for s in raw_fields:
+            if s in ('status', 'is_active', 'user_status'):
+                sort_fields.append('status_order')
+            elif s in ('-status', '-is_active', '-user_status'):
+                sort_fields.append('-status_order')
+            else:
+                sort_fields.append(s)
         if sort_fields:
             users = users.order_by(*sort_fields)
         else:
