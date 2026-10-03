@@ -66,6 +66,11 @@ def about(request):
     return render(request, 'core/about.html')
 
 
+def certificate_request(request):
+    """نمایش فرم درخواست صدور شناسنامه به صورت نمایشی"""
+    return render(request, 'core/certificate_request.html')
+
+
 def site_rules(request):
     """نمایش صفحه قوانین و مقررات سایت"""
     return render(request, 'core/site_rules.html')

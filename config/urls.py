@@ -17,6 +17,7 @@ urlpatterns = [
     
     path('store/', include('store.urls')),
     path('auction/', include('auction.urls')),
+    path('certificate-request/', views.certificate_request, name='certificate_request'),
     path('about/', views.about, name='about'),
     path('site_rules/', views.site_rules, name='site_rules'),
     re_path(r'^static/images/(?P<subpath>.*\.(?:mp4|webm|mov|m4v))$', views.static_video, name='static_video'),

@@ -60,11 +60,12 @@
             </a>
 
             <!-- شناسنامه -->
+            {% url 'certificate_request' as url_certificate_request %}
             {% url 'about' as url_about %}
-            <a class="text-sm font-medium transition-colors font-body relative group py-2 {% if request.path == url_about %}text-primary dark:text-primary{% else %}text-[#4B5563] dark:text-gray-300 hover:text-primary{% endif %}"
-                href="{{ url_about }}">
+            <a class="text-sm font-medium transition-colors font-body relative group py-2 {% if request.path == url_certificate_request %}text-primary dark:text-primary{% else %}text-[#4B5563] dark:text-gray-300 hover:text-primary{% endif %}"
+                href="{{ url_certificate_request }}">
                 شناسنامه
-                <span class="absolute bottom-0 left-0 h-0.5 bg-primary transition-all duration-300 {% if request.path == url_about %}w-full{% else %}w-0 group-hover:w-full{% endif %}"></span>
+                <span class="absolute bottom-0 left-0 h-0.5 bg-primary transition-all duration-300 {% if request.path == url_certificate_request %}w-full{% else %}w-0 group-hover:w-full{% endif %}"></span>
             </a>
 
             <!-- درباره ما -->
