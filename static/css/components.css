@@ -1,46 +1,174 @@
+/* =====================
+   FONTS: w_Nian
+===================== */
+/* Regular / Normal (300, 400, 500) */
 @font-face {
-  font-family: 'Morabba';
-  src: url('../fonts/Morabba-Light.ttf') format('truetype');
+  font-family: 'w_Nian';
+  src: url('../fonts/w_Nian.ttf') format('truetype');
   font-weight: 300;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'Morabba';
-  src: url('../fonts/Morabba-Regular.ttf') format('truetype');
+  font-family: 'w_Nian';
+  src: url('../fonts/w_Nian.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'Morabba';
-  src: url('../fonts/Morabba-Medium.ttf') format('truetype');
+  font-family: 'w_Nian';
+  src: url('../fonts/w_Nian.ttf') format('truetype');
   font-weight: 500;
   font-style: normal;
   font-display: swap;
 }
 
+/* Semi Bold (600, 700) */
 @font-face {
-  font-family: 'Morabba';
-  src: url('../fonts/Morabba-SemiBold.ttf') format('truetype');
+  font-family: 'w_Nian';
+  src: url('../fonts/w_Nian%20Semi%20Bold.ttf') format('truetype'),
+       url('../fonts/w_Nian Semi Bold.ttf') format('truetype');
   font-weight: 600;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'Morabba';
-  src: url('../fonts/Morabba-Bold.ttf') format('truetype');
+  font-family: 'w_Nian';
+  src: url('../fonts/w_Nian%20Semi%20Bold.ttf') format('truetype'),
+       url('../fonts/w_Nian Semi Bold.ttf') format('truetype');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
 }
 
+/* Black (800, 900) */
+@font-face {
+  font-family: 'w_Nian';
+  src: url('../fonts/w_Nian%20Black.ttf') format('truetype'),
+       url('../fonts/w_Nian Black.ttf') format('truetype');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'w_Nian';
+  src: url('../fonts/w_Nian%20Black.ttf') format('truetype'),
+       url('../fonts/w_Nian Black.ttf') format('truetype');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Aliases for 'Nian' */
+@font-face {
+  font-family: 'Nian';
+  src: url('../fonts/w_Nian.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Nian';
+  src: url('../fonts/w_Nian.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Nian';
+  src: url('../fonts/w_Nian.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Nian';
+  src: url('../fonts/w_Nian%20Semi%20Bold.ttf') format('truetype'),
+       url('../fonts/w_Nian Semi Bold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Nian';
+  src: url('../fonts/w_Nian%20Semi%20Bold.ttf') format('truetype'),
+       url('../fonts/w_Nian Semi Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Nian';
+  src: url('../fonts/w_Nian%20Black.ttf') format('truetype'),
+       url('../fonts/w_Nian Black.ttf') format('truetype');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Nian';
+  src: url('../fonts/w_Nian%20Black.ttf') format('truetype'),
+       url('../fonts/w_Nian Black.ttf') format('truetype');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Backward-compatibility Alias for Morabba */
 @font-face {
   font-family: 'Morabba';
-  src: url('../fonts/Morabba-Black.ttf') format('truetype');
+  src: url('../fonts/w_Nian.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Morabba';
+  src: url('../fonts/w_Nian.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Morabba';
+  src: url('../fonts/w_Nian.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Morabba';
+  src: url('../fonts/w_Nian%20Semi%20Bold.ttf') format('truetype'),
+       url('../fonts/w_Nian Semi Bold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Morabba';
+  src: url('../fonts/w_Nian%20Semi%20Bold.ttf') format('truetype'),
+       url('../fonts/w_Nian Semi Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Morabba';
+  src: url('../fonts/w_Nian%20Black.ttf') format('truetype'),
+       url('../fonts/w_Nian Black.ttf') format('truetype');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Morabba';
+  src: url('../fonts/w_Nian%20Black.ttf') format('truetype'),
+       url('../fonts/w_Nian Black.ttf') format('truetype');
   font-weight: 900;
   font-style: normal;
   font-display: swap;
@@ -86,8 +214,8 @@
 }
 
 body {
-  font-family: 'Morabba', sans-serif;
-  font-weight: 500;
+  font-family: 'w_Nian', 'Nian', 'Morabba', sans-serif;
+  font-weight: 400;
   background: var(--bg);
   color: var(--text);
   line-height: 1.7;
@@ -97,7 +225,7 @@ body {
 }
 
 .font-en {
-  font-family: 'Morabba', sans-serif;
+  font-family: 'w_Nian', 'Nian', 'Morabba', sans-serif;
   direction: ltr;
   display: inline-block;
 }
@@ -241,7 +369,7 @@ nav ul {
     display: flex;
     flex-direction: column;
     align-items: center;
-    font-family: 'Morabba', sans-serif;
+    font-family: 'w_Nian', 'Nian', 'Morabba', sans-serif;
     margin-top: 15px;
 }
 

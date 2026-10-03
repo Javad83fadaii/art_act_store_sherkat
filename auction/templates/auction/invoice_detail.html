@@ -8,19 +8,31 @@
     <link rel="stylesheet" href="{% static 'css/tailwind.css' %}">
     <style>
         @font-face {
+            font-family: 'w_Nian';
+            src: url("{% static 'fonts/w_Nian.ttf' %}") format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'w_Nian';
+            src: url("{% static 'fonts/w_Nian Semi Bold.ttf' %}") format('truetype');
+            font-weight: bold;
+            font-style: normal;
+        }
+        @font-face {
             font-family: 'Morabba';
-            src: url("{% static 'fonts/Morabba-Regular.ttf' %}") format('truetype');
+            src: url("{% static 'fonts/w_Nian.ttf' %}") format('truetype');
             font-weight: normal;
             font-style: normal;
         }
         @font-face {
             font-family: 'Morabba';
-            src: url("{% static 'fonts/Morabba-Bold.ttf' %}") format('truetype');
+            src: url("{% static 'fonts/w_Nian Semi Bold.ttf' %}") format('truetype');
             font-weight: bold;
             font-style: normal;
         }
         body {
-            font-family: 'Morabba', Tahoma, sans-serif;
+            font-family: 'w_Nian', 'Nian', 'Morabba', Tahoma, sans-serif;
             background-color: #f8fafc;
             color: #1e293b;
         }

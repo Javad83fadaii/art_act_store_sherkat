@@ -42,9 +42,11 @@ def _register_fonts():
     if reg_font_path.exists():
         pdfmetrics.registerFont(TTFont('Tahoma', str(reg_font_path)))
         pdfmetrics.registerFont(TTFont('Morabba', str(reg_font_path)))
+        pdfmetrics.registerFont(TTFont('w_Nian', str(reg_font_path)))
     if bold_font_path.exists():
         pdfmetrics.registerFont(TTFont('Tahoma-Bold', str(bold_font_path)))
         pdfmetrics.registerFont(TTFont('Morabba-Bold', str(bold_font_path)))
+        pdfmetrics.registerFont(TTFont('w_Nian-Bold', str(bold_font_path)))
 
     _FONTS_REGISTERED = True
 
