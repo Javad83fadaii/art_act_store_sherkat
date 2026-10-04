@@ -1,159 +1,142 @@
 {% load static %}
-<header
-    class="fixed top-4 left-1/2 -translate-x-1/2 z-[1001] w-[96%] max-w-[1440px] rounded-full border border-[#F3F4F6] dark:border-white/5 glass-effect bg-[#FFFFFF]/80 dark:bg-gray-900/80 backdrop-blur-lg shadow-2xl shadow-black/15 dark:shadow-black/40 transition-all duration-300">
-    <div class="px-6 md:px-8 h-16 md:h-[76px] flex items-center justify-between relative w-full">
+<header class="fixed top-0 left-0 right-0 z-[1001] w-full bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 !shadow-none transition-all duration-300" style="box-shadow: none !important;">
+    <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <!-- حالت ریسپانسیو / موبایل (کمتر از lg) -->
+        <div class="relative flex h-20 items-center justify-between lg:hidden">
+            <button id="mobile-menu-btn" onclick="toggleMobileMenu()" type="button"
+                class="p-2 -mr-2 text-gray-700 dark:text-gray-300 hover:text-primary transition-colors focus:outline-none"
+                aria-label="منوی سایت">
+                <span class="material-symbols-outlined text-[28px]">menu</span>
+            </button>
 
-        <!-- دکمه منوی همبرگری -->
-        <button id="mobile-menu-btn" onclick="toggleMobileMenu()"
-            class="lg:hidden p-2 -mr-2 text-[#4B5563] dark:text-gray-300 hover:text-primary transition-colors z-30">
-            <span class="material-symbols-outlined text-[28px]">menu</span>
-        </button>
-
-        <!-- بخش لوگو -->
-        <div
-            class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 lg:static lg:translate-x-0 lg:translate-y-0 flex items-center gap-2 lg:gap-3 z-20 pointer-events-none lg:pointer-events-auto">
-            <a href="{% url 'home' %}" class="flex items-center gap-2 lg:gap-3 pointer-events-auto">
-                <div class="logo-bg-reveal size-10 lg:size-12 rounded-full bg-primary text-white flex items-center justify-center shrink-0">
-                    <img id="header-logo-anim" src="{% static 'images/122.gif' %}" alt="gavel"
-                        class="size-28 lg:size-32 object-contain drop-shadow-[0_4px_8px_#AB8C58]">
-                </div> 
-
-                <div class="flex flex-col items-center lg:items-start">
-                    <h1 class="leading-none whitespace-nowrap">
-                        <img
-                            src="{% static 'images/1.svg' %}"
-                            alt="مزایده آثار هنری"
-                            class="max-h-6 lg:max-h-7 w-auto object-contain dark:brightness-110"
-                        >
-                    </h1>
-                    <span class="text-xs text-primary font-medium tracking-wide mt-1 hidden lg:block uppercase">
-                        Auction of works art
-                    </span>
-                </div>
+            <!-- لوگوی ریسپانسیو: logo_res.svg -->
+            <a href="{% url 'home' %}"
+                class="absolute left-1/2 -translate-x-1/2 flex items-center transition-opacity hover:opacity-95"
+                aria-label="صفحه اصلی آثار هنری">
+                <img src="{% static 'images/svg/logo_res.svg' %}" alt="مزایده آثار هنری"
+                    class="h-[58px] w-auto object-contain">
             </a>
+
+            <button type="button" onclick="toggleSearchSidebar()"
+                class="p-2 -ml-2 text-gray-700 dark:text-gray-300 hover:text-primary transition-colors"
+                aria-label="جستجو">
+                <span class="material-symbols-outlined text-[24px]">search</span>
+            </button>
         </div>
 
-        <!-- دکمه سرچ -->
-        <button type="button" onclick="toggleSearchSidebar()"
-            class="lg:hidden p-2 -ml-2 text-[#4B5563] dark:text-gray-300 hover:text-primary transition-colors z-30"
-            aria-label="جستجو">
-            <span class="material-symbols-outlined text-[28px]">search</span>
-        </button>
+        <!-- حالت دسکتاپ (lg به بالا) -->
+        <div class="hidden h-[92px] items-center justify-between lg:flex">
+            <!-- راست: لوگوی دسکتاپ (logo.svg) -->
+            <div class="flex items-center gap-3">
+                <a href="{% url 'home' %}" class="flex items-center transition-opacity hover:opacity-95" aria-label="صفحه اصلی آثار هنری">
+                    <img src="{% static 'images/svg/logo.svg' %}" alt="مزایده آثار هنری"
+                        class="h-[60px] w-auto object-contain">
+                </a>
+            </div>
 
-        <!-- منوی دسکتاپ (آپدیت شده برای صفحات داخلی و جزئیات محصول) -->
-        <nav class="hidden lg:flex items-center gap-8 mx-auto pl-10">
-            
-            <!-- مزایده: فعال در تمام صفحات اپلیکیشن auction -->
+            <!-- وسط: منوی اصلی ناوبری -->
+            <nav class="flex items-center gap-8 xl:gap-10">
             {% url 'auction:auction' as url_auction %}
-            <a class="text-sm font-medium transition-colors font-body relative group py-2 {% if request.resolver_match.namespace == 'auction' or request.path == url_auction %}text-primary dark:text-primary{% else %}text-[#4B5563] dark:text-gray-300 hover:text-primary{% endif %}"
-                href="{{ url_auction }}">
+            {% url 'store:artwork_list' as url_store %}
+            {% url 'certificate_request' as url_certificate_request %}
+            {% url 'about' as url_about %}
+
+            <!-- 1. مزایده -->
+            <a href="{{ url_auction }}"
+                class="text-[16px] font-bold font-body transition-colors py-2 relative group {% if request.resolver_match.namespace == 'auction' or request.path == url_auction %}text-primary{% else %}text-[#2B2A29] dark:text-gray-200 hover:text-primary{% endif %}">
                 مزایده
                 <span class="absolute bottom-0 left-0 h-0.5 bg-primary transition-all duration-300 {% if request.resolver_match.namespace == 'auction' or request.path == url_auction %}w-full{% else %}w-0 group-hover:w-full{% endif %}"></span>
             </a>
 
-            <!-- فروشگاه: فعال در تمام صفحات اپلیکیشن store از جمله جزئیات محصول -->
-            {% url 'store:artwork_list' as url_store %}
-            <a class="text-sm font-medium transition-colors font-body relative group py-2 {% if request.resolver_match.namespace == 'store' or request.path == url_store %}text-primary dark:text-primary{% else %}text-[#4B5563] dark:text-gray-300 hover:text-primary{% endif %}"
-                href="{{ url_store }}">
+            <!-- 2. فروشگاه -->
+            <a href="{{ url_store }}"
+                class="text-[16px] font-bold font-body transition-colors py-2 relative group {% if request.resolver_match.namespace == 'store' or request.path == url_store %}text-primary{% else %}text-[#2B2A29] dark:text-gray-200 hover:text-primary{% endif %}">
                 فروشگاه
                 <span class="absolute bottom-0 left-0 h-0.5 bg-primary transition-all duration-300 {% if request.resolver_match.namespace == 'store' or request.path == url_store %}w-full{% else %}w-0 group-hover:w-full{% endif %}"></span>
             </a>
 
-            <!-- شناسنامه -->
-            {% url 'certificate_request' as url_certificate_request %}
-            {% url 'about' as url_about %}
-            <a class="text-sm font-medium transition-colors font-body relative group py-2 {% if request.path == url_certificate_request %}text-primary dark:text-primary{% else %}text-[#4B5563] dark:text-gray-300 hover:text-primary{% endif %}"
-                href="{{ url_certificate_request }}">
+            <!-- 3. شناسنامه -->
+            <a href="{{ url_certificate_request }}"
+                class="text-[16px] font-bold font-body transition-colors py-2 relative group {% if request.path == url_certificate_request %}text-primary{% else %}text-[#2B2A29] dark:text-gray-200 hover:text-primary{% endif %}">
                 شناسنامه
                 <span class="absolute bottom-0 left-0 h-0.5 bg-primary transition-all duration-300 {% if request.path == url_certificate_request %}w-full{% else %}w-0 group-hover:w-full{% endif %}"></span>
             </a>
 
-            <!-- درباره ما -->
-            <a class="text-sm font-medium transition-colors font-body relative group py-2 {% if request.path == url_about %}text-primary dark:text-primary{% else %}text-[#4B5563] dark:text-gray-300 hover:text-primary{% endif %}"
-                href="{{ url_about }}">
+            <!-- 4. درباره ما -->
+            <a href="{{ url_about }}"
+                class="text-[16px] font-bold font-body transition-colors py-2 relative group {% if request.path == url_about %}text-primary{% else %}text-[#2B2A29] dark:text-gray-200 hover:text-primary{% endif %}">
                 درباره ما
                 <span class="absolute bottom-0 left-0 h-0.5 bg-primary transition-all duration-300 {% if request.path == url_about %}w-full{% else %}w-0 group-hover:w-full{% endif %}"></span>
             </a>
-        </nav>
+            </nav>
 
-        <!-- بخش آیکون‌های سمت چپ -->
-        <div class="hidden lg:flex items-center gap-2 md:gap-3 z-20">
+            <!-- چپ: دکمه ورود / ثبت‌نام یا حساب کاربری -->
+            <div class="flex items-center gap-2 sm:gap-3">
 
-            <!-- پروفایل -->
-            <div class="relative group">
-                <button
-                    class="flex items-center gap-2 p-1.5 px-3 text-[#4B5563] hover:text-primary transition-colors rounded-full bg-primary/5 hover:bg-primary/10 dark:bg-white/5 dark:hover:bg-white/10">
-                    
-                    {% if request.user.is_authenticated %}
+            {% if request.user.is_authenticated %}
+                <!-- دراپ‌داون پروفایل کاربر وارد شده -->
+                <div class="relative group">
+                    <button type="button"
+                        class="flex items-center gap-2 py-1.5 px-3 text-[#2B2A29] dark:text-gray-200 hover:text-primary transition-colors rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gray-800 hover:border-primary/20">
                         <div class="relative flex items-center justify-center">
-                            <span class="material-symbols-outlined text-[28px] leading-none block">account_circle</span>
-                            
+                            <span class="material-symbols-outlined text-[24px] text-primary">account_circle</span>
                             {% if request.user.is_verified == 1 %}
-                                <span class="absolute -top-1 -right-1 z-10 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center shadow-sm" title="کاربر تایید شده">
-                                    <i class="material-symbols-outlined text-white text-[21.5px] mt-px">check_circle</i>
+                                <span class="absolute -top-1 -right-1 z-10 w-3.5 h-3.5 bg-green-500 rounded-full flex items-center justify-center shadow-sm" title="کاربر تایید شده">
+                                    <i class="material-symbols-outlined text-white text-[18px]">check</i>
                                 </span>
                             {% endif %}
                         </div>
-                        <span class="inline-block max-w-[80px] truncate text-sm font-bold font-body text-[#1F2937] dark:text-gray-200" title="{{ request.user.get_full_name }}">
+                        <span class="inline-block max-w-[110px] truncate text-sm font-semibold font-body" title="{{ request.user.get_full_name }}">
                             {{ request.user.get_full_name|default:"کاربر" }}
                         </span>
-                    {% else %}
-                        <div class="relative flex items-center justify-center">
-                            <span class="material-symbols-outlined text-[28px] leading-none block">login</span>
-                        </div>
-                        <span class="text-sm font-bold font-body text-[#1F2937] dark:text-gray-200"> ورود | ثبت نام </span>
-                    {% endif %}
+                        <span class="material-symbols-outlined text-[18px] text-gray-400 group-hover:rotate-180 transition-transform duration-200">expand_more</span>
+                    </button>
 
-                </button>
+                    <!-- منوی دراپ‌داون -->
+                    <div class="absolute left-0 top-full mt-2 w-56 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-2 group-hover:translate-y-0 z-50 pt-1">
+                        <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 p-2 overflow-hidden">
+                            <div class="px-3.5 py-2.5 border-b border-gray-100 dark:border-gray-800 bg-gray-50/70 dark:bg-white/5 rounded-xl mb-1">
+                                <p class="text-xs text-gray-500 font-body">خوش آمدید</p>
+                                <p class="text-sm font-bold text-[#1F2937] dark:text-white mt-0.5 truncate font-body">
+                                    {{ request.user.get_full_name|default:request.user.username }}
+                                </p>
+                            </div>
 
-                <!-- دراپ‌داون پروفایل -->
-                <div
-                    class="absolute left-0 top-full mt-4 w-60 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform translate-y-4 group-hover:translate-y-0 z-50 pt-2">
-                    <div
-                        class="bg-[#FFFFFF] dark:bg-gray-900 rounded-2xl shadow-2xl shadow-primary/5 border border-[#F3F4F6] dark:border-gray-800 p-2 overflow-hidden">
-                        
-                        {% if request.user.is_authenticated %}
-                        <div
-                            class="px-4 py-3 border-b border-[#F3F4F6] dark:border-gray-800 bg-[#F9FAFB] dark:bg-white/5 rounded-t-xl mb-1">
-                            <p class="text-xs text-[#6B7280] font-body">خوش آمدید</p>
-                            <p class="text-sm font-bold text-[#1F2937] dark:text-white mt-1 font-body">
-                                {{ request.user.full_name|default:'کاربر بدون نام' }}
-                            </p>
-                        </div>
-                        {% endif %}
-                        
-                        {% if request.user.is_authenticated %}
-                            <a class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-[#4B5563] hover:text-primary hover:bg-primary/5 dark:hover:bg-gray-800 rounded-xl transition-colors font-body"
-                                href="{% url 'profile' %}">
-                                <span class="material-symbols-outlined text-[20px]">account_circle</span>پروفایل
+                            <a href="{% url 'profile' %}"
+                                class="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-primary hover:bg-primary/5 dark:hover:bg-gray-800 rounded-xl transition-colors font-body">
+                                <span class="material-symbols-outlined text-[20px] text-primary">person</span>
+                                پروفایل من
                             </a>
-                            
+
                             {% if request.user.is_staff %}
-                                <a class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-[#4B5563] hover:text-primary hover:bg-primary/5 dark:hover:bg-gray-800 rounded-xl transition-colors font-body"
-                                    href="/admin-panel/dashboard/">
-                                    <span class="material-symbols-outlined text-[20px]">dashboard</span>مدیریت
+                                <a href="/admin-panel/dashboard/"
+                                    class="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-primary hover:bg-primary/5 dark:hover:bg-gray-800 rounded-xl transition-colors font-body">
+                                    <span class="material-symbols-outlined text-[20px] text-primary">dashboard</span>
+                                    پنل مدیریت
                                 </a>
                             {% endif %}
-                            
+
                             <form action="{% url 'logout' %}" method="post" class="contents">
                                 {% csrf_token %}
                                 <button type="submit"
-                                    class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-[#4B5563] hover:text-primary hover:bg-primary/5 dark:hover:bg-gray-800 rounded-xl transition-colors font-body cursor-pointer w-full">
-                                    <span class="material-symbols-outlined text-[20px]">logout</span>خروج
+                                    class="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-colors font-body cursor-pointer w-full text-right">
+                                    <span class="material-symbols-outlined text-[20px]">logout</span>
+                                    خروج از حساب
                                 </button>
                             </form>
-                        {% else %}
-                            <a class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-[#4B5563] hover:text-primary hover:bg-primary/5 dark:hover:bg-gray-800 rounded-xl transition-colors font-body"
-                                href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}">
-                                <span class="material-symbols-outlined text-[20px]">login</span>ورود
-                            </a>
-                            <a class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-[#4B5563] hover:text-primary hover:bg-primary/5 dark:hover:bg-gray-800 rounded-xl transition-colors font-body"
-                                href="{% url 'signup' %}">
-                                <span class="material-symbols-outlined text-[20px]">person_add</span>ثبت نام
-                            </a>
-                        {% endif %}
+                        </div>
                     </div>
                 </div>
+            {% else %}
+                <!-- دکمه ورود | ثبت‌نام -->
+                <a href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}"
+                    class="group flex items-center gap-1.5 py-2 px-3 text-[#2B2A29] dark:text-gray-200 hover:text-primary dark:hover:text-primary transition-all duration-200 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5"
+                    title="ورود به حساب یا ثبت‌نام">
+                    <span class="material-symbols-outlined text-[20px] transition-transform duration-200 group-hover:-translate-x-0.5">login</span>
+                    <span class="text-[15px] font-bold font-body whitespace-nowrap tracking-tight">ورود|ثبت‌نام</span>
+                </a>
+            {% endif %}
             </div>
         </div>
     </div>

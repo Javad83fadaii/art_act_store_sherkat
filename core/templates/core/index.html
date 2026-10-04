@@ -1,168 +1,67 @@
 {% extends 'base.html' %}
 {% load static humanize jalali_tags fa_digits %}
 
-{% block content %}
+{% block extra_css %}
 <style>
-    @keyframes heroZoomInOut {
-
-        0%,
-        100% {
-            transform: scale(1);
-        }
-
-        50% {
-            transform: scale(1.08);
-        }
+    .home-banner-stage {
+        overflow: hidden;
+        isolation: isolate;
+        background: #fff;
     }
 
-    .hero-banner-image {
-        animation: heroZoomInOut 14s ease-in-out infinite;
-        will-change: transform;
-        transform-origin: center center;
+    .home-banner-image {
+        opacity: 0;
+        transform: scale(1.035);
+        filter: saturate(1.02);
+        will-change: transform, opacity, filter;
+        transition: opacity 1800ms cubic-bezier(0.22, 1, 0.36, 1),
+                    transform 1800ms cubic-bezier(0.22, 1, 0.36, 1),
+                    filter 1800ms cubic-bezier(0.22, 1, 0.36, 1);
     }
 
-    .hero-banner-image-delayed {
-        animation-delay: 2s;
+    .home-banner-image.is-preparing {
+        opacity: 0;
+        transform: scale(1.06);
+        filter: saturate(1.06);
     }
 
-    .hero-banner-image-slow {
-        animation-duration: 16s;
+    .home-banner-image.is-active {
+        opacity: 1;
+        transform: scale(1);
+        filter: saturate(1);
+    }
+
+    .home-banner-image.is-exiting {
+        opacity: 0;
+        transform: scale(0.985);
+        filter: brightness(1.03);
     }
 </style>
+{% endblock %}
+
+{% block content %}
 <div
-    class="bg-background-light dark:bg-background-dark text-text-main dark:text-white transition-colors duration-300 selection:bg-primary selection:text-white">
+    class="bg-white dark:bg-white text-text-main dark:text-text-main transition-colors duration-300 selection:bg-primary selection:text-white">
     <div class="relative flex flex-col min-h-screen w-full overflow-x-hidden">
 
         <!-- ==========================================
                                 Hero Section
                 =========================================== -->
-        <section class="relative w-full h-[380px] md:h-[550px] bg-gray-100 overflow-hidden mt-4 md:mt-6">
-            <div class="flex w-full h-full overflow-x-auto overflow-y-hidden snap-x snap-mandatory no-scrollbar scroll-smooth"
-                id="slider-container">
-
-                <!-- Slide 1 -->
-                <div class="group/hero min-w-full h-full snap-center relative flex items-center justify-center shrink-0"
-                    id="slide-1">
-                    <a aria-label="Previous Slide"
-                        class="slider-nav absolute right-4 md:right-10 top-1/2 -translate-y-1/2 z-30 w-10 h-10 md:w-14 md:h-14 rounded-full border border-white/30 bg-white/5 backdrop-blur-[2px] text-white flex items-center justify-center hover:bg-white hover:text-primary hover:scale-110 hover:border-white transition-all duration-300 shadow-lg cursor-pointer"
-                        href="#slide-3">
-                        <span
-                            class="material-symbols-outlined text-[24px] md:text-[32px] font-light">chevron_right</span>
-                    </a>
-                    <a aria-label="Next Slide"
-                        class="slider-nav absolute left-4 md:left-10 top-1/2 -translate-y-1/2 z-30 w-10 h-10 md:w-14 md:h-14 rounded-full border border-white/30 bg-white/5 backdrop-blur-[2px] text-white flex items-center justify-center hover:bg-white hover:text-primary hover:scale-110 hover:border-white transition-all duration-300 shadow-lg cursor-pointer"
-                        href="#slide-2">
-                        <span
-                            class="material-symbols-outlined text-[24px] md:text-[32px] font-light">chevron_left</span>
-                    </a>
-
-                    <div class="absolute inset-0 overflow-hidden">
-                        <img src="{% static 'images/112.png' %}"
-                            class="hero-banner-image absolute inset-0 w-full h-full object-cover" alt="background 1">
-                        <div class="absolute inset-0 bg-black/40 backdrop-blur-[2px]"></div>
-                    </div>
-
-                    <div class="relative z-10 text-center text-white px-6 max-w-3xl flex flex-col items-center">
-                        <span
-                            class="inline-block py-1 px-3 border border-white/30 rounded-full text-[10px] md:text-xs font-bold tracking-widest mb-4 backdrop-blur-md text-primary-light font-display">ART
-                            COLLECTION</span>
-                        <h2
-                            class="text-3xl md:text-6xl font-bold mb-4 md:mb-6 leading-tight tracking-tight drop-shadow-2xl font-display transform transition-transform duration-700 hover:scale-105">
-                            لحظه ای که هنر<br />انتخاب شما می شود</h2>
-                        <p
-                            class="text-sm md:text-xl font-medium mb-6 md:mb-8 opacity-90 max-w-xl leading-relaxed text-gray-100 font-body">
-                            پلتفرمی مدرن برای کشف، خرید و سرمایه‌گذاری بر روی آثار هنری</p>
-                        <button
-                            class="group/btn relative px-5 py-3 md:px-6 md:py-4 bg-primary text-white font-bold rounded-full overflow-hidden transition-all hover:bg-primary-dark hover:scale-105 active:scale-95 shadow-[0_0_40px_-10px_rgba(171,140,88,0.5)]">
-                            <span class="relative z-10 flex items-center gap-2 font-body text-sm md:text-base">
-                                مشاهده کالکشن
-                                <span
-                                    class="material-symbols-outlined text-[20px] md:text-[24px] rtl:rotate-180 transition-transform group-hover/btn:translate-x-1">arrow_right_alt</span>
-                            </span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Slide 2 -->
-                <div class="group/hero min-w-full h-full snap-center relative flex items-center justify-center shrink-0"
-                    id="slide-2">
-                    <a aria-label="Previous Slide"
-                        class="slider-nav absolute right-4 md:right-10 top-1/2 -translate-y-1/2 z-30 w-10 h-10 md:w-14 md:h-14 rounded-full border border-white/30 bg-white/5 backdrop-blur-[2px] text-white flex items-center justify-center hover:bg-white hover:text-primary hover:scale-110 hover:border-white transition-all duration-300 shadow-lg cursor-pointer"
-                        href="#slide-1">
-                        <span
-                            class="material-symbols-outlined text-[24px] md:text-[32px] font-light">chevron_right</span>
-                    </a>
-                    <a aria-label="Next Slide"
-                        class="slider-nav absolute left-4 md:left-10 top-1/2 -translate-y-1/2 z-30 w-10 h-10 md:w-14 md:h-14 rounded-full border border-white/30 bg-white/5 backdrop-blur-[2px] text-white flex items-center justify-center hover:bg-white hover:text-primary hover:scale-110 hover:border-white transition-all duration-300 shadow-lg cursor-pointer"
-                        href="#slide-3">
-                        <span
-                            class="material-symbols-outlined text-[24px] md:text-[32px] font-light">chevron_left</span>
-                    </a>
-
-                    <div class="absolute inset-0 overflow-hidden">
-                        <img src="{% static 'images/backgerand1.png' %}"
-                            class="hero-banner-image hero-banner-image-delayed absolute inset-0 w-full h-full object-cover"
-                            alt="background 2">
-                        <div
-                            class="absolute inset-0 bg-black/50 backdrop-blur-[2px] transition-colors duration-500 group-hover/hero:bg-black/40">
-                        </div>
-                    </div>
-
-                    <div class="relative z-10 text-center text-white px-6">
-                        <h2
-                            class="text-3xl md:text-6xl font-bold mb-4 font-display transform transition-transform duration-700 hover:scale-105">
-                            فروشگاه آثار منتخب</h2>
-                        <p class="text-base md:text-xl font-medium mb-6 text-gray-200 font-body">از نقاشی‌های کلاسیک تا
-                            هنر مدرن</p>
-                        <a class="inline-block px-6 py-2.5 md:px-8 md:py-3 bg-white/10 backdrop-blur-md border border-white/50 text-white font-bold rounded-full hover:bg-white hover:text-text-main hover:scale-105 transition-all font-body text-sm md:text-base shadow-lg"
-                            href="{% url 'store:artwork_list' %}">ورود به فروشگاه</a>
-                    </div>
-                </div>
-
-                <!-- Slide 3 -->
-                <div class="group/hero min-w-full h-full snap-center relative flex items-center justify-center shrink-0"
-                    id="slide-3">
-                    <a aria-label="Previous Slide"
-                        class="slider-nav absolute right-4 md:right-10 top-1/2 -translate-y-1/2 z-30 w-10 h-10 md:w-14 md:h-14 rounded-full border border-white/30 bg-white/5 backdrop-blur-[2px] text-white flex items-center justify-center hover:bg-white hover:text-primary hover:scale-110 hover:border-white transition-all duration-300 shadow-lg cursor-pointer"
-                        href="#slide-2">
-                        <span
-                            class="material-symbols-outlined text-[24px] md:text-[32px] font-light">chevron_right</span>
-                    </a>
-                    <a aria-label="Next Slide"
-                        class="slider-nav absolute left-4 md:left-10 top-1/2 -translate-y-1/2 z-30 w-10 h-10 md:w-14 md:h-14 rounded-full border border-white/30 bg-white/5 backdrop-blur-[2px] text-white flex items-center justify-center hover:bg-white hover:text-primary hover:scale-110 hover:border-white transition-all duration-300 shadow-lg cursor-pointer"
-                        href="#slide-1">
-                        <span
-                            class="material-symbols-outlined text-[24px] md:text-[32px] font-light">chevron_left</span>
-                    </a>
-
-                    <div class="absolute inset-0 overflow-hidden">
-                        <img src="{% static 'images/backgerand2.png' %}"
-                            class="hero-banner-image hero-banner-image-slow absolute inset-0 w-full h-full object-cover"
-                            alt="background 3">
-                        <div
-                            class="absolute inset-0 bg-black/60 backdrop-blur-[2px] transition-colors duration-500 group-hover/hero:bg-black/50">
-                        </div>
-                    </div>
-
-                    <div class="relative z-10 text-center text-white px-6">
-                        <h2
-                            class="text-3xl md:text-6xl font-bold mb-4 font-display transform transition-transform duration-700 hover:scale-105">
-                            مزایده‌های اختصاصی</h2>
-                        <p class="text-base md:text-xl font-medium mb-6 text-gray-200 font-body">فرصت بی‌نظیر
-                            سرمایه‌گذاری</p>
-                        <a class="inline-block px-6 py-2.5 md:px-8 md:py-3 bg-primary text-white font-bold rounded-full hover:bg-primary-dark hover:scale-105 transition-all shadow-lg shadow-primary/40 font-body text-sm md:text-base"
-                            href="{% url 'auction:auction' %}">مشاهده مزایده‌ها</a>
-                    </div>
+        <section class="w-full mt-4 md:mt-6 px-0 md:px-3">
+            <div class="w-full max-w-[3200px] mx-auto overflow-hidden bg-white rounded-none md:rounded-3xl">
+                <div class="home-banner-stage relative w-full" style="aspect-ratio: 3094 / 831;">
+                    <img id="home-banner-image-primary"
+                        src="{% static 'images/B1.webp' %}"
+                        alt="بنر صفحه اصلی"
+                        class="home-banner-image is-active absolute inset-0 w-full h-full object-cover">
+                    <img id="home-banner-image-secondary"
+                        src="{% static 'images/B1.webp' %}"
+                        alt=""
+                        aria-hidden="true"
+                        class="home-banner-image absolute inset-0 w-full h-full object-cover">
                 </div>
             </div>
-
-            <!-- Dots (نمایشی - برای زیباسازی) -->
-            <div
-                class="absolute bottom-6 md:bottom-10 left-1/2 transform -translate-x-1/2 flex gap-2 md:gap-3 z-20 pointer-events-none">
-                <div class="w-8 md:w-12 h-1 rounded-full bg-white shadow-lg transition-all duration-300"></div>
-                <div class="w-2 h-1 rounded-full bg-white/40 transition-all duration-300"></div>
-                <div class="w-2 h-1 rounded-full bg-white/40 transition-all duration-300"></div>
-            </div>
+            <div id="home-banner-dots" class="flex items-center justify-center gap-2 mt-3 md:mt-4"></div>
         </section>
 
         <!-- Main Content -->
@@ -612,18 +511,150 @@
     // تایمر و اسلایدر
     // ==========================================
     document.addEventListener('DOMContentLoaded', function () {
-        // جلوگیری از پرش صفحه در اسلایدر
-        const sliderNavButtons = document.querySelectorAll('.slider-nav');
-        sliderNavButtons.forEach(button => {
-            button.addEventListener('click', function (e) {
-                e.preventDefault();
-                const targetId = this.getAttribute('href').substring(1);
-                const targetElement = document.getElementById(targetId);
-                if (targetElement) {
-                    targetElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+        const homeBannerImagePrimary = document.getElementById('home-banner-image-primary');
+        const homeBannerImageSecondary = document.getElementById('home-banner-image-secondary');
+        const homeBannerDots = document.getElementById('home-banner-dots');
+        const bannerBaseUrl = "{% static 'images/' %}";
+
+        if (homeBannerImagePrimary && homeBannerImageSecondary) {
+            const bannerLayers = [homeBannerImagePrimary, homeBannerImageSecondary];
+            const bannerUrls = [];
+            let currentBannerIndex = 0;
+            let activeLayerIndex = 0;
+            let bannerIntervalId = null;
+            let isBannerAnimating = false;
+
+            const setBannerSource = function (imageElement, bannerUrl) {
+                return new Promise((resolve, reject) => {
+                    const preloadImage = new Image();
+
+                    preloadImage.onload = function () {
+                        imageElement.src = bannerUrl;
+                        resolve();
+                    };
+
+                    preloadImage.onerror = function () {
+                        reject(new Error(`Unable to load ${bannerUrl}`));
+                    };
+
+                    preloadImage.src = bannerUrl;
+                });
+            };
+
+            const showBanner = function (nextIndex) {
+                if (isBannerAnimating || !bannerUrls[nextIndex] || nextIndex === currentBannerIndex) {
+                    return;
                 }
+
+                isBannerAnimating = true;
+                const currentLayer = bannerLayers[activeLayerIndex];
+                const nextLayerIndex = activeLayerIndex === 0 ? 1 : 0;
+                const nextLayer = bannerLayers[nextLayerIndex];
+
+                setBannerSource(nextLayer, bannerUrls[nextIndex])
+                    .then(function () {
+                        nextLayer.classList.remove('is-active', 'is-exiting');
+                        nextLayer.classList.add('is-preparing');
+                        currentBannerIndex = nextIndex;
+                        renderBannerDots();
+
+                        requestAnimationFrame(function () {
+                            requestAnimationFrame(function () {
+                                currentLayer.classList.remove('is-preparing');
+                                currentLayer.classList.add('is-exiting');
+                                nextLayer.classList.remove('is-preparing');
+                                nextLayer.classList.add('is-active');
+                            });
+                        });
+
+                        setTimeout(function () {
+                            currentLayer.classList.remove('is-active', 'is-exiting');
+                            activeLayerIndex = nextLayerIndex;
+                            isBannerAnimating = false;
+                        }, 820);
+                    })
+                    .catch(function () {
+                        isBannerAnimating = false;
+                    });
+            };
+
+            const renderBannerDots = function () {
+                if (!homeBannerDots) {
+                    return;
+                }
+
+                homeBannerDots.innerHTML = bannerUrls.map((_, index) => {
+                    const isActive = index === currentBannerIndex;
+                    return `<button type="button" class="home-banner-dot h-2.5 w-2.5 rounded-full transition-all duration-300 ${isActive ? 'bg-primary scale-110' : 'bg-gray-300'}" data-banner-index="${index}" aria-label="بنر ${index + 1}"></button>`;
+                }).join('');
+
+                homeBannerDots.querySelectorAll('.home-banner-dot').forEach(dot => {
+                    dot.addEventListener('click', function () {
+                        const nextIndex = Number(this.dataset.bannerIndex);
+                        showBanner(nextIndex);
+
+                        if (bannerIntervalId) {
+                            clearInterval(bannerIntervalId);
+                            bannerIntervalId = null;
+                            startBannerRotation();
+                        }
+                    });
+                });
+            };
+
+            const startBannerRotation = function () {
+                if (bannerUrls.length <= 1) {
+                    return;
+                }
+
+                bannerIntervalId = setInterval(function () {
+                    const nextBannerIndex = (currentBannerIndex + 1) % bannerUrls.length;
+                    showBanner(nextBannerIndex);
+                }, 5000);
+            };
+
+            const loadBanner = (bannerNumber) => new Promise((resolve, reject) => {
+                const image = new Image();
+                const bannerUrl = `${bannerBaseUrl}B${bannerNumber}.webp`;
+
+                image.onload = function () {
+                    resolve(bannerUrl);
+                };
+
+                image.onerror = function () {
+                    reject(new Error(`Banner B${bannerNumber} not found`));
+                };
+
+                image.src = bannerUrl;
             });
-        });
+
+            const discoverBanners = async function () {
+                for (let bannerNumber = 1; bannerNumber <= 50; bannerNumber += 1) {
+                    try {
+                        const bannerUrl = await loadBanner(bannerNumber);
+                        bannerUrls.push(bannerUrl);
+                    } catch (error) {
+                        break;
+                    }
+                }
+
+                if (bannerUrls.length === 0) {
+                    return;
+                }
+
+                homeBannerImagePrimary.src = bannerUrls[0];
+                homeBannerImageSecondary.src = bannerUrls[0];
+                renderBannerDots();
+
+                if (bannerUrls.length === 1) {
+                    return;
+                }
+
+                startBannerRotation();
+            };
+
+            discoverBanners();
+        }
 
         const timers = document.querySelectorAll('.auction-timer');
 

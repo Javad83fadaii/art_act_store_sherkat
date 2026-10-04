@@ -36,10 +36,11 @@
   font-display: swap;
 }
 
+/* Bold (700) */
 @font-face {
   font-family: 'w_Nian';
-  src: url('../fonts/w_Nian%20Semi%20Bold.ttf') format('truetype'),
-       url('../fonts/w_Nian Semi Bold.ttf') format('truetype');
+  src: url('../fonts/w_Nian%20Bold.ttf') format('truetype'),
+       url('../fonts/w_Nian Bold.ttf') format('truetype');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -96,8 +97,8 @@
 }
 @font-face {
   font-family: 'Nian';
-  src: url('../fonts/w_Nian%20Semi%20Bold.ttf') format('truetype'),
-       url('../fonts/w_Nian Semi Bold.ttf') format('truetype');
+  src: url('../fonts/w_Nian%20Bold.ttf') format('truetype'),
+       url('../fonts/w_Nian Bold.ttf') format('truetype');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -277,7 +278,6 @@ header {
   top: 0;
   z-index: 1000;
   background: var(--surface);
-  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
   transition: background 0.3s ease;
 }
 
