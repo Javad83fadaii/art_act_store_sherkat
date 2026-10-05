@@ -2,230 +2,176 @@
 {% load static humanize jalali_tags fa_digits %}
 
 {% block content %}
-<main class="flex-grow w-full max-w-[1440px] mx-auto px-6 pt-6 md:pt-8 pb-10 md:pb-16 relative">
-    
-    <div class="w-full max-w-6xl mx-auto bg-white dark:bg-zinc-800/60 backdrop-blur-md rounded-[2rem] border border-gray-100 dark:border-zinc-700 px-6 py-6 text-center z-10 relative">
-        <h2 class="text-3xl md:text-5xl font-bold leading-tight text-text-main dark:text-white font-display">
-            ماه 
-        </h2>
-        <br>
-        <p class="text-text-muted dark:text-gray-400 text-base md:text-lg font-medium">
-            فرصتی بی‌نظیر برای سرمایه‌گذاری در هنر. آثار نفیس از هنرمندان معاصر و کلاسیک در مزایده آنلاین.
-        </p>
-    </div>
-    
-    <div class="flex flex-col gap-6 items-center max-w-6xl w-full mx-auto mt-6 md:mt-8">
+<main class="flex-grow w-full max-w-[1240px] mx-auto px-4 sm:px-6 py-6 md:py-10">
+
+    <div class="flex flex-col gap-8 md:gap-10 max-w-4xl mx-auto">
         {% if auctions %}
             {% for auction in auctions %}
-                <div class="group relative w-full {% if auction.status == 'finished' %}bg-white/80 border-gray-200{% elif auction.status == 'extended' %}bg-white border-amber-500/40 shadow-xl shadow-amber-500/10 ring-1 ring-amber-400/30{% else %}bg-white border-primary/10 hover:shadow-gold-glow{% endif %} rounded-[2rem] overflow-hidden shadow-soft-elegant transition-all duration-500 border flex flex-col lg:flex-row min-h-[360px]">
+                <!-- کارت مزایده: فلت، بدون کادر و سایه، پس‌زمینه سفید -->
+                <div class="w-full bg-white dark:bg-zinc-900 flex flex-col md:flex-row min-h-0 md:min-h-[420px]">
                     
-                    <div class="lg:w-5/12 p-5 lg:p-7 flex flex-col justify-between {% if auction.status == 'finished' %}bg-white/90{% else %}bg-white{% endif %} z-20 text-right order-2 lg:order-1">
-                        <div class="space-y-4">
+                    <!-- سمت راست (در دسکتاپ راست / در موبایل بعد از تصویر): محتوا، وضعیت، تایمر -->
+                    <div class="w-full md:w-1/2 p-6 sm:p-8 lg:p-10 flex flex-col justify-between items-center text-center order-2 md:order-1">
+                        
+                        <!-- بخش بالایی کارت -->
+                        <div class="w-full flex flex-col items-center">
                             
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-2 {% if auction.status == 'finished' %}text-text-muted bg-gray-50 border-gray-200{% else %}text-[#AB8C58] bg-[#AB8C58]/10 border-[#AB8C58]/20{% endif %} px-4 py-2 rounded-full border">
-                                    <span class="material-symbols-outlined text-base">inventory</span>
-                                    <span class="text-xs sm:text-sm font-bold">{{ auction.products_count|intcomma|fa_digits }} اثر هنری</span>
-                                </div>
-
-                                {% if auction.status == 'ongoing' %}
-                                    <div class="flex items-center gap-2 text-emerald-600 bg-emerald-50 px-4 py-2 rounded-full border border-emerald-100">
-                                        <span class="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse-soft"></span>
-                                        <span class="text-xs sm:text-sm font-bold">در حال برگزاری</span>
-                                    </div>
+                            <!-- وضعیت مزایده -->
+                            <div class="mb-4">
+                                {% if auction.status == 'ready' %}
+                                    <span class="text-[#8C232C] font-extrabold text-base sm:text-lg">
+                                        به زودی
+                                    </span>
+                                {% elif auction.status == 'ongoing' %}
+                                    <span class="text-[#157A72] font-extrabold text-base sm:text-lg">
+                                        در حال برگزاری
+                                    </span>
                                 {% elif auction.status == 'extended' %}
-                                    <div class="flex items-center gap-2 text-amber-700 bg-amber-50 px-4 py-2 rounded-full border border-amber-300 shadow-sm shadow-amber-100">
-                                        <span class="flex h-2 w-2 rounded-full bg-amber-500 animate-ping"></span>
-                                        <span class="text-xs sm:text-sm font-bold">در حال تمدید ({{ auction.extended_count|default:auction.get_active_extended_products_count|fa_digits }} اثر)</span>
-                                    </div>
-                                {% elif auction.status == 'ready' %}
-                                    <div class="flex items-center gap-2 text-text-muted bg-gray-100 px-4 py-2 rounded-full border border-gray-200">
-                                        <span class="material-symbols-outlined text-base">schedule</span>
-                                        <span class="text-xs sm:text-sm font-bold">بزودی</span>
-                                    </div>
+                                    <span class="text-[#C05621] font-extrabold text-base sm:text-lg">
+                                        در حال تمدید ({{ auction.extended_count|default:auction.get_active_extended_products_count|fa_digits }} اثر)
+                                    </span>
                                 {% else %}
-                                    <div class="flex items-center gap-2 text-text-muted bg-gray-100 px-4 py-2 rounded-full border border-gray-200">
-                                        <span class="material-symbols-outlined text-base">event_busy</span>
-                                        <span class="text-xs sm:text-sm font-bold">پایان یافته</span>
-                                    </div>
+                                    <span class="text-[#555555] dark:text-zinc-400 font-extrabold text-base sm:text-lg">
+                                        پایان یافته
+                                    </span>
                                 {% endif %}
                             </div>
 
-                            <h3 class="text-3xl lg:text-4xl font-black font-display {% if auction.status == 'finished' %}text-gray-400{% else %}text-zinc-800{% endif %} leading-tight py-2">
+                            <!-- عنوان دوره مزایده با کد رنگی #988550 -->
+                            <h2 class="text-2xl sm:text-3xl font-black text-[#988550] font-display">
                                 {{ auction.name|default:auction|fa_digits }}
-                            </h3>
+                            </h2>
 
                             {% if auction.status != 'finished' %}
-                                <div class="grid grid-cols-2 gap-2 py-3 mb-2 mt-2 w-full">
+                                <!-- ردیف تاریخ و ساعت شروع و پایان -->
+                                <div class="flex items-center justify-between w-full max-w-[390px] mt-6 gap-2 sm:gap-4">
                                     
-                                    <div class="flex items-center justify-between bg-[#AB8C58] rounded-full p-1 shadow-sm overflow-hidden">
-                                        <div class="flex items-center justify-center bg-white text-[#AB8C58] w-7 h-7 sm:w-8 sm:h-8 rounded-full shrink-0">
-                                            <span class="material-symbols-outlined text-[14px] sm:text-[16px]">event</span>
+                                    <!-- شروع -->
+                                    <div class="flex-1 flex items-center justify-between">
+                                        <div class="flex items-center gap-1 text-[#3A3530] dark:text-zinc-200 font-semibold whitespace-nowrap text-xs sm:text-sm">
+                                            <span>شروع</span>
+                                            <span class="font-en font-semibold dir-ltr text-xs sm:text-sm">{{ auction.start_date|to_jalali:'%Y/%m/%d'|fa_digits }}</span>
                                         </div>
-                                        <div class="flex flex-col items-center justify-center flex-grow text-white text-center px-1">
-                                            <span class="text-[8px] sm:text-[9px] font-medium opacity-90 mb-0.5 whitespace-nowrap">شروع</span>
-                                            <span class="font-en text-[9px] sm:text-[11px] font-bold dir-ltr leading-none whitespace-nowrap">
-                                                {{ auction.start_date|to_jalali:'%Y/%m/%d'|fa_digits }}
-                                            </span>
-                                        </div>
-                                        <div class="flex items-center justify-center bg-white text-[#AB8C58] px-2 h-7 sm:h-8 rounded-full font-en font-black text-[10px] sm:text-xs shrink-0 dir-ltr">
+                                        <!-- باکس ساعت شروع کشیده با گوشه چپ‌گرد -->
+                                        <div class="bg-[#FBC974] text-[#4A3B2C] font-en font-semibold text-[11px] sm:text-xs min-w-[56px] sm:min-w-[64px] px-3 sm:px-4 py-1 rounded-l-full rounded-r-none dir-ltr shrink-0 flex items-center justify-center">
                                             {{ auction.start_date|to_jalali:'%H:%M'|fa_digits }}
                                         </div>
                                     </div>
 
-                                    <div class="flex items-center justify-between bg-[#AB8C58] rounded-full p-1 shadow-sm overflow-hidden">
-                                        <div class="flex items-center justify-center bg-white text-[#AB8C58] w-7 h-7 sm:w-8 sm:h-8 rounded-full shrink-0">
-                                            <span class="material-symbols-outlined text-[14px] sm:text-[16px]">event_available</span>
+                                    <!-- پایان -->
+                                    <div class="flex-1 flex items-center justify-between">
+                                        <div class="flex items-center gap-1 text-[#3A3530] dark:text-zinc-200 font-semibold whitespace-nowrap text-xs sm:text-sm">
+                                            <span>پایان</span>
+                                            <span class="font-en font-semibold dir-ltr text-xs sm:text-sm">{{ auction.end_date|to_jalali:'%Y/%m/%d'|fa_digits }}</span>
                                         </div>
-                                        <div class="flex flex-col items-center justify-center flex-grow text-white text-center px-1">
-                                            <span class="text-[8px] sm:text-[9px] font-medium opacity-90 mb-0.5 whitespace-nowrap">پایان</span>
-                                            <span class="font-en text-[9px] sm:text-[11px] font-bold dir-ltr leading-none whitespace-nowrap">
-                                                {{ auction.end_date|to_jalali:'%Y/%m/%d'|fa_digits }}
-                                            </span>
-                                        </div>
-                                        <div class="flex items-center justify-center bg-white text-[#AB8C58] px-2 h-7 sm:h-8 rounded-full font-en font-black text-[10px] sm:text-xs shrink-0 dir-ltr">
+                                        <!-- باکس ساعت پایان کشیده با گوشه چپ‌گرد -->
+                                        <div class="bg-[#FBC974] text-[#4A3B2C] font-en font-semibold text-[11px] sm:text-xs min-w-[56px] sm:min-w-[64px] px-3 sm:px-4 py-1 rounded-l-full rounded-r-none dir-ltr shrink-0 flex items-center justify-center">
                                             {{ auction.end_date|to_jalali:'%H:%M'|fa_digits }}
                                         </div>
                                     </div>
 
                                 </div>
 
-                                <div class="p-4 rounded-xl border transition-all duration-300 {% if auction.status == 'extended' %}border-amber-400/50 bg-gradient-to-b from-white to-amber-50/40 shadow-sm ring-1 ring-amber-300/30{% elif auction.status == 'ongoing' %}border-[#AB8C58]/30 bg-gradient-to-b from-white to-[#AB8C58]/[0.03] shadow-sm{% else %}border-gray-200 bg-gray-50/50{% endif %}">
+                                <!-- باکس شمارش معکوس تایمر با ارتفاع و ابعاد استاندارد -->
+                                <div class="w-full max-w-[360px] mt-6 bg-[#FAF0D7] dark:bg-zinc-800/80 rounded-t-[1.75rem] rounded-b-none px-5 py-6 min-h-[150px] flex flex-col justify-between">
                                     
-                                    <div class="text-xs sm:text-sm font-bold uppercase tracking-widest mb-4 flex items-center justify-center gap-2 {% if auction.status == 'extended' %}text-amber-700{% elif auction.status == 'ongoing' %}text-[#AB8C58]{% else %}text-gray-500{% endif %}">
-                                        <span class="material-symbols-outlined text-base">{% if auction.status == 'extended' %}update{% else %}timer{% endif %}</span>
-                                        {{ auction.countdown_label|fa_digits }}
+                                    <!-- تیتر بالای تایمر -->
+                                    <div class="flex items-center justify-center gap-1.5 text-[#7A6A43] dark:text-amber-200/80 text-xs sm:text-sm font-bold">
+                                        <span>
+                                            {% if auction.status == 'ready' %}
+                                                زمان باقی‌مانده تا شروع
+                                            {% else %}
+                                                زمان باقی‌مانده تا پایان
+                                            {% endif %}
+                                        </span>
+                                        <svg class="w-4 h-4 sm:w-4.5 sm:h-4.5 stroke-current fill-none stroke-[2.2]" viewBox="0 0 24 24">
+                                            <circle cx="12" cy="12" r="9"></circle>
+                                            <polyline points="12 7 12 12 15 14"></polyline>
+                                        </svg>
                                     </div>
 
-                                    <div class="countdown-timer flex items-center gap-1.5 sm:gap-2.5 justify-center"
+                                    <!-- اعداد تایمر با چیدمان راست‌به‌چپ: دقیقه : ساعت : روز -->
+                                    <div class="countdown-timer flex items-center justify-center gap-2.5 sm:gap-3.5 dir-rtl my-auto pt-2 pb-1"
                                          data-status="{{ auction.status }}"
                                          data-target="{% if auction.status == 'ready' %}{{ auction.start_date|date:'c' }}{% elif auction.status == 'extended' %}{{ auction.get_max_end_date|date:'c' }}{% else %}{{ auction.end_date|date:'c' }}{% endif %}">
                                         
-                                        <div class="flex flex-col items-center justify-center min-w-[3.2rem] sm:min-w-[3.8rem] h-14 sm:h-16 rounded-lg transition-colors {% if auction.status == 'extended' %}bg-white border border-amber-400/40 shadow-[0_2px_10px_-3px_rgba(245,158,11,0.2)]{% elif auction.status == 'ongoing' %}bg-white border border-[#AB8C58]/30 shadow-[0_2px_10px_-3px_rgba(171,140,88,0.15)]{% else %}bg-white border border-gray-200{% endif %}">
-                                            <span class="time-secs tabular-nums text-xl sm:text-2xl font-en font-black {% if auction.status == 'extended' %}text-amber-700{% elif auction.status == 'ongoing' %}text-zinc-800{% else %}text-gray-600{% endif %}">۰۰</span>
-                                            <span class="text-[9px] sm:text-[10px] font-bold mt-0.5 {% if auction.status == 'extended' %}text-amber-600{% elif auction.status == 'ongoing' %}text-[#AB8C58]{% else %}text-gray-400{% endif %}">ثانیه</span>
+                                        <!-- ۱. دقیقه (سمت راست) -->
+                                        <div class="flex flex-col items-center min-w-[48px]">
+                                            <span class="time-mins text-4xl sm:text-5xl font-[900] font-black font-en text-[#1C1917] dark:text-white tabular-nums leading-none tracking-tight">۰۰</span>
+                                            <span class="text-xs sm:text-sm text-[#4A453E] dark:text-zinc-300 font-bold mt-2">دقیقه</span>
                                         </div>
 
-                                        <span class="text-lg sm:text-xl font-bold pb-4 {% if auction.status == 'extended' %}text-amber-500 animate-pulse{% elif auction.status == 'ongoing' %}text-[#AB8C58] animate-pulse{% else %}text-gray-300{% endif %}">:</span>
+                                        <span class="text-3xl font-[900] font-black text-[#1C1917] dark:text-white -mt-4">:</span>
 
-                                        <div class="flex flex-col items-center justify-center min-w-[3.2rem] sm:min-w-[3.8rem] h-14 sm:h-16 rounded-lg transition-colors {% if auction.status == 'extended' %}bg-white border border-amber-400/40 shadow-[0_2px_10px_-3px_rgba(245,158,11,0.2)]{% elif auction.status == 'ongoing' %}bg-white border border-[#AB8C58]/30 shadow-[0_2px_10px_-3px_rgba(171,140,88,0.15)]{% else %}bg-white border border-gray-200{% endif %}">
-                                            <span class="time-mins tabular-nums text-xl sm:text-2xl font-en font-black {% if auction.status == 'extended' %}text-amber-700{% elif auction.status == 'ongoing' %}text-zinc-800{% else %}text-gray-600{% endif %}">۰۰</span>
-                                            <span class="text-[9px] sm:text-[10px] font-bold mt-0.5 {% if auction.status == 'extended' %}text-amber-600{% elif auction.status == 'ongoing' %}text-[#AB8C58]{% else %}text-gray-400{% endif %}">دقیقه</span>
-                                        </div>
-                                        
-                                        <span class="text-lg sm:text-xl font-bold pb-4 {% if auction.status == 'extended' %}text-amber-500 animate-pulse{% elif auction.status == 'ongoing' %}text-[#AB8C58] animate-pulse{% else %}text-gray-300{% endif %}">:</span>
-                                        
-                                        <div class="flex flex-col items-center justify-center min-w-[3.2rem] sm:min-w-[3.8rem] h-14 sm:h-16 rounded-lg transition-colors {% if auction.status == 'extended' %}bg-white border border-amber-400/40 shadow-[0_2px_10px_-3px_rgba(245,158,11,0.2)]{% elif auction.status == 'ongoing' %}bg-white border border-[#AB8C58]/30 shadow-[0_2px_10px_-3px_rgba(171,140,88,0.15)]{% else %}bg-white border border-gray-200{% endif %}">
-                                            <span class="time-hours tabular-nums text-xl sm:text-2xl font-en font-black {% if auction.status == 'extended' %}text-amber-700{% elif auction.status == 'ongoing' %}text-zinc-800{% else %}text-gray-600{% endif %}">۰۰</span>
-                                            <span class="text-[9px] sm:text-[10px] font-bold mt-0.5 {% if auction.status == 'extended' %}text-amber-600{% elif auction.status == 'ongoing' %}text-[#AB8C58]{% else %}text-gray-400{% endif %}">ساعت</span>
+                                        <!-- ۲. ساعت (وسط) -->
+                                        <div class="flex flex-col items-center min-w-[48px]">
+                                            <span class="time-hours text-4xl sm:text-5xl font-[900] font-black font-en text-[#1C1917] dark:text-white tabular-nums leading-none tracking-tight">۰۰</span>
+                                            <span class="text-xs sm:text-sm text-[#4A453E] dark:text-zinc-300 font-bold mt-2">ساعت</span>
                                         </div>
 
-                                        <span class="text-lg sm:text-xl font-bold pb-4 {% if auction.status == 'extended' %}text-amber-500 animate-pulse{% elif auction.status == 'ongoing' %}text-[#AB8C58] animate-pulse{% else %}text-gray-300{% endif %}">:</span>
+                                        <span class="text-3xl font-[900] font-black text-[#1C1917] dark:text-white -mt-4">:</span>
 
-                                        <div class="flex flex-col items-center justify-center min-w-[3.2rem] sm:min-w-[3.8rem] h-14 sm:h-16 rounded-lg transition-colors {% if auction.status == 'extended' %}bg-white border border-amber-400/40 shadow-[0_2px_10px_-3px_rgba(245,158,11,0.2)]{% elif auction.status == 'ongoing' %}bg-white border border-[#AB8C58]/30 shadow-[0_2px_10px_-3px_rgba(171,140,88,0.15)]{% else %}bg-white border border-gray-200{% endif %}">
-                                            <span class="time-days tabular-nums text-xl sm:text-2xl font-en font-black {% if auction.status == 'extended' %}text-amber-700{% elif auction.status == 'ongoing' %}text-zinc-800{% else %}text-gray-600{% endif %}">۰۰</span>
-                                            <span class="text-[9px] sm:text-[10px] font-bold mt-0.5 {% if auction.status == 'extended' %}text-amber-600{% elif auction.status == 'ongoing' %}text-[#AB8C58]{% else %}text-gray-400{% endif %}">روز</span>
+                                        <!-- ۳. روز (سمت چپ) -->
+                                        <div class="flex flex-col items-center min-w-[48px]">
+                                            <span class="time-days text-4xl sm:text-5xl font-[900] font-black font-en text-[#1C1917] dark:text-white tabular-nums leading-none tracking-tight">۰۰</span>
+                                            <span class="text-xs sm:text-sm text-[#4A453E] dark:text-zinc-300 font-bold mt-2">روز</span>
                                         </div>
 
                                     </div>
                                 </div>
                             {% else %}
-                                <div class="mt-6 flex flex-col items-start gap-2 text-gray-400">
-                                    <div class="flex items-center gap-2">
-                                        <span class="material-symbols-outlined text-lg">done_all</span>
-                                        <span class="text-sm font-medium">این مزایده با موفقیت به پایان رسیده است.</span>
-                                    </div>
-                                    <p class="text-xs">برای مشاهده نتایج می‌توانید به آرشیو مراجعه کنید.</p>
+                                <!-- محتوای وضعیت پایان‌یافته -->
+                                <div class="mt-8 space-y-1.5 text-[#555555] dark:text-zinc-400 text-xs sm:text-sm font-medium">
+                                    <p>این مزایده با موفقیت به پایان رسیده است.</p>
+                                    <p>برای مشاهده‌ی نتایج می‌توانید به آرشیو مراجعه کنید.</p>
                                 </div>
                             {% endif %}
-
                         </div>
 
-                        <div class="pt-6 text-right mt-auto">
-                            {% if auction.status == 'extended' %}
-                                <a class="check-access-btn inline-flex items-center justify-center gap-2 w-full bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-700 hover:to-amber-600 text-white py-3 sm:py-4 px-6 rounded-xl font-bold text-base transition-all shadow-lg shadow-amber-500/30 hover:shadow-amber-500/50 active:scale-[0.98]"
-                                   href="{% url 'auction:auction_products' auction.pk %}"
-                                   data-track-visit="1"
-                                   data-track-guard="auction-access"
-                                   data-track-kind="auction"
-                                   data-track-id="{{ auction.pk }}">
-                                    مشاهده آثار در حال تمدید ({{ auction.extended_count|default:auction.get_active_extended_products_count|fa_digits }} اثر)
-                                    <span class="material-symbols-outlined text-xl">update</span>
-                                </a>
-                            {% elif auction.status == 'ongoing' %}
-                                <a class="check-access-btn inline-flex items-center justify-center gap-2 w-full bg-[#AB8C58] hover:bg-[#967949] text-white py-3 sm:py-4 px-6 rounded-xl font-bold text-base transition-all shadow-lg shadow-[#AB8C58]/30 hover:shadow-[#AB8C58]/50 active:scale-[0.98]"
-                                   href="{% url 'auction:auction_products' auction.pk %}"
-                                   data-track-visit="1"
-                                   data-track-guard="auction-access"
-                                   data-track-kind="auction"
-                                   data-track-id="{{ auction.pk }}">
-                                    مشاهده محصولات مجموعه 
-                                    <span class="material-symbols-outlined text-xl">arrow_left_alt</span>
-                                </a>
-                            {% elif auction.status == 'ready' %}
-                                <a class="check-access-btn inline-flex items-center justify-center gap-2 w-full border-2 border-[#AB8C58]/30 text-[#AB8C58] py-3 sm:py-4 px-6 rounded-xl font-bold text-base transition-all hover:bg-[#AB8C58]/5 hover:border-[#AB8C58]/60 active:scale-[0.98]"
-                                   href="{% url 'auction:auction_products' auction.pk %}"
-                                   data-track-visit="1"
-                                   data-track-guard="auction-access"
-                                   data-track-kind="auction"
-                                   data-track-id="{{ auction.pk }}">
-                                    مشاهده پیش‌نمایش مجموعه
-                                    <span class="material-symbols-outlined text-xl">arrow_left_alt</span>
-                                </a>
-                            {% else %}
-                                <a class="check-access-btn inline-flex items-center justify-center gap-2 w-full border-2 border-gray-200 text-text-muted py-3 sm:py-4 px-6 rounded-xl font-bold text-base transition-all hover:bg-gray-50 active:scale-[0.98]"
-                                   href="{% url 'auction:auction_products' auction.pk %}"
-                                   data-track-visit="1"
-                                   data-track-guard="auction-access"
-                                   data-track-kind="auction"
-                                   data-track-id="{{ auction.pk }}">
-                                    مشاهده آرشیو نتایج
-                                    <span class="material-symbols-outlined text-xl">history</span>
-                                </a>
-                            {% endif %}
+                        <!-- لینک پایین کارت همراه با فلش در سمت چپ -->
+                        <div class="w-full pt-8 mt-auto flex items-center justify-center">
+                            <a href="{% url 'auction:auction_products' auction.pk %}"
+                               class="group inline-flex items-center gap-2 text-[#2D2A26] dark:text-zinc-200 hover:text-black font-bold text-xs sm:text-sm transition-all"
+                               data-track-visit="1"
+                               data-track-guard="auction-access"
+                               data-track-kind="auction"
+                               data-track-id="{{ auction.pk }}">
+                                
+                                {% if auction.status == 'ready' %}
+                                    <span>مشاهده‌ی پیش‌‌نمایش مجموعه</span>
+                                {% elif auction.status == 'ongoing' %}
+                                    <span>مشاهده‌ی محصولات مجموعه</span>
+                                {% elif auction.status == 'extended' %}
+                                    <span>مشاهده‌ی آثار در حال تمدید ({{ auction.extended_count|default:auction.get_active_extended_products_count|fa_digits }} اثر)</span>
+                                {% else %}
+                                    <span>مشاهده‌ی آرشیو نتایج</span>
+                                {% endif %}
+
+                                <span class="text-base transition-transform group-hover:-translate-x-1">←</span>
+                            </a>
                         </div>
-                    </div>
-
-                    
-                    <div class="lg:w-7/12 relative overflow-hidden {% if auction.status == 'finished' %}bg-gray-100{% else %}bg-gray-50{% endif %} border-l border-border-light h-64 sm:h-72 lg:h-auto order-1 lg:order-2">
-
-                        <a href="{% url 'auction:auction_products' auction.pk %}"
-                        class="block w-full h-full check-access-btn"
-                        data-track-visit="1"
-                        data-track-guard="auction-access"
-                        data-track-kind="auction"
-                        data-track-id="{{ auction.pk }}">
-
-                            <img alt="{{ auction.name|default:auction|fa_digits }}"
-                                class="w-full h-full object-cover transition-transform duration-[2.5s] ease-out {% if auction.status != 'finished' %}group-hover:scale-105{% endif %} {% if auction.status == 'ready' %}grayscale-[0.3]{% elif auction.status == 'finished' %}grayscale opacity-60{% endif %}"
-                                src="{% static 'images/action/' %}{{ auction.pk }}.webp" />
-
-                            <div class="absolute inset-0 z-10 {% if auction.status == 'ongoing' %}bg-[#AB8C58]/5{% elif auction.status == 'ready' %}bg-zinc-800/5{% else %}bg-white/20{% endif %} {% if auction.status != 'finished' %}group-hover:bg-transparent transition-colors duration-500{% endif %} pointer-events-none"></div>
-
-                        </a>
-
-                        <a href="{{ auction.catalog_url }}"
-                        target="_blank"
-                        download
-                        title="دانلود کاتالوگ مزایده"
-                        class="absolute top-4 left-4 sm:top-6 sm:left-6 z-30 flex items-center gap-2 bg-white/90 backdrop-blur hover:bg-[#AB8C58] text-zinc-800 hover:text-white py-2 px-4 sm:py-2.5 sm:px-5 rounded-2xl shadow-lg transition-all duration-300 font-bold text-sm sm:text-base border border-white/50 group/btn">
-
-                            <span class="material-symbols-outlined text-lg sm:text-xl transition-transform group-hover/btn:-translate-y-0.5">
-                                download
-                            </span>
-
-                            دانلود کاتالوگ
-                        </a>
 
                     </div>
 
+                    <!-- سمت چپ (در دسکتاپ چپ / در موبایل بالا): کانتینر تصویر اثر کاملاً ریسپانسیو و بدون نوار سیاه -->
+                    <div class="w-full md:w-1/2 relative bg-stone-100 dark:bg-zinc-800 aspect-[4/3] sm:aspect-[16/10] md:aspect-auto md:min-h-full order-1 md:order-2 overflow-hidden">
+                        <a href="{% url 'auction:auction_products' auction.pk %}" 
+                           class="block w-full h-full"
+                           data-track-visit="1"
+                           data-track-guard="auction-access"
+                           data-track-kind="auction"
+                           data-track-id="{{ auction.pk }}">
+                            <img src="{% static 'images/action/' %}{{ auction.pk }}.webp" 
+                                 alt="{{ auction.name|default:auction|fa_digits }}"
+                                 class="w-full h-full object-cover block {% if auction.status == 'finished' %}opacity-90{% endif %}">
+                        </a>
+                    </div>
 
-                    
                 </div>
             {% endfor %}
         {% else %}
-            <div class="w-full bg-white dark:bg-zinc-800/60 backdrop-blur-md rounded-[2rem] border border-gray-100 dark:border-zinc-700 px-6 py-10 text-center mt-4">
-                <h2 class="text-xl md:text-2xl font-bold leading-tight text-text-main dark:text-white font-display">مزایده‌ای برای نمایش وجود ندارد</h2>
+            <div class="w-full bg-white dark:bg-zinc-900 p-10 text-center">
+                <h3 class="text-base font-bold text-zinc-700 dark:text-zinc-200">مزایده‌ای برای نمایش وجود ندارد</h3>
             </div>
         {% endif %}
     </div>
@@ -238,12 +184,7 @@
     window.canTrackAuctionVisit = function() {
         return true;
     };
-</script>
 
-<script>
-    // ==========================================
-    // منطق تایمرها 
-    // ==========================================
     document.addEventListener('DOMContentLoaded', function() {
         const countdowns = document.querySelectorAll('.countdown-timer');
 
@@ -259,22 +200,21 @@
             const daysEl = timer.querySelector('.time-days');
             const hoursEl = timer.querySelector('.time-hours');
             const minsEl = timer.querySelector('.time-mins');
-            const secsEl = timer.querySelector('.time-secs');
 
             let isInitialLoad = true;
             let interval;
 
+            const toFaDigits = (value) => String(value).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[d]);
+
             const updateTimer = () => {
-                const toFaDigits = (value) => String(value).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[d]);
                 const now = new Date().getTime();
                 const distance = targetDate - now;
 
                 if (distance <= 0) {
                     clearInterval(interval);
-                    if(daysEl) daysEl.textContent = '۰۰';
-                    if(hoursEl) hoursEl.textContent = '۰۰';
-                    if(minsEl) minsEl.textContent = '۰۰';
-                    if(secsEl) secsEl.textContent = '۰۰';
+                    if (daysEl) daysEl.textContent = '۰۰';
+                    if (hoursEl) hoursEl.textContent = '۰۰';
+                    if (minsEl) minsEl.textContent = '۰۰';
                     
                     if (!isInitialLoad) {
                         setTimeout(() => {
@@ -286,13 +226,11 @@
 
                 const days = Math.floor(distance / (1000 * 60 * 60 * 24));
                 const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+                const minutes = Math.floor((distance % (1000 * 60)) / (1000 * 60));
 
-                if(daysEl) daysEl.textContent = toFaDigits(String(days).padStart(2, '0'));
-                if(hoursEl) hoursEl.textContent = toFaDigits(String(hours).padStart(2, '0'));
-                if(minsEl) minsEl.textContent = toFaDigits(String(minutes).padStart(2, '0'));
-                if(secsEl) secsEl.textContent = toFaDigits(String(seconds).padStart(2, '0'));
+                if (daysEl) daysEl.textContent = toFaDigits(String(days).padStart(2, '0'));
+                if (hoursEl) hoursEl.textContent = toFaDigits(String(hours).padStart(2, '0'));
+                if (minsEl) minsEl.textContent = toFaDigits(String(minutes).padStart(2, '0'));
                 
                 isInitialLoad = false;
             };
