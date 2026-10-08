@@ -1,103 +1,76 @@
 {% load static humanize fa_digits %}
 
 {% if user_auction_cart_items %}
-<div id="auction-user-stories-section" class="w-full mb-8">
-    <div class="relative mx-auto max-w-[38rem]">
-    <div class="auction-dock-panel mx-auto max-w-[38rem] p-3.5 sm:p-4">
-        <div class="mb-3 flex items-center justify-between sm:mb-4">
+<div id="auction-user-stories-section" class="w-full mb-6">
+    <div class="relative mx-auto max-w-[38rem] px-2 sm:px-4">
+        
+        <!-- هدر سبد خرید -->
+        <div class="mb-2 flex items-center justify-between px-2">
             <div class="flex items-center gap-2">
-                <span class="h-2.5 w-2.5 rounded-full bg-primary shadow-[0_0_16px_rgba(171,140,88,0.45)]"></span>
-                <div class="flex flex-col gap-0.5">
-                    <span class="text-[13px] font-semibold tracking-[0.01em] text-neutral-800 dark:text-neutral-100">سبد خرید شما</span>
-                </div>
+                <span class="h-2 w-2 rounded-full bg-primary shadow-[0_0_12px_rgba(171,140,88,0.45)]"></span>
+                <span class="text-xs font-semibold text-neutral-800 dark:text-neutral-100">سبد خرید شما</span>
             </div>
-            <span class="inline-flex min-w-[3rem] items-center justify-center rounded-full border border-white/50 bg-white/55 px-3 py-1 text-sm font-black text-neutral-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] backdrop-blur-md dark:border-white/10 dark:bg-white/10 dark:text-neutral-200">
+            <span class="inline-flex items-center justify-center rounded-full bg-neutral-200/60 dark:bg-zinc-800/60 px-2.5 py-0.5 text-xs font-bold text-neutral-700 dark:text-neutral-300">
                 {{ user_auction_cart_items|length|fa_digits }}
             </span>
         </div>
 
-        <div class="auction-dock-shell">
-        <button type="button"
-                id="auction-stories-prev"
-                class="auction-stories-nav absolute -right-7 top-1/2 z-10 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full text-neutral-500 transition sm:flex md:-right-10 lg:-right-12 dark:text-neutral-300"
-                aria-label="اسکرول به راست">
-            <span class="material-symbols-outlined text-[18px]">chevron_right</span>
-        </button>
-        <button type="button"
-                id="auction-stories-next"
-                class="auction-stories-nav absolute -left-7 top-1/2 z-10 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full text-neutral-500 transition sm:flex md:-left-10 lg:-left-12 dark:text-neutral-300"
-                aria-label="اسکرول به چپ">
-            <span class="material-symbols-outlined text-[18px]">chevron_left</span>
-        </button>
-
-        <div class="flex items-end">
-        <button type="button"
-                class="auction-stories-nav-mobile mr-2 shrink-0 flex h-8 w-8 items-center justify-center rounded-full border border-neutral-200/80 bg-white/92 text-neutral-500 shadow-sm backdrop-blur transition hover:text-primary sm:hidden dark:border-zinc-700/80 dark:bg-zinc-900/92 dark:text-neutral-300"
-                aria-label="اسکرول به راست">
-            <span class="material-symbols-outlined text-[18px]">chevron_right</span>
-        </button>
-        <div id="auction-stories-track" class="auction-stories-viewport no-scrollbar mx-auto flex-1 overflow-x-auto scroll-smooth cursor-grab select-none">
-        <div class="auction-stories-track grid w-max min-w-full grid-flow-col auto-cols-[4.4rem] sm:auto-cols-[5rem] items-end gap-3 sm:gap-4">
-        {% for item in user_auction_cart_items %}
-            <a href="{% url 'auction:auction_product_detail' item.product.pk %}"
-               class="auction-story-item flex flex-col items-center flex-shrink-0 group cursor-pointer select-none rounded-[1.25rem] px-1.5 py-1 transition-transform duration-200 active:scale-95"
-               data-story-title="{% if item.product.lot %}لات {{ item.product.lot|fa_digits }}{% else %}{{ item.product.display_title|truncatechars:16 }}{% endif %}"
-               data-story-price="{{ item.reserved_amount|fa_price }}"
-               data-story-state="{% if item.is_winning %}winning{% else %}outbid{% endif %}"
-               title="{{ item.product.display_title }} - {% if item.is_winning %}پیشتاز ({{ item.reserved_amount|fa_price }} تومان){% else %}پیشنهاد بالاتر خورده ({{ item.product.current_price|default:item.product.base_price|fa_price }} تومان){% endif %}">
-                <!-- دایره استوری -->
-                <div class="auction-story-avatar-wrap relative w-16 h-16 sm:w-[70px] sm:h-[70px] flex items-center justify-center">
-                    <div class="auction-story-avatar h-full w-full rounded-full flex items-center justify-center p-[2px] transition-all duration-300 {% if item.is_winning %}bg-gradient-to-br from-amber-300 via-amber-400 to-orange-500 shadow-[0_10px_24px_rgba(171,140,88,0.22)]{% else %}bg-neutral-200 dark:bg-zinc-700/80{% endif %}">
-                        <div class="w-full h-full bg-white dark:bg-zinc-900 rounded-full p-[2px] flex items-center justify-center overflow-hidden shadow-inner">
-                            {% if item.product.main_image_url %}
-                                <img src="{{ item.product.main_image_url }}"
-                                     alt="{{ item.product.display_title }}"
-                                     class="w-full h-full rounded-full object-cover transition-all duration-300 {% if not item.is_winning %}grayscale-[55%] opacity-70 group-hover:grayscale-0 group-hover:opacity-100{% endif %}"
-                                     loading="lazy"/>
-                            {% else %}
-                                <div class="w-full h-full rounded-full bg-neutral-100 dark:bg-zinc-800 flex items-center justify-center text-primary dark:text-amber-400 font-bold text-xs">
-                                    {% if item.product.lot %}{{ item.product.lot|fa_digits }}{% else %}اثر{% endif %}
+        <!-- کانتینر دایره‌های استوری -->
+        <div class="auction-fade-container relative w-full overflow-hidden">
+            <div id="auction-stories-track" class="auction-stories-viewport no-scrollbar mx-auto flex-1 overflow-x-auto scroll-smooth cursor-grab select-none pb-2">
+                <div class="auction-stories-track flex w-max min-w-full items-center gap-3 sm:gap-4">
+                {% for item in user_auction_cart_items %}
+                    <a href="{% url 'auction:auction_product_detail' item.product.pk %}"
+                       draggable="false"
+                       class="auction-story-item flex flex-col items-center flex-shrink-0 group cursor-pointer select-none rounded-2xl p-1"
+                       data-lot="{% if item.product.lot %}لات {{ item.product.lot|fa_digits }}{% endif %}"
+                       data-title="{{ item.product.display_title }}"
+                       data-price="{{ item.reserved_amount|fa_price }} تومان"
+                       data-is-winning="{% if item.is_winning %}1{% else %}0{% endif %}"
+                       data-url="{% url 'auction:auction_product_detail' item.product.pk %}"
+                       title="{{ item.product.display_title }}">
+                        
+                        <!-- دایره استوری -->
+                        <div class="auction-story-avatar-wrap relative w-15 h-15 sm:w-[68px] sm:h-[68px] flex items-center justify-center pointer-events-none">
+                            <div class="auction-story-avatar h-full w-full rounded-full flex items-center justify-center p-[2.5px] transition-all duration-300 {% if item.is_winning %}bg-gradient-to-br from-amber-300 via-amber-400 to-orange-500 shadow-[0_8px_20px_rgba(171,140,88,0.30)]{% else %}bg-neutral-300 dark:bg-zinc-700{% endif %}">
+                                <div class="w-full h-full bg-white dark:bg-zinc-900 rounded-full p-[2px] flex items-center justify-center overflow-hidden">
+                                    {% if item.product.main_image_url %}
+                                        <img src="{{ item.product.main_image_url }}"
+                                             alt="{{ item.product.display_title }}"
+                                             draggable="false"
+                                             class="w-full h-full rounded-full object-cover select-none pointer-events-none transition-all duration-300"
+                                             loading="lazy"/>
+                                    {% else %}
+                                        <div class="w-full h-full rounded-full bg-neutral-100 dark:bg-zinc-800 flex items-center justify-center text-primary dark:text-amber-400 font-bold text-xs select-none">
+                                            {% if item.product.lot %}{{ item.product.lot|fa_digits }}{% else %}اثر{% endif %}
+                                        </div>
+                                    {% endif %}
                                 </div>
-                            {% endif %}
+                            </div>
+
+                            <!-- نقطه وضعیت -->
+                            <span class="auction-story-state-dot absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-zinc-900 {% if item.is_winning %}bg-emerald-500{% else %}bg-rose-500{% endif %}"></span>
                         </div>
-                    </div>
-
-                    <!-- نقطه وضعیت کوچک (سبز برای برنده / قرمز برای عقب‌افتاده) -->
-                    <span class="auction-story-state-dot absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-zinc-900 {% if item.is_winning %}bg-emerald-500{% else %}bg-rose-500 opacity-80{% endif %}"></span>
+                    </a>
+                {% endfor %}
                 </div>
-                <span class="auction-story-presence {% if item.is_winning %}is-winning{% else %}is-outbid{% endif %}" aria-hidden="true"></span>
+            </div>
+        </div>
 
-                <!-- عنوان یا لات اثر زیر دایره -->
-                <span class="auction-story-meta mt-2 flex max-w-[70px] flex-col items-center text-center sm:max-w-[78px]">
-                    {% if item.product.lot %}
-                        <span class="auction-story-meta-kicker text-[9px] font-medium tracking-[0.08em] text-neutral-400 dark:text-neutral-500">
-                            شماره لات
-                        </span>
-                        <span class="auction-story-label mt-0.5 text-[10px] sm:text-[11px] font-semibold text-neutral-700 dark:text-neutral-300 truncate max-w-full group-hover:text-primary transition-colors">
-                            {{ item.product.lot|fa_digits }}
-                        </span>
-                    {% else %}
-                        <span class="auction-story-label text-[10px] sm:text-[11px] font-semibold text-neutral-700 dark:text-neutral-300 truncate max-w-full group-hover:text-primary transition-colors">
-                            {{ item.product.display_title|truncatechars:10 }}
-                        </span>
-                    {% endif %}
-                </span>
+        <!-- باکس نمایش جزئیات بزرگتر و خواناتر محصول فعال -->
+        <a id="active-story-meta-box" 
+           href="#" 
+           class="mt-2 flex flex-col items-center justify-center text-center transition-opacity duration-200 hover:opacity-90 min-h-[54px]">
+            <div class="flex items-center gap-2">
+                <span id="active-story-lot" class="hidden text-xs sm:text-sm font-semibold px-2.5 py-0.5 rounded-full bg-neutral-100 dark:bg-zinc-800 text-neutral-700 dark:text-neutral-200"></span>
+                <span id="active-story-title" class="text-base sm:text-lg font-bold text-neutral-900 dark:text-neutral-100 truncate max-w-[280px] sm:max-w-md"></span>
+            </div>
+            <div class="mt-1 flex items-center gap-2 text-sm sm:text-base font-medium">
+                <span id="active-story-status-text" class="text-xs sm:text-sm"></span>
+                <span id="active-story-price" class="tabular-nums font-bold text-sm sm:text-base"></span>
+            </div>
+        </a>
 
-                <span class="auction-story-price mt-1 text-[9px] sm:text-[10px] font-medium {% if item.is_winning %}text-emerald-600 dark:text-emerald-400{% else %}text-neutral-400 dark:text-neutral-500 line-through{% endif %}">
-                    {{ item.reserved_amount|fa_price }}
-                </span>
-            </a>
-        {% endfor %}
-        </div>
-        </div>
-        <button type="button"
-                class="auction-stories-nav-mobile ml-2 shrink-0 flex h-8 w-8 items-center justify-center rounded-full border border-neutral-200/80 bg-white/92 text-neutral-500 shadow-sm backdrop-blur transition hover:text-primary sm:hidden dark:border-zinc-700/80 dark:bg-zinc-900/92 dark:text-neutral-300"
-                aria-label="اسکرول به چپ">
-            <span class="material-symbols-outlined text-[18px]">chevron_left</span>
-        </button>
-        </div>
-        </div>
-    </div>
     </div>
 </div>
 
@@ -109,286 +82,167 @@
         -ms-overflow-style: none;
         scrollbar-width: none;
     }
-    .auction-dock-panel {
-        position: relative;
-        border-radius: 2rem;
-        border: 1px solid rgba(255, 255, 255, 0.72);
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(247, 247, 249, 0.78) 100%);
-        box-shadow:
-            0 24px 60px rgba(15, 23, 42, 0.10),
-            inset 0 1px 0 rgba(255, 255, 255, 0.85),
-            inset 0 -1px 0 rgba(15, 23, 42, 0.04);
-        backdrop-filter: blur(28px) saturate(180%);
-    }
-    .dark .auction-dock-panel {
-        border-color: rgba(255, 255, 255, 0.10);
-        background: linear-gradient(180deg, rgba(24, 24, 27, 0.88) 0%, rgba(12, 12, 14, 0.74) 100%);
-        box-shadow:
-            0 28px 70px rgba(0, 0, 0, 0.34),
-            inset 0 1px 0 rgba(255, 255, 255, 0.06),
-            inset 0 -1px 0 rgba(255, 255, 255, 0.04);
-    }
-    .auction-dock-shell {
-        position: relative;
-        overflow: visible;
-    }
-    .auction-dock-shell::before {
-        content: none;
+    .auction-fade-container {
+        -webkit-mask-image: linear-gradient(to right, transparent 0%, black 14%, black 86%, transparent 100%);
+        mask-image: linear-gradient(to right, transparent 0%, black 14%, black 86%, transparent 100%);
+        padding-top: 8px;
     }
     .auction-stories-viewport {
-        max-width: min(100%, calc((4.4rem * 5) + (0.7rem * 4) + 7.5rem));
-        position: relative;
         scroll-snap-type: x proximity;
-        scroll-padding-inline: var(--auction-dock-edge-padding, 0px);
-        padding: 2.35rem var(--auction-dock-edge-padding, 0.75rem) 0.9rem;
-        overflow-y: hidden;
         overscroll-behavior-x: contain;
         -webkit-overflow-scrolling: touch;
-    }
-    .auction-stories-track {
-        position: relative;
-        align-items: end;
-        gap: 0.7rem;
-    }
-    @media (min-width: 640px) {
-        .auction-stories-viewport {
-            max-width: min(100%, calc((5rem * 5) + (0.85rem * 4) + 9rem));
-        }
-        .auction-stories-track {
-            gap: 0.85rem;
-        }
-    }
-    .auction-stories-nav,
-    .auction-stories-nav-mobile {
-        border: 1px solid rgba(255, 255, 255, 0.62);
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.82) 0%, rgba(255, 255, 255, 0.54) 100%);
-        box-shadow:
-            0 16px 28px rgba(15, 23, 42, 0.10),
-            inset 0 1px 0 rgba(255, 255, 255, 0.88);
-        backdrop-filter: blur(22px) saturate(190%);
-    }
-    .dark .auction-stories-nav,
-    .dark .auction-stories-nav-mobile {
-        border-color: rgba(255, 255, 255, 0.08);
-        background: linear-gradient(180deg, rgba(63, 63, 70, 0.78) 0%, rgba(24, 24, 27, 0.60) 100%);
-        box-shadow:
-            0 16px 28px rgba(0, 0, 0, 0.30),
-            inset 0 1px 0 rgba(255, 255, 255, 0.06);
-    }
-    .auction-stories-nav:hover {
-        transform: translateY(calc(-50% - 1px)) scale(1.04);
-        color: rgb(171 140 88);
-    }
-    .auction-stories-nav:active {
-        transform: translateY(calc(-50% + 1px)) scale(0.97);
-    }
-    .auction-stories-nav-mobile:hover {
-        transform: translateY(-1px) scale(1.04);
-        color: rgb(171 140 88);
-    }
-    .auction-stories-nav-mobile:active {
-        transform: translateY(1px) scale(0.97);
+        touch-action: pan-y;
+        -webkit-user-drag: none;
+        padding-top: 28px !important;
+        padding-left: var(--dock-edge-pad, 40%);
+        padding-right: var(--dock-edge-pad, 40%);
     }
     .auction-story-item {
-        --dock-scale: 0.9;
+        --dock-scale: 0.82;
         --dock-lift: 0px;
-        --dock-alpha: 0.74;
+        --dock-alpha: 0.60;
         position: relative;
         min-width: 4.4rem;
         scroll-snap-align: center;
-        scroll-snap-stop: normal;
         transform-origin: center bottom;
         transform: translateY(var(--dock-lift)) scale(var(--dock-scale));
         opacity: var(--dock-alpha);
-        will-change: transform, opacity;
+        will-change: transform, opacity, filter;
+        transition: transform 180ms cubic-bezier(0.2, 0.8, 0.4, 1), opacity 180ms ease, filter 180ms ease;
+        -webkit-user-drag: none;
     }
+    .auction-story-item img {
+        -webkit-user-drag: none;
+        user-select: none;
+    }
+    
+    /* سیاه و سفید شدن موارد غیرفعال باخته */
+    .auction-story-item[data-is-winning="0"]:not(.is-active) .auction-story-avatar-wrap {
+        filter: grayscale(100%);
+        opacity: 0.55;
+    }
+    .auction-story-item[data-is-winning="0"]:not(.is-active) .auction-story-state-dot {
+        filter: grayscale(100%);
+        opacity: 0.60;
+    }
+
+    /* حالت اکتیو و در وسط قرار گرفتن */
     .auction-story-item.is-active {
-        z-index: 3;
+        z-index: 5;
+        --dock-alpha: 1;
     }
-    .auction-story-item.is-pressed {
-        transform: translateY(calc(var(--dock-lift) + 6px)) scale(calc(var(--dock-scale) * 0.94));
-    }
-    .auction-story-avatar-wrap,
-    .auction-story-avatar,
-    .auction-story-label,
-    .auction-story-price,
-    .auction-story-presence {
-        transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1), opacity 160ms ease, color 160ms ease, background-color 160ms ease;
-    }
-    .auction-story-avatar-wrap {
-        transform: translateZ(0);
-        backface-visibility: hidden;
-    }
-    .auction-story-presence {
-        width: 0.38rem;
-        height: 0.38rem;
-        margin-top: 0.4rem;
-        border-radius: 9999px;
-        background: rgba(23, 23, 23, 0.28);
-        box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.22);
-        opacity: 0.42;
-    }
-    .dark .auction-story-presence {
-        background: rgba(255, 255, 255, 0.34);
-        box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.06);
-    }
-    .auction-story-presence.is-winning {
-        background: rgba(16, 185, 129, 0.92);
-    }
-    .auction-story-presence.is-outbid {
-        background: rgba(244, 63, 94, 0.78);
-    }
-    .auction-story-item.is-active .auction-story-presence {
+    .auction-story-item.is-active .auction-story-avatar-wrap {
+        filter: grayscale(0%);
         opacity: 1;
-        transform: scale(1.2);
     }
-    .auction-story-state-dot {
-        box-shadow: 0 10px 18px rgba(15, 23, 42, 0.18);
-    }
-    .auction-story-item.is-active .auction-story-label {
-        color: rgb(23 23 23);
-    }
-    .dark .auction-story-item.is-active .auction-story-label {
-        color: rgb(245 245 245);
-    }
-    @media (max-width: 639px) {
-        .auction-stories-viewport {
-            padding-top: 1.65rem;
-            padding-bottom: 0.55rem;
-        }
-        .auction-story-item {
-            --dock-scale: 1;
-            --dock-alpha: 1;
-        }
-    }
+    
     .auction-stories-viewport.is-dragging {
-        cursor: grabbing;
-        scroll-behavior: auto;
+        cursor: grabbing !important;
+        scroll-behavior: auto !important;
+        scroll-snap-type: none !important;
     }
-    .auction-stories-nav:disabled {
-        opacity: 0.45;
-        cursor: default;
+    .auction-stories-viewport.is-dragging * {
+        cursor: grabbing !important;
+        pointer-events: none !important;
     }
 </style>
 
 <script>
     (function() {
         const track = document.getElementById('auction-stories-track');
-        const prevButtons = Array.from(document.querySelectorAll('#auction-stories-prev, .auction-stories-nav-mobile[aria-label="اسکرول به راست"]'));
-        const nextButtons = Array.from(document.querySelectorAll('#auction-stories-next, .auction-stories-nav-mobile[aria-label="اسکرول به چپ"]'));
-        if (!track || track.dataset.dragScrollReady === '1') return;
+        const metaBox = document.getElementById('active-story-meta-box');
+        const lotEl = document.getElementById('active-story-lot');
+        const titleEl = document.getElementById('active-story-title');
+        const priceEl = document.getElementById('active-story-price');
+        const statusEl = document.getElementById('active-story-status-text');
 
+        if (!track || track.dataset.dragScrollReady === '1') return;
         track.dataset.dragScrollReady = '1';
 
-        let isPointerDown = false;
+        let isDown = false;
         let startX = 0;
         let startScrollLeft = 0;
-        let moved = false;
-        let dockAnimationFrame = null;
-        let navAnimationFrame = null;
-        let pointerInside = false;
-        let pointerClientX = null;
+        let isDragging = false;
+        let animFrame = null;
+        let currentActiveItem = null;
+
         const getTrackItems = function() {
             return Array.from(track.querySelectorAll('.auction-story-item[href]'));
         };
 
-        const isRTL = function() {
-            return window.getComputedStyle(track).direction === 'rtl';
-        };
-
-        const getOrderedItems = function(fromStart = true) {
-            const rtl = isRTL();
-            return getTrackItems().sort((first, second) => {
-                const firstRect = first.getBoundingClientRect();
-                const secondRect = second.getBoundingClientRect();
-
-                if (rtl) {
-                    return fromStart
-                        ? secondRect.right - firstRect.right
-                        : firstRect.left - secondRect.left;
-                }
-
-                return fromStart
-                    ? firstRect.left - secondRect.left
-                    : secondRect.right - firstRect.right;
-            });
-        };
-
-        const isHiddenBefore = function(itemRect, trackRect) {
-            return isRTL()
-                ? itemRect.right > trackRect.right + 4
-                : itemRect.left < trackRect.left - 4;
-        };
-
-        const isHiddenAfter = function(itemRect, trackRect) {
-            return isRTL()
-                ? itemRect.left < trackRect.left - 4
-                : itemRect.right > trackRect.right + 4;
-        };
-
-        const updateNavState = function() {
-            const trackRect = track.getBoundingClientRect();
-            const hasHiddenBefore = getOrderedItems(true).some((item) => isHiddenBefore(item.getBoundingClientRect(), trackRect));
-            const hasHiddenAfter = getOrderedItems(false).some((item) => isHiddenAfter(item.getBoundingClientRect(), trackRect));
-
-            prevButtons.forEach((button) => { button.disabled = !hasHiddenBefore; });
-            nextButtons.forEach((button) => { button.disabled = !hasHiddenAfter; });
-        };
-
-        const updateDockPadding = function() {
+        const updatePadding = function() {
             const firstItem = getTrackItems()[0];
             if (!firstItem) return;
-
-            const edgePadding = Math.max(12, Math.round((track.clientWidth - firstItem.offsetWidth) / 2));
-            track.style.setProperty('--auction-dock-edge-padding', edgePadding + 'px');
+            const itemWidth = firstItem.offsetWidth || 72;
+            const pad = Math.max(20, Math.round((track.clientWidth - itemWidth) / 2));
+            track.style.setProperty('--dock-edge-pad', pad + 'px');
         };
 
-        const canUsePointerMagnification = function() {
-            return window.matchMedia('(hover: hover) and (pointer: fine)').matches
-                && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        };
+        const updateMetaInfo = function(item) {
+            if (!item || item === currentActiveItem) return;
+            currentActiveItem = item;
 
-        const clearPressedState = function() {
-            getTrackItems().forEach((item) => {
-                item.classList.remove('is-pressed');
-            });
+            const lot = item.dataset.lot || '';
+            const title = item.dataset.title || '';
+            const price = item.dataset.price || '';
+            const isWinning = item.dataset.isWinning === '1';
+            const url = item.dataset.url || '#';
+
+            if (metaBox) metaBox.href = url;
+
+            if (lotEl) {
+                if (lot) {
+                    lotEl.textContent = lot;
+                    lotEl.classList.remove('hidden');
+                } else {
+                    lotEl.classList.add('hidden');
+                }
+            }
+
+            if (titleEl) titleEl.textContent = title;
+            if (priceEl) priceEl.textContent = price;
+
+            if (statusEl && priceEl) {
+                if (isWinning) {
+                    statusEl.textContent = 'پیشتاز:';
+                    statusEl.className = 'text-xs sm:text-sm font-semibold text-emerald-600 dark:text-emerald-400';
+                    priceEl.className = 'tabular-nums font-bold text-sm sm:text-base text-emerald-600 dark:text-emerald-400';
+                } else {
+                    statusEl.textContent = 'پیشنهاد بالاتر خورده:';
+                    statusEl.className = 'text-xs sm:text-sm font-semibold text-rose-500 dark:text-rose-400';
+                    priceEl.className = 'tabular-nums font-bold text-sm sm:text-base text-neutral-400 dark:text-neutral-500 line-through';
+                }
+            }
         };
 
         const updateDockState = function() {
-            dockAnimationFrame = null;
-
+            animFrame = null;
             const items = getTrackItems();
             if (!items.length) return;
 
             const trackRect = track.getBoundingClientRect();
             const trackCenter = trackRect.left + (trackRect.width / 2);
-            const usePointerMagnification = canUsePointerMagnification() && pointerInside && pointerClientX !== null && !isPointerDown;
-            const referencePoint = usePointerMagnification ? pointerClientX : trackCenter;
-            const influenceRadius = usePointerMagnification
-                ? Math.max(trackRect.width * 0.24, 110)
-                : Math.max(trackRect.width * 0.42, 130);
+            const influence = Math.max(trackRect.width * 0.35, 120);
+
             let activeItem = null;
-            let closestDistance = Number.POSITIVE_INFINITY;
+            let minDistance = Number.POSITIVE_INFINITY;
 
             items.forEach((item) => {
                 const rect = item.getBoundingClientRect();
                 const itemCenter = rect.left + (rect.width / 2);
-                const distance = Math.abs(referencePoint - itemCenter);
-                const proximity = Math.max(0, 1 - (distance / influenceRadius));
-                const scale = usePointerMagnification
-                    ? 0.95 + (proximity * 0.18)
-                    : 0.97 + (proximity * 0.10);
-                const lift = Math.round(proximity * (usePointerMagnification ? -9 : -5));
-                const alpha = usePointerMagnification
-                    ? 0.82 + (proximity * 0.18)
-                    : 0.88 + (proximity * 0.12);
+                const distance = Math.abs(trackCenter - itemCenter);
+                const proximity = Math.max(0, 1 - (distance / influence));
+
+                const scale = 0.82 + (proximity * 0.43);
+                const lift = Math.round(proximity * -8);
+                const alpha = 0.58 + (proximity * 0.42);
 
                 item.style.setProperty('--dock-scale', scale.toFixed(3));
                 item.style.setProperty('--dock-lift', lift + 'px');
                 item.style.setProperty('--dock-alpha', alpha.toFixed(3));
 
-                if (distance < closestDistance) {
-                    closestDistance = distance;
+                if (distance < minDistance) {
+                    minDistance = distance;
                     activeItem = item;
                 }
             });
@@ -396,140 +250,87 @@
             items.forEach((item) => {
                 item.classList.toggle('is-active', item === activeItem);
             });
+
+            if (activeItem) {
+                updateMetaInfo(activeItem);
+            }
         };
 
-        const scheduleDockUpdate = function() {
-            if (dockAnimationFrame !== null) return;
-
-            dockAnimationFrame = window.requestAnimationFrame(function() {
-                dockAnimationFrame = null;
-                updateDockState();
-            });
+        const scheduleUpdate = function() {
+            if (animFrame !== null) return;
+            animFrame = window.requestAnimationFrame(updateDockState);
         };
 
-        const scheduleNavUpdate = function() {
-            if (navAnimationFrame !== null) return;
+        track.addEventListener('dragstart', (e) => e.preventDefault());
 
-            navAnimationFrame = window.requestAnimationFrame(function() {
-                navAnimationFrame = null;
-                updateNavState();
-            });
-        };
-
-        track.addEventListener('mousedown', function(event) {
-            if (event.button !== 0) return;
-            isPointerDown = true;
-            moved = false;
-            startX = event.pageX;
+        track.addEventListener('mousedown', function(e) {
+            if (e.button !== 0) return;
+            isDown = true;
+            isDragging = false;
+            startX = e.pageX - track.offsetLeft;
             startScrollLeft = track.scrollLeft;
-            track.classList.add('is-dragging');
         });
 
-        track.addEventListener('mousemove', function(event) {
-            if (!isPointerDown) return;
-            const deltaX = event.pageX - startX;
-            if (Math.abs(deltaX) > 4) {
-                moved = true;
+        window.addEventListener('mousemove', function(e) {
+            if (!isDown) return;
+            const x = e.pageX - track.offsetLeft;
+            const walk = x - startX;
+
+            if (Math.abs(walk) > 5) {
+                if (!isDragging) {
+                    isDragging = true;
+                    track.classList.add('is-dragging');
+                }
             }
-            track.scrollLeft = startScrollLeft - deltaX;
-            scheduleDockUpdate();
-        });
 
-        track.addEventListener('mouseenter', function(event) {
-            pointerInside = true;
-            pointerClientX = event.clientX;
-            scheduleDockUpdate();
-        });
-
-        track.addEventListener('mousemove', function(event) {
-            pointerInside = true;
-            pointerClientX = event.clientX;
-
-            if (!isPointerDown) {
-                scheduleDockUpdate();
+            if (isDragging) {
+                e.preventDefault();
+                track.scrollLeft = startScrollLeft - walk;
+                scheduleUpdate();
             }
         });
 
-        const stopDragging = function() {
-            isPointerDown = false;
-            track.classList.remove('is-dragging');
-            clearPressedState();
-            scheduleDockUpdate();
+        const stopDrag = function() {
+            if (!isDown) return;
+            isDown = false;
+            if (isDragging) {
+                setTimeout(() => {
+                    isDragging = false;
+                    track.classList.remove('is-dragging');
+                }, 50);
+            } else {
+                track.classList.remove('is-dragging');
+            }
+            scheduleUpdate();
         };
 
-        track.addEventListener('mouseleave', function() {
-            pointerInside = false;
-            pointerClientX = null;
-            stopDragging();
-            scheduleDockUpdate();
-        });
-        track.addEventListener('mouseup', stopDragging);
-        window.addEventListener('mouseup', stopDragging);
-
-        track.addEventListener('click', function(event) {
-            if (!moved) return;
-            event.preventDefault();
-            event.stopPropagation();
-            moved = false;
-        }, true);
-
-        track.addEventListener('dragstart', function(event) {
-            event.preventDefault();
-        });
-
-        track.addEventListener('scroll', function() {
-            scheduleDockUpdate();
-            scheduleNavUpdate();
-        }, { passive: true });
-
-        prevButtons.forEach((button) => {
-            button.addEventListener('click', function() {
-                const trackRect = track.getBoundingClientRect();
-                const targetItem = getOrderedItems(true).find((item) => isHiddenBefore(item.getBoundingClientRect(), trackRect));
-                if (targetItem) {
-                    targetItem.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-                }
-            });
-        });
-
-        nextButtons.forEach((button) => {
-            button.addEventListener('click', function() {
-                const trackRect = track.getBoundingClientRect();
-                const targetItem = getOrderedItems(false).find((item) => isHiddenAfter(item.getBoundingClientRect(), trackRect));
-                if (targetItem) {
-                    targetItem.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-                }
-            });
-        });
+        window.addEventListener('mouseup', stopDrag);
+        window.addEventListener('mouseleave', stopDrag);
 
         getTrackItems().forEach((item) => {
-            item.addEventListener('mousedown', function(event) {
-                if (event.button !== 0) return;
-                item.classList.add('is-pressed');
-            });
+            item.addEventListener('click', function(e) {
+                if (isDragging) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return;
+                }
 
-            item.addEventListener('mouseup', function() {
-                item.classList.remove('is-pressed');
-            });
-
-            item.addEventListener('mouseleave', function() {
-                item.classList.remove('is-pressed');
-            });
-
-            item.addEventListener('blur', function() {
-                item.classList.remove('is-pressed');
+                if (!item.classList.contains('is-active')) {
+                    e.preventDefault();
+                    item.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                }
             });
         });
+
+        track.addEventListener('scroll', scheduleUpdate, { passive: true });
 
         window.addEventListener('resize', function() {
-            updateDockPadding();
-            scheduleDockUpdate();
-            scheduleNavUpdate();
+            updatePadding();
+            scheduleUpdate();
         });
 
-        updateDockPadding();
-        scheduleDockUpdate();
-        scheduleNavUpdate();
+        updatePadding();
+        scheduleUpdate();
     })();
 </script>
 {% endif %}
