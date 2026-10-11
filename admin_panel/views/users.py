@@ -1,4 +1,6 @@
 import json
+import re
+from collections import defaultdict
 from decimal import Decimal
 from datetime import datetime
 
@@ -316,6 +318,33 @@ def login_history_api_view(request):
         auth_queryset = auth_queryset.none()
         visit_queryset = visit_queryset.filter(user__isnull=True, ip_address__iexact=guest_ip)
 
+    ip_filter = request.GET.get('ip', '').strip()
+    if ip_filter:
+        auth_queryset = auth_queryset.filter(details__icontains=ip_filter)
+        visit_queryset = visit_queryset.filter(ip_address__iexact=ip_filter)
+
+    os_filter = request.GET.get('os', '').strip()
+    if os_filter:
+        auth_queryset = auth_queryset.none()
+        visit_queryset = visit_queryset.filter(operating_system__icontains=os_filter)
+
+    identity_filter = request.GET.get('identity', 'all').strip() or 'all'
+    if identity_filter == 'users_only':
+        auth_queryset = auth_queryset.filter(user__isnull=False)
+        visit_queryset = visit_queryset.filter(user__isnull=False)
+    elif identity_filter == 'guests_only':
+        auth_queryset = auth_queryset.none()
+        visit_queryset = visit_queryset.filter(user__isnull=True)
+    elif identity_filter == 'matched_guests_only':
+        auth_queryset = auth_queryset.none()
+        known_ips = list(
+            SiteVisitLog.objects
+            .filter(user__isnull=False, ip_address__isnull=False)
+            .values_list('ip_address', flat=True)
+            .distinct()
+        )
+        visit_queryset = visit_queryset.filter(user__isnull=True, ip_address__in=known_ips)
+
     search = request.GET.get('search', '').strip()
     if search:
         auth_queryset = auth_queryset.filter(
@@ -329,6 +358,7 @@ def login_history_api_view(request):
         visit_queryset = visit_queryset.filter(
             Q(ip_address__icontains=search)
             | Q(session_key__icontains=search)
+            | Q(operating_system__icontains=search)
             | Q(user__email__icontains=search)
             | Q(user__first_name__icontains=search)
             | Q(user__last_name__icontains=search)
@@ -347,6 +377,10 @@ def login_history_api_view(request):
     if source in {'all', 'auth'}:
         for item in auth_queryset:
             entry = _build_auth_activity_entry(item)
+            details = item.details or ''
+            ip_match = re.search(r'(?:from IP:\s*|IP:\s*)([0-9a-fA-F\.:]+)', details)
+            extracted_ip = ip_match.group(1).strip() if ip_match else ''
+
             auth_payload.append(
                 {
                     'id': item.id,
@@ -356,10 +390,14 @@ def login_history_api_view(request):
                     'source_label': entry['source_label'],
                     'action': item.action,
                     'event_label': entry['event_label'],
-                    'details': item.details or '',
+                    'details': details,
                     'status': entry['status'],
                     'status_label': entry['status_label'],
                     'timestamp': _safe_iso(item.timestamp),
+                    'ip_address': extracted_ip,
+                    'operating_system': '',
+                    'duration_min': None,
+                    'session_key_short': '',
                     '_sort_at': item.timestamp,
                 }
             )
@@ -369,15 +407,20 @@ def login_history_api_view(request):
         for log in visit_queryset:
             entry = _build_site_visit_entry(log)
             user_display = 'مهمان (ناشناس)'
-            user_id = None
+            user_id_val = None
             if log.user:
                 user_display = log.user.get_full_name() or log.user.email or log.user.phone_number
-                user_id = str(log.user_id)
+                user_id_val = str(log.user_id)
+
+            raw_ip = log.ip_address or ''
+            if not raw_ip and entry.get('ip') != 'نامشخص':
+                raw_ip = entry.get('ip') or ''
+
             visit_payload.append(
                 {
                     'id': f'visit-{log.id}',
                     'user_name': user_display,
-                    'user_id': user_id,
+                    'user_id': user_id_val,
                     'source': entry['source'],
                     'source_label': entry['source_label'],
                     'action': entry['event_type'],
@@ -386,7 +429,8 @@ def login_history_api_view(request):
                     'status': entry['status'],
                     'status_label': entry['status_label'],
                     'timestamp': entry['occurred_at'],
-                    'ip_address': entry['ip'],
+                    'ip_address': raw_ip,
+                    'operating_system': log.operating_system or entry.get('operating_system', '') or '',
                     'duration_min': entry['duration_min'],
                     'session_key_short': entry['session_key_short'],
                     '_sort_at': log.last_activity,
@@ -396,14 +440,106 @@ def login_history_api_view(request):
     combined_payload = [*auth_payload, *visit_payload]
     combined_payload.sort(key=lambda item: item.get('_sort_at') or datetime.min, reverse=True)
 
-    paginator = Paginator(combined_payload, 100)
+    try:
+        page_size = max(10, min(100, int(request.GET.get('page_size', 50))))
+    except (TypeError, ValueError):
+        page_size = 50
+
+    paginator = Paginator(combined_payload, page_size)
     page_obj = paginator.get_page(request.GET.get('page', 1))
 
+    # واکشی و تطبیق هوشمند کاربر از روی IP برای رکوردهای صفحه جاری
+    page_ips = {
+        item.get('ip_address')
+        for item in page_obj.object_list
+        if item.get('ip_address') and item.get('ip_address') not in {'نامشخص', '', '-'}
+    }
+
+    ip_to_users = defaultdict(dict)
+    if page_ips:
+        known_visits = (
+            SiteVisitLog.objects
+            .filter(ip_address__in=page_ips, user__isnull=False)
+            .select_related('user')
+            .order_by('-last_activity')
+        )
+        for kv in known_visits:
+            ip = kv.ip_address
+            u = kv.user
+            uid = str(u.id)
+            if uid not in ip_to_users[ip]:
+                ip_to_users[ip][uid] = {
+                    'id': uid,
+                    'name': u.get_full_name() or u.phone_number or u.email,
+                    'phone': u.phone_number or '',
+                    'email': u.email or '',
+                    'last_seen': _safe_iso(kv.last_activity),
+                    'operating_system': kv.operating_system or '',
+                    'visit_count': 1,
+                }
+            else:
+                ip_to_users[ip][uid]['visit_count'] += 1
+
+        unresolved_ips = [ip for ip in page_ips if not ip_to_users.get(ip)]
+        if unresolved_ips:
+            q_auth = Q()
+            for uip in unresolved_ips:
+                q_auth |= Q(details__icontains=uip)
+            auth_matches = (
+                ActivityLog.objects
+                .filter(q_auth, user__isnull=False)
+                .select_related('user')
+                .order_by('-timestamp')
+            )
+            for am in auth_matches:
+                u = am.user
+                uid = str(u.id)
+                for uip in unresolved_ips:
+                    if uip in (am.details or ''):
+                        if uid not in ip_to_users[uip]:
+                            ip_to_users[uip][uid] = {
+                                'id': uid,
+                                'name': u.get_full_name() or u.phone_number or u.email,
+                                'phone': u.phone_number or '',
+                                'email': u.email or '',
+                                'last_seen': _safe_iso(am.timestamp),
+                                'operating_system': '',
+                                'visit_count': 1,
+                            }
+
     payload = []
+    matched_guests_on_page = 0
+    guests_on_page = 0
     for item in page_obj.object_list:
         entry = dict(item)
         entry.pop('_sort_at', None)
+
+        ip = entry.get('ip_address')
+        users_for_ip = list(ip_to_users.get(ip, {}).values()) if ip else []
+
+        entry['associated_users'] = users_for_ip
+        entry['associated_users_count'] = len(users_for_ip)
+
+        is_guest = not bool(entry.get('user_id'))
+        if is_guest:
+            guests_on_page += 1
+            if users_for_ip:
+                matched_guests_on_page += 1
+                entry['is_ip_matched'] = True
+                entry['matched_user'] = users_for_ip[0]
+                entry['match_confidence'] = 'high' if len(users_for_ip) == 1 else 'multiple'
+            else:
+                entry['is_ip_matched'] = False
+                entry['matched_user'] = None
+                entry['match_confidence'] = 'none'
+        else:
+            entry['is_ip_matched'] = False
+            entry['matched_user'] = None
+            entry['match_confidence'] = 'none'
+
         payload.append(entry)
+
+    guest_total = sum(1 for item in visit_payload if not item.get('user_id'))
 
     return JsonResponse(
         {
@@ -411,13 +547,124 @@ def login_history_api_view(request):
             'total': paginator.count,
             'pages': paginator.num_pages,
             'current_page': page_obj.number,
+            'page_size': page_size,
             'source': source,
             'auth_total': len(auth_payload),
             'visit_total': len(visit_payload),
+            'guest_total': guest_total,
+            'matched_guests_on_page': matched_guests_on_page,
+            'guests_on_page': guests_on_page,
             'active_user_id': user_id or None,
             'active_guest_ip': guest_ip or None,
+            'active_ip': ip_filter or None,
+            'active_os': os_filter or None,
+            'active_identity': identity_filter,
         }
     )
+
+
+@superuser_required
+@require_http_methods(['GET'])
+def ip_intelligence_api_view(request):
+    """
+    API تحلیل هوشمند یک آدرس IP:
+    استخراج تمام کاربران مرتبط، نشست‌ها، سیستم‌عامل‌ها و فعالیت‌های مرتبط با این IP.
+    """
+    ip = request.GET.get('ip', '').strip()
+    if not ip:
+        return JsonResponse({'error': 'آدرس آی‌پی ارسال نشده است.'}, status=400)
+
+    visit_logs = list(
+        SiteVisitLog.objects
+        .filter(ip_address__iexact=ip)
+        .select_related('user')
+        .order_by('-last_activity')
+    )
+
+    auth_logs = list(
+        ActivityLog.objects
+        .filter(details__icontains=ip)
+        .select_related('user')
+        .order_by('-timestamp')
+    )
+
+    associated_users_map = {}
+    for log in visit_logs:
+        if log.user:
+            uid = str(log.user.id)
+            if uid not in associated_users_map:
+                associated_users_map[uid] = {
+                    'id': uid,
+                    'name': log.user.get_full_name() or log.user.phone_number or log.user.email,
+                    'phone': log.user.phone_number or '',
+                    'email': log.user.email or '',
+                    'last_seen': _safe_iso(log.last_activity),
+                    'sessions_count': 1,
+                    'first_seen': _safe_iso(log.start_time),
+                    'last_os': log.operating_system or '',
+                }
+            else:
+                associated_users_map[uid]['sessions_count'] += 1
+
+    for alog in auth_logs:
+        if alog.user:
+            uid = str(alog.user.id)
+            if uid not in associated_users_map:
+                associated_users_map[uid] = {
+                    'id': uid,
+                    'name': alog.user.get_full_name() or alog.user.phone_number or alog.user.email,
+                    'phone': alog.user.phone_number or '',
+                    'email': alog.user.email or '',
+                    'last_seen': _safe_iso(alog.timestamp),
+                    'sessions_count': 1,
+                    'first_seen': _safe_iso(alog.timestamp),
+                    'last_os': '',
+                }
+
+    associated_users = sorted(
+        associated_users_map.values(),
+        key=lambda u: u['last_seen'] or '',
+        reverse=True
+    )
+
+    os_list = sorted(list({log.operating_system for log in visit_logs if log.operating_system}))
+    total_visits = len(visit_logs)
+    guest_visits = sum(1 for log in visit_logs if not log.user)
+    user_visits = sum(1 for log in visit_logs if log.user)
+
+    all_times = [l.last_activity for l in visit_logs if l.last_activity] + [al.timestamp for al in auth_logs if al.timestamp]
+    earliest_time = _safe_iso(min(all_times)) if all_times else None
+    latest_time = _safe_iso(max(all_times)) if all_times else None
+
+    recent_sessions = [
+        {
+            'id': log.id,
+            'user_name': (log.user.get_full_name() or log.user.phone_number or log.user.email) if log.user else 'مهمان (ناشناس)',
+            'user_id': str(log.user.id) if log.user else None,
+            'operating_system': log.operating_system or 'نامشخص',
+            'duration_min': getattr(log, 'duration_in_minutes', 0),
+            'start_time': _safe_iso(log.start_time),
+            'last_activity': _safe_iso(log.last_activity),
+            'is_closed': log.is_closed,
+        }
+        for log in visit_logs[:10]
+    ]
+
+    return JsonResponse({
+        'ip': ip,
+        'associated_users': associated_users,
+        'associated_users_count': len(associated_users),
+        'is_matched': len(associated_users) > 0,
+        'confidence': 'high' if len(associated_users) == 1 else ('multiple' if len(associated_users) > 1 else 'none'),
+        'operating_systems': os_list,
+        'total_visits': total_visits,
+        'guest_visits': guest_visits,
+        'user_visits': user_visits,
+        'auth_logs_count': len(auth_logs),
+        'first_seen': earliest_time,
+        'last_seen': latest_time,
+        'recent_sessions': recent_sessions,
+    })
 
 
 @staff_required

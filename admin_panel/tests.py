@@ -1461,3 +1461,82 @@ class AdminRequestManagementTests(TestCase):
         self.assertContains(response, 'EMAIL_HOST_USER تنظیم نشده')
         self.assertContains(response, 'EMAIL_HOST_PASSWORD تنظیم نشده')
         self.assertContains(response, 'DEFAULT_FROM_EMAIL تنظیم نشده')
+
+    def test_login_history_api_returns_operating_system_and_matches_guest_by_ip(self):
+        self.client.force_login(self.super_user)
+        test_ip = "198.51.100.5"
+
+        # لاگ کاربر عضو با این IP
+        SiteVisitLog.objects.create(
+            user=self.normal_user,
+            session_key="session-user-1",
+            ip_address=test_ip,
+            operating_system="Windows 11 (NT 10.0)",
+        )
+
+        # لاگ مهمان ناشناس با همان IP
+        guest_log = SiteVisitLog.objects.create(
+            user=None,
+            session_key="session-guest-1",
+            ip_address=test_ip,
+            operating_system="Android 14",
+        )
+
+        response = self.client.get(reverse('admin_panel:users-login-history-api'))
+        self.assertEqual(response.status_code, 200)
+
+        data = response.json()
+        self.assertIn('results', data)
+
+        # یافتن رکورد مهمان در نتایج
+        guest_entry = next(
+            (item for item in data['results'] if item['id'] == f'visit-{guest_log.id}'),
+            None
+        )
+        self.assertIsNotNone(guest_entry)
+        self.assertEqual(guest_entry['operating_system'], "Android 14")
+        self.assertEqual(guest_entry['ip_address'], test_ip)
+        self.assertTrue(guest_entry['is_ip_matched'])
+        self.assertIsNotNone(guest_entry['matched_user'])
+        self.assertEqual(guest_entry['matched_user']['id'], str(self.normal_user.pk))
+
+    def test_ip_intelligence_api_returns_associated_user_and_os_details(self):
+        self.client.force_login(self.super_user)
+        test_ip = "198.51.100.99"
+
+        SiteVisitLog.objects.create(
+            user=self.normal_user,
+            session_key="session-user-intel",
+            ip_address=test_ip,
+            operating_system="Windows 11 (NT 10.0)",
+        )
+        SiteVisitLog.objects.create(
+            user=None,
+            session_key="session-guest-intel",
+            ip_address=test_ip,
+            operating_system="iOS 17.4",
+        )
+
+        response = self.client.get(
+            reverse('admin_panel:users-ip-intelligence-api'),
+            {'ip': test_ip}
+        )
+        self.assertEqual(response.status_code, 200)
+
+        data = response.json()
+        self.assertEqual(data['ip'], test_ip)
+        self.assertTrue(data['is_matched'])
+        self.assertEqual(len(data['associated_users']), 1)
+        self.assertEqual(data['associated_users'][0]['id'], str(self.normal_user.pk))
+        self.assertIn("Windows 11 (NT 10.0)", data['operating_systems'])
+        self.assertIn("iOS 17.4", data['operating_systems'])
+        self.assertEqual(data['total_visits'], 2)
+        self.assertEqual(data['guest_visits'], 1)
+        self.assertEqual(data['user_visits'], 1)
+
+    def test_login_history_page_view_renders_successfully(self):
+        self.client.force_login(self.super_user)
+        response = self.client.get(reverse('admin_panel_pages:login-history'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'گزارش یکپارچه و هوشمند کاربران')
+        self.assertContains(response, 'تطابق هوشمند IP')

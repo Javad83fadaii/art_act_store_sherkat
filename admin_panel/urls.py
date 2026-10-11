@@ -60,6 +60,7 @@ urlpatterns = [
     path('users/<uuid:pk>/auction-activity/', users.auction_activity, name='users-auction-activity'),
     path('users/<uuid:pk>/history-api/', users.history_api_view, name='users-history-api'),
     path('users/login-history-api/', users.login_history_api_view, name='users-login-history-api'),
+    path('users/ip-intelligence-api/', users.ip_intelligence_api_view, name='users-ip-intelligence-api'),
     path('users/site-visits-api/', users.global_site_visits_api_view, name='api-site-visits'),
     path('users/<uuid:pk>/bids/', users.user_bids_api, name='user-bids-api'),
     path('users/<uuid:pk>/product-visits-api/', users.user_product_visits_api, name='user-product-visits-api'),

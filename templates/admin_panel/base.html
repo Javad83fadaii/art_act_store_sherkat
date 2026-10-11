@@ -157,12 +157,18 @@
                     <div class="overflow-hidden min-h-0">
                         <div class="flex flex-col pr-6 pl-2 py-1.5 border-r-[1.5px] border-primary/20 dark:border-white/10 mr-[21px]" style="gap: 20px; padding-top: 16px;">
                             
-                            <a href="{% url 'admin_panel_pages:users' %}" class="relative flex items-center justify-start px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 {% if request.resolver_match.url_name == 'users' or request.resolver_match.url_name == 'user-history' or request.resolver_match.url_name == 'login-history' %} text-primary dark:text-primary-glow bg-primary/5 dark:bg-white/5 {% else %} text-text-muted hover:text-primary dark:hover:text-white hover:bg-primary/5 dark:hover:bg-white/5 {% endif %}">
+                            <a href="{% url 'admin_panel_pages:users' %}" class="relative flex items-center justify-start px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 {% if request.resolver_match.url_name == 'users' or request.resolver_match.url_name == 'user-history' %} text-primary dark:text-primary-glow bg-primary/5 dark:bg-white/5 {% else %} text-text-muted hover:text-primary dark:hover:text-white hover:bg-primary/5 dark:hover:bg-white/5 {% endif %}">
                                 <div class="absolute -right-[25px] top-1/2 w-3 h-[1.5px] bg-primary/20 dark:bg-white/10"></div>
                                 <div class="size-1.5 rounded-full bg-current opacity-50 ml-2"></div>
                                 لیست کل کاربران
                             </a>
-
+                            {% if request.user.is_superuser %}
+                                <a href="{% url 'admin_panel_pages:login-history' %}" class="relative flex items-center justify-start px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 {% if request.resolver_match.url_name == 'login-history' or request.resolver_match.url_name == 'site-visits' %} text-primary dark:text-primary-glow bg-primary/5 dark:bg-white/5 {% else %} text-text-muted hover:text-primary dark:hover:text-white hover:bg-primary/5 dark:hover:bg-white/5 {% endif %}">
+                                    <div class="absolute -right-[25px] top-1/2 w-3 h-[1.5px] bg-primary/20 dark:bg-white/10"></div>
+                                    <div class="size-1.5 rounded-full bg-current opacity-50 ml-2"></div>
+                                    حضور و احراز هویت کاربران
+                                </a> 
+                            {% endif %}
                             
                         </div>
                     </div>

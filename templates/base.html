@@ -55,9 +55,96 @@
 
         /* ساختار نوار پایینی تمام‌عرض */
         .bottom-nav-bar {
-            background-color: #FFFFFF;
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(255, 255, 255, 0.98) 100%);
             border-top: 1px solid rgba(230, 223, 213, 0.9);
-            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
+            box-shadow:
+                0 -10px 35px rgba(15, 23, 42, 0.08),
+                0 -2px 12px rgba(171, 140, 88, 0.08);
+        }
+
+        .bottom-nav-inner {
+            position: relative;
+        }
+
+        .bottom-nav-inner::before {
+            content: "";
+            position: absolute;
+            inset: 6px 8px 0;
+            border-radius: 24px 24px 0 0;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0));
+            pointer-events: none;
+        }
+
+        .bottom-nav-item {
+            position: relative;
+            overflow: hidden;
+            border-radius: 18px;
+            transition:
+                transform 0.28s ease,
+                color 0.28s ease,
+                background-color 0.28s ease,
+                opacity 0.28s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .bottom-nav-item::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background: linear-gradient(135deg, rgba(171, 140, 88, 0.12), rgba(255, 255, 255, 0));
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.28s ease, transform 0.28s ease;
+            pointer-events: none;
+        }
+
+        .bottom-nav-item:hover {
+            transform: translateY(-2px);
+        }
+
+        .bottom-nav-item:hover::before,
+        .bottom-nav-item.is-active::before {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .bottom-nav-item:active {
+            transform: translateY(0) scale(0.97);
+        }
+
+        .bottom-nav-icon {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 2.65rem;
+            height: 2.65rem;
+            border-radius: 9999px;
+            transition:
+                transform 0.28s ease,
+                color 0.28s ease,
+                background-color 0.28s ease,
+                box-shadow 0.28s ease;
+        }
+
+        .bottom-nav-item:hover .bottom-nav-icon {
+            transform: translateY(-1px) scale(1.05);
+            background-color: rgba(171, 140, 88, 0.08);
+        }
+
+        .bottom-nav-label {
+            position: relative;
+            transition: transform 0.28s ease, opacity 0.28s ease, letter-spacing 0.28s ease;
+        }
+
+        .bottom-nav-item:hover .bottom-nav-label {
+            transform: translateY(-1px);
+        }
+
+        .bottom-nav-item.is-active .bottom-nav-label {
+            letter-spacing: 0.01em;
         }
 
         /* انیمیشن باز شدن دایره از کوچک به بزرگ به حالت فنری */
@@ -80,9 +167,73 @@
         }
 
         .active-bubble-circle {
+            position: relative;
+            overflow: hidden;
             background: linear-gradient(135deg, #B89965 0%, #AB8C58 100%);
-            box-shadow: 0 4px 15px rgba(171, 140, 88, 0.4);
+            box-shadow:
+                0 10px 22px rgba(171, 140, 88, 0.34),
+                inset 0 1px 0 rgba(255, 255, 255, 0.35);
             animation: popGrow 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        .active-bubble-circle::before {
+            content: "";
+            position: absolute;
+            inset: 1px;
+            border-radius: inherit;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0));
+            pointer-events: none;
+        }
+
+        .active-bubble-circle::after {
+            content: "";
+            position: absolute;
+            top: -35%;
+            left: -55%;
+            width: 65%;
+            height: 170%;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0));
+            transform: rotate(24deg);
+            animation: activeBubbleShine 3.8s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        .bottom-nav-active-dot {
+            width: 4px;
+            height: 4px;
+            border-radius: 9999px;
+            margin-top: 4px;
+            background: linear-gradient(135deg, #C8A86E 0%, #AB8C58 100%);
+            box-shadow: 0 0 12px rgba(171, 140, 88, 0.55);
+            animation: activeDotPulse 1.8s ease-in-out infinite;
+        }
+
+        @keyframes activeBubbleShine {
+            0%, 100% {
+                transform: translateX(0) rotate(24deg);
+                opacity: 0;
+            }
+            18% {
+                opacity: 0;
+            }
+            38% {
+                transform: translateX(180%) rotate(24deg);
+                opacity: 0.9;
+            }
+            55% {
+                opacity: 0;
+            }
+        }
+
+        @keyframes activeDotPulse {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 0.8;
+            }
+            50% {
+                transform: scale(1.7);
+                opacity: 1;
+            }
         }
     </style>
 
@@ -199,7 +350,7 @@
     </div>
 
     <!-- Wrapper اصلی محتوا -->
-    <div class="relative flex flex-col min-h-screen w-full overflow-hidden {% if request.resolver_match.url_name != 'login' and request.resolver_match.url_name != 'signup' and request.resolver_match.url_name != 'profile' and request.resolver_match.url_name != 'email_verification' and request.resolver_match.url_name != 'sms_verification' %}pb-20 md:pb-0{% endif %}">
+    <div class="relative flex flex-col min-h-screen w-full overflow-hidden {% if request.resolver_match.url_name != 'login' and request.resolver_match.url_name != 'signup' and request.resolver_match.url_name != 'email_verification' and request.resolver_match.url_name != 'sms_verification' %}pb-24 md:pb-0{% endif %}">
 
         {% block header %}
             {% if request.resolver_match.url_name != 'login' and request.resolver_match.url_name != 'signup' and request.resolver_match.url_name != 'profile' and request.resolver_match.url_name != 'email_verification' and request.resolver_match.url_name != 'sms_verification' %}
@@ -227,100 +378,118 @@
         {% url 'admin_panel_pages:dashboard' as url_admin_dashboard %}
 
         <!-- تب‌بار تمام‌صفحه با آیکون‌های متریال قبلی و انیمیشن جهشی دایره فعال -->
-        {% if request.resolver_match.url_name != 'login' and request.resolver_match.url_name != 'signup' and request.resolver_match.url_name != 'profile' and request.resolver_match.url_name != 'email_verification' and request.resolver_match.url_name != 'sms_verification' %}
-            <nav class="fixed inset-x-0 bottom-0 z-[1000] lg:hidden select-none w-full bottom-nav-bar" aria-label="ناوبری موبایل">
-                <div class="w-full max-w-lg mx-auto h-[64px] flex items-center justify-around px-2"
+        {% if request.resolver_match.url_name != 'login' and request.resolver_match.url_name != 'signup' and request.resolver_match.url_name != 'email_verification' and request.resolver_match.url_name != 'sms_verification' %}
+            <nav class="fixed inset-x-0 bottom-0 z-[1000] lg:hidden select-none w-full bottom-nav-bar supports-[backdrop-filter]:bg-white/90 supports-[backdrop-filter]:backdrop-blur-xl" aria-label="ناوبری موبایل">
+                <div class="bottom-nav-inner w-full max-w-xl mx-auto min-h-[72px] flex items-end justify-around px-1.5 sm:px-2.5"
                      style="padding-bottom: env(safe-area-inset-bottom, 0px);">
                     
                     <!-- ۱. مزایده -->
                     {% if request.resolver_match.namespace == 'auction' or request.path == url_auction %}
-                        <a href="{{ url_auction }}" class="flex-1 flex flex-col items-center justify-center relative -top-1">
-                            <div class="size-10 rounded-full active-bubble-circle text-white flex items-center justify-center">
+                        <a href="{{ url_auction }}" class="bottom-nav-item is-active flex-1 min-w-0 flex flex-col items-center justify-center relative -top-1 px-1 py-1.5">
+                            <div class="bottom-nav-icon active-bubble-circle text-white">
                                 <span class="material-symbols-outlined text-[21px]">gavel</span>
                             </div>
-                            <span class="text-[10px] font-bold text-primary mt-0.5">مزایده</span>
+                            <span class="bottom-nav-label mt-0.5 whitespace-nowrap text-[10px] font-bold leading-none text-primary">مزایده</span>
+                            <span class="bottom-nav-active-dot"></span>
                         </a>
                     {% else %}
-                        <a href="{{ url_auction }}" class="flex-1 flex flex-col items-center justify-center text-[#78716C] hover:text-[#1C1C1C] transition-colors py-1">
-                            <span class="material-symbols-outlined text-[22px]">gavel</span>
-                            <span class="text-[10px] font-medium mt-1">مزایده</span>
+                        <a href="{{ url_auction }}" class="bottom-nav-item flex-1 min-w-0 flex flex-col items-center justify-center px-1 py-1.5 text-[#78716C] hover:text-[#1C1C1C] transition-colors">
+                            <span class="bottom-nav-icon">
+                                <span class="material-symbols-outlined text-[22px]">gavel</span>
+                            </span>
+                            <span class="bottom-nav-label mt-1 whitespace-nowrap text-[10px] font-medium leading-none">مزایده</span>
                         </a>
                     {% endif %}
 
                     <!-- ۲. فروشگاه -->
                     {% if request.resolver_match.namespace == 'store' or request.path == url_store %}
-                        <a href="{{ url_store }}" class="flex-1 flex flex-col items-center justify-center relative -top-1">
-                            <div class="size-10 rounded-full active-bubble-circle text-white flex items-center justify-center">
+                        <a href="{{ url_store }}" class="bottom-nav-item is-active flex-1 min-w-0 flex flex-col items-center justify-center relative -top-1 px-1 py-1.5">
+                            <div class="bottom-nav-icon active-bubble-circle text-white">
                                 <span class="material-symbols-outlined text-[21px]">storefront</span>
                             </div>
-                            <span class="text-[10px] font-bold text-primary mt-0.5">فروشگاه</span>
+                            <span class="bottom-nav-label mt-0.5 whitespace-nowrap text-[10px] font-bold leading-none text-primary">فروشگاه</span>
+                            <span class="bottom-nav-active-dot"></span>
                         </a>
                     {% else %}
-                        <a href="{{ url_store }}" class="flex-1 flex flex-col items-center justify-center text-[#78716C] hover:text-[#1C1C1C] transition-colors py-1">
-                            <span class="material-symbols-outlined text-[22px]">storefront</span>
-                            <span class="text-[10px] font-medium mt-1">فروشگاه</span>
+                        <a href="{{ url_store }}" class="bottom-nav-item flex-1 min-w-0 flex flex-col items-center justify-center px-1 py-1.5 text-[#78716C] hover:text-[#1C1C1C] transition-colors">
+                            <span class="bottom-nav-icon">
+                                <span class="material-symbols-outlined text-[22px]">storefront</span>
+                            </span>
+                            <span class="bottom-nav-label mt-1 whitespace-nowrap text-[10px] font-medium leading-none">فروشگاه</span>
                         </a>
                     {% endif %}
 
                     <!-- ۳. حساب / پروفایل -->
                     {% if request.resolver_match.url_name == 'profile' %}
-                        <a href="{{ url_profile }}" class="flex-1 flex flex-col items-center justify-center relative -top-1">
-                            <div class="size-10 rounded-full active-bubble-circle text-white flex items-center justify-center">
+                        <a href="{{ url_profile }}" class="bottom-nav-item is-active flex-1 min-w-0 flex flex-col items-center justify-center relative -top-1 px-1 py-1.5">
+                            <div class="bottom-nav-icon active-bubble-circle text-white">
                                 <span class="material-symbols-outlined text-[21px]">account_circle</span>
                             </div>
-                            <span class="text-[10px] font-bold text-primary mt-0.5">حساب</span>
+                            <span class="bottom-nav-label mt-0.5 whitespace-nowrap text-[10px] font-bold leading-none text-primary">حساب</span>
+                            <span class="bottom-nav-active-dot"></span>
                         </a>
                     {% else %}
-                        <a href="{% if request.user.is_authenticated %}{{ url_profile }}{% else %}{% url 'login' %}?next={{ request.get_full_path|urlencode }}{% endif %}" class="flex-1 flex flex-col items-center justify-center text-[#78716C] hover:text-[#1C1C1C] transition-colors py-1">
-                            <span class="material-symbols-outlined text-[22px]">account_circle</span>
-                            <span class="text-[10px] font-medium mt-1">حساب</span>
+                        <a href="{% if request.user.is_authenticated %}{{ url_profile }}{% else %}{% url 'login' %}?next={{ request.get_full_path|urlencode }}{% endif %}" class="bottom-nav-item flex-1 min-w-0 flex flex-col items-center justify-center px-1 py-1.5 text-[#78716C] hover:text-[#1C1C1C] transition-colors">
+                            <span class="bottom-nav-icon">
+                                <span class="material-symbols-outlined text-[22px]">account_circle</span>
+                            </span>
+                            <span class="bottom-nav-label mt-1 whitespace-nowrap text-[10px] font-medium leading-none">حساب</span>
                         </a>
                     {% endif %}
 
                     <!-- ۴. مدیریت (در صورت دسترسی ادمین) -->
                     {% if request.user.is_authenticated and request.user.is_staff %}
                         {% if request.resolver_match.namespace == 'admin_panel_pages' or request.resolver_match.namespace == 'admin_panel' %}
-                            <a href="{{ url_admin_dashboard }}" class="flex-1 flex flex-col items-center justify-center relative -top-1">
-                                <div class="size-10 rounded-full active-bubble-circle text-white flex items-center justify-center">
+                            <a href="{{ url_admin_dashboard }}" class="bottom-nav-item is-active flex-1 min-w-0 flex flex-col items-center justify-center relative -top-1 px-1 py-1.5">
+                                <div class="bottom-nav-icon active-bubble-circle text-white">
                                     <span class="material-symbols-outlined text-[21px]">dashboard</span>
                                 </div>
-                                <span class="text-[10px] font-bold text-primary mt-0.5">مدیریت</span>
+                                <span class="bottom-nav-label mt-0.5 whitespace-nowrap text-[10px] font-bold leading-none text-primary">مدیریت</span>
+                                <span class="bottom-nav-active-dot"></span>
                             </a>
                         {% else %}
-                            <a href="{{ url_admin_dashboard }}" class="flex-1 flex flex-col items-center justify-center text-[#78716C] hover:text-[#1C1C1C] transition-colors py-1">
-                                <span class="material-symbols-outlined text-[22px]">dashboard</span>
-                                <span class="text-[10px] font-medium mt-1">مدیریت</span>
+                            <a href="{{ url_admin_dashboard }}" class="bottom-nav-item flex-1 min-w-0 flex flex-col items-center justify-center px-1 py-1.5 text-[#78716C] hover:text-[#1C1C1C] transition-colors">
+                                <span class="bottom-nav-icon">
+                                    <span class="material-symbols-outlined text-[22px]">dashboard</span>
+                                </span>
+                                <span class="bottom-nav-label mt-1 whitespace-nowrap text-[10px] font-medium leading-none">مدیریت</span>
                             </a>
                         {% endif %}
                     {% endif %}
 
                     <!-- ۵. شناسنامه -->
                     {% if request.path == url_certificate_request %}
-                        <a href="{{ url_certificate_request }}" class="flex-1 flex flex-col items-center justify-center relative -top-1">
-                            <div class="size-10 rounded-full active-bubble-circle text-white flex items-center justify-center">
+                        <a href="{{ url_certificate_request }}" class="bottom-nav-item is-active flex-1 min-w-0 flex flex-col items-center justify-center relative -top-1 px-1 py-1.5">
+                            <div class="bottom-nav-icon active-bubble-circle text-white">
                                 <span class="material-symbols-outlined text-[21px]">card_membership</span>
                             </div>
-                            <span class="text-[10px] font-bold text-primary mt-0.5">شناسنامه</span>
+                            <span class="bottom-nav-label mt-0.5 whitespace-nowrap text-[10px] font-bold leading-none text-primary">شناسنامه</span>
+                            <span class="bottom-nav-active-dot"></span>
                         </a>
                     {% else %}
-                        <a href="{{ url_certificate_request }}" class="flex-1 flex flex-col items-center justify-center text-[#78716C] hover:text-[#1C1C1C] transition-colors py-1">
-                            <span class="material-symbols-outlined text-[22px]">card_membership</span>
-                            <span class="text-[10px] font-medium mt-1">شناسنامه</span>
+                        <a href="{{ url_certificate_request }}" class="bottom-nav-item flex-1 min-w-0 flex flex-col items-center justify-center px-1 py-1.5 text-[#78716C] hover:text-[#1C1C1C] transition-colors">
+                            <span class="bottom-nav-icon">
+                                <span class="material-symbols-outlined text-[22px]">card_membership</span>
+                            </span>
+                            <span class="bottom-nav-label mt-1 whitespace-nowrap text-[10px] font-medium leading-none">شناسنامه</span>
                         </a>
                     {% endif %}
 
                     <!-- ۶. درباره ما -->
                     {% if request.path == url_about %}
-                        <a href="{{ url_about }}" class="flex-1 flex flex-col items-center justify-center relative -top-1">
-                            <div class="size-10 rounded-full active-bubble-circle text-white flex items-center justify-center">
+                        <a href="{{ url_about }}" class="bottom-nav-item is-active flex-1 min-w-0 flex flex-col items-center justify-center relative -top-1 px-1 py-1.5">
+                            <div class="bottom-nav-icon active-bubble-circle text-white">
                                 <span class="material-symbols-outlined text-[21px]">info</span>
                             </div>
-                            <span class="text-[10px] font-bold text-primary mt-0.5">درباره ما</span>
+                            <span class="bottom-nav-label mt-0.5 whitespace-nowrap text-[10px] font-bold leading-none text-primary">درباره ما</span>
+                            <span class="bottom-nav-active-dot"></span>
                         </a>
                     {% else %}
-                        <a href="{{ url_about }}" class="flex-1 flex flex-col items-center justify-center text-[#78716C] hover:text-[#1C1C1C] transition-colors py-1">
-                            <span class="material-symbols-outlined text-[22px]">info</span>
-                            <span class="text-[10px] font-medium mt-1">درباره ما</span>
+                        <a href="{{ url_about }}" class="bottom-nav-item flex-1 min-w-0 flex flex-col items-center justify-center px-1 py-1.5 text-[#78716C] hover:text-[#1C1C1C] transition-colors">
+                            <span class="bottom-nav-icon">
+                                <span class="material-symbols-outlined text-[22px]">info</span>
+                            </span>
+                            <span class="bottom-nav-label mt-1 whitespace-nowrap text-[10px] font-medium leading-none">درباره ما</span>
                         </a>
                     {% endif %}
 
