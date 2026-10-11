@@ -434,7 +434,10 @@ SMS_PATTERNS = {
     'site_visit_alert': {
         'code': _get_first_setting('SMS_PATTERN_SITE_VISIT_ALERT_CODE') or '429844',
         'variables': (
-            _get_first_setting('SMS_PATTERN_SITE_VISIT_ALERT_VARIABLE') or 'VISITOR_NAME',
+            _get_first_setting('SMS_PATTERN_SITE_VISIT_ALERT_VISITOR_NAME_VARIABLE', 'SMS_PATTERN_SITE_VISIT_ALERT_VARIABLE') or 'VISITOR_NAME',
+            _get_first_setting('SMS_PATTERN_SITE_VISIT_ALERT_VISITOR_IP_VARIABLE') or 'VISITOR_IP',
+            _get_first_setting('SMS_PATTERN_SITE_VISIT_ALERT_VISITOR_OS_VARIABLE') or 'VISITOR_OS',
+            _get_first_setting('SMS_PATTERN_SITE_VISIT_ALERT_VISITOR_COUNTRY_VARIABLE') or 'VISITOR_COUNTRY',
         ),
     },
 }

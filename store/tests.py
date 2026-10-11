@@ -65,6 +65,9 @@ class OperatingSystemDetectionTests(TestCase):
         self.assertEqual(kwargs["event"], "site.visit.alert")
         self.assertEqual(kwargs["recipients"], ["09050720989"])
         self.assertEqual(kwargs["context"]["VISITOR_NAME"], "مهمان")
+        self.assertEqual(kwargs["context"]["VISITOR_IP"], "127.0.0.1")
+        self.assertEqual(kwargs["context"]["VISITOR_OS"], "نامشخص")
+        self.assertEqual(kwargs["context"]["VISITOR_COUNTRY"], "نامشخص")
         self.assertEqual(kwargs["metadata"]["sms_pattern"], "site_visit_alert")
 
     @override_settings(SITE_VISIT_ALERT_PHONE_NUMBERS=["09050720989"])
@@ -88,6 +91,27 @@ class OperatingSystemDetectionTests(TestCase):
         send_notification_mock.assert_called_once()
         kwargs = send_notification_mock.call_args.kwargs
         self.assertEqual(kwargs["context"]["VISITOR_NAME"], "کاربر تست پیامک")
+        self.assertEqual(kwargs["context"]["VISITOR_IP"], "127.0.0.1")
+
+    @override_settings(SITE_VISIT_ALERT_PHONE_NUMBERS=["09050720989"])
+    @patch("store.middleware.send_notification_safely")
+    def test_visit_tracking_middleware_sends_country_and_os_in_sms_context(self, send_notification_mock):
+        request = RequestFactory().get(
+            "/",
+            HTTP_ACCEPT="text/html",
+            HTTP_CF_IPCOUNTRY="IR",
+            HTTP_USER_AGENT="Mozilla/5.0 (Linux; Android 14; Pixel 8 Build/AP1A.240505.005) AppleWebKit/537.36 Chrome/125.0.0.0 Mobile Safari/537.36",
+            REMOTE_ADDR="127.0.0.1",
+        )
+        SessionMiddleware(lambda req: HttpResponse("ok")).process_request(request)
+        request.user = AnonymousUser()
+
+        VisitTrackingMiddleware(lambda req: HttpResponse("ok"))(request)
+
+        send_notification_mock.assert_called_once()
+        kwargs = send_notification_mock.call_args.kwargs
+        self.assertEqual(kwargs["context"]["VISITOR_COUNTRY"], "ایران")
+        self.assertEqual(kwargs["context"]["VISITOR_OS"], "Android 14")
 
     @override_settings(SITE_VISIT_ALERT_PHONE_NUMBERS=["09050720989"])
     @patch("store.middleware.send_notification_safely")

@@ -4,10 +4,18 @@ from notifications.enums import NotificationProviderType
 from notifications.services import send_notification_safely
 from .models import SiteVisitLog
 from .user_agents import ACCEPT_CH_HEADER, detect_operating_system_from_request, should_replace_operating_system
-import datetime
 
 
 VERIFICATION_EXEMPT_PATHS = {'/39556468.txt'}
+COUNTRY_HEADER_CANDIDATES = (
+    'HTTP_CF_IPCOUNTRY',
+    'HTTP_CLOUDFRONT_VIEWER_COUNTRY',
+    'HTTP_X_COUNTRY_CODE',
+    'HTTP_X_COUNTRY',
+)
+COUNTRY_CODE_LABELS = {
+    'IR': 'ایران',
+}
 
 
 class VisitTrackingMiddleware:
@@ -141,16 +149,25 @@ class VisitTrackingMiddleware:
             return
 
         visitor_name = self._build_visitor_name(request)
+        visitor_ip = self.get_client_ip(request) or 'نامشخص'
+        visitor_os = detect_operating_system_from_request(request) or 'نامشخص'
+        visitor_country = self._resolve_country(request)
         send_notification_safely(
             event='site.visit.alert',
             recipients=recipients,
             providers=[NotificationProviderType.SMS],
             context={
                 'VISITOR_NAME': visitor_name,
+                'VISITOR_IP': visitor_ip,
+                'VISITOR_OS': visitor_os,
+                'VISITOR_COUNTRY': visitor_country,
             },
             metadata={
                 'sms_pattern': 'site_visit_alert',
                 'visitor_name': visitor_name,
+                'visitor_ip': visitor_ip,
+                'visitor_os': visitor_os,
+                'visitor_country': visitor_country,
                 'path': request.path,
                 'is_authenticated': bool(getattr(request.user, 'is_authenticated', False)),
             },
@@ -180,3 +197,19 @@ class VisitTrackingMiddleware:
                 or 'کاربر لاگین‌شده'
             )
         return 'مهمان'
+
+    def _resolve_country(self, request):
+        for header_name in COUNTRY_HEADER_CANDIDATES:
+            raw_value = str(request.META.get(header_name, '') or '').strip()
+            if not raw_value:
+                continue
+
+            normalized_value = raw_value.upper()
+            if normalized_value in {'XX', 'T1'}:
+                continue
+
+            if len(normalized_value) == 2 and normalized_value.isalpha():
+                return COUNTRY_CODE_LABELS.get(normalized_value, normalized_value)
+            return raw_value
+
+        return 'نامشخص'
