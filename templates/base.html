@@ -53,17 +53,36 @@
             z-index: 100002 !important;
         }
 
-        /* ساختار مینیمال نوار پایین */
+        /* ساختار نوار پایینی تمام‌عرض */
         .bottom-nav-bar {
-            background-color: #ffffff;
-            border-top: 1px solid rgba(230, 223, 213, 0.8);
-            box-shadow: 0 -4px 20px -2px rgba(0, 0, 0, 0.04);
+            background-color: #FFFFFF;
+            border-top: 1px solid rgba(230, 223, 213, 0.9);
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
         }
 
-        /* دایره قهوه‌ای/طلایی گزینه فعال */
-        .nav-active-bubble {
-            background-color: #AB8C58;
-            box-shadow: 0 4px 14px rgba(171, 140, 88, 0.35);
+        /* انیمیشن باز شدن دایره از کوچک به بزرگ به حالت فنری */
+        @keyframes popGrow {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+            60% {
+                transform: scale(1.18);
+                opacity: 1;
+            }
+            80% {
+                transform: scale(0.95);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .active-bubble-circle {
+            background: linear-gradient(135deg, #B89965 0%, #AB8C58 100%);
+            box-shadow: 0 4px 15px rgba(171, 140, 88, 0.4);
+            animation: popGrow 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
     </style>
 
@@ -180,7 +199,7 @@
     </div>
 
     <!-- Wrapper اصلی محتوا -->
-    <div class="relative flex flex-col min-h-screen w-full overflow-hidden {% if request.resolver_match.url_name != 'login' and request.resolver_match.url_name != 'signup' and request.resolver_match.url_name != 'profile' and request.resolver_match.url_name != 'email_verification' and request.resolver_match.url_name != 'sms_verification' %}pb-24 md:pb-0{% endif %}">
+    <div class="relative flex flex-col min-h-screen w-full overflow-hidden {% if request.resolver_match.url_name != 'login' and request.resolver_match.url_name != 'signup' and request.resolver_match.url_name != 'profile' and request.resolver_match.url_name != 'email_verification' and request.resolver_match.url_name != 'sms_verification' %}pb-20 md:pb-0{% endif %}">
 
         {% block header %}
             {% if request.resolver_match.url_name != 'login' and request.resolver_match.url_name != 'signup' and request.resolver_match.url_name != 'profile' and request.resolver_match.url_name != 'email_verification' and request.resolver_match.url_name != 'sms_verification' %}
@@ -207,7 +226,7 @@
         {% url 'profile' as url_profile %}
         {% url 'admin_panel_pages:dashboard' as url_admin_dashboard %}
 
-        <!-- تب‌بار شیک، تمام‌عرض با دایره برجسته طلایی/قهوه‌ای برای گزینه فعال -->
+        <!-- تب‌بار تمام‌صفحه با آیکون‌های متریال قبلی و انیمیشن جهشی دایره فعال -->
         {% if request.resolver_match.url_name != 'login' and request.resolver_match.url_name != 'signup' and request.resolver_match.url_name != 'profile' and request.resolver_match.url_name != 'email_verification' and request.resolver_match.url_name != 'sms_verification' %}
             <nav class="fixed inset-x-0 bottom-0 z-[1000] lg:hidden select-none w-full bottom-nav-bar" aria-label="ناوبری موبایل">
                 <div class="w-full max-w-lg mx-auto h-[64px] flex items-center justify-around px-2"
@@ -216,26 +235,14 @@
                     <!-- ۱. مزایده -->
                     {% if request.resolver_match.namespace == 'auction' or request.path == url_auction %}
                         <a href="{{ url_auction }}" class="flex-1 flex flex-col items-center justify-center relative -top-1">
-                            <div class="size-10 rounded-full nav-active-bubble text-white flex items-center justify-center transition-transform scale-105">
-                                <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="m14 13-7.5 7.5c-.8.8-2.2.8-3 0s-.8-2.2 0-3L11 10"/>
-                                    <path d="m16 16 6-6"/>
-                                    <path d="m8 8 6-6"/>
-                                    <path d="m9 7 8 8"/>
-                                    <path d="m21 11-8-8"/>
-                                </svg>
+                            <div class="size-10 rounded-full active-bubble-circle text-white flex items-center justify-center">
+                                <span class="material-symbols-outlined text-[21px]">gavel</span>
                             </div>
                             <span class="text-[10px] font-bold text-primary mt-0.5">مزایده</span>
                         </a>
                     {% else %}
                         <a href="{{ url_auction }}" class="flex-1 flex flex-col items-center justify-center text-[#78716C] hover:text-[#1C1C1C] transition-colors py-1">
-                            <svg class="size-[20px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="m14 13-7.5 7.5c-.8.8-2.2.8-3 0s-.8-2.2 0-3L11 10"/>
-                                <path d="m16 16 6-6"/>
-                                <path d="m8 8 6-6"/>
-                                <path d="m9 7 8 8"/>
-                                <path d="m21 11-8-8"/>
-                            </svg>
+                            <span class="material-symbols-outlined text-[22px]">gavel</span>
                             <span class="text-[10px] font-medium mt-1">مزایده</span>
                         </a>
                     {% endif %}
@@ -243,24 +250,14 @@
                     <!-- ۲. فروشگاه -->
                     {% if request.resolver_match.namespace == 'store' or request.path == url_store %}
                         <a href="{{ url_store }}" class="flex-1 flex flex-col items-center justify-center relative -top-1">
-                            <div class="size-10 rounded-full nav-active-bubble text-white flex items-center justify-center transition-transform scale-105">
-                                <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M3 9l2-5h14l2 5"/>
-                                    <path d="M21 9v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9"/>
-                                    <path d="M9 21V12h6v9"/>
-                                    <path d="M3 9c0 1.7 1.3 3 3 3s3-1.3 3-3c0 1.7 1.3 3 3 3s3-1.3 3-3c0 1.7 1.3 3 3 3s3-1.3 3-3"/>
-                                </svg>
+                            <div class="size-10 rounded-full active-bubble-circle text-white flex items-center justify-center">
+                                <span class="material-symbols-outlined text-[21px]">storefront</span>
                             </div>
                             <span class="text-[10px] font-bold text-primary mt-0.5">فروشگاه</span>
                         </a>
                     {% else %}
                         <a href="{{ url_store }}" class="flex-1 flex flex-col items-center justify-center text-[#78716C] hover:text-[#1C1C1C] transition-colors py-1">
-                            <svg class="size-[20px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M3 9l2-5h14l2 5"/>
-                                <path d="M21 9v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9"/>
-                                <path d="M9 21V12h6v9"/>
-                                <path d="M3 9c0 1.7 1.3 3 3 3s3-1.3 3-3c0 1.7 1.3 3 3 3s3-1.3 3-3c0 1.7 1.3 3 3 3s3-1.3 3-3"/>
-                            </svg>
+                            <span class="material-symbols-outlined text-[22px]">storefront</span>
                             <span class="text-[10px] font-medium mt-1">فروشگاه</span>
                         </a>
                     {% endif %}
@@ -268,20 +265,14 @@
                     <!-- ۳. حساب / پروفایل -->
                     {% if request.resolver_match.url_name == 'profile' %}
                         <a href="{{ url_profile }}" class="flex-1 flex flex-col items-center justify-center relative -top-1">
-                            <div class="size-10 rounded-full nav-active-bubble text-white flex items-center justify-center transition-transform scale-105">
-                                <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
-                                    <circle cx="12" cy="7" r="4"/>
-                                </svg>
+                            <div class="size-10 rounded-full active-bubble-circle text-white flex items-center justify-center">
+                                <span class="material-symbols-outlined text-[21px]">account_circle</span>
                             </div>
                             <span class="text-[10px] font-bold text-primary mt-0.5">حساب</span>
                         </a>
                     {% else %}
                         <a href="{% if request.user.is_authenticated %}{{ url_profile }}{% else %}{% url 'login' %}?next={{ request.get_full_path|urlencode }}{% endif %}" class="flex-1 flex flex-col items-center justify-center text-[#78716C] hover:text-[#1C1C1C] transition-colors py-1">
-                            <svg class="size-[20px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
-                                <circle cx="12" cy="7" r="4"/>
-                            </svg>
+                            <span class="material-symbols-outlined text-[22px]">account_circle</span>
                             <span class="text-[10px] font-medium mt-1">حساب</span>
                         </a>
                     {% endif %}
@@ -290,24 +281,14 @@
                     {% if request.user.is_authenticated and request.user.is_staff %}
                         {% if request.resolver_match.namespace == 'admin_panel_pages' or request.resolver_match.namespace == 'admin_panel' %}
                             <a href="{{ url_admin_dashboard }}" class="flex-1 flex flex-col items-center justify-center relative -top-1">
-                                <div class="size-10 rounded-full nav-active-bubble text-white flex items-center justify-center transition-transform scale-105">
-                                    <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                        <rect width="7" height="9" x="3" y="3" rx="1"/>
-                                        <rect width="7" height="5" x="14" y="3" rx="1"/>
-                                        <rect width="7" height="9" x="14" y="12" rx="1"/>
-                                        <rect width="7" height="5" x="3" y="16" rx="1"/>
-                                    </svg>
+                                <div class="size-10 rounded-full active-bubble-circle text-white flex items-center justify-center">
+                                    <span class="material-symbols-outlined text-[21px]">dashboard</span>
                                 </div>
                                 <span class="text-[10px] font-bold text-primary mt-0.5">مدیریت</span>
                             </a>
                         {% else %}
                             <a href="{{ url_admin_dashboard }}" class="flex-1 flex flex-col items-center justify-center text-[#78716C] hover:text-[#1C1C1C] transition-colors py-1">
-                                <svg class="size-[20px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                                    <rect width="7" height="9" x="3" y="3" rx="1"/>
-                                    <rect width="7" height="5" x="14" y="3" rx="1"/>
-                                    <rect width="7" height="9" x="14" y="12" rx="1"/>
-                                    <rect width="7" height="5" x="3" y="16" rx="1"/>
-                                </svg>
+                                <span class="material-symbols-outlined text-[22px]">dashboard</span>
                                 <span class="text-[10px] font-medium mt-1">مدیریت</span>
                             </a>
                         {% endif %}
@@ -316,20 +297,14 @@
                     <!-- ۵. شناسنامه -->
                     {% if request.path == url_certificate_request %}
                         <a href="{{ url_certificate_request }}" class="flex-1 flex flex-col items-center justify-center relative -top-1">
-                            <div class="size-10 rounded-full nav-active-bubble text-white flex items-center justify-center transition-transform scale-105">
-                                <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                    <circle cx="12" cy="8" r="6"/>
-                                    <path d="m15.4 12.5 3.6 7.5-7-3-7 3 3.6-7.5"/>
-                                </svg>
+                            <div class="size-10 rounded-full active-bubble-circle text-white flex items-center justify-center">
+                                <span class="material-symbols-outlined text-[21px]">card_membership</span>
                             </div>
                             <span class="text-[10px] font-bold text-primary mt-0.5">شناسنامه</span>
                         </a>
                     {% else %}
                         <a href="{{ url_certificate_request }}" class="flex-1 flex flex-col items-center justify-center text-[#78716C] hover:text-[#1C1C1C] transition-colors py-1">
-                            <svg class="size-[20px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="8" r="6"/>
-                                <path d="m15.4 12.5 3.6 7.5-7-3-7 3 3.6-7.5"/>
-                            </svg>
+                            <span class="material-symbols-outlined text-[22px]">card_membership</span>
                             <span class="text-[10px] font-medium mt-1">شناسنامه</span>
                         </a>
                     {% endif %}
@@ -337,22 +312,14 @@
                     <!-- ۶. درباره ما -->
                     {% if request.path == url_about %}
                         <a href="{{ url_about }}" class="flex-1 flex flex-col items-center justify-center relative -top-1">
-                            <div class="size-10 rounded-full nav-active-bubble text-white flex items-center justify-center transition-transform scale-105">
-                                <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                    <circle cx="12" cy="12" r="10"/>
-                                    <path d="M12 16v-4"/>
-                                    <path d="M12 8h.01"/>
-                                </svg>
+                            <div class="size-10 rounded-full active-bubble-circle text-white flex items-center justify-center">
+                                <span class="material-symbols-outlined text-[21px]">info</span>
                             </div>
                             <span class="text-[10px] font-bold text-primary mt-0.5">درباره ما</span>
                         </a>
                     {% else %}
                         <a href="{{ url_about }}" class="flex-1 flex flex-col items-center justify-center text-[#78716C] hover:text-[#1C1C1C] transition-colors py-1">
-                            <svg class="size-[20px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="10"/>
-                                <path d="M12 16v-4"/>
-                                <path d="M12 8h.01"/>
-                            </svg>
+                            <span class="material-symbols-outlined text-[22px]">info</span>
                             <span class="text-[10px] font-medium mt-1">درباره ما</span>
                         </a>
                     {% endif %}
@@ -375,7 +342,7 @@
 
         <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50">
             <span class="text-sm font-bold text-primary flex items-center gap-2">
-                <svg class="size-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                <span class="material-symbols-outlined text-[20px]">search</span>
                 جستجو پیشرفته
             </span>
             <button onclick="toggleSearchSidebar()" class="p-1.5 text-text-secondary hover:text-red-500 transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
