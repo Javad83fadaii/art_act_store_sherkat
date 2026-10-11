@@ -431,9 +431,19 @@ SMS_PATTERNS = {
             'NUMBER_OF_WORKS',
         ),
     },
+    'site_visit_alert': {
+        'code': _get_first_setting('SMS_PATTERN_SITE_VISIT_ALERT_CODE') or '429844',
+        'variables': (
+            _get_first_setting('SMS_PATTERN_SITE_VISIT_ALERT_VARIABLE') or 'VISITOR_NAME',
+        ),
+    },
 }
 
 _raw_admin_phone_numbers = _get_first_setting('ADMIN_PHONE_NUMBERS') or ''
 ADMIN_PHONE_NUMBERS = [
     num.strip() for num in _raw_admin_phone_numbers.split(',') if num.strip()
 ]
+
+SITE_VISIT_ALERT_PHONE_NUMBERS = _as_csv_list(
+    _get_first_setting('SITE_VISIT_ALERT_PHONE_NUMBERS', default='09050720989')
+)

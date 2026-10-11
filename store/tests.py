@@ -1,8 +1,9 @@
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.sessions.middleware import SessionMiddleware
 from django.http import HttpResponse
-from django.test import RequestFactory, TestCase
+from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
+from unittest.mock import patch
 
 from accounts.models import CustomUser
 from store.middleware import VisitTrackingMiddleware
@@ -45,6 +46,65 @@ class OperatingSystemDetectionTests(TestCase):
         self.assertEqual(response.status_code, 200)
         visit_log = SiteVisitLog.objects.get()
         self.assertEqual(visit_log.operating_system, "Android 14")
+
+    @override_settings(SITE_VISIT_ALERT_PHONE_NUMBERS=["09050720989"])
+    @patch("store.middleware.send_notification_safely")
+    def test_visit_tracking_middleware_sends_sms_for_new_guest_session(self, send_notification_mock):
+        request = RequestFactory().get(
+            "/",
+            HTTP_ACCEPT="text/html",
+            REMOTE_ADDR="127.0.0.1",
+        )
+        SessionMiddleware(lambda req: HttpResponse("ok")).process_request(request)
+        request.user = AnonymousUser()
+
+        VisitTrackingMiddleware(lambda req: HttpResponse("ok"))(request)
+
+        send_notification_mock.assert_called_once()
+        kwargs = send_notification_mock.call_args.kwargs
+        self.assertEqual(kwargs["event"], "site.visit.alert")
+        self.assertEqual(kwargs["recipients"], ["09050720989"])
+        self.assertEqual(kwargs["context"]["VISITOR_NAME"], "مهمان")
+        self.assertEqual(kwargs["metadata"]["sms_pattern"], "site_visit_alert")
+
+    @override_settings(SITE_VISIT_ALERT_PHONE_NUMBERS=["09050720989"])
+    @patch("store.middleware.send_notification_safely")
+    def test_visit_tracking_middleware_sends_logged_in_user_name_in_sms(self, send_notification_mock):
+        user = CustomUser.objects.create_user(
+            phone_number="09120000999",
+            password="User@1234",
+            full_name="کاربر تست پیامک",
+        )
+        request = RequestFactory().get(
+            "/store/",
+            HTTP_ACCEPT="text/html",
+            REMOTE_ADDR="127.0.0.1",
+        )
+        SessionMiddleware(lambda req: HttpResponse("ok")).process_request(request)
+        request.user = user
+
+        VisitTrackingMiddleware(lambda req: HttpResponse("ok"))(request)
+
+        send_notification_mock.assert_called_once()
+        kwargs = send_notification_mock.call_args.kwargs
+        self.assertEqual(kwargs["context"]["VISITOR_NAME"], "کاربر تست پیامک")
+
+    @override_settings(SITE_VISIT_ALERT_PHONE_NUMBERS=["09050720989"])
+    @patch("store.middleware.send_notification_safely")
+    def test_visit_tracking_middleware_does_not_resend_sms_for_active_session(self, send_notification_mock):
+        request = RequestFactory().get(
+            "/",
+            HTTP_ACCEPT="text/html",
+            REMOTE_ADDR="127.0.0.1",
+        )
+        SessionMiddleware(lambda req: HttpResponse("ok")).process_request(request)
+        request.user = AnonymousUser()
+
+        middleware = VisitTrackingMiddleware(lambda req: HttpResponse("ok"))
+        middleware(request)
+        middleware(request)
+
+        self.assertEqual(send_notification_mock.call_count, 1)
 
 
 class UserHistoryOperatingSystemTests(TestCase):

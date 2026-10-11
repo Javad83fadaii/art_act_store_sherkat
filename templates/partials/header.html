@@ -4,11 +4,7 @@
         
         <!-- حالت ریسپانسیو / موبایل (کمتر از lg) -->
         <div class="relative flex h-20 items-center justify-between lg:hidden">
-            <button id="mobile-menu-btn" onclick="toggleMobileMenu()" type="button"
-                class="p-2 -mr-2 text-gray-700 dark:text-gray-300 hover:text-primary transition-colors focus:outline-none"
-                aria-label="منوی سایت">
-                <span class="material-symbols-outlined text-[28px]">menu</span>
-            </button>
+            <div class="w-10 shrink-0" aria-hidden="true"></div>
 
             <!-- لوگوی ریسپانسیو: logo_res.svg -->
             <a href="{% url 'home' %}"

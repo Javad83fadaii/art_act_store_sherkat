@@ -1,4 +1,7 @@
+from django.conf import settings
 from django.utils import timezone
+from notifications.enums import NotificationProviderType
+from notifications.services import send_notification_safely
 from .models import SiteVisitLog
 from .user_agents import ACCEPT_CH_HEADER, detect_operating_system_from_request, should_replace_operating_system
 import datetime
@@ -65,6 +68,7 @@ class VisitTrackingMiddleware:
                     last_activity=now,
                     is_closed=False
                 )
+                self._notify_site_open(request)
             else:
                 # ۶. بهینه‌سازی: فقط در صورتی دیتابیس را آپدیت کن که بیش از ۶۰ ثانیه از آخرین فعالیت گذشته باشد
                 update_needed = False
@@ -100,6 +104,7 @@ class VisitTrackingMiddleware:
                 last_activity=now,
                 is_closed=False
             )
+            self._notify_site_open(request)
 
         response = self.get_response(request)
         # به مرورگر بگو در درخواست‌های بعدی نسخه دقیق OS را بفرستد
@@ -123,3 +128,55 @@ class VisitTrackingMiddleware:
         else:
             ip = request.META.get('REMOTE_ADDR')
         return ip
+
+    def _notify_site_open(self, request):
+        if not self._should_send_site_open_alert(request):
+            return
+
+        recipients = getattr(settings, 'SITE_VISIT_ALERT_PHONE_NUMBERS', []) or []
+        if isinstance(recipients, str):
+            recipients = [part.strip() for part in recipients.split(',') if part.strip()]
+
+        if not recipients:
+            return
+
+        visitor_name = self._build_visitor_name(request)
+        send_notification_safely(
+            event='site.visit.alert',
+            recipients=recipients,
+            providers=[NotificationProviderType.SMS],
+            context={
+                'VISITOR_NAME': visitor_name,
+            },
+            metadata={
+                'sms_pattern': 'site_visit_alert',
+                'visitor_name': visitor_name,
+                'path': request.path,
+                'is_authenticated': bool(getattr(request.user, 'is_authenticated', False)),
+            },
+        )
+
+    def _should_send_site_open_alert(self, request):
+        if request.method != 'GET':
+            return False
+
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return False
+
+        accept = str(request.META.get('HTTP_ACCEPT', '') or '').lower()
+        return (
+            not accept
+            or 'text/html' in accept
+            or '*/*' in accept
+        )
+
+    def _build_visitor_name(self, request):
+        user = getattr(request, 'user', None)
+        if user is not None and getattr(user, 'is_authenticated', False):
+            return (
+                str(getattr(user, 'full_name', '') or '').strip()
+                or str(getattr(user, 'username', '') or '').strip()
+                or str(getattr(user, 'phone_number', '') or '').strip()
+                or 'کاربر لاگین‌شده'
+            )
+        return 'مهمان'
