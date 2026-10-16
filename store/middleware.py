@@ -90,6 +90,7 @@ class VisitTrackingMiddleware:
                 if current_user and not visit_log.user:
                     visit_log.user = current_user
                     update_needed = True
+                    self._notify_site_open(request)
 
                 # هرگز مقدار دقیق (Android 13 / Windows 11) را با مقدار
                 # فریز/مبهم (Android 10 / Windows 10/11) برنگردان
@@ -178,6 +179,10 @@ class VisitTrackingMiddleware:
             return False
 
         if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return False
+
+        user = getattr(request, 'user', None)
+        if not (user is not None and getattr(user, 'is_authenticated', False)):
             return False
 
         accept = str(request.META.get('HTTP_ACCEPT', '') or '').lower()
