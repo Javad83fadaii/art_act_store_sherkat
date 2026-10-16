@@ -1,92 +1,257 @@
 {% extends 'admin_panel/base.html' %}
 
 {% block title %}گزارش یکپارچه کاربران | آرت‌پنل{% endblock %}
-{% block page_title %}حضور و احراز هویت کاربران{% endblock %}
+{% block page_title %}حضور، سیستم‌عامل و احراز هویت کاربران{% endblock %}
 
 {% block content %}
+{% if not request.user.is_superuser %}
+<div class="bg-admin-surface-light dark:bg-admin-surface-dark rounded-2xl p-8 border border-red-200/50 dark:border-red-500/20 shadow-sm text-center">
+    <div class="size-14 rounded-2xl bg-red-500/10 text-red-500 flex items-center justify-center mx-auto mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </div>
+    <h3 class="text-base font-black text-text-main dark:text-white">دسترسی غیرمجاز</h3>
+    <p class="text-xs text-text-muted mt-1 max-w-md mx-auto">
+        این صفحه و گزارش‌های جامع حضور کاربران منحصراً برای مدیران ارشد (Superuser) سیستم در دسترس است.
+    </p>
+    <a href="{% url 'admin_panel_pages:dashboard' %}" class="inline-flex items-center gap-2 mt-5 px-4 py-2 rounded-xl bg-primary text-white text-xs font-black hover:bg-primary-glow transition-all">
+        بازگشت به پیشخوان مدیریت
+    </a>
+</div>
+{% else %}
 <div class="flex flex-col gap-6" id="user-activity-history-app">
+    <!-- هدر و توضیحات اصلی -->
     <div class="bg-admin-surface-light dark:bg-admin-surface-dark rounded-2xl p-5 md:p-6 shadow-sm border border-gray-100 dark:border-white/5">
-        <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
-                <h3 class="text-lg font-black text-text-main dark:text-white">گزارش یکپارچه کاربران</h3>
-                <p class="text-xs font-bold text-text-muted mt-1">ورود، خروج و نشست‌های حضور کاربران در سایت در یک گزارش ساده و یکپارچه نمایش داده می‌شود.</p>
+                <div class="flex items-center gap-2.5">
+                    <div class="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-glow">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-black text-text-main dark:text-white">گزارش یکپارچه و هوشمند کاربران</h3>
+                        <p class="text-xs font-bold text-text-muted mt-0.5">مشاهده ورود و خروج، نشست‌های حضور، نسخه دقیق سیستم‌عامل و ردیابی هوشمند مهمان‌ها از روی IP</p>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <button id="refreshBtn" type="button" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-admin-bg-light dark:bg-admin-bg-dark border border-gray-200 dark:border-white/10 text-xs font-black text-text-main dark:text-white hover:border-primary hover:text-primary transition-all">
+                    <svg id="refreshIcon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+                    <span>بروزرسانی داده‌ها</span>
+                </button>
             </div>
         </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+    <!-- کارت‌های آمار و تحلیل -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
         <div class="bg-admin-surface-light dark:bg-admin-surface-dark rounded-2xl p-5 border border-gray-100 dark:border-white/5 shadow-sm">
-            <p class="text-xs font-bold text-text-muted">تعداد رکوردها</p>
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-text-muted">تعداد کل رکوردها</span>
+                <span class="size-2 rounded-full bg-primary/70"></span>
+            </div>
             <p id="metric-total" class="mt-3 text-3xl font-black text-text-main dark:text-white">۰</p>
+            <span class="text-[11px] font-bold text-text-muted mt-1 block">مجموع لاگ‌های ثبت‌شده</span>
         </div>
+
         <div class="bg-admin-surface-light dark:bg-admin-surface-dark rounded-2xl p-5 border border-gray-100 dark:border-white/5 shadow-sm">
-            <p class="text-xs font-bold text-text-muted">کاربران یکتا در صفحه فعلی</p>
-            <p id="metric-users" class="mt-3 text-3xl font-black text-primary">۰</p>
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-text-muted">کاربران عضو</span>
+                <span class="size-2 rounded-full bg-emerald-500"></span>
+            </div>
+            <p id="metric-users" class="mt-3 text-3xl font-black text-emerald-600 dark:text-emerald-400">۰</p>
+            <span class="text-[11px] font-bold text-text-muted mt-1 block">کاربران ثبت‌نامی و لاگین‌شده</span>
         </div>
+
         <div class="bg-admin-surface-light dark:bg-admin-surface-dark rounded-2xl p-5 border border-gray-100 dark:border-white/5 shadow-sm">
-            <p class="text-xs font-bold text-text-muted">رویدادهای ورود و خروج</p>
-            <p id="metric-auth" class="mt-3 text-3xl font-black text-emerald-600 dark:text-emerald-400">۰</p>
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-text-muted">نشست‌های مهمان</span>
+                <span class="size-2 rounded-full bg-sky-500"></span>
+            </div>
+            <p id="metric-guests" class="mt-3 text-3xl font-black text-sky-600 dark:text-sky-400">۰</p>
+            <span class="text-[11px] font-bold text-text-muted mt-1 block">بازدیدکنندگان بدون لاگین</span>
         </div>
+
+        <!-- کارت ویژه هوش مصنوعی IP Match -->
+        <div id="metric-matched-card" class="bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent dark:from-amber-500/15 dark:via-amber-500/5 bg-admin-surface-light dark:bg-admin-surface-dark rounded-2xl p-5 border border-amber-500/20 shadow-sm cursor-pointer hover:border-amber-500/40 transition-all group">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-black text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                    <span>💡 تطابق هوشمند IP</span>
+                </span>
+                <span class="size-2 rounded-full bg-amber-500 animate-pulse"></span>
+            </div>
+            <p id="metric-matched" class="mt-3 text-3xl font-black text-amber-600 dark:text-amber-400">۰</p>
+            <span class="text-[11px] font-bold text-amber-700/80 dark:text-amber-300/80 mt-1 block group-hover:underline">مهمان‌های دارای سابقه کاربر قبلی</span>
+        </div>
+
         <div class="bg-admin-surface-light dark:bg-admin-surface-dark rounded-2xl p-5 border border-gray-100 dark:border-white/5 shadow-sm">
-            <p class="text-xs font-bold text-text-muted">نشست‌های حضور در سایت</p>
-            <p id="metric-visits" class="mt-3 text-3xl font-black text-sky-600 dark:text-sky-400">۰</p>
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-text-muted">ورود و خروج‌ها</span>
+                <span class="size-2 rounded-full bg-indigo-500"></span>
+            </div>
+            <p id="metric-auth" class="mt-3 text-3xl font-black text-indigo-600 dark:text-indigo-400">۰</p>
+            <span class="text-[11px] font-bold text-text-muted mt-1 block">رویدادهای امنیتی احراز هویت</span>
         </div>
     </div>
 
+    <!-- جدول و نوار ابزار فیلتر پیشرفته -->
     <div class="bg-admin-surface-light dark:bg-admin-surface-dark rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 overflow-hidden">
-        <div class="p-4 border-b border-gray-100 dark:border-white/5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-            <div class="relative w-full lg:max-w-sm">
-                <input id="searchInput" type="text" placeholder="جستجو بر اساس کاربر، موبایل، آی‌پی یا جزئیات..." class="w-full bg-admin-bg-light dark:bg-admin-bg-dark border border-gray-200 dark:border-white/10 rounded-xl pl-4 pr-10 py-2.5 text-sm font-bold text-text-main dark:text-white focus:outline-none focus:border-primary transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+        <!-- فیلترها و جستجو -->
+        <div class="p-4 border-b border-gray-100 dark:border-white/5 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3">
+            <div class="relative w-full xl:max-w-md">
+                <input id="searchInput" type="text" placeholder="جستجو در کاربر، موبایل، آدرس IP، سیستم‌عامل یا جزئیات..." class="w-full bg-admin-bg-light dark:bg-admin-bg-dark border border-gray-200 dark:border-white/10 rounded-xl pl-9 pr-10 py-2.5 text-xs font-bold text-text-main dark:text-white focus:outline-none focus:border-primary transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute right-3.5 top-1/2 -translate-y-1/2 text-text-muted"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+                <button id="clearSearchBtn" type="button" class="hidden absolute left-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-main dark:hover:text-white text-xs">✕</button>
             </div>
 
-            <div class="flex items-center gap-2">
-                <select id="sourceFilter" class="bg-admin-bg-light dark:bg-admin-bg-dark border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-xs font-black text-text-main dark:text-white focus:outline-none focus:border-primary transition-colors">
+            <div class="flex flex-wrap items-center gap-2">
+                <!-- فیلتر منبع -->
+                <select id="sourceFilter" class="bg-admin-bg-light dark:bg-admin-bg-dark border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-black text-text-main dark:text-white focus:outline-none focus:border-primary transition-colors">
                     <option value="all">همه منابع</option>
-                    <option value="auth">فقط ورود و خروج</option>
                     <option value="visit">فقط حضور در سایت</option>
+                    <option value="auth">فقط ورود و خروج</option>
                 </select>
-                <select id="actionFilter" class="bg-admin-bg-light dark:bg-admin-bg-dark border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-xs font-black text-text-main dark:text-white focus:outline-none focus:border-primary transition-colors">
+
+                <!-- فیلتر هویت و تطابق مهمان -->
+                <select id="identityFilter" class="bg-admin-bg-light dark:bg-admin-bg-dark border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-black text-text-main dark:text-white focus:outline-none focus:border-primary transition-colors">
+                    <option value="all">همه هویت‌ها</option>
+                    <option value="users_only">فقط اعضای سایت</option>
+                    <option value="guests_only">همه مهمان‌ها</option>
+                    <option value="matched_guests_only">💡 فقط مهمان‌های شناسایی‌شده با IP</option>
+                </select>
+
+                <!-- فیلتر سیستم عامل -->
+                <select id="osFilter" class="bg-admin-bg-light dark:bg-admin-bg-dark border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-black text-text-main dark:text-white focus:outline-none focus:border-primary transition-colors">
+                    <option value="">همه سیستم‌عامل‌ها</option>
+                    <option value="windows">ویندوز (Windows)</option>
+                    <option value="android">اندروید (Android)</option>
+                    <option value="ios">آی‌او‌اس (iOS / iPhone)</option>
+                    <option value="macos">مک‌او‌اس (macOS)</option>
+                    <option value="linux">لینوکس (Linux)</option>
+                </select>
+
+                <!-- فیلتر عملیات -->
+                <select id="actionFilter" class="bg-admin-bg-light dark:bg-admin-bg-dark border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-black text-text-main dark:text-white focus:outline-none focus:border-primary transition-colors">
                     <option value="">همه رویدادها</option>
-                    <option value="Login">ورود</option>
+                    <option value="Login">ورود موفق</option>
                     <option value="Logout">خروج</option>
                     <option value="Login Failed">ورود ناموفق</option>
                 </select>
+
+                <!-- تعداد در صفحه -->
+                <select id="pageSizeFilter" class="bg-admin-bg-light dark:bg-admin-bg-dark border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-black text-text-main dark:text-white focus:outline-none focus:border-primary transition-colors">
+                    <option value="25">۲۵ در صفحه</option>
+                    <option value="50" selected>۵۰ در صفحه</option>
+                    <option value="100">۱۰۰ در صفحه</option>
+                </select>
             </div>
         </div>
+
+        <!-- نوار فیلترهای فعال -->
         <div id="active-filter-bar" class="hidden px-4 py-3 border-b border-gray-100 dark:border-white/5 bg-primary/5 dark:bg-primary/10">
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                <p id="active-filter-text" class="text-xs font-black text-primary"></p>
-                <button id="clearFilterBtn" type="button" class="inline-flex items-center justify-center px-3 py-2 rounded-xl bg-white dark:bg-white/10 border border-primary/20 text-xs font-black text-primary hover:bg-primary hover:text-white transition-colors">
-                    حذف فیلتر
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="flex flex-wrap items-center gap-2" id="filter-chips-container"></div>
+                <button id="clearFilterBtn" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-white/10 border border-primary/20 text-xs font-black text-primary hover:bg-primary hover:text-white transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                    <span>حذف همه فیلترها</span>
                 </button>
             </div>
         </div>
 
+        <!-- جدول اطلاعات -->
         <div class="overflow-x-auto custom-scrollbar">
             <table class="w-full text-right border-collapse">
-                <thead id="history-head" class="bg-admin-bg-light dark:bg-admin-bg-dark border-b border-gray-100 dark:border-white/5 text-[11px] font-black text-text-muted"></thead>
+                <thead id="history-head" class="bg-admin-bg-light dark:bg-admin-bg-dark border-b border-gray-100 dark:border-white/5 text-[11px] font-black text-text-muted">
+                    <tr>
+                        <th class="p-3.5 whitespace-nowrap">شناسه</th>
+                        <th class="p-3.5 whitespace-nowrap min-w-[200px]">کاربر و هویت</th>
+                        <th class="p-3.5 whitespace-nowrap min-w-[170px]">سیستم‌عامل و دستگاه</th>
+                        <th class="p-3.5 whitespace-nowrap min-w-[160px]">آدرس IP و تحلیل هویت</th>
+                        <th class="p-3.5 whitespace-nowrap">مدت حضور</th>
+                        <th class="p-3.5 whitespace-nowrap">رویداد</th>
+                        <th class="p-3.5 whitespace-nowrap">وضعیت</th>
+                        <th class="p-3.5 whitespace-nowrap min-w-[130px]">زمان ثبت</th>
+                        <th class="p-3.5 whitespace-nowrap text-center">عملیات</th>
+                    </tr>
+                </thead>
                 <tbody id="history-body" class="text-xs font-bold text-text-main dark:text-gray-300 divide-y divide-gray-100 dark:divide-white/5">
                     <tr>
-                        <td colspan="8" class="p-8 text-center text-text-muted">در حال بارگذاری اطلاعات...</td>
+                        <td colspan="9" class="p-12 text-center text-text-muted">
+                            <div class="flex flex-col items-center justify-center gap-3">
+                                <div class="size-8 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
+                                <span class="text-xs font-bold">در حال بارگذاری اطلاعات فعالیت‌ها...</span>
+                            </div>
+                        </td>
                     </tr>
                 </tbody>
             </table>
         </div>
 
-        <div class="p-4 border-t border-gray-100 dark:border-white/5 flex items-center justify-between bg-admin-bg-light/30 dark:bg-admin-bg-dark/30">
+        <!-- پاورقی و صفحه‌بندی -->
+        <div class="p-4 border-t border-gray-100 dark:border-white/5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-admin-bg-light/30 dark:bg-admin-bg-dark/30">
             <span id="page-info" class="text-xs font-black text-text-muted">در حال بارگذاری...</span>
-            <div id="pagination" class="flex items-center gap-1"></div>
+            <div id="pagination" class="flex items-center gap-1.5 overflow-x-auto"></div>
         </div>
     </div>
 </div>
+
+<!-- ========================================================================= -->
+<!-- مدال تحلیل هوشمند هویت و سوابق آدرس IP (IP Intelligence Modal) -->
+<!-- ========================================================================= -->
+<div id="ipModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm hidden transition-opacity">
+    <div class="relative w-full max-w-2xl bg-admin-surface-light dark:bg-admin-surface-dark rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 overflow-hidden transform transition-all max-h-[90vh] flex flex-col">
+        <!-- هدر مدال -->
+        <div class="p-5 border-b border-gray-100 dark:border-white/10 flex items-center justify-between bg-admin-bg-light/50 dark:bg-admin-bg-dark/50">
+            <div class="flex items-center gap-3">
+                <div class="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-glow">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><circle cx="12" cy="12" r="2"/></svg>
+                </div>
+                <div>
+                    <h4 class="text-base font-black text-text-main dark:text-white flex items-center gap-2">
+                        <span>تحلیل هوشمند هویت و سوابق IP</span>
+                    </h4>
+                    <div class="flex items-center gap-2 mt-0.5">
+                        <span id="ipModalAddress" class="text-xs font-mono font-black text-primary px-2 py-0.5 rounded bg-primary/10">0.0.0.0</span>
+                        <button id="modalCopyIpBtn" type="button" class="text-[11px] font-bold text-text-muted hover:text-primary flex items-center gap-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                            <span>کپی IP</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <button id="closeIpModalBtn" type="button" class="size-8 rounded-lg flex items-center justify-center text-text-muted hover:text-text-main dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">✕</button>
+        </div>
+
+        <!-- محتوای مدال -->
+        <div id="ipModalBody" class="p-5 overflow-y-auto space-y-4 custom-scrollbar text-xs">
+            <!-- در حال بارگذاری -->
+            <div class="p-8 text-center text-text-muted">
+                <div class="size-8 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto mb-2"></div>
+                <span>در حال تحلیل داده‌های آماری و تطابق کاربر برای این IP...</span>
+            </div>
+        </div>
+
+        <!-- پاورقی مدال -->
+        <div class="p-4 border-t border-gray-100 dark:border-white/10 flex items-center justify-between bg-admin-bg-light/50 dark:bg-admin-bg-dark/50">
+            <button id="modalFilterThisIpBtn" type="button" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-white text-xs font-black shadow-md hover:bg-primary-glow transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                <span>فیلتر تمام سوابق این IP در جدول</span>
+            </button>
+            <button id="closeIpModalBottomBtn" type="button" class="px-4 py-2 rounded-xl border border-gray-200 dark:border-white/10 text-xs font-bold text-text-main dark:text-white hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">
+                بستن
+            </button>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}
+{% if request.user.is_superuser %}
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const endpoints = {
         login: "{% url 'admin_panel:users-login-history-api' %}",
+        ipIntelligence: "{% url 'admin_panel:users-ip-intelligence-api' %}",
     };
     const initialSource = "{{ initial_source|default:'all' }}";
 
@@ -94,53 +259,96 @@ document.addEventListener('DOMContentLoaded', () => {
         currentPage: 1,
         totalPages: 1,
         totalItems: 0,
+        pageSize: 50,
         authTotal: 0,
         visitTotal: 0,
+        guestTotal: 0,
         results: [],
         activeUserFilter: null,
         activeUserLabel: '',
         activeGuestIp: '',
+        activeIpFilter: '',
+        activeOsFilter: '',
+        activeIdentityFilter: 'all',
+        isLoading: false,
     };
 
-    const headEl = document.getElementById('history-head');
+    // DOM Elements
     const bodyEl = document.getElementById('history-body');
     const pageInfoEl = document.getElementById('page-info');
     const paginationEl = document.getElementById('pagination');
     const searchInput = document.getElementById('searchInput');
+    const clearSearchBtn = document.getElementById('clearSearchBtn');
     const sourceFilter = document.getElementById('sourceFilter');
+    const identityFilter = document.getElementById('identityFilter');
+    const osFilter = document.getElementById('osFilter');
     const actionFilter = document.getElementById('actionFilter');
+    const pageSizeFilter = document.getElementById('pageSizeFilter');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const refreshIcon = document.getElementById('refreshIcon');
+
+    // Metrics Elements
     const totalEl = document.getElementById('metric-total');
     const usersEl = document.getElementById('metric-users');
+    const guestsEl = document.getElementById('metric-guests');
+    const matchedEl = document.getElementById('metric-matched');
     const authEl = document.getElementById('metric-auth');
-    const visitsEl = document.getElementById('metric-visits');
+    const matchedCard = document.getElementById('metric-matched-card');
+
+    // Filter Bar Elements
     const activeFilterBar = document.getElementById('active-filter-bar');
-    const activeFilterText = document.getElementById('active-filter-text');
+    const filterChipsContainer = document.getElementById('filter-chips-container');
     const clearFilterBtn = document.getElementById('clearFilterBtn');
 
+    // Modal Elements
+    const ipModal = document.getElementById('ipModal');
+    const ipModalBody = document.getElementById('ipModalBody');
+    const ipModalAddress = document.getElementById('ipModalAddress');
+    const closeIpModalBtn = document.getElementById('closeIpModalBtn');
+    const closeIpModalBottomBtn = document.getElementById('closeIpModalBottomBtn');
+    const modalCopyIpBtn = document.getElementById('modalCopyIpBtn');
+    const modalFilterThisIpBtn = document.getElementById('modalFilterThisIpBtn');
+    let currentModalIp = '';
+
     function toPersianDigits(value) {
+        if (value === null || value === undefined) return '';
         return String(value).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[d]);
     }
 
     function formatDate(value) {
-        if (!value) {
-            return '-';
+        if (!value) return '-';
+        try {
+            const date = new Date(value);
+            if (isNaN(date.getTime())) return value;
+            return new Intl.DateTimeFormat('fa-IR', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+            }).format(date);
+        } catch {
+            return String(value);
         }
-        const date = new Date(value);
-        return new Intl.DateTimeFormat('fa-IR', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-        }).format(date);
     }
 
-    function formatDuration(value) {
-        if (value === null || value === undefined || value === '') {
+    function formatRelativeTime(value) {
+        if (!value) return '';
+        try {
+            const date = new Date(value);
+            const now = new Date();
+            const diffMs = now - date;
+            if (diffMs < 0) return 'هم‌اکنون';
+            const diffMin = Math.floor(diffMs / (1000 * 60));
+            if (diffMin < 1) return 'هم‌اکنون';
+            if (diffMin < 60) return `${toPersianDigits(diffMin)} دقیقه پیش`;
+            const diffHours = Math.floor(diffMin / 60);
+            if (diffHours < 24) return `${toPersianDigits(diffHours)} ساعت پیش`;
+            const diffDays = Math.floor(diffHours / 24);
+            return `${toPersianDigits(diffDays)} روز پیش`;
+        } catch {
             return '';
         }
-        return `${toPersianDigits(value)} دقیقه`;
     }
 
     function escapeHtml(value) {
@@ -152,173 +360,396 @@ document.addEventListener('DOMContentLoaded', () => {
             .replaceAll("'", '&#39;');
     }
 
-    function renderActiveFilter() {
-        if (state.activeUserFilter) {
-            activeFilterBar.classList.remove('hidden');
-            activeFilterText.textContent = `فیلتر فعال: فقط فعالیت‌های کاربر ${state.activeUserLabel || '-'} نمایش داده می‌شود.`;
-            return;
+    // تشخیص آیکون و برچسب دقیق سیستم‌عامل
+    function renderOsBadge(osString) {
+        if (!osString || osString.trim() === '' || osString === 'نامشخص') {
+            return `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-white/5 text-text-muted text-[11px] font-bold">-</span>`;
         }
-        if (state.activeGuestIp) {
-            activeFilterBar.classList.remove('hidden');
-            activeFilterText.textContent = `فیلتر فعال: فقط فعالیت‌های مهمان با آی‌پی ${state.activeGuestIp} نمایش داده می‌شود.`;
-            return;
-        }
-        activeFilterBar.classList.add('hidden');
-        activeFilterText.textContent = '';
-    }
 
-    function setUserFilter(userId, userLabel) {
-        state.activeUserFilter = userId || null;
-        state.activeUserLabel = userLabel || '';
-        state.activeGuestIp = '';
-        renderActiveFilter();
-        loadData(1);
-    }
+        const raw = osString.trim();
+        const lower = raw.toLowerCase();
 
-    function setGuestIpFilter(ipAddress) {
-        state.activeUserFilter = null;
-        state.activeUserLabel = '';
-        state.activeGuestIp = ipAddress || '';
-        sourceFilter.value = 'visit';
-        syncSourceFilterState();
-        renderActiveFilter();
-        loadData(1);
-    }
+        // 1. Windows
+        if (lower.includes('windows')) {
+            let label = 'ویندوز';
+            if (lower.includes('11') && !lower.includes('10/11')) label = 'ویندوز ۱۱';
+            else if (lower.includes('10/11')) label = 'ویندوز ۱۰ / ۱۱';
+            else if (lower.includes('10')) label = 'ویندوز ۱۰';
+            else if (lower.includes('8.1')) label = 'ویندوز ۸.۱';
+            else if (lower.includes('8')) label = 'ویندوز ۸';
+            else if (lower.includes('7')) label = 'ویندوز ۷';
 
-    function clearActiveFilter() {
-        state.activeUserFilter = null;
-        state.activeUserLabel = '';
-        state.activeGuestIp = '';
-        sourceFilter.value = initialSource;
-        syncSourceFilterState();
-        renderActiveFilter();
-        loadData(1);
-    }
-
-    function renderUserCell(item) {
-        if (item.user_id) {
+            const winIcon = `<svg class="size-3.5 shrink-0 text-sky-500" viewBox="0 0 88 88" fill="currentColor"><path d="M0 12.402l35.687-4.86.016 34.423-35.67.202L0 12.402zm35.67 33.529l.028 34.453L.028 75.48.016 46.108l35.654-.177zm4.326-39.027L87.914 0v41.527l-47.918.378V6.904zm47.918 39.049v41.979l-47.918-6.755V46.155l47.918-.202z"/></svg>`;
             return `
-                <button
-                    type="button"
-                    class="text-primary hover:underline transition-colors"
-                    data-filter-user-id="${escapeHtml(item.user_id)}"
-                    data-filter-user-label="${escapeHtml(item.user_name)}"
-                >
-                    ${escapeHtml(item.user_name)}
-                </button>
-            `;
-        }
-
-        if (item.ip_address) {
-            return `
-                <div class="flex flex-col gap-1">
-                    <span>${escapeHtml(item.user_name)}</span>
-                    <button
-                        type="button"
-                        class="w-fit text-sky-600 dark:text-sky-300 hover:underline transition-colors"
-                        data-filter-guest-ip="${escapeHtml(item.ip_address)}"
-                    >
-                        ${escapeHtml(item.ip_address)}
-                    </button>
+                <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-200/60 dark:border-sky-500/20 text-[11px] font-black" title="${escapeHtml(raw)}">
+                    ${winIcon}
+                    <span>${escapeHtml(label)}</span>
+                    <span class="text-[9px] opacity-75 font-mono">(${escapeHtml(raw)})</span>
                 </div>
             `;
         }
 
-        return `<span>${escapeHtml(item.user_name)}</span>`;
-    }
+        // 2. Android
+        if (lower.includes('android')) {
+            const verMatch = raw.match(/Android\s*([0-9.]+)/i);
+            const ver = verMatch ? verMatch[1] : '';
+            const label = ver ? `اندروید ${toPersianDigits(ver)}` : 'اندروید';
 
-    function renderDurationCell(item) {
-        const durationLabel = formatDuration(item.duration_min);
-        if (!durationLabel) {
-            return `<span class="text-text-muted/60">-</span>`;
+            const androidIcon = `<svg class="size-3.5 shrink-0 text-emerald-500" viewBox="0 0 24 24" fill="currentColor"><path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9993.4482.9993.9993.0001.5511-.4483.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993 0 .5511-.4482.9997-.9993.9997m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1521-.5676.416.416 0 00-.5676.1521l-2.0223 3.503C15.5902 8.4116 13.8533 8.125 12 8.125s-3.5902.2866-5.1368.8247L4.8409 5.4467a.4161.4161 0 00-.5677-.1521.4157.4157 0 00-.1521.5676l1.9973 3.4592C2.6889 11.1867.3432 14.6589 0 18.7842h24c-.3432-4.1253-2.6889-7.5975-6.1185-9.4628"/></svg>`;
+            return `
+                <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-500/20 text-[11px] font-black" title="${escapeHtml(raw)}">
+                    ${androidIcon}
+                    <span>${escapeHtml(label)}</span>
+                </div>
+            `;
         }
 
+        // 3. iOS / iPhone
+        if (lower.includes('ios') || lower.includes('iphone')) {
+            const verMatch = raw.match(/iOS\s*([0-9.]+)/i);
+            const ver = verMatch ? verMatch[1] : '';
+            const label = ver ? `iOS ${toPersianDigits(ver)}` : 'آی‌او‌اس (iOS)';
+
+            const appleIcon = `<svg class="size-3.5 shrink-0 text-violet-500" viewBox="0 0 170 170" fill="currentColor"><path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.7-3.04-7.6-7.7-11.71-13.97-5.54-8.47-9.94-17.82-13.2-28.03-3.26-10.22-4.89-20.08-4.89-29.6 0-13.26 3.48-24.32 10.45-33.19 6.96-8.86 15.66-13.39 26.09-13.59 5.23 0 11.04 1.41 17.43 4.24 6.39 2.83 10.22 4.35 11.51 4.57 2.17-.43 6.31-2.06 12.4-4.89 6.09-2.83 11.52-4.13 16.29-3.89 12.39.65 22.39 5.22 30 13.7-10.87 6.52-16.19 15.54-15.98 27.06.22 8.91 3.69 16.41 10.43 22.5 6.74 6.09 14.67 9.57 23.8 10.44-2.17 6.52-4.89 13.15-8.16 19.89zM119.22 31.02c0-7.17 2.61-13.91 7.82-20.22 5.22-6.3 11.74-10.22 19.57-10.8 0 1.09.11 2.07.11 2.94 0 6.96-2.72 13.8-8.15 20.54-5.43 6.74-11.85 10.54-19.24 11.41-.05-.87-.11-2.17-.11-3.87z"/></svg>`;
+            return `
+                <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-300 border border-violet-200/60 dark:border-violet-500/20 text-[11px] font-black" title="${escapeHtml(raw)}">
+                    ${appleIcon}
+                    <span>${escapeHtml(label)}</span>
+                </div>
+            `;
+        }
+
+        // 4. macOS
+        if (lower.includes('macos') || lower.includes('mac os')) {
+            const appleIcon = `<svg class="size-3.5 shrink-0 text-slate-600 dark:text-slate-300" viewBox="0 0 170 170" fill="currentColor"><path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.7-3.04-7.6-7.7-11.71-13.97-5.54-8.47-9.94-17.82-13.2-28.03-3.26-10.22-4.89-20.08-4.89-29.6 0-13.26 3.48-24.32 10.45-33.19 6.96-8.86 15.66-13.39 26.09-13.59 5.23 0 11.04 1.41 17.43 4.24 6.39 2.83 10.22 4.35 11.51 4.57 2.17-.43 6.31-2.06 12.4-4.89 6.09-2.83 11.52-4.13 16.29-3.89 12.39.65 22.39 5.22 30 13.7-10.87 6.52-16.19 15.54-15.98 27.06.22 8.91 3.69 16.41 10.43 22.5 6.74 6.09 14.67 9.57 23.8 10.44-2.17 6.52-4.89 13.15-8.16 19.89zM119.22 31.02c0-7.17 2.61-13.91 7.82-20.22 5.22-6.3 11.74-10.22 19.57-10.8 0 1.09.11 2.07.11 2.94 0 6.96-2.72 13.8-8.15 20.54-5.43 6.74-11.85 10.54-19.24 11.41-.05-.87-.11-2.17-.11-3.87z"/></svg>`;
+            return `
+                <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-white/10 text-[11px] font-black" title="${escapeHtml(raw)}">
+                    ${appleIcon}
+                    <span>مک‌او‌اس (${escapeHtml(raw)})</span>
+                </div>
+            `;
+        }
+
+        // 5. Linux / Ubuntu
+        if (lower.includes('linux') || lower.includes('ubuntu') || lower.includes('debian')) {
+            const linuxIcon = `<svg class="size-3.5 shrink-0 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 17 6-6-6-6"/><path d="M12 19h8"/></svg>`;
+            return `
+                <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-500/20 text-[11px] font-black" title="${escapeHtml(raw)}">
+                    ${linuxIcon}
+                    <span>${escapeHtml(raw)}</span>
+                </div>
+            `;
+        }
+
+        // سایر
         return `
-            <span class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-l from-sky-50 to-cyan-50 text-sky-700 dark:from-sky-500/10 dark:to-cyan-500/10 dark:text-sky-200 border border-sky-100 dark:border-sky-400/20 shadow-sm">
-                <span class="flex size-7 items-center justify-center rounded-lg bg-white/80 dark:bg-white/10 text-sky-600 dark:text-sky-300">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 3"></path></svg>
-                </span>
-                <span class="text-xs font-black">${escapeHtml(durationLabel)}</span>
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-white/10 text-text-main dark:text-gray-200 text-[11px] font-bold" title="${escapeHtml(raw)}">
+                ${escapeHtml(raw)}
             </span>
         `;
     }
 
-    function renderHead() {
-        headEl.innerHTML = `
-            <tr>
-                <th class="p-4">شناسه</th>
-                <th class="p-4">کاربر</th>
-                <th class="p-4">تایم حضور در سایت</th>
-                <th class="p-4">رویداد</th>
-                <th class="p-4">جزئیات</th>
-                <th class="p-4">وضعیت</th>
-                <th class="p-4">زمان</th>
-                <th class="p-4 text-center">مشاهده</th>
-            </tr>
+    // رندر ستون کاربر با تطابق هوشمند مهمان از روی IP
+    function renderUserCell(item) {
+        // ۱. کاربر لاگین شده و ثبت‌نامی
+        if (item.user_id) {
+            return `
+                <div class="flex items-center gap-2">
+                    <div class="size-7 rounded-lg bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-glow flex items-center justify-center font-black text-xs shrink-0">
+                        ${escapeHtml((item.user_name || 'ک')[0])}
+                    </div>
+                    <div class="flex flex-col min-w-0">
+                        <button
+                            type="button"
+                            class="text-right text-primary font-black hover:underline transition-colors truncate"
+                            data-filter-user-id="${escapeHtml(item.user_id)}"
+                            data-filter-user-label="${escapeHtml(item.user_name)}"
+                            title="فیلتر تمام فعالیت‌های این کاربر"
+                        >
+                            ${escapeHtml(item.user_name)}
+                        </button>
+                        <span class="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">کاربر عضو</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ۲. مهمان با تطابق هوشمند IP (قبلاً کاربر با این IP وارد شده!)
+        if (item.is_ip_matched && item.matched_user) {
+            const mu = item.matched_user;
+            return `
+                <div class="flex flex-col gap-1.5">
+                    <div class="flex items-center gap-1.5">
+                        <span class="size-2 rounded-full bg-amber-500 shrink-0 animate-ping"></span>
+                        <span class="text-xs font-bold text-text-muted">مهمان (ناشناس)</span>
+                    </div>
+                    
+                    <!-- کارت هوشمند تطابق -->
+                    <div class="flex flex-col gap-1 p-2 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-800 dark:text-amber-200 text-[11px]">
+                        <div class="flex items-center justify-between gap-1">
+                            <span class="font-black flex items-center gap-1 text-[11px]">
+                                <span class="text-amber-600 dark:text-amber-400 font-black">💡 احتمالاً:</span>
+                                <a href="/admin-panel/users/${escapeHtml(mu.id)}/history/" class="font-black text-primary dark:text-primary-glow hover:underline truncate" title="مشاهده تاریخچه کاربر">
+                                    ${escapeHtml(mu.name)}
+                                </a>
+                            </span>
+                            <button
+                                type="button"
+                                class="text-[10px] text-amber-700 dark:text-amber-300 underline font-bold shrink-0 hover:text-primary"
+                                data-inspect-ip="${escapeHtml(item.ip_address)}"
+                                title="تحلیل سابقه آی‌پی"
+                            >
+                                تحلیل
+                            </button>
+                        </div>
+                        ${mu.phone ? `<span class="text-[10px] text-text-muted font-mono" dir="ltr">${escapeHtml(toPersianDigits(mu.phone))}</span>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        // ۳. مهمان بدون تطابق با کاربری در گذشته
+        return `
+            <div class="flex items-center gap-1.5">
+                <span class="size-2 rounded-full bg-gray-300 dark:bg-white/20 shrink-0"></span>
+                <span class="text-xs font-bold text-text-muted">مهمان (ناشناس)</span>
+            </div>
         `;
     }
 
-    function renderMetrics() {
-        totalEl.textContent = toPersianDigits(state.totalItems);
-        const uniqueUsers = new Set(state.results.map((item) => item.user_id || item.user_name)).size;
-        usersEl.textContent = toPersianDigits(uniqueUsers);
-        authEl.textContent = toPersianDigits(state.authTotal);
-        visitsEl.textContent = toPersianDigits(state.visitTotal);
+    // رندر ستون آدرس IP به همراه دکمه‌های کپی و تحلیل هوشمند
+    function renderIpCell(item) {
+        const ip = item.ip_address;
+        if (!ip || ip === 'نامشخص' || ip === '-') {
+            return `<span class="text-text-muted">-</span>`;
+        }
+
+        const matchPill = item.is_ip_matched ? `
+            <span class="size-2 rounded-full bg-amber-500" title="دارای سابقه کاربری قبلی"></span>
+        ` : '';
+
+        return `
+            <div class="flex items-center gap-1.5">
+                <span class="font-mono text-xs font-bold text-text-main dark:text-white px-2 py-1 rounded-lg bg-gray-100 dark:bg-white/5 border border-gray-200/50 dark:border-white/5" dir="ltr">
+                    ${escapeHtml(ip)}
+                </span>
+                ${matchPill}
+                
+                <div class="flex items-center gap-1">
+                    <!-- دکمه کپی IP -->
+                    <button
+                        type="button"
+                        class="p-1 rounded-md text-text-muted hover:text-primary hover:bg-primary/5 transition-colors"
+                        data-copy-ip="${escapeHtml(ip)}"
+                        title="کپی آدرس IP"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                    </button>
+
+                    <!-- دکمه تحلیل هوشمند IP -->
+                    <button
+                        type="button"
+                        class="p-1 rounded-md text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 transition-colors"
+                        data-inspect-ip="${escapeHtml(ip)}"
+                        title="تحلیل هوشمند و ردیابی کاربران این IP"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m14 10-4 4"/><path d="M14 14V10h-4"/></svg>
+                    </button>
+
+                    <!-- دکمه فیلتر بر اساس این IP -->
+                    <button
+                        type="button"
+                        class="p-1 rounded-md text-sky-600 dark:text-sky-400 hover:bg-sky-500/10 transition-colors"
+                        data-filter-ip="${escapeHtml(ip)}"
+                        title="فیلتر تمام رکوردهای این IP"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderDurationCell(item) {
+        if (item.duration_min === null || item.duration_min === undefined) {
+            return `<span class="text-text-muted/60">-</span>`;
+        }
+        return `
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300 border border-sky-100 dark:border-sky-500/20 font-black text-xs">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span>${toPersianDigits(item.duration_min)} دقیقه</span>
+            </span>
+        `;
+    }
+
+    function renderActiveFiltersBar() {
+        const chips = [];
+
+        if (state.activeUserFilter) {
+            chips.push(`
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-xs font-black">
+                    <span>کاربر: ${escapeHtml(state.activeUserLabel || state.activeUserFilter)}</span>
+                    <button type="button" class="hover:text-red-500" data-remove-filter="user">✕</button>
+                </span>
+            `);
+        }
+
+        if (state.activeIpFilter) {
+            chips.push(`
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-300 text-xs font-black">
+                    <span dir="ltr">IP: ${escapeHtml(state.activeIpFilter)}</span>
+                    <button type="button" class="hover:text-red-500" data-remove-filter="ip">✕</button>
+                </span>
+            `);
+        }
+
+        if (state.activeOsFilter) {
+            chips.push(`
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-violet-500/10 text-violet-600 dark:text-violet-300 text-xs font-black">
+                    <span>سیستم‌عامل: ${escapeHtml(state.activeOsFilter)}</span>
+                    <button type="button" class="hover:text-red-500" data-remove-filter="os">✕</button>
+                </span>
+            `);
+        }
+
+        if (state.activeIdentityFilter === 'matched_guests_only') {
+            chips.push(`
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-300 text-xs font-black">
+                    <span>فقط مهمان‌های شناسایی‌شده با IP</span>
+                    <button type="button" class="hover:text-red-500" data-remove-filter="identity">✕</button>
+                </span>
+            `);
+        } else if (state.activeIdentityFilter === 'users_only') {
+            chips.push(`
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 text-xs font-black">
+                    <span>فقط کاربران عضو</span>
+                    <button type="button" class="hover:text-red-500" data-remove-filter="identity">✕</button>
+                </span>
+            `);
+        } else if (state.activeIdentityFilter === 'guests_only') {
+            chips.push(`
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-500/10 text-gray-700 dark:text-gray-300 text-xs font-black">
+                    <span>فقط مهمان‌ها</span>
+                    <button type="button" class="hover:text-red-500" data-remove-filter="identity">✕</button>
+                </span>
+            `);
+        }
+
+        if (chips.length > 0) {
+            activeFilterBar.classList.remove('hidden');
+            filterChipsContainer.innerHTML = chips.join('');
+        } else {
+            activeFilterBar.classList.add('hidden');
+            filterChipsContainer.innerHTML = '';
+        }
+    }
+
+    function renderMetrics(data) {
+        totalEl.textContent = toPersianDigits(data.total || 0);
+        authEl.textContent = toPersianDigits(data.auth_total || 0);
+
+        // تعداد اعضا
+        const registeredUsers = new Set(
+            (data.results || []).filter(item => item.user_id).map(item => item.user_id)
+        ).size;
+        usersEl.textContent = toPersianDigits(registeredUsers);
+
+        // تعداد کل مهمان‌ها
+        guestsEl.textContent = toPersianDigits(data.guest_total || 0);
+
+        // تعداد مهمان‌های منطبق با IP در صفحه جاری یا کل
+        const matchedGuestsCount = (data.results || []).filter(item => item.is_ip_matched).length;
+        matchedEl.textContent = toPersianDigits(matchedGuestsCount);
     }
 
     function renderBody() {
         if (!state.results.length) {
-            bodyEl.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-text-muted">رکوردی پیدا نشد.</td></tr>`;
-            renderMetrics();
+            bodyEl.innerHTML = `
+                <tr>
+                    <td colspan="9" class="p-12 text-center text-text-muted">
+                        <div class="flex flex-col items-center justify-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="opacity-40"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+                            <span class="text-sm font-black text-text-main dark:text-white">هیچ رکوردی یافت نشد</span>
+                            <span class="text-xs text-text-muted">فیلترهای انتخابی را بررسی کرده یا تغییر دهید.</span>
+                        </div>
+                    </td>
+                </tr>
+            `;
             return;
         }
 
         bodyEl.innerHTML = state.results.map((item) => {
             const statusClassMap = {
-                success: 'bg-green-50 text-green-600 dark:bg-green-500/10 dark:text-green-400',
-                warning: 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400',
-                danger: 'bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400',
-                active: 'bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-300',
-                closed: 'bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-gray-300',
-                neutral: 'bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-gray-300',
+                success: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20',
+                warning: 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20',
+                danger: 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400 border border-red-200 dark:border-red-500/20',
+                active: 'bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300 border border-sky-200 dark:border-sky-500/20',
+                closed: 'bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-gray-300',
+                neutral: 'bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-gray-300',
             };
             const badgeClass = statusClassMap[item.status] || statusClassMap.neutral;
 
+            const userHistoryLink = item.user_id 
+                ? `/admin-panel/users/${item.user_id}/history/` 
+                : (item.matched_user ? `/admin-panel/users/${item.matched_user.id}/history/` : null);
+
             return `
-                <tr class="hover:bg-admin-bg-light/50 dark:hover:bg-white/[0.02] transition-colors">
-                    <td class="p-4 text-text-muted">#${toPersianDigits(item.id)}</td>
-                    <td class="p-4">${renderUserCell(item)}</td>
-                    <td class="p-4">${renderDurationCell(item)}</td>
-                    <td class="p-4"><span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-black ${badgeClass}">${escapeHtml(item.event_label || item.action || '-')}</span></td>
-                    <td class="p-4 max-w-[320px] truncate" title="${escapeHtml(item.details)}">${escapeHtml(item.details || '-')}</td>
-                    <td class="p-4"><span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-black ${badgeClass}">${escapeHtml(item.status_label || 'نامشخص')}</span></td>
-                    <td class="p-4 text-text-muted">${escapeHtml(formatDate(item.timestamp))}</td>
-                    <td class="p-4 text-center">
-                        ${item.user_id ? `<a href="/admin-panel/users/${item.user_id}/history/" class="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-white text-[11px] font-black transition-all">جزئیات</a>` : '<span class="text-text-muted">-</span>'}
+                <tr class="hover:bg-admin-bg-light/60 dark:hover:bg-white/[0.02] transition-colors">
+                    <td class="p-3.5 text-text-muted font-mono text-[11px]">#${toPersianDigits(item.id)}</td>
+                    <td class="p-3.5">${renderUserCell(item)}</td>
+                    <td class="p-3.5">${renderOsBadge(item.operating_system)}</td>
+                    <td class="p-3.5">${renderIpCell(item)}</td>
+                    <td class="p-3.5">${renderDurationCell(item)}</td>
+                    <td class="p-3.5">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-lg text-[11px] font-black ${badgeClass}">
+                            ${escapeHtml(item.event_label || item.action || '-')}
+                        </span>
+                    </td>
+                    <td class="p-3.5">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-lg text-[11px] font-black ${badgeClass}">
+                            ${escapeHtml(item.status_label || 'نامشخص')}
+                        </span>
+                    </td>
+                    <td class="p-3.5">
+                        <div class="flex flex-col">
+                            <span class="text-xs font-bold text-text-main dark:text-white">${escapeHtml(formatDate(item.timestamp))}</span>
+                            <span class="text-[10px] text-text-muted font-bold">${escapeHtml(formatRelativeTime(item.timestamp))}</span>
+                        </div>
+                    </td>
+                    <td class="p-3.5 text-center">
+                        <div class="flex items-center justify-center gap-1.5">
+                            ${userHistoryLink ? `
+                                <a href="${userHistoryLink}" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-white text-[11px] font-black transition-all" title="سوابق کاربر">
+                                    <span>سوابق</span>
+                                </a>
+                            ` : ''}
+                            ${item.ip_address ? `
+                                <button type="button" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-500 hover:text-white text-[11px] font-black transition-all" data-inspect-ip="${escapeHtml(item.ip_address)}" title="تحلیل هوشمند IP">
+                                    <span>تحلیل IP</span>
+                                </button>
+                            ` : ''}
+                        </div>
                     </td>
                 </tr>
             `;
         }).join('');
-        renderMetrics();
     }
 
     function renderPagination() {
-        pageInfoEl.textContent = `صفحه ${toPersianDigits(state.currentPage)} از ${toPersianDigits(state.totalPages)} | کل ${toPersianDigits(state.totalItems)} رکورد`;
+        pageInfoEl.textContent = `صفحه ${toPersianDigits(state.currentPage)} از ${toPersianDigits(state.totalPages)} | مجموع ${toPersianDigits(state.totalItems)} رکورد`;
         paginationEl.innerHTML = '';
 
-        if (state.totalPages <= 1) {
-            return;
-        }
+        if (state.totalPages <= 1) return;
 
         const createButton = (label, page, disabled, active = false) => {
             const button = document.createElement('button');
             button.type = 'button';
             button.innerHTML = label;
             button.disabled = disabled;
-            button.className = `size-8 rounded-lg flex items-center justify-center text-sm font-bold transition-colors ${
-                disabled ? 'bg-transparent text-gray-300 cursor-not-allowed' :
+            button.className = `size-8 rounded-lg flex items-center justify-center text-xs font-black transition-all ${
+                disabled ? 'opacity-30 cursor-not-allowed text-text-muted' :
                 active ? 'bg-primary text-white shadow-md' :
-                'bg-white dark:bg-white/10 text-text-main dark:text-white hover:bg-gray-50 dark:hover:bg-white/20'
+                'bg-white dark:bg-white/10 text-text-main dark:text-white hover:bg-gray-100 dark:hover:bg-white/20'
             }`;
             if (!disabled) {
                 button.addEventListener('click', () => loadData(page));
@@ -326,27 +757,71 @@ document.addEventListener('DOMContentLoaded', () => {
             return button;
         };
 
-        paginationEl.appendChild(createButton('&lt;', state.currentPage - 1, state.currentPage === 1));
-        for (let page = 1; page <= state.totalPages; page++) {
-            paginationEl.appendChild(createButton(toPersianDigits(page), page, false, page === state.currentPage));
+        paginationEl.appendChild(createButton('‹ قبلی', state.currentPage - 1, state.currentPage === 1));
+
+        let startPage = Math.max(1, state.currentPage - 2);
+        let endPage = Math.min(state.totalPages, state.currentPage + 2);
+
+        if (startPage > 1) {
+            paginationEl.appendChild(createButton('۱', 1, false, state.currentPage === 1));
+            if (startPage > 2) {
+                const dots = document.createElement('span');
+                dots.textContent = '...';
+                dots.className = 'px-1 text-xs text-text-muted';
+                paginationEl.appendChild(dots);
+            }
         }
-        paginationEl.appendChild(createButton('&gt;', state.currentPage + 1, state.currentPage === state.totalPages));
+
+        for (let p = startPage; p <= endPage; p++) {
+            paginationEl.appendChild(createButton(toPersianDigits(p), p, false, p === state.currentPage));
+        }
+
+        if (endPage < state.totalPages) {
+            if (endPage < state.totalPages - 1) {
+                const dots = document.createElement('span');
+                dots.textContent = '...';
+                dots.className = 'px-1 text-xs text-text-muted';
+                paginationEl.appendChild(dots);
+            }
+            paginationEl.appendChild(createButton(toPersianDigits(state.totalPages), state.totalPages, false, state.currentPage === state.totalPages));
+        }
+
+        paginationEl.appendChild(createButton('بعدی ›', state.currentPage + 1, state.currentPage === state.totalPages));
     }
 
     async function loadData(page = 1) {
         state.currentPage = page;
-        renderHead();
-        bodyEl.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-text-muted">در حال بارگذاری اطلاعات...</td></tr>`;
+        state.isLoading = true;
+        refreshIcon.classList.add('animate-spin');
+
+        bodyEl.innerHTML = `
+            <tr>
+                <td colspan="9" class="p-12 text-center text-text-muted">
+                    <div class="flex flex-col items-center justify-center gap-3">
+                        <div class="size-8 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
+                        <span class="text-xs font-bold">در حال بارگذاری اطلاعات فعالیت‌ها...</span>
+                    </div>
+                </td>
+            </tr>
+        `;
 
         try {
             const url = new URL(endpoints.login, window.location.origin);
             url.searchParams.set('page', page);
+            url.searchParams.set('page_size', state.pageSize);
             url.searchParams.set('source', sourceFilter.value || 'all');
+            
             if (state.activeUserFilter) {
                 url.searchParams.set('user_id', state.activeUserFilter);
             }
-            if (state.activeGuestIp) {
-                url.searchParams.set('guest_ip', state.activeGuestIp);
+            if (state.activeIpFilter) {
+                url.searchParams.set('ip', state.activeIpFilter);
+            }
+            if (state.activeOsFilter) {
+                url.searchParams.set('os', state.activeOsFilter);
+            }
+            if (state.activeIdentityFilter && state.activeIdentityFilter !== 'all') {
+                url.searchParams.set('identity', state.activeIdentityFilter);
             }
             if (searchInput.value.trim()) {
                 url.searchParams.set('search', searchInput.value.trim());
@@ -356,9 +831,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const response = await fetch(url, { credentials: 'include' });
-            if (!response.ok) {
-                throw new Error('load failed');
-            }
+            if (!response.ok) throw new Error('خطا در دریافت اطلاعات');
 
             const data = await response.json();
             state.results = data.results || [];
@@ -367,56 +840,380 @@ document.addEventListener('DOMContentLoaded', () => {
             state.currentPage = data.current_page || 1;
             state.authTotal = data.auth_total || 0;
             state.visitTotal = data.visit_total || 0;
+            state.guestTotal = data.guest_total || 0;
 
+            renderActiveFiltersBar();
+            renderMetrics(data);
             renderBody();
             renderPagination();
         } catch (error) {
-            bodyEl.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-red-500">دریافت اطلاعات با خطا مواجه شد.</td></tr>`;
-            state.results = [];
-            state.totalItems = 0;
-            state.totalPages = 1;
-            state.authTotal = 0;
-            state.visitTotal = 0;
-            renderMetrics();
-            renderPagination();
+            console.error(error);
+            bodyEl.innerHTML = `
+                <tr>
+                    <td colspan="9" class="p-12 text-center text-red-500 font-bold">
+                        دریافت اطلاعات با خطا مواجه شد. لطفاً دوباره تلاش کنید.
+                    </td>
+                </tr>
+            `;
+        } finally {
+            state.isLoading = false;
+            refreshIcon.classList.remove('animate-spin');
         }
     }
 
-    function syncSourceFilterState() {
-        const visitsOnly = sourceFilter.value === 'visit';
-        if (visitsOnly) {
-            actionFilter.value = '';
+    // باز کردن و رندر مدال تحلیل هوشمند IP
+    async function openIpIntelligenceModal(ipAddress) {
+        if (!ipAddress) return;
+        currentModalIp = ipAddress;
+        ipModalAddress.textContent = ipAddress;
+        ipModal.classList.remove('hidden');
+
+        ipModalBody.innerHTML = `
+            <div class="p-10 text-center text-text-muted">
+                <div class="size-8 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto mb-3"></div>
+                <span class="text-xs font-bold">در حال واکشی و تحلیل سوابق هوشمند برای این آدرس IP...</span>
+            </div>
+        `;
+
+        try {
+            const url = new URL(endpoints.ipIntelligence, window.location.origin);
+            url.searchParams.set('ip', ipAddress);
+
+            const res = await fetch(url, { credentials: 'include' });
+            if (!res.ok) throw new Error('خطا در واکشی هوش IP');
+
+            const data = await res.json();
+            renderIpIntelligenceModalContent(data);
+        } catch (err) {
+            ipModalBody.innerHTML = `
+                <div class="p-8 text-center text-red-500 font-bold">
+                    دریافت اطلاعات تحلیل IP با خطا مواجه شد.
+                </div>
+            `;
         }
-        actionFilter.disabled = visitsOnly;
-        actionFilter.classList.toggle('opacity-60', visitsOnly);
-        actionFilter.classList.toggle('cursor-not-allowed', visitsOnly);
     }
 
-    bodyEl.addEventListener('click', (event) => {
-        const userButton = event.target.closest('[data-filter-user-id]');
-        if (userButton) {
-            setUserFilter(userButton.dataset.filterUserId, userButton.dataset.filterUserLabel);
+    function renderIpIntelligenceModalContent(data) {
+        const associatedUsers = data.associated_users || [];
+        const isMatched = data.is_matched && associatedUsers.length > 0;
+        const osList = data.operating_systems || [];
+        const recentSessions = data.recent_sessions || [];
+
+        let matchSection = '';
+
+        if (isMatched) {
+            if (associatedUsers.length === 1) {
+                const u = associatedUsers[0];
+                matchSection = `
+                    <div class="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-900 dark:text-emerald-200">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="size-3 rounded-full bg-emerald-500"></span>
+                            <span class="font-black text-sm text-emerald-700 dark:text-emerald-300">✅ تطابق قطعی / بسیار قوی هویت</span>
+                        </div>
+                        <p class="text-xs leading-relaxed">
+                            این آدرس IP قبلاً توسط کاربر عضو <strong>${escapeHtml(u.name)}</strong> استفاده شده است.
+                            به احتمال زیاد بازدیدهای مهمان اخیر با این IP متعلق به همین کاربر بوده است.
+                        </p>
+                        <div class="mt-3 pt-3 border-t border-emerald-500/20 flex flex-wrap items-center justify-between gap-2">
+                            <div class="flex items-center gap-3">
+                                <span class="font-bold">نام: ${escapeHtml(u.name)}</span>
+                                ${u.phone ? `<span class="font-mono text-xs">موبایل: ${escapeHtml(toPersianDigits(u.phone))}</span>` : ''}
+                                <span class="text-[11px] text-text-muted">تعداد نشست‌ها با این IP: ${toPersianDigits(u.sessions_count)}</span>
+                            </div>
+                            <a href="/admin-panel/users/${escapeHtml(u.id)}/history/" class="px-3 py-1.5 rounded-xl bg-emerald-600 text-white font-black hover:bg-emerald-700 transition-colors">
+                                مشاهده تاریخچه اختصاصی کاربر
+                            </a>
+                        </div>
+                    </div>
+                `;
+            } else {
+                matchSection = `
+                    <div class="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="size-3 rounded-full bg-amber-500"></span>
+                            <span class="font-black text-sm text-amber-700 dark:text-amber-300">⚠️ چند کاربر با این IP ثبت شده‌اند</span>
+                        </div>
+                        <p class="text-xs leading-relaxed mb-3">
+                            این آدرس IP در سوابق چندین کاربر مختلف ثبت شده است (احتمال شبکه وای‌فای مشترک اداری یا اینترنت همراه).
+                        </p>
+                        <div class="space-y-2">
+                            ${associatedUsers.map(u => `
+                                <div class="flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-white/5 border border-amber-500/20">
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-black text-primary">${escapeHtml(u.name)}</span>
+                                        ${u.phone ? `<span class="font-mono text-xs text-text-muted">${escapeHtml(toPersianDigits(u.phone))}</span>` : ''}
+                                        <span class="text-[10px] text-text-muted">(${toPersianDigits(u.sessions_count)} نشست)</span>
+                                    </div>
+                                    <a href="/admin-panel/users/${escapeHtml(u.id)}/history/" class="text-primary hover:underline font-bold text-xs">پروفایل</a>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+        } else {
+            matchSection = `
+                <div class="p-4 rounded-2xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-text-muted">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="size-2.5 rounded-full bg-gray-400"></span>
+                        <span class="font-black text-xs text-text-main dark:text-white">بدون سابقه لاگین کاربری</span>
+                    </div>
+                    <p class="text-xs leading-relaxed">
+                        هیچ کاربر عضو یا ثبت‌نامی تاکنون با این آی‌پی وارد سیستم نشده است. تمام فعالیت‌های ثبت‌شده متعلق به بازدیدکنندگان مهمان بوده است.
+                    </p>
+                </div>
+            `;
+        }
+
+        // آمار کارت‌ها
+        const statsSection = `
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div class="p-3 rounded-xl bg-admin-bg-light dark:bg-admin-bg-dark border border-gray-100 dark:border-white/5">
+                    <span class="text-[11px] text-text-muted font-bold">کل نشست‌ها</span>
+                    <p class="text-xl font-black text-text-main dark:text-white mt-1">${toPersianDigits(data.total_visits || 0)}</p>
+                </div>
+                <div class="p-3 rounded-xl bg-admin-bg-light dark:bg-admin-bg-dark border border-gray-100 dark:border-white/5">
+                    <span class="text-[11px] text-text-muted font-bold">نشست‌های مهمان</span>
+                    <p class="text-xl font-black text-sky-600 dark:text-sky-400 mt-1">${toPersianDigits(data.guest_visits || 0)}</p>
+                </div>
+                <div class="p-3 rounded-xl bg-admin-bg-light dark:bg-admin-bg-dark border border-gray-100 dark:border-white/5">
+                    <span class="text-[11px] text-text-muted font-bold">نشست‌های عضو</span>
+                    <p class="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-1">${toPersianDigits(data.user_visits || 0)}</p>
+                </div>
+                <div class="p-3 rounded-xl bg-admin-bg-light dark:bg-admin-bg-dark border border-gray-100 dark:border-white/5">
+                    <span class="text-[11px] text-text-muted font-bold">رویدادهای لاگین</span>
+                    <p class="text-xl font-black text-indigo-600 dark:text-indigo-400 mt-1">${toPersianDigits(data.auth_logs_count || 0)}</p>
+                </div>
+            </div>
+        `;
+
+        // سیستم عامل های ثبت شده
+        const osSection = `
+            <div class="p-3.5 rounded-xl bg-admin-bg-light dark:bg-admin-bg-dark border border-gray-100 dark:border-white/5">
+                <span class="text-xs font-black text-text-main dark:text-white mb-2 block">سیستم‌عامل‌ها و دستگاه‌های متصل با این IP:</span>
+                <div class="flex flex-wrap gap-2">
+                    ${osList.length > 0 ? osList.map(os => renderOsBadge(os)).join('') : '<span class="text-text-muted text-xs">سیستم‌عاملی ثبت نشده است</span>'}
+                </div>
+            </div>
+        `;
+
+        // نشست های اخیر
+        const recentSessionsSection = recentSessions.length > 0 ? `
+            <div class="space-y-2">
+                <span class="text-xs font-black text-text-main dark:text-white block">آخرین نشست‌های ثبت‌شده از این IP:</span>
+                <div class="max-h-48 overflow-y-auto custom-scrollbar divide-y divide-gray-100 dark:divide-white/5 border border-gray-100 dark:border-white/5 rounded-xl">
+                    ${recentSessions.map(s => `
+                        <div class="p-2.5 flex items-center justify-between text-xs hover:bg-gray-50 dark:hover:bg-white/[0.02]">
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold text-text-main dark:text-white">${escapeHtml(s.user_name)}</span>
+                                <span class="text-[11px] text-text-muted">(${toPersianDigits(s.duration_min)} دقیقه)</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                ${renderOsBadge(s.operating_system)}
+                                <span class="text-[10px] text-text-muted">${escapeHtml(formatDate(s.last_activity))}</span>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        ` : '';
+
+        ipModalBody.innerHTML = `
+            ${matchSection}
+            ${statsSection}
+            ${osSection}
+            ${recentSessionsSection}
+        `;
+    }
+
+    function closeIpIntelligenceModal() {
+        ipModal.classList.add('hidden');
+    }
+
+    // فیلتر کردن سریع از طریق دکمه های درون جدول
+    function filterByIp(ipAddress) {
+        state.activeIpFilter = ipAddress || '';
+        state.activeUserFilter = null;
+        state.activeUserLabel = '';
+        searchInput.value = '';
+        renderActiveFiltersBar();
+        loadData(1);
+    }
+
+    function filterByUser(userId, userLabel) {
+        state.activeUserFilter = userId || null;
+        state.activeUserLabel = userLabel || '';
+        state.activeIpFilter = '';
+        searchInput.value = '';
+        renderActiveFiltersBar();
+        loadData(1);
+    }
+
+    function clearAllFilters() {
+        state.activeUserFilter = null;
+        state.activeUserLabel = '';
+        state.activeIpFilter = '';
+        state.activeOsFilter = '';
+        state.activeIdentityFilter = 'all';
+        sourceFilter.value = initialSource;
+        identityFilter.value = 'all';
+        osFilter.value = '';
+        actionFilter.value = '';
+        searchInput.value = '';
+        clearSearchBtn.classList.add('hidden');
+        renderActiveFiltersBar();
+        loadData(1);
+    }
+
+    // مدیریت کلیک روی جدول و دکمه ها
+    bodyEl.addEventListener('click', (e) => {
+        // کلیک روی کاربر برای فیلتر
+        const userBtn = e.target.closest('[data-filter-user-id]');
+        if (userBtn) {
+            filterByUser(userBtn.dataset.filterUserId, userBtn.dataset.filterUserLabel);
             return;
         }
 
-        const guestIpButton = event.target.closest('[data-filter-guest-ip]');
-        if (guestIpButton) {
-            setGuestIpFilter(guestIpButton.dataset.filterGuestIp);
+        // کلیک روی IP برای فیلتر
+        const ipBtn = e.target.closest('[data-filter-ip]');
+        if (ipBtn) {
+            filterByIp(ipBtn.dataset.filterIp);
+            return;
+        }
+
+        // کلیک برای تحلیل هوشمند IP
+        const inspectBtn = e.target.closest('[data-inspect-ip]');
+        if (inspectBtn) {
+            openIpIntelligenceModal(inspectBtn.dataset.inspectIp);
+            return;
+        }
+
+        // کپی IP
+        const copyBtn = e.target.closest('[data-copy-ip]');
+        if (copyBtn) {
+            const ip = copyBtn.dataset.copyIp;
+            navigator.clipboard.writeText(ip).then(() => {
+                const originalHtml = copyBtn.innerHTML;
+                copyBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-emerald-500"><polyline points="20 6 9 17 4 12"/></svg>`;
+                setTimeout(() => { copyBtn.innerHTML = originalHtml; }, 1500);
+            });
+            return;
         }
     });
 
-    searchInput.addEventListener('input', () => loadData(1));
-    actionFilter.addEventListener('change', () => loadData(1));
-    clearFilterBtn.addEventListener('click', clearActiveFilter);
-    sourceFilter.value = initialSource;
-    syncSourceFilterState();
-    renderActiveFilter();
-    sourceFilter.addEventListener('change', () => {
-        syncSourceFilterState();
+    // مدیریت حذف تک‌تک فیلترها از نوار فیلتر
+    activeFilterBar.addEventListener('click', (e) => {
+        const removeBtn = e.target.closest('[data-remove-filter]');
+        if (!removeBtn) return;
+        const type = removeBtn.dataset.removeFilter;
+
+        if (type === 'user') {
+            state.activeUserFilter = null;
+            state.activeUserLabel = '';
+        } else if (type === 'ip') {
+            state.activeIpFilter = '';
+        } else if (type === 'os') {
+            state.activeOsFilter = '';
+            osFilter.value = '';
+        } else if (type === 'identity') {
+            state.activeIdentityFilter = 'all';
+            identityFilter.value = 'all';
+        }
+
+        renderActiveFiltersBar();
         loadData(1);
     });
+
+    // کلیک روی کارت تطابق هوشمند
+    matchedCard.addEventListener('click', () => {
+        state.activeIdentityFilter = 'matched_guests_only';
+        identityFilter.value = 'matched_guests_only';
+        renderActiveFiltersBar();
+        loadData(1);
+    });
+
+    // مدال
+    closeIpModalBtn.addEventListener('click', closeIpIntelligenceModal);
+    closeIpModalBottomBtn.addEventListener('click', closeIpIntelligenceModal);
+    ipModal.addEventListener('click', (e) => {
+        if (e.target === ipModal) closeIpIntelligenceModal();
+    });
+
+    modalCopyIpBtn.addEventListener('click', () => {
+        if (currentModalIp) {
+            navigator.clipboard.writeText(currentModalIp);
+            modalCopyIpBtn.innerHTML = `<span>کپی شد! ✓</span>`;
+            setTimeout(() => {
+                modalCopyIpBtn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                    <span>کپی IP</span>
+                `;
+            }, 1500);
+        }
+    });
+
+    modalFilterThisIpBtn.addEventListener('click', () => {
+        if (currentModalIp) {
+            closeIpIntelligenceModal();
+            filterByIp(currentModalIp);
+        }
+    });
+
+    // جستجو با دی‌بانس ۳۰۰ میلی‌ثانیه
+    let searchDebounceTimer = null;
+    searchInput.addEventListener('input', () => {
+        clearSearchBtn.classList.toggle('hidden', !searchInput.value.trim());
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(() => {
+            loadData(1);
+        }, 300);
+    });
+
+    clearSearchBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        clearSearchBtn.classList.add('hidden');
+        loadData(1);
+    });
+
+    // کنترل فیلترها
+    sourceFilter.addEventListener('change', () => {
+        const isVisits = sourceFilter.value === 'visit';
+        actionFilter.disabled = isVisits;
+        actionFilter.classList.toggle('opacity-50', isVisits);
+        loadData(1);
+    });
+
+    identityFilter.addEventListener('change', () => {
+        state.activeIdentityFilter = identityFilter.value;
+        renderActiveFiltersBar();
+        loadData(1);
+    });
+
+    osFilter.addEventListener('change', () => {
+        state.activeOsFilter = osFilter.value;
+        renderActiveFiltersBar();
+        loadData(1);
+    });
+
+    actionFilter.addEventListener('change', () => loadData(1));
+
+    pageSizeFilter.addEventListener('change', () => {
+        state.pageSize = parseInt(pageSizeFilter.value) || 50;
+        loadData(1);
+    });
+
+    refreshBtn.addEventListener('click', () => loadData(state.currentPage));
+    clearFilterBtn.addEventListener('click', clearAllFilters);
+
+    // شروع با مقدار اولیه
+    sourceFilter.value = initialSource;
+    if (initialSource === 'visit') {
+        actionFilter.disabled = true;
+        actionFilter.classList.add('opacity-50');
+    }
 
     loadData(1);
 });
 </script>
+{% endif %}
 {% endblock %}

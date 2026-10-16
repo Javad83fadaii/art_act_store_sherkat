@@ -1,6 +1,7 @@
 from decimal import Decimal, InvalidOperation, ROUND_CEILING
 
 from django.template.loader import render_to_string
+from django.utils import timezone
 
 from .models import AuctionProduct, Bid
 from .services import ensure_auction_product_winner
@@ -8,6 +9,10 @@ from .services import ensure_auction_product_winner
 
 def get_auction_product_group_name(product_pk: int) -> str:
     return f'auction_product_{product_pk}'
+
+
+def get_auction_page_group_name(auction_pk: int) -> str:
+    return f'auction_page_{auction_pk}'
 
 
 def _as_int_price(value) -> int:
@@ -56,7 +61,12 @@ def _build_my_bids_context(product: AuctionProduct, user) -> tuple[list[Bid], in
     return my_bids, my_bids_count
 
 
-def build_bid_live_payload(product: AuctionProduct | int, user=None) -> dict:
+def build_bid_live_payload(
+    product: AuctionProduct | int,
+    user=None,
+    *,
+    include_user_history: bool = True,
+) -> dict:
     if isinstance(product, int):
         product = (
             AuctionProduct.objects.select_related('auction', 'winner')
@@ -69,23 +79,51 @@ def build_bid_live_payload(product: AuctionProduct | int, user=None) -> dict:
         )
 
     product = ensure_auction_product_winner(product)
-    my_bids, my_bids_count = _build_my_bids_context(product, user)
+    current_price_int = _as_int_price(product.current_price or product.base_price)
+    step_increment_int = int(product.get_current_step_increment())
+    min_next_bid_int = int(product.get_min_next_bid())
+    now = timezone.now()
+    seconds_left = max(0, int((product.end_time - now).total_seconds())) if product.end_time else 0
 
-    return {
-        'current_price': _as_int_price(product.current_price or product.base_price),
+    def _fa_num(val: int) -> str:
+        return f'{int(val):,}'.translate(str.maketrans('0123456789', '۰۱۲۳۴۵۶۷۸۹'))
+
+    payload = {
+        'current_price': current_price_int,
+        'formatted_current_price': _fa_num(current_price_int),
+        'step_increment': step_increment_int,
+        'formatted_step_increment': _fa_num(step_increment_int),
+        'min_next_bid': min_next_bid_int,
+        'formatted_min_next_bid': _fa_num(min_next_bid_int),
+        'tax_amount': _as_int_price(product.tax_amount),
+        'total_with_tax': _as_int_price(product.final_price_with_tax),
         'bid_count': product.bids.count(),
-        'min_next_bid': product.get_min_next_bid(),
         'has_winner': bool(product.winner_id),
-        'my_bids_count': my_bids_count,
-        'my_bids_html': render_to_string(
-            'auction/partials/my_bid_history.html',
-            {
-                'my_bids': my_bids,
-                'my_bids_count': my_bids_count,
-                'user': user,
-            },
-        ),
+        'end_time': product.end_time.isoformat() if product.end_time else None,
+        'is_extended': product.is_extended,
+        'is_in_extension': product.is_in_extension,
+        'status': product.status,
+        'extension_count': product.extension_count or 0,
+        'seconds_left': seconds_left,
     }
+    if not include_user_history:
+        return payload
+
+    my_bids, my_bids_count = _build_my_bids_context(product, user)
+    payload.update(
+        {
+            'my_bids_count': my_bids_count,
+            'my_bids_html': render_to_string(
+                'auction/partials/my_bid_history.html',
+                {
+                    'my_bids': my_bids,
+                    'my_bids_count': my_bids_count,
+                    'user': user,
+                },
+            ),
+        }
+    )
+    return payload
 
 
 def broadcast_product_bid_update(product_pk: int) -> bool:
@@ -104,6 +142,29 @@ def broadcast_product_bid_update(product_pk: int) -> bool:
         {
             'type': 'auction.bid.update',
             'product_pk': product_pk,
+        },
+    )
+    return True
+
+
+def broadcast_auction_page_refresh(auction_pk: int, *, product_pk: int | None = None, reason: str = 'product_extended') -> bool:
+    try:
+        from asgiref.sync import async_to_sync
+        from channels.layers import get_channel_layer
+    except ImportError:
+        return False
+
+    channel_layer = get_channel_layer()
+    if channel_layer is None:
+        return False
+
+    async_to_sync(channel_layer.group_send)(
+        get_auction_page_group_name(auction_pk),
+        {
+            'type': 'auction.page.refresh',
+            'auction_pk': int(auction_pk),
+            'product_pk': int(product_pk) if product_pk is not None else None,
+            'reason': reason,
         },
     )
     return True
