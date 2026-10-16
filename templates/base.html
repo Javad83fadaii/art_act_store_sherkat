@@ -54,24 +54,45 @@
         }
 
         /* ==========================================================================
-           Bottom Navigation Bar - Persistent & GPU-Accelerated Micro-Interactions
+           Bottom Navigation Bar - Full-Width Docked (Matching Header Aesthetic)
            Brand Primary Color: #AB8C58
            ========================================================================== */
         .bottom-nav-bar {
-            background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.98) 100%);
-            border-top: 1px solid rgba(230, 223, 213, 0.85);
-            box-shadow:
-                0 -10px 30px rgba(15, 23, 42, 0.05),
-                0 -2px 10px rgba(171, 140, 88, 0.06);
-            backdrop-filter: blur(20px) saturate(180%);
-            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-top: 1px solid rgba(229, 231, 235, 0.9); /* border-gray-100 matching header */
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.03);
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        .dark .bottom-nav-bar {
+            background: rgba(17, 24, 39, 0.95); /* dark:bg-gray-900/95 matching header */
+            border-top: 1px solid rgba(31, 41, 55, 0.9); /* dark:border-gray-800 */
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
         }
 
         .bottom-nav-inner {
             position: relative;
+            width: 100%;
+            max-width: 36rem; /* max-w-xl */
+            margin: 0 auto;
+            min-height: 68px;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+            padding-bottom: env(safe-area-inset-bottom, 0px);
         }
 
-        /* ایندیکیتور متحرک پس‌زمینه تب فعال (GPU-Accelerated Sliding Indicator) */
+        /* ایندیکیتور متحرک کشویی (GPU-Accelerated Sliding Indicator) */
         .bottom-nav-sliding-indicator {
             position: absolute;
             top: 0;
@@ -82,17 +103,18 @@
             pointer-events: none;
             opacity: 0;
             will-change: transform;
-            transition: transform 0.42s cubic-bezier(0.34, 1.35, 0.64, 1), opacity 0.25s ease;
+            transition: transform 0.42s cubic-bezier(0.34, 1.4, 0.64, 1), opacity 0.25s ease;
         }
 
+        /* حباب طلایی تب فعال */
         .active-indicator-bubble {
             width: 44px;
             height: 44px;
             border-radius: 9999px;
             background: linear-gradient(135deg, #B89965 0%, #AB8C58 100%);
             box-shadow:
-                0 8px 20px rgba(171, 140, 88, 0.38),
-                inset 0 1px 0 rgba(255, 255, 255, 0.45);
+                0 6px 16px rgba(171, 140, 88, 0.35),
+                inset 0 1px 0 rgba(255, 255, 255, 0.4);
             position: relative;
             overflow: hidden;
         }
@@ -102,7 +124,7 @@
             position: absolute;
             inset: 1px;
             border-radius: inherit;
-            background: linear-gradient(180deg, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0));
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0));
             pointer-events: none;
         }
 
@@ -113,25 +135,25 @@
             left: -60%;
             width: 70%;
             height: 180%;
-            background: linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0));
-            transform: rotate(25deg);
-            animation: bubbleShine 4s ease-in-out infinite;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.4) 50%, rgba(255, 255, 255, 0) 100%);
+            transform: rotate(26deg);
+            animation: bubbleShine 4.5s ease-in-out infinite;
             pointer-events: none;
         }
 
         @keyframes bubbleShine {
             0%, 100% {
-                transform: translateX(0) rotate(25deg);
+                transform: translateX(0) rotate(26deg);
                 opacity: 0;
             }
-            20% {
+            18% {
                 opacity: 0;
             }
-            40% {
-                transform: translateX(200%) rotate(25deg);
+            38% {
+                transform: translateX(220%) rotate(26deg);
                 opacity: 0.9;
             }
-            60% {
+            55% {
                 opacity: 0;
             }
         }
@@ -139,7 +161,7 @@
         /* ساختار آیتم‌های تب */
         .bottom-nav-item {
             position: relative;
-            border-radius: 16px;
+            border-radius: 14px;
             color: #78716C;
             text-decoration: none;
             transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -174,10 +196,15 @@
             transition: color 0.22s ease, transform 0.25s ease;
         }
 
+        .dark .bottom-nav-icon,
+        .dark .bottom-nav-label {
+            color: #9CA3AF;
+        }
+
         .bottom-nav-label {
             color: #78716C;
             font-size: 10px;
-            transition: color 0.22s ease, transform 0.22s ease, font-weight 0.2s ease;
+            transition: color 0.22s ease, font-weight 0.2s ease;
         }
 
         .bottom-nav-dot {
@@ -185,7 +212,7 @@
             height: 4px;
             border-radius: 9999px;
             background: linear-gradient(135deg, #C8A86E 0%, #AB8C58 100%);
-            box-shadow: 0 0 10px rgba(171, 140, 88, 0.6);
+            box-shadow: 0 0 8px rgba(171, 140, 88, 0.6);
             opacity: 0;
             transform: scale(0);
             transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease;
@@ -203,6 +230,7 @@
 
         .bottom-nav-item.is-active .bottom-nav-icon {
             color: #FFFFFF !important;
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
         }
 
         .bottom-nav-item.is-active .bottom-nav-label {
@@ -210,21 +238,13 @@
             font-weight: 700;
         }
 
+        .dark .bottom-nav-item.is-active .bottom-nav-label {
+            color: #D4BA88 !important;
+        }
+
         .bottom-nav-item.is-active .bottom-nav-dot {
             opacity: 1;
             transform: scale(1);
-            animation: activeDotPulse 2s ease-in-out infinite;
-        }
-
-        @keyframes activeDotPulse {
-            0%, 100% {
-                transform: scale(1);
-                opacity: 0.85;
-            }
-            50% {
-                transform: scale(1.4);
-                opacity: 1;
-            }
         }
     </style>
 
@@ -368,10 +388,10 @@
         {% url 'profile' as url_profile %}
         {% url 'admin_panel_pages:dashboard' as url_admin_dashboard %}
 
-        <!-- تب‌بار تمام‌صفحه با آیکون‌های متریال و ایندیکیتور نرم متحرک (Persistent Bottom Bar) -->
+        <!-- تب‌بار تمام‌عرض و هماهنگ با هدر (Full-width Persistent Bottom Navigation) -->
         {% if request.resolver_match.url_name != 'login' and request.resolver_match.url_name != 'signup' and request.resolver_match.url_name != 'email_verification' and request.resolver_match.url_name != 'sms_verification' %}
-            <nav id="bottom-nav-bar" class="fixed inset-x-0 bottom-0 z-[1000] lg:hidden select-none w-full bottom-nav-bar" aria-label="ناوبری موبایل">
-                <div id="bottom-nav-inner" class="bottom-nav-inner w-full max-w-xl mx-auto min-h-[70px] flex items-center justify-around px-1.5 sm:px-2.5 relative"
+            <nav id="bottom-nav-bar" class="fixed inset-x-0 bottom-0 z-[1000] lg:hidden select-none w-full bottom-nav-bar bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-t border-gray-100 dark:border-gray-800 transition-colors duration-300" aria-label="ناوبری موبایل">
+                <div id="bottom-nav-inner" class="bottom-nav-inner w-full max-w-xl mx-auto min-h-[68px] flex items-center justify-around px-2 relative"
                      style="padding-bottom: env(safe-area-inset-bottom, 0px);">
 
                     <!-- ایندیکیتور متحرک کشویی GPU-Accelerated -->
@@ -384,7 +404,7 @@
                        data-nav-tab="auction"
                        data-nav-path="{{ url_auction }}"
                        class="bottom-nav-item flex-1 min-w-0 flex flex-col items-center justify-center py-1.5 relative z-10 select-none group {% if request.resolver_match.namespace == 'auction' or request.path == url_auction %}is-active{% endif %}">
-                        <div class="bottom-nav-icon-wrap relative flex items-center justify-center w-11 h-11 rounded-full transition-transform duration-300 will-change-transform">
+                        <div class="bottom-nav-icon-wrap relative flex items-center justify-center w-11 h-11 rounded-full will-change-transform">
                             <span class="material-symbols-outlined bottom-nav-icon text-[22px] transition-colors duration-200">gavel</span>
                         </div>
                         <span class="bottom-nav-label mt-0.5 whitespace-nowrap text-[10px] font-medium leading-none transition-all duration-200">مزایده</span>

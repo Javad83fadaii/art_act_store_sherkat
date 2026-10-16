@@ -131,7 +131,7 @@
             void indicator.offsetWidth;
             indicator.style.transition = '';
         } else {
-            indicator.style.transition = 'transform 0.42s cubic-bezier(0.34, 1.35, 0.64, 1), opacity 0.25s ease';
+            indicator.style.transition = 'transform 0.45s cubic-bezier(0.34, 1.4, 0.64, 1), opacity 0.25s ease';
             indicator.style.transform = transformValue;
             indicator.style.opacity = '1';
         }
@@ -429,6 +429,13 @@
     }
 
     document.addEventListener('click', function(e) {
+        const bottomNavItem = e.target.closest('.bottom-nav-item');
+        if (bottomNavItem) {
+            const { items } = getBottomNavElements();
+            items.forEach(it => it.classList.toggle('is-active', it === bottomNavItem));
+            updateNavIndicator(bottomNavItem, false);
+        }
+
         const link = e.target.closest('a');
         if (!shouldInterceptLink(e, link)) return;
 
