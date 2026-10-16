@@ -53,130 +53,51 @@
             z-index: 100002 !important;
         }
 
-        /* ساختار نوار پایینی تمام‌عرض */
+        /* ==========================================================================
+           Bottom Navigation Bar - Persistent & GPU-Accelerated Micro-Interactions
+           Brand Primary Color: #AB8C58
+           ========================================================================== */
         .bottom-nav-bar {
-            background:
-                linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(255, 255, 255, 0.98) 100%);
-            border-top: 1px solid rgba(230, 223, 213, 0.9);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.98) 100%);
+            border-top: 1px solid rgba(230, 223, 213, 0.85);
             box-shadow:
-                0 -10px 35px rgba(15, 23, 42, 0.08),
-                0 -2px 12px rgba(171, 140, 88, 0.08);
+                0 -10px 30px rgba(15, 23, 42, 0.05),
+                0 -2px 10px rgba(171, 140, 88, 0.06);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
         }
 
         .bottom-nav-inner {
             position: relative;
         }
 
-        .bottom-nav-inner::before {
-            content: "";
+        /* ایندیکیتور متحرک پس‌زمینه تب فعال (GPU-Accelerated Sliding Indicator) */
+        .bottom-nav-sliding-indicator {
             position: absolute;
-            inset: 6px 8px 0;
-            border-radius: 24px 24px 0 0;
-            background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0));
+            top: 0;
+            left: 0;
+            width: 44px;
+            height: 44px;
+            z-index: 5;
             pointer-events: none;
-        }
-
-        .bottom-nav-item {
-            position: relative;
-            overflow: hidden;
-            border-radius: 18px;
-            transition:
-                transform 0.28s ease,
-                color 0.28s ease,
-                background-color 0.28s ease,
-                opacity 0.28s ease;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .bottom-nav-item::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            border-radius: inherit;
-            background: linear-gradient(135deg, rgba(171, 140, 88, 0.12), rgba(255, 255, 255, 0));
             opacity: 0;
-            transform: translateY(10px);
-            transition: opacity 0.28s ease, transform 0.28s ease;
-            pointer-events: none;
+            will-change: transform;
+            transition: transform 0.42s cubic-bezier(0.34, 1.35, 0.64, 1), opacity 0.25s ease;
         }
 
-        .bottom-nav-item:hover {
-            transform: translateY(-2px);
-        }
-
-        .bottom-nav-item:hover::before,
-        .bottom-nav-item.is-active::before {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        .bottom-nav-item:active {
-            transform: translateY(0) scale(0.97);
-        }
-
-        .bottom-nav-icon {
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 2.65rem;
-            height: 2.65rem;
+        .active-indicator-bubble {
+            width: 44px;
+            height: 44px;
             border-radius: 9999px;
-            transition:
-                transform 0.28s ease,
-                color 0.28s ease,
-                background-color 0.28s ease,
-                box-shadow 0.28s ease;
-        }
-
-        .bottom-nav-item:hover .bottom-nav-icon {
-            transform: translateY(-1px) scale(1.05);
-            background-color: rgba(171, 140, 88, 0.08);
-        }
-
-        .bottom-nav-label {
-            position: relative;
-            transition: transform 0.28s ease, opacity 0.28s ease, letter-spacing 0.28s ease;
-        }
-
-        .bottom-nav-item:hover .bottom-nav-label {
-            transform: translateY(-1px);
-        }
-
-        .bottom-nav-item.is-active .bottom-nav-label {
-            letter-spacing: 0.01em;
-        }
-
-        /* انیمیشن باز شدن دایره از کوچک به بزرگ به حالت فنری */
-        @keyframes popGrow {
-            0% {
-                transform: scale(0);
-                opacity: 0;
-            }
-            60% {
-                transform: scale(1.18);
-                opacity: 1;
-            }
-            80% {
-                transform: scale(0.95);
-            }
-            100% {
-                transform: scale(1);
-                opacity: 1;
-            }
-        }
-
-        .active-bubble-circle {
-            position: relative;
-            overflow: hidden;
             background: linear-gradient(135deg, #B89965 0%, #AB8C58 100%);
             box-shadow:
-                0 10px 22px rgba(171, 140, 88, 0.34),
-                inset 0 1px 0 rgba(255, 255, 255, 0.35);
-            animation: popGrow 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+                0 8px 20px rgba(171, 140, 88, 0.38),
+                inset 0 1px 0 rgba(255, 255, 255, 0.45);
+            position: relative;
+            overflow: hidden;
         }
 
-        .active-bubble-circle::before {
+        .active-indicator-bubble::before {
             content: "";
             position: absolute;
             inset: 1px;
@@ -185,53 +106,123 @@
             pointer-events: none;
         }
 
-        .active-bubble-circle::after {
+        .active-indicator-bubble::after {
             content: "";
             position: absolute;
-            top: -35%;
-            left: -55%;
-            width: 65%;
-            height: 170%;
-            background: linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0));
-            transform: rotate(24deg);
-            animation: activeBubbleShine 3.8s ease-in-out infinite;
+            top: -40%;
+            left: -60%;
+            width: 70%;
+            height: 180%;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0));
+            transform: rotate(25deg);
+            animation: bubbleShine 4s ease-in-out infinite;
             pointer-events: none;
         }
 
-        .bottom-nav-active-dot {
+        @keyframes bubbleShine {
+            0%, 100% {
+                transform: translateX(0) rotate(25deg);
+                opacity: 0;
+            }
+            20% {
+                opacity: 0;
+            }
+            40% {
+                transform: translateX(200%) rotate(25deg);
+                opacity: 0.9;
+            }
+            60% {
+                opacity: 0;
+            }
+        }
+
+        /* ساختار آیتم‌های تب */
+        .bottom-nav-item {
+            position: relative;
+            border-radius: 16px;
+            color: #78716C;
+            text-decoration: none;
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .bottom-nav-item:active {
+            transform: scale(0.92);
+        }
+
+        .bottom-nav-icon-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            border-radius: 9999px;
+            transition: transform 0.28s cubic-bezier(0.34, 1.45, 0.64, 1);
+            will-change: transform;
+        }
+
+        .bottom-nav-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            line-height: 1;
+            font-size: 22px;
+            text-align: center;
+            color: #78716C;
+            transition: color 0.22s ease, transform 0.25s ease;
+        }
+
+        .bottom-nav-label {
+            color: #78716C;
+            font-size: 10px;
+            transition: color 0.22s ease, transform 0.22s ease, font-weight 0.2s ease;
+        }
+
+        .bottom-nav-dot {
             width: 4px;
             height: 4px;
             border-radius: 9999px;
-            margin-top: 4px;
             background: linear-gradient(135deg, #C8A86E 0%, #AB8C58 100%);
-            box-shadow: 0 0 12px rgba(171, 140, 88, 0.55);
-            animation: activeDotPulse 1.8s ease-in-out infinite;
+            box-shadow: 0 0 10px rgba(171, 140, 88, 0.6);
+            opacity: 0;
+            transform: scale(0);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease;
+            will-change: transform, opacity;
         }
 
-        @keyframes activeBubbleShine {
-            0%, 100% {
-                transform: translateX(0) rotate(24deg);
-                opacity: 0;
-            }
-            18% {
-                opacity: 0;
-            }
-            38% {
-                transform: translateX(180%) rotate(24deg);
-                opacity: 0.9;
-            }
-            55% {
-                opacity: 0;
-            }
+        /* وضعیت تب فعال */
+        .bottom-nav-item.is-active {
+            color: #AB8C58;
+        }
+
+        .bottom-nav-item.is-active .bottom-nav-icon-wrap {
+            transform: scale(1.06);
+        }
+
+        .bottom-nav-item.is-active .bottom-nav-icon {
+            color: #FFFFFF !important;
+        }
+
+        .bottom-nav-item.is-active .bottom-nav-label {
+            color: #AB8C58 !important;
+            font-weight: 700;
+        }
+
+        .bottom-nav-item.is-active .bottom-nav-dot {
+            opacity: 1;
+            transform: scale(1);
+            animation: activeDotPulse 2s ease-in-out infinite;
         }
 
         @keyframes activeDotPulse {
             0%, 100% {
                 transform: scale(1);
-                opacity: 0.8;
+                opacity: 0.85;
             }
             50% {
-                transform: scale(1.7);
+                transform: scale(1.4);
                 opacity: 1;
             }
         }
@@ -359,7 +350,7 @@
         {% endblock %}
 
         {% block main_container %}
-        <main class="flex-grow w-full max-w-[1440px] mx-auto px-4 md:px-6 space-y-16 pt-28 md:pt-32 pb-8">
+        <main id="main-content" class="flex-grow w-full max-w-[1440px] mx-auto px-4 md:px-6 space-y-16 pt-28 md:pt-32 pb-8 transition-opacity duration-200">
             {% block content %}{% endblock %}
         </main>
         {% endblock %}
@@ -377,121 +368,91 @@
         {% url 'profile' as url_profile %}
         {% url 'admin_panel_pages:dashboard' as url_admin_dashboard %}
 
-        <!-- تب‌بار تمام‌صفحه با آیکون‌های متریال قبلی و انیمیشن جهشی دایره فعال -->
+        <!-- تب‌بار تمام‌صفحه با آیکون‌های متریال و ایندیکیتور نرم متحرک (Persistent Bottom Bar) -->
         {% if request.resolver_match.url_name != 'login' and request.resolver_match.url_name != 'signup' and request.resolver_match.url_name != 'email_verification' and request.resolver_match.url_name != 'sms_verification' %}
-            <nav class="fixed inset-x-0 bottom-0 z-[1000] lg:hidden select-none w-full bottom-nav-bar supports-[backdrop-filter]:bg-white/90 supports-[backdrop-filter]:backdrop-blur-xl" aria-label="ناوبری موبایل">
-                <div class="bottom-nav-inner w-full max-w-xl mx-auto min-h-[72px] flex items-end justify-around px-1.5 sm:px-2.5"
+            <nav id="bottom-nav-bar" class="fixed inset-x-0 bottom-0 z-[1000] lg:hidden select-none w-full bottom-nav-bar" aria-label="ناوبری موبایل">
+                <div id="bottom-nav-inner" class="bottom-nav-inner w-full max-w-xl mx-auto min-h-[70px] flex items-center justify-around px-1.5 sm:px-2.5 relative"
                      style="padding-bottom: env(safe-area-inset-bottom, 0px);">
+
+                    <!-- ایندیکیتور متحرک کشویی GPU-Accelerated -->
+                    <div id="bottom-nav-indicator" class="bottom-nav-sliding-indicator pointer-events-none will-change-transform" aria-hidden="true">
+                        <div class="active-indicator-bubble"></div>
+                    </div>
                     
                     <!-- ۱. مزایده -->
-                    {% if request.resolver_match.namespace == 'auction' or request.path == url_auction %}
-                        <a href="{{ url_auction }}" class="bottom-nav-item is-active flex-1 min-w-0 flex flex-col items-center justify-center relative -top-1 px-1 py-1.5">
-                            <div class="bottom-nav-icon active-bubble-circle text-white">
-                                <span class="material-symbols-outlined text-[21px]">gavel</span>
-                            </div>
-                            <span class="bottom-nav-label mt-0.5 whitespace-nowrap text-[10px] font-bold leading-none text-primary">مزایده</span>
-                            <span class="bottom-nav-active-dot"></span>
-                        </a>
-                    {% else %}
-                        <a href="{{ url_auction }}" class="bottom-nav-item flex-1 min-w-0 flex flex-col items-center justify-center px-1 py-1.5 text-[#78716C] hover:text-[#1C1C1C] transition-colors">
-                            <span class="bottom-nav-icon">
-                                <span class="material-symbols-outlined text-[22px]">gavel</span>
-                            </span>
-                            <span class="bottom-nav-label mt-1 whitespace-nowrap text-[10px] font-medium leading-none">مزایده</span>
-                        </a>
-                    {% endif %}
+                    <a href="{{ url_auction }}" 
+                       data-nav-tab="auction"
+                       data-nav-path="{{ url_auction }}"
+                       class="bottom-nav-item flex-1 min-w-0 flex flex-col items-center justify-center py-1.5 relative z-10 select-none group {% if request.resolver_match.namespace == 'auction' or request.path == url_auction %}is-active{% endif %}">
+                        <div class="bottom-nav-icon-wrap relative flex items-center justify-center w-11 h-11 rounded-full transition-transform duration-300 will-change-transform">
+                            <span class="material-symbols-outlined bottom-nav-icon text-[22px] transition-colors duration-200">gavel</span>
+                        </div>
+                        <span class="bottom-nav-label mt-0.5 whitespace-nowrap text-[10px] font-medium leading-none transition-all duration-200">مزایده</span>
+                        <span class="bottom-nav-dot w-1 h-1 rounded-full bg-primary mt-1 transition-all duration-300"></span>
+                    </a>
 
                     <!-- ۲. فروشگاه -->
-                    {% if request.resolver_match.namespace == 'store' or request.path == url_store %}
-                        <a href="{{ url_store }}" class="bottom-nav-item is-active flex-1 min-w-0 flex flex-col items-center justify-center relative -top-1 px-1 py-1.5">
-                            <div class="bottom-nav-icon active-bubble-circle text-white">
-                                <span class="material-symbols-outlined text-[21px]">storefront</span>
-                            </div>
-                            <span class="bottom-nav-label mt-0.5 whitespace-nowrap text-[10px] font-bold leading-none text-primary">فروشگاه</span>
-                            <span class="bottom-nav-active-dot"></span>
-                        </a>
-                    {% else %}
-                        <a href="{{ url_store }}" class="bottom-nav-item flex-1 min-w-0 flex flex-col items-center justify-center px-1 py-1.5 text-[#78716C] hover:text-[#1C1C1C] transition-colors">
-                            <span class="bottom-nav-icon">
-                                <span class="material-symbols-outlined text-[22px]">storefront</span>
-                            </span>
-                            <span class="bottom-nav-label mt-1 whitespace-nowrap text-[10px] font-medium leading-none">فروشگاه</span>
-                        </a>
-                    {% endif %}
+                    <a href="{{ url_store }}" 
+                       data-nav-tab="store"
+                       data-nav-path="{{ url_store }}"
+                       class="bottom-nav-item flex-1 min-w-0 flex flex-col items-center justify-center py-1.5 relative z-10 select-none group {% if request.resolver_match.namespace == 'store' or request.path == url_store %}is-active{% endif %}">
+                        <div class="bottom-nav-icon-wrap relative flex items-center justify-center w-11 h-11 rounded-full transition-transform duration-300 will-change-transform">
+                            <span class="material-symbols-outlined bottom-nav-icon text-[22px] transition-colors duration-200">storefront</span>
+                        </div>
+                        <span class="bottom-nav-label mt-0.5 whitespace-nowrap text-[10px] font-medium leading-none transition-all duration-200">فروشگاه</span>
+                        <span class="bottom-nav-dot w-1 h-1 rounded-full bg-primary mt-1 transition-all duration-300"></span>
+                    </a>
 
                     <!-- ۳. حساب / پروفایل -->
-                    {% if request.resolver_match.url_name == 'profile' %}
-                        <a href="{{ url_profile }}" class="bottom-nav-item is-active flex-1 min-w-0 flex flex-col items-center justify-center relative -top-1 px-1 py-1.5">
-                            <div class="bottom-nav-icon active-bubble-circle text-white">
-                                <span class="material-symbols-outlined text-[21px]">account_circle</span>
-                            </div>
-                            <span class="bottom-nav-label mt-0.5 whitespace-nowrap text-[10px] font-bold leading-none text-primary">حساب</span>
-                            <span class="bottom-nav-active-dot"></span>
-                        </a>
-                    {% else %}
-                        <a href="{% if request.user.is_authenticated %}{{ url_profile }}{% else %}{% url 'login' %}?next={{ request.get_full_path|urlencode }}{% endif %}" class="bottom-nav-item flex-1 min-w-0 flex flex-col items-center justify-center px-1 py-1.5 text-[#78716C] hover:text-[#1C1C1C] transition-colors">
-                            <span class="bottom-nav-icon">
-                                <span class="material-symbols-outlined text-[22px]">account_circle</span>
-                            </span>
-                            <span class="bottom-nav-label mt-1 whitespace-nowrap text-[10px] font-medium leading-none">حساب</span>
-                        </a>
-                    {% endif %}
+                    <a href="{% if request.user.is_authenticated %}{{ url_profile }}{% else %}{% url 'login' %}?next={{ request.get_full_path|urlencode }}{% endif %}" 
+                       data-nav-tab="profile"
+                       data-nav-path="{{ url_profile }}"
+                       class="bottom-nav-item flex-1 min-w-0 flex flex-col items-center justify-center py-1.5 relative z-10 select-none group {% if request.resolver_match.url_name == 'profile' %}is-active{% endif %}">
+                        <div class="bottom-nav-icon-wrap relative flex items-center justify-center w-11 h-11 rounded-full transition-transform duration-300 will-change-transform">
+                            <span class="material-symbols-outlined bottom-nav-icon text-[22px] transition-colors duration-200">account_circle</span>
+                        </div>
+                        <span class="bottom-nav-label mt-0.5 whitespace-nowrap text-[10px] font-medium leading-none transition-all duration-200">حساب</span>
+                        <span class="bottom-nav-dot w-1 h-1 rounded-full bg-primary mt-1 transition-all duration-300"></span>
+                    </a>
 
                     <!-- ۴. مدیریت (در صورت دسترسی ادمین) -->
                     {% if request.user.is_authenticated and request.user.is_staff %}
-                        {% if request.resolver_match.namespace == 'admin_panel_pages' or request.resolver_match.namespace == 'admin_panel' %}
-                            <a href="{{ url_admin_dashboard }}" class="bottom-nav-item is-active flex-1 min-w-0 flex flex-col items-center justify-center relative -top-1 px-1 py-1.5">
-                                <div class="bottom-nav-icon active-bubble-circle text-white">
-                                    <span class="material-symbols-outlined text-[21px]">dashboard</span>
-                                </div>
-                                <span class="bottom-nav-label mt-0.5 whitespace-nowrap text-[10px] font-bold leading-none text-primary">مدیریت</span>
-                                <span class="bottom-nav-active-dot"></span>
-                            </a>
-                        {% else %}
-                            <a href="{{ url_admin_dashboard }}" class="bottom-nav-item flex-1 min-w-0 flex flex-col items-center justify-center px-1 py-1.5 text-[#78716C] hover:text-[#1C1C1C] transition-colors">
-                                <span class="bottom-nav-icon">
-                                    <span class="material-symbols-outlined text-[22px]">dashboard</span>
-                                </span>
-                                <span class="bottom-nav-label mt-1 whitespace-nowrap text-[10px] font-medium leading-none">مدیریت</span>
-                            </a>
-                        {% endif %}
+                        <a href="{{ url_admin_dashboard }}" 
+                           data-nav-tab="admin"
+                           data-nav-path="{{ url_admin_dashboard }}"
+                           data-native="1"
+                           class="bottom-nav-item flex-1 min-w-0 flex flex-col items-center justify-center py-1.5 relative z-10 select-none group {% if request.resolver_match.namespace == 'admin_panel_pages' or request.resolver_match.namespace == 'admin_panel' %}is-active{% endif %}">
+                            <div class="bottom-nav-icon-wrap relative flex items-center justify-center w-11 h-11 rounded-full transition-transform duration-300 will-change-transform">
+                                <span class="material-symbols-outlined bottom-nav-icon text-[22px] transition-colors duration-200">dashboard</span>
+                            </div>
+                            <span class="bottom-nav-label mt-0.5 whitespace-nowrap text-[10px] font-medium leading-none transition-all duration-200">مدیریت</span>
+                            <span class="bottom-nav-dot w-1 h-1 rounded-full bg-primary mt-1 transition-all duration-300"></span>
+                        </a>
                     {% endif %}
 
                     <!-- ۵. شناسنامه -->
-                    {% if request.path == url_certificate_request %}
-                        <a href="{{ url_certificate_request }}" class="bottom-nav-item is-active flex-1 min-w-0 flex flex-col items-center justify-center relative -top-1 px-1 py-1.5">
-                            <div class="bottom-nav-icon active-bubble-circle text-white">
-                                <span class="material-symbols-outlined text-[21px]">card_membership</span>
-                            </div>
-                            <span class="bottom-nav-label mt-0.5 whitespace-nowrap text-[10px] font-bold leading-none text-primary">شناسنامه</span>
-                            <span class="bottom-nav-active-dot"></span>
-                        </a>
-                    {% else %}
-                        <a href="{{ url_certificate_request }}" class="bottom-nav-item flex-1 min-w-0 flex flex-col items-center justify-center px-1 py-1.5 text-[#78716C] hover:text-[#1C1C1C] transition-colors">
-                            <span class="bottom-nav-icon">
-                                <span class="material-symbols-outlined text-[22px]">card_membership</span>
-                            </span>
-                            <span class="bottom-nav-label mt-1 whitespace-nowrap text-[10px] font-medium leading-none">شناسنامه</span>
-                        </a>
-                    {% endif %}
+                    <a href="{{ url_certificate_request }}" 
+                       data-nav-tab="certificate"
+                       data-nav-path="{{ url_certificate_request }}"
+                       class="bottom-nav-item flex-1 min-w-0 flex flex-col items-center justify-center py-1.5 relative z-10 select-none group {% if request.path == url_certificate_request %}is-active{% endif %}">
+                        <div class="bottom-nav-icon-wrap relative flex items-center justify-center w-11 h-11 rounded-full transition-transform duration-300 will-change-transform">
+                            <span class="material-symbols-outlined bottom-nav-icon text-[22px] transition-colors duration-200">card_membership</span>
+                        </div>
+                        <span class="bottom-nav-label mt-0.5 whitespace-nowrap text-[10px] font-medium leading-none transition-all duration-200">شناسنامه</span>
+                        <span class="bottom-nav-dot w-1 h-1 rounded-full bg-primary mt-1 transition-all duration-300"></span>
+                    </a>
 
                     <!-- ۶. درباره ما -->
-                    {% if request.path == url_about %}
-                        <a href="{{ url_about }}" class="bottom-nav-item is-active flex-1 min-w-0 flex flex-col items-center justify-center relative -top-1 px-1 py-1.5">
-                            <div class="bottom-nav-icon active-bubble-circle text-white">
-                                <span class="material-symbols-outlined text-[21px]">info</span>
-                            </div>
-                            <span class="bottom-nav-label mt-0.5 whitespace-nowrap text-[10px] font-bold leading-none text-primary">درباره ما</span>
-                            <span class="bottom-nav-active-dot"></span>
-                        </a>
-                    {% else %}
-                        <a href="{{ url_about }}" class="bottom-nav-item flex-1 min-w-0 flex flex-col items-center justify-center px-1 py-1.5 text-[#78716C] hover:text-[#1C1C1C] transition-colors">
-                            <span class="bottom-nav-icon">
-                                <span class="material-symbols-outlined text-[22px]">info</span>
-                            </span>
-                            <span class="bottom-nav-label mt-1 whitespace-nowrap text-[10px] font-medium leading-none">درباره ما</span>
-                        </a>
-                    {% endif %}
+                    <a href="{{ url_about }}" 
+                       data-nav-tab="about"
+                       data-nav-path="{{ url_about }}"
+                       class="bottom-nav-item flex-1 min-w-0 flex flex-col items-center justify-center py-1.5 relative z-10 select-none group {% if request.path == url_about %}is-active{% endif %}">
+                        <div class="bottom-nav-icon-wrap relative flex items-center justify-center w-11 h-11 rounded-full transition-transform duration-300 will-change-transform">
+                            <span class="material-symbols-outlined bottom-nav-icon text-[22px] transition-colors duration-200">info</span>
+                        </div>
+                        <span class="bottom-nav-label mt-0.5 whitespace-nowrap text-[10px] font-medium leading-none transition-all duration-200">درباره ما</span>
+                        <span class="bottom-nav-dot w-1 h-1 rounded-full bg-primary mt-1 transition-all duration-300"></span>
+                    </a>
 
                 </div>
             </nav>
@@ -690,6 +651,7 @@
     <!-- JS Files -->
     <script src="{% static 'js/notifications.js' %}"></script>
     <script src="{% static 'js/app.js' %}"></script>
+    <script src="{% static 'js/spa-nav.js' %}"></script>
     <script>
         (function () {
             'use strict';
