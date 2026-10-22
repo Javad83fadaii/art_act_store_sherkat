@@ -16,9 +16,12 @@ def _admin_forbidden_response(message='Unauthorized'):
 
 
 def staff_required(view_func):
+    """سوپریوزر همیشه دسترسی دارد، حتی اگر is_staff=False باشد."""
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
-        if not request.user.is_authenticated or not request.user.is_staff:
+        if not request.user.is_authenticated:
+            return _admin_forbidden_response()
+        if not (request.user.is_staff or request.user.is_superuser):
             return _admin_forbidden_response()
         return view_func(request, *args, **kwargs)
 
@@ -26,6 +29,7 @@ def staff_required(view_func):
 
 
 def superuser_required(view_func):
+    """فقط سوپریوزر دسترسی دارد."""
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
         if not request.user.is_authenticated or not request.user.is_superuser:
@@ -42,7 +46,7 @@ def log_admin_action(action_type):
             response = view_func(request, *args, **kwargs)
 
             is_success = getattr(response, 'status_code', 500) < 400
-            is_staff_user = request.user.is_authenticated and request.user.is_staff
+            is_staff_user = request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser)
             if is_success and is_staff_user and request.method in {'POST', 'PUT', 'PATCH', 'DELETE'}:
                 target_id = kwargs.get('pk') or kwargs.get('id') or ''
                 # اگر در متد ویو لاگ اختصاصی ثبت نشده باشد، لاگ جنریک ثبت می‌شود

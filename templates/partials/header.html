@@ -105,7 +105,7 @@
                                 پروفایل من
                             </a>
 
-                            {% if request.user.is_staff %}
+                            {% if request.user.is_staff or request.user.is_superuser %}
                                 <a href="/admin-panel/dashboard/"
                                     class="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-primary hover:bg-primary/5 dark:hover:bg-gray-800 rounded-xl transition-colors font-body">
                                     <span class="material-symbols-outlined text-[20px] text-primary">dashboard</span>
