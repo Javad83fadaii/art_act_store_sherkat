@@ -436,7 +436,7 @@
                     </a>
 
                     <!-- ۴. مدیریت (در صورت دسترسی ادمین) -->
-                    {% if request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser) %}
+                    {% if request.user.is_authenticated and request.user.is_staff or request.user.is_authenticated and request.user.is_superuser %}
                         <a href="{{ url_admin_dashboard }}" 
                            data-nav-tab="admin"
                            data-nav-path="{{ url_admin_dashboard }}"
