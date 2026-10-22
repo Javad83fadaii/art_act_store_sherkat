@@ -31,6 +31,17 @@ from store.models import SiteVisitLog, VisitHistory, PurchaseHistory, TelegramPu
 AUTH_ACTIVITY_ACTIONS = ['Login', 'Logout', 'Login Failed']
 
 
+def _check_superuser_access(request, user):
+    """
+    بررسی می‌کند آیا کاربر درخواست‌کننده (staff) مجاز به دسترسی به اطلاعات یک سوپریوزر هست یا نه.
+    اگر هدف سوپریوزر باشد و درخواست‌کننده سوپریوزر نباشد، یک JsonResponse با 403 برمی‌گرداند.
+    در غیر این صورت None برمی‌گرداند (یعنی دسترسی مجاز است).
+    """
+    if user.is_superuser and not request.user.is_superuser:
+        return JsonResponse({'error': 'Forbidden'}, status=403)
+    return None
+
+
 def _request_payload(request):
     """
     تابع کمکی برای دریافت و پارس کردن امن داده‌های ارسالی کاربر.
@@ -197,8 +208,14 @@ def page_view(request):
 def history_page_view(request, pk):
     """
     رندر کردن قالب HTML صفحه تاریخچه کاربر (حضور در سایت و ورود/خروج).
+    Staff نمی‌تواند صفحه تاریخچه سوپریوزر را باز کند.
     """
     user = get_object_or_404(CustomUser, pk=pk)
+
+    if user.is_superuser and not request.user.is_superuser:
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden()
+
     context = {
         'user_id': pk,
         'user_name': user.get_full_name() or user.email,
@@ -217,8 +234,13 @@ def login_history_page_view(request):
 def history_api_view(request, pk):
     """
     API دریافت تاریخچه ورود و خروج، و حضور کاربر در سایت.
+    Staff نمی‌تواند لاگ‌های سوپریوزر را ببیند.
     """
     user = get_object_or_404(CustomUser, pk=pk)
+
+    # staff نمی‌تواند تاریخچه سوپریوزر را ببیند
+    if user.is_superuser and not request.user.is_superuser:
+        return JsonResponse({'error': 'Forbidden'}, status=403)
     try:
         activity_page = max(1, int(request.GET.get('page', request.GET.get('activity_page', 1))))
     except (ValueError, TypeError):
@@ -307,7 +329,6 @@ def history_api_view(request, pk):
 def login_history_api_view(request):
     auth_queryset = ActivityLog.objects.select_related('user').order_by('-timestamp')
     visit_queryset = SiteVisitLog.objects.select_related('user').order_by('-last_activity')
-
     user_id = request.GET.get('user_id', '').strip()
     if user_id:
         auth_queryset = auth_queryset.filter(user_id=user_id)
@@ -751,6 +772,10 @@ def list_view(request):
         )
     )
 
+    # staff نمی‌تواند سوپریوزرها را در لیست ببیند
+    if not request.user.is_superuser:
+        users = users.filter(is_superuser=False)
+
     has_manual_filters = any([
         request.GET.get('status'),
         request.GET.get('search'),
@@ -888,8 +913,13 @@ def list_view(request):
 def detail_view(request, pk):
     """
     دریافت (GET) و به‌روزرسانی (PUT/POST) اطلاعات یک کاربر خاص به همراه ثبت لاگ تغییرات.
+    Staff نمی‌تواند اطلاعات سوپریوزر را مشاهده یا ویرایش کند.
     """
     user = get_object_or_404(CustomUser, pk=pk)
+
+    # staff نمی‌تواند اطلاعات سوپریوزر را ببیند یا ویرایش کند
+    if user.is_superuser and not request.user.is_superuser:
+        return JsonResponse({'error': 'Forbidden'}, status=403)
 
     if request.method in ['PUT', 'POST']:
         if request.content_type and 'application/json' in request.content_type:
@@ -991,6 +1021,11 @@ def bulk_action(request):
     if not users_list:
         return JsonResponse({'error': 'No users found for given IDs'}, status=404)
 
+    # staff نمی‌تواند سوپریوزرها را در عملیات گروهی تغییر دهد
+    if not request.user.is_superuser:
+        if any(u.is_superuser for u in users_list):
+            return JsonResponse({'error': 'Forbidden: cannot modify superuser accounts'}, status=403)
+
     target_names = [format_user_display(u) for u in users_list[:4]]
     extra_count = len(users_list) - len(target_names)
     names_summary = '، '.join(target_names) + (f' و {extra_count} کاربر دیگر' if extra_count > 0 else '')
@@ -1027,8 +1062,12 @@ def bulk_action(request):
 def auction_activity(request, pk):
     """
     دریافت آمار فعالیت‌های کاربر در مزایده‌ها با استفاده از کوئری‌های بهینه‌شده دیتابیس.
+    Staff نمی‌تواند فعالیت مزایده سوپریوزر را ببیند.
     """
     user = get_object_or_404(CustomUser, pk=pk)
+
+    if user.is_superuser and not request.user.is_superuser:
+        return JsonResponse({'error': 'Forbidden'}, status=403)
 
     bids = (
         Bid.objects.filter(user=user)
@@ -1153,6 +1192,10 @@ def user_product_visits_api(request, pk):
     """
     user = get_object_or_404(CustomUser, pk=pk)
 
+    denied = _check_superuser_access(request, user)
+    if denied:
+        return denied
+
     visit_type = request.GET.get('type', 'store_products').strip()
     valid_types = {'store_products', 'auction_products', 'auctions'}
     if visit_type not in valid_types:
@@ -1268,6 +1311,10 @@ def user_product_visits_api(request, pk):
 @require_http_methods(['GET'])
 def user_bids_api(request, pk):
     user = get_object_or_404(CustomUser, pk=pk)
+
+    denied = _check_superuser_access(request, user)
+    if denied:
+        return denied
     queryset = Bid.objects.filter(user=user).select_related('auction', 'product').order_by('-created_at')
 
     search = request.GET.get('search', '').strip()
@@ -1307,6 +1354,10 @@ def user_bids_api(request, pk):
 @staff_required
 def user_bids(request, pk):
     user = get_object_or_404(CustomUser, pk=pk)
+
+    denied = _check_superuser_access(request, user)
+    if denied:
+        return denied
     queryset = Bid.objects.filter(user=user).select_related('auction', 'product').order_by('-created_at')
 
     search = request.GET.get('search', '').strip()
@@ -1349,6 +1400,10 @@ def user_purchased_products_api(request, pk):
     API برای دریافت محصولات خریداری شده توسط کاربر
     """
     user = get_object_or_404(CustomUser, pk=pk)
+
+    denied = _check_superuser_access(request, user)
+    if denied:
+        return denied
     
     # محصولات خریداری شده از فروشگاه
     purchases = PurchaseHistory.objects.filter(user=user).select_related('artwork').order_by('-created_at')
@@ -1388,6 +1443,10 @@ def user_purchased_products_api(request, pk):
 @staff_required
 def user_cart_bids_summary_api(request, pk):
     user = get_object_or_404(CustomUser, pk=pk)
+
+    denied = _check_superuser_access(request, user)
+    if denied:
+        return denied
     now = timezone.now()
     profile_context = build_profile_live_context(user)
 
@@ -1482,6 +1541,10 @@ def user_reserved_products_api(request, pk):
     API برای دریافت محصولات در حال رزرو (سبد مزایده) کاربر
     """
     user = get_object_or_404(CustomUser, pk=pk)
+
+    denied = _check_superuser_access(request, user)
+    if denied:
+        return denied
     now = timezone.now()
     
     # محصولات رزرو شده در مزایده
@@ -1535,6 +1598,10 @@ def user_reserved_products_api(request, pk):
 @staff_required
 def user_purchase_requests_summary_api(request, pk):
     user = get_object_or_404(CustomUser, pk=pk)
+
+    denied = _check_superuser_access(request, user)
+    if denied:
+        return denied
     profile_context = build_profile_live_context(user)
     store_purchases = profile_context.get('store_purchases', [])
     auction_purchases = profile_context.get('auction_purchases', [])
@@ -1563,6 +1630,10 @@ def user_telegram_requests_api(request, pk):
     API برای دریافت درخواست‌های خرید تلگرامی کاربر
     """
     user = get_object_or_404(CustomUser, pk=pk)
+
+    denied = _check_superuser_access(request, user)
+    if denied:
+        return denied
     
     telegram_requests = (
         TelegramPurchaseRequest.objects
@@ -1610,6 +1681,10 @@ def user_auction_invoices_api(request, pk):
     API دریافت فاکتورهای مزایده صادر شده برای کاربر به همراه لینک دانلود PDF
     """
     user = get_object_or_404(CustomUser, pk=pk)
+
+    denied = _check_superuser_access(request, user)
+    if denied:
+        return denied
     from auction.models import AuctionInvoice
 
     invoices = (

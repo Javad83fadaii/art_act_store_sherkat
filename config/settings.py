@@ -98,6 +98,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.humanize',
+    # حذف django.contrib.admin به دلیل استفاده از admin_panel سفارشی
     
     'jalali_date', # پکیج شمسی
     'store.apps.StoreConfig',
