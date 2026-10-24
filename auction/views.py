@@ -597,6 +597,17 @@ class AuctionProductsView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        is_load_more = (
+            self.request.GET.get('load_more') == '1'
+            or (self.request.headers.get('x-requested-with') == 'XMLHttpRequest' and self.request.GET.get('load_more') == '1')
+        )
+        context['auction'] = self.auction
+        context['has_active_extended_products'] = self.auction.get_active_extended_products_count() > 0
+
+        # اگر درخواست فقط برای لود ادامه‌ی محصولات (Infinite Scroll) باشد، نیازی به کوئری‌های سنگین مدال و استوری نیست
+        if is_load_more:
+            return context
+
         ensure_products_have_finished_winners(context.get('object_list'))
         products = list(context.get('object_list') or [])
         if self.request.user.is_authenticated:
@@ -610,8 +621,6 @@ class AuctionProductsView(ListView):
                         user_id=self.request.user.pk,
                         product_id=product.pk,
                     )
-        context['auction'] = self.auction
-        context['has_active_extended_products'] = self.auction.get_active_extended_products_count() > 0
         context['bid_error'] = self.request.GET.get('bid_error', '')
         context['bid_success'] = self.request.GET.get('bid_success', '')
         latest_credit_request = None

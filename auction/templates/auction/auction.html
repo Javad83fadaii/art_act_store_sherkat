@@ -687,7 +687,7 @@
 
             const rect = sentinel.getBoundingClientRect();
             const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 800;
-            if (rect.top <= viewportHeight + 600) {
+            if (rect.top <= viewportHeight + 400) {
                 loadMoreProducts();
             }
         }
@@ -712,11 +712,12 @@
                     const curSentinel = getInfiniteScrollSentinel();
                     const stillHasNext = curSentinel && curSentinel.dataset.hasNext === '1';
                     setInfiniteScrollStatus({ loading: false, hasNext: stillHasNext });
+                    requestAnimationFrame(() => checkScrollPosition());
                 }
             }, 8000);
 
             const abortCtrl = new AbortController();
-            const abortTimeout = setTimeout(() => abortCtrl.abort(), 7000);
+            const abortTimeout = setTimeout(() => abortCtrl.abort(), 7500);
 
             try {
                 const endpoint = sentinel.dataset.endpoint || window.location.pathname;
@@ -762,12 +763,16 @@
                 if (curSentinel) {
                     curSentinel.dataset.nextPage = hasNext ? String(data.next_page || '') : '';
                     setInfiniteScrollStatus({ loading: false, hasNext });
-                }
 
-                if (hasNext) {
-                    requestAnimationFrame(() => {
-                        checkScrollPosition();
-                    });
+                    // بروزرسانی رصدگر تقاطع برای محاسبه مجدد موقعیت جدید سنتینل
+                    if (infiniteScrollObserver) {
+                        try {
+                            infiniteScrollObserver.unobserve(curSentinel);
+                            if (hasNext) {
+                                infiniteScrollObserver.observe(curSentinel);
+                            }
+                        } catch (_) {}
+                    }
                 }
             } catch (error) {
                 clearTimeout(abortTimeout);
@@ -779,6 +784,10 @@
                     loadMoreWatchdogTimer = null;
                 }
                 isLoadingMoreProducts = false;
+                // بررسی مجدد موقعیت اسکرول پس از پایان بارگذاری
+                requestAnimationFrame(() => {
+                    checkScrollPosition();
+                });
             }
         }
 
@@ -798,9 +807,16 @@
             if ('IntersectionObserver' in window) {
                 infiniteScrollObserver = new IntersectionObserver((entries) => {
                     entries.forEach((entry) => {
-                        if (entry.isIntersecting) loadMoreProducts();
+                        if (entry.isIntersecting) {
+                            // فقط در صورتی لود شود که کاربر واقعاً اسکرول کرده باشد یا کل محتوا کمتر از ارتفاع صفحه باشد
+                            const userHasScrolled = (window.scrollY > 40 || document.documentElement.scrollTop > 40);
+                            const contentShorterThanScreen = document.documentElement.scrollHeight <= (window.innerHeight + 80);
+                            if (userHasScrolled || contentShorterThanScreen) {
+                                loadMoreProducts();
+                            }
+                        }
                     });
-                }, { rootMargin: '600px 0px' });
+                }, { rootMargin: '300px 0px' });
 
                 infiniteScrollObserver.observe(sentinel);
             }
@@ -808,20 +824,30 @@
             if (!scrollListenerAttached) {
                 scrollListenerAttached = true;
                 let ticking = false;
-                window.addEventListener('scroll', () => {
+                const onScrollOrTouch = () => {
                     if (!ticking) {
                         window.requestAnimationFrame(() => {
-                            checkScrollPosition();
-                            ticking = false;
+                            try {
+                                checkScrollPosition();
+                            } finally {
+                                ticking = false;
+                            }
                         });
                         ticking = true;
                     }
-                }, { passive: true });
+                };
+
+                window.addEventListener('scroll', onScrollOrTouch, { passive: true });
+                window.addEventListener('touchmove', onScrollOrTouch, { passive: true });
+                window.addEventListener('resize', onScrollOrTouch, { passive: true });
             }
 
-            requestAnimationFrame(() => {
-                checkScrollPosition();
-            });
+            // فقط در صورتی چک اولیه انجام شود که ارتفاع صفحه خیلی کم باشد و اسکرول وجود نداشته باشد
+            if (document.documentElement.scrollHeight <= (window.innerHeight + 80)) {
+                requestAnimationFrame(() => {
+                    checkScrollPosition();
+                });
+            }
         }
 
         async function syncSingleProduct(productId) {
