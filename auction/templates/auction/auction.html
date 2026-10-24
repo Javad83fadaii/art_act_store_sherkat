@@ -301,10 +301,10 @@
         const loginUrl = "{% url 'login' %}?next=" + encodeURIComponent(window.location.pathname + window.location.search);
         const editUrl = "{% url 'profile' %}?next=" + encodeURIComponent(window.location.pathname + window.location.search);
         const auctionId = "{{ auction.pk|default:'' }}";
-        const productsGrid = document.getElementById('products-grid');
-        const infiniteScrollSentinel = document.getElementById('infinite-scroll-sentinel');
-        const infiniteScrollLoader = document.getElementById('infinite-scroll-loader');
-        const infiniteScrollEnd = document.getElementById('infinite-scroll-end');
+        function getProductsGrid() { return document.getElementById('products-grid'); }
+        function getInfiniteScrollSentinel() { return document.getElementById('infinite-scroll-sentinel'); }
+        function getInfiniteScrollLoader() { return document.getElementById('infinite-scroll-loader'); }
+        function getInfiniteScrollEnd() { return document.getElementById('infinite-scroll-end'); }
         let isPendingLocalStorage = false;
         let isLoadingMoreProducts = false;
         let infiniteScrollObserver = null;
@@ -516,9 +516,10 @@
         }
 
         function refreshExtendedProductsLayout({ promotedCardId = null } = {}) {
-            if (!productsGrid) return 0;
+            const grid = getProductsGrid();
+            if (!grid) return 0;
 
-            const allCards = Array.from(productsGrid.querySelectorAll('[data-product-card]'));
+            const allCards = Array.from(grid.querySelectorAll('[data-product-card]'));
             if (!allCards.length) return 0;
 
             allCards.forEach((card, index) => {
@@ -565,7 +566,7 @@
                 getProductCardOrderIndex(leftCard) - getProductCardOrderIndex(rightCard)
             ));
 
-            Array.from(productsGrid.children).forEach((child) => {
+            Array.from(grid.children).forEach((child) => {
                 if (!child.matches('[data-product-card]')) {
                     child.remove();
                 }
@@ -575,7 +576,7 @@
             extendedCards.forEach((card) => fragment.appendChild(card));
             regularCards.forEach((card) => fragment.appendChild(card));
 
-            productsGrid.appendChild(fragment);
+            grid.appendChild(fragment);
 
             const timeWindow = document.getElementById('auction-time-window');
             if (timeWindow) {
@@ -645,19 +646,23 @@
         }
 
         function setInfiniteScrollStatus({ loading = false, hasNext = false } = {}) {
-            if (infiniteScrollLoader) {
-                infiniteScrollLoader.classList.toggle('hidden', !loading);
-                infiniteScrollLoader.classList.toggle('flex', loading);
+            const loader = getInfiniteScrollLoader();
+            const sentinel = getInfiniteScrollSentinel();
+            const end = getInfiniteScrollEnd();
+
+            if (loader) {
+                loader.classList.toggle('hidden', !loading);
+                loader.classList.toggle('flex', loading);
             }
 
-            if (infiniteScrollSentinel) {
-                infiniteScrollSentinel.classList.toggle('hidden', !hasNext);
-                infiniteScrollSentinel.dataset.hasNext = hasNext ? '1' : '0';
+            if (sentinel) {
+                sentinel.classList.toggle('hidden', !hasNext);
+                sentinel.dataset.hasNext = hasNext ? '1' : '0';
             }
 
-            if (infiniteScrollEnd) {
+            if (end) {
                 const hasProductCards = !!document.querySelector('[data-product-card]');
-                infiniteScrollEnd.classList.toggle('hidden', hasNext || !hasProductCards);
+                end.classList.toggle('hidden', hasNext || !hasProductCards);
             }
         }
 
@@ -675,19 +680,25 @@
         }
 
         function checkScrollPosition() {
-            if (!infiniteScrollSentinel || !productsGrid || isLoadingMoreProducts) return;
-            if (infiniteScrollSentinel.dataset.hasNext !== '1') return;
-            const rect = infiniteScrollSentinel.getBoundingClientRect();
-            if (rect.top <= window.innerHeight + 500) {
+            const sentinel = getInfiniteScrollSentinel();
+            const grid = getProductsGrid();
+            if (!sentinel || !grid || isLoadingMoreProducts) return;
+            if (sentinel.dataset.hasNext !== '1') return;
+
+            const rect = sentinel.getBoundingClientRect();
+            const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 800;
+            if (rect.top <= viewportHeight + 600) {
                 loadMoreProducts();
             }
         }
 
         async function loadMoreProducts() {
-            if (!infiniteScrollSentinel || !productsGrid || isLoadingMoreProducts) return;
-            if (infiniteScrollSentinel.dataset.hasNext !== '1') return;
+            const sentinel = getInfiniteScrollSentinel();
+            const grid = getProductsGrid();
+            if (!sentinel || !grid || isLoadingMoreProducts) return;
+            if (sentinel.dataset.hasNext !== '1') return;
 
-            const nextPage = infiniteScrollSentinel.dataset.nextPage;
+            const nextPage = sentinel.dataset.nextPage;
             if (!nextPage) return;
 
             isLoadingMoreProducts = true;
@@ -698,26 +709,38 @@
                 if (isLoadingMoreProducts) {
                     console.warn('[InfiniteScroll] Loading watchdog reset.');
                     isLoadingMoreProducts = false;
-                    const stillHasNext = infiniteScrollSentinel && infiniteScrollSentinel.dataset.hasNext === '1';
+                    const curSentinel = getInfiniteScrollSentinel();
+                    const stillHasNext = curSentinel && curSentinel.dataset.hasNext === '1';
                     setInfiniteScrollStatus({ loading: false, hasNext: stillHasNext });
                 }
-            }, 7500);
+            }, 8000);
 
             const abortCtrl = new AbortController();
-            const abortTimeout = setTimeout(() => abortCtrl.abort(), 6500);
+            const abortTimeout = setTimeout(() => abortCtrl.abort(), 7000);
 
             try {
-                const requestUrl = new URL(infiniteScrollSentinel.dataset.endpoint || window.location.pathname, window.location.origin);
+                const endpoint = sentinel.dataset.endpoint || window.location.pathname;
+                const requestUrl = new URL(endpoint, window.location.origin);
                 const currentUrl = new URL(window.location.href);
 
                 currentUrl.searchParams.forEach((value, key) => {
-                    if (key !== 'page') requestUrl.searchParams.set(key, value);
+                    if (key !== 'page' && key !== 'load_more' && key !== '_ts') {
+                        requestUrl.searchParams.set(key, value);
+                    }
                 });
                 requestUrl.searchParams.set('page', nextPage);
                 requestUrl.searchParams.set('load_more', '1');
+                requestUrl.searchParams.set('_ts', String(Date.now()));
 
                 const response = await fetch(requestUrl.toString(), {
-                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+                    method: 'GET',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                        'Cache-Control': 'no-cache, no-store'
+                    },
+                    cache: 'no-store',
+                    credentials: 'same-origin',
                     signal: abortCtrl.signal
                 });
 
@@ -726,14 +749,20 @@
                 if (!response.ok) throw new Error('بارگذاری محصولات بیشتر انجام نشد.');
 
                 const data = await response.json();
-                if (data.html) {
-                    productsGrid.insertAdjacentHTML('beforeend', data.html);
-                    enhanceLoadedProductCards();
+                if (data && data.html) {
+                    const curGrid = getProductsGrid();
+                    if (curGrid) {
+                        curGrid.insertAdjacentHTML('beforeend', data.html);
+                        enhanceLoadedProductCards();
+                    }
                 }
 
-                const hasNext = Boolean(data.has_next);
-                infiniteScrollSentinel.dataset.nextPage = hasNext ? String(data.next_page || '') : '';
-                setInfiniteScrollStatus({ loading: false, hasNext });
+                const hasNext = Boolean(data && data.has_next);
+                const curSentinel = getInfiniteScrollSentinel();
+                if (curSentinel) {
+                    curSentinel.dataset.nextPage = hasNext ? String(data.next_page || '') : '';
+                    setInfiniteScrollStatus({ loading: false, hasNext });
+                }
 
                 if (hasNext) {
                     requestAnimationFrame(() => {
@@ -754,8 +783,10 @@
         }
 
         function initInfiniteScroll() {
-            if (!infiniteScrollSentinel || !productsGrid) return;
-            const hasNext = infiniteScrollSentinel.dataset.hasNext === '1';
+            const sentinel = getInfiniteScrollSentinel();
+            const grid = getProductsGrid();
+            if (!sentinel || !grid) return;
+            const hasNext = sentinel.dataset.hasNext === '1';
             setInfiniteScrollStatus({ loading: false, hasNext });
             if (!hasNext) return;
 
@@ -769,9 +800,9 @@
                     entries.forEach((entry) => {
                         if (entry.isIntersecting) loadMoreProducts();
                     });
-                }, { rootMargin: '450px 0px' });
+                }, { rootMargin: '600px 0px' });
 
-                infiniteScrollObserver.observe(infiniteScrollSentinel);
+                infiniteScrollObserver.observe(sentinel);
             }
 
             if (!scrollListenerAttached) {

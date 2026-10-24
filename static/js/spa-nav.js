@@ -500,6 +500,12 @@
             return false;
         }
 
+        // Never intercept auction or store links: they feature complex WebSockets,
+        // live countdowns, infinite scroll, and zoom galleries that require clean native page lifecycles
+        if (link.pathname.startsWith('/auction') || link.pathname.startsWith('/store')) {
+            return false;
+        }
+
         // Same page with just hash anchor
         if (link.pathname === window.location.pathname && link.search === window.location.search && link.hash) {
             return false;

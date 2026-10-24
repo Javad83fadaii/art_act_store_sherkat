@@ -630,11 +630,15 @@ class AuctionProductsView(ListView):
 
     def render_to_response(self, context, **response_kwargs):
         is_load_more_request = (
-            self.request.headers.get('x-requested-with') == 'XMLHttpRequest'
-            and self.request.GET.get('load_more') == '1'
+            self.request.GET.get('load_more') == '1'
+            or (self.request.headers.get('x-requested-with') == 'XMLHttpRequest' and self.request.GET.get('load_more') == '1')
         )
         if not is_load_more_request:
-            return super().render_to_response(context, **response_kwargs)
+            response = super().render_to_response(context, **response_kwargs)
+            response['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+            response['Pragma'] = 'no-cache'
+            response['Expires'] = '0'
+            return response
 
         page_obj = context.get('page_obj')
         html = render_to_string(
@@ -646,13 +650,17 @@ class AuctionProductsView(ListView):
             },
             request=self.request,
         )
-        return JsonResponse(
+        response = JsonResponse(
             {
                 'html': html,
                 'has_next': page_obj.has_next() if page_obj else False,
                 'next_page': page_obj.next_page_number() if page_obj and page_obj.has_next() else None,
             }
         )
+        response['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+        response['Pragma'] = 'no-cache'
+        response['Expires'] = '0'
+        return response
 
 # ----------------------------------------------------
 # ویو جدید برای ثبت درخواست افزایش اعتبار از طریق AJAX
