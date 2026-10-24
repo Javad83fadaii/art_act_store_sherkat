@@ -558,8 +558,95 @@
     // ============================================
     // متغیرها و مدیریت گالری تصاویر
     // ============================================
-    let allGalleryImages = [];
-    let currentGalleryIndex = 0;
+    var allGalleryImages = [];
+    var currentGalleryIndex = 0;
+
+    function initProductGallery() {
+        allGalleryImages = [];
+        currentGalleryIndex = 0;
+
+        document.querySelectorAll('.product-thumb').forEach(el => {
+            const url = el.getAttribute('data-image-url');
+            if (url && !allGalleryImages.includes(url)) allGalleryImages.push(url);
+        });
+
+        document.querySelectorAll('.product-hidden-img').forEach(el => {
+            const url = el.getAttribute('data-image-url');
+            if (url && !allGalleryImages.includes(url)) allGalleryImages.push(url);
+        });
+
+        const mainImage = document.getElementById('product-main-image');
+        if (allGalleryImages.length === 0 && mainImage) {
+            const styleBg = mainImage.style.backgroundImage;
+            const match = styleBg && styleBg.match(/url\(['"]?(.*?)['"]?\)/);
+            if (match && match[1]) {
+                allGalleryImages.push(match[1]);
+            }
+        }
+
+        window.allGalleryImages = allGalleryImages;
+        window.currentGalleryIndex = currentGalleryIndex;
+
+        const thumbs = document.querySelectorAll('.product-thumb');
+
+        function updatePageDisplay(url) {
+            if (!mainImage) return;
+            mainImage.style.opacity = '0.5';
+            setTimeout(() => {
+                mainImage.style.backgroundImage = `url('${url}')`;
+                mainImage.style.opacity = '1';
+            }, 200);
+
+            thumbs.forEach(t => {
+                t.classList.remove('border-primary', 'shadow-sm', 'opacity-100', 'ring-2', 'ring-primary');
+                t.classList.add('border-neutral-200', 'opacity-70');
+            });
+
+            const visibleThumb = document.querySelector(`.product-thumb[data-image-url="${url}"]`);
+            if (visibleThumb) {
+                visibleThumb.classList.remove('border-neutral-200', 'opacity-70');
+                visibleThumb.classList.add('border-primary', 'shadow-sm', 'opacity-100', 'ring-2', 'ring-primary');
+            }
+        }
+
+        const prevBtn = document.getElementById('prev-slide');
+        const nextBtn = document.getElementById('next-slide');
+
+        thumbs.forEach((thumb) => {
+            thumb.onclick = function() {
+                const url = this.getAttribute('data-image-url');
+                if (!url) return;
+                updatePageDisplay(url);
+                const idx = allGalleryImages.indexOf(url);
+                if (idx >= 0) {
+                    currentGalleryIndex = idx;
+                    window.currentGalleryIndex = idx;
+                }
+            };
+        });
+
+        if (nextBtn) {
+            nextBtn.onclick = function(e) {
+                e.stopPropagation();
+                if (allGalleryImages.length === 0) return;
+                currentGalleryIndex++;
+                if (currentGalleryIndex >= allGalleryImages.length) currentGalleryIndex = 0;
+                window.currentGalleryIndex = currentGalleryIndex;
+                updatePageDisplay(allGalleryImages[currentGalleryIndex]);
+            };
+        }
+
+        if (prevBtn) {
+            prevBtn.onclick = function(e) {
+                e.stopPropagation();
+                if (allGalleryImages.length === 0) return;
+                currentGalleryIndex--;
+                if (currentGalleryIndex < 0) currentGalleryIndex = allGalleryImages.length - 1;
+                window.currentGalleryIndex = currentGalleryIndex;
+                updatePageDisplay(allGalleryImages[currentGalleryIndex]);
+            };
+        }
+    }
 
     function switchView(view) {
         const imgContainer = document.getElementById('product-main-image');
@@ -603,98 +690,25 @@
         }
     }
 
-    document.addEventListener('DOMContentLoaded', function() {
-        // جمع‌آوری تصاویر بندانگشتی
-        document.querySelectorAll('.product-thumb').forEach(el => {
-            const url = el.getAttribute('data-image-url');
-            if (url && !allGalleryImages.includes(url)) allGalleryImages.push(url);
-        });
-
-        document.querySelectorAll('.product-hidden-img').forEach(el => {
-            const url = el.getAttribute('data-image-url');
-            if (url && !allGalleryImages.includes(url)) allGalleryImages.push(url);
-        });
-
-        // اگر هیچ عکسی در گالری ثبت نشده بود، از عکس اصلی استفاده شود
-        const mainImage = document.getElementById('product-main-image');
-        if (allGalleryImages.length === 0 && mainImage) {
-            const styleBg = mainImage.style.backgroundImage;
-            const match = styleBg && styleBg.match(/url\(['"]?(.*?)['"]?\)/);
-            if (match && match[1]) {
-                allGalleryImages.push(match[1]);
-            }
-        }
-
-        const thumbs = document.querySelectorAll('.product-thumb');
-
-        function updatePageDisplay(url) {
-            if (!mainImage) return;
-            mainImage.style.opacity = '0.5';
-            setTimeout(() => {
-                mainImage.style.backgroundImage = `url('${url}')`;
-                mainImage.style.opacity = '1';
-            }, 200);
-
-            thumbs.forEach(t => {
-                t.classList.remove('border-primary', 'shadow-sm', 'opacity-100', 'ring-2', 'ring-primary');
-                t.classList.add('border-neutral-200', 'opacity-70');
-            });
-
-            const visibleThumb = document.querySelector(`.product-thumb[data-image-url="${url}"]`);
-            if (visibleThumb) {
-                visibleThumb.classList.remove('border-neutral-200', 'opacity-70');
-                visibleThumb.classList.add('border-primary', 'shadow-sm', 'opacity-100', 'ring-2', 'ring-primary');
-            }
-        }
-
-        const prevBtn = document.getElementById('prev-slide');
-        const nextBtn = document.getElementById('next-slide');
-
-        thumbs.forEach((thumb) => {
-            thumb.addEventListener('click', function() {
-                const url = this.getAttribute('data-image-url');
-                if (!url) return;
-                updatePageDisplay(url);
-                const idx = allGalleryImages.indexOf(url);
-                if (idx >= 0) currentGalleryIndex = idx;
-            });
-        });
-
-        if (nextBtn) {
-            nextBtn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                if (allGalleryImages.length === 0) return;
-                currentGalleryIndex++;
-                if (currentGalleryIndex >= allGalleryImages.length) currentGalleryIndex = 0;
-                updatePageDisplay(allGalleryImages[currentGalleryIndex]);
-            });
-        }
-
-        if (prevBtn) {
-            prevBtn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                if (allGalleryImages.length === 0) return;
-                currentGalleryIndex--;
-                if (currentGalleryIndex < 0) currentGalleryIndex = allGalleryImages.length - 1;
-                updatePageDisplay(allGalleryImages[currentGalleryIndex]);
-            });
-        }
-    });
-
     // ============================================
     // توابع مودال فول‌اسکرین گالری (بزرگنمایی و زوم)
     // ============================================
-    const modal = document.getElementById('gallery-modal');
-    const modalImg = document.getElementById('gallery-main-img');
-    const modalCountEl = document.getElementById('gallery-total-count');
-    const modalIndexEl = document.getElementById('gallery-current-index');
-    const modalContent = document.getElementById('gallery-modal-content');
-
     function openGalleryModal(startIndex = 0) {
-        if (!modal || !modalImg || !modalCountEl || !modalIndexEl) return;
-        if (allGalleryImages.length === 0) return;
+        if (!allGalleryImages || allGalleryImages.length === 0) {
+            initProductGallery();
+        }
+        const modal = document.getElementById('gallery-modal');
+        const modalImg = document.getElementById('gallery-main-img');
+        const modalCountEl = document.getElementById('gallery-total-count');
+        const modalIndexEl = document.getElementById('gallery-current-index');
+        const modalContent = document.getElementById('gallery-modal-content');
 
-        currentGalleryIndex = startIndex;
+        if (!modal || !modalImg || !modalCountEl || !modalIndexEl) return;
+        if (!allGalleryImages || allGalleryImages.length === 0) return;
+
+        currentGalleryIndex = (startIndex >= 0 && startIndex < allGalleryImages.length) ? startIndex : 0;
+        window.currentGalleryIndex = currentGalleryIndex;
+
         modal.classList.remove('hidden');
         setTimeout(() => {
             modal.classList.remove('opacity-0');
@@ -712,6 +726,8 @@
     }
 
     function closeGalleryModal() {
+        const modal = document.getElementById('gallery-modal');
+        const modalContent = document.getElementById('gallery-modal-content');
         if (!modal) return;
         modal.classList.add('opacity-0');
         if (modalContent) {
@@ -725,20 +741,38 @@
     }
 
     function changeGalleryImage(direction) {
-        if (allGalleryImages.length === 0) return;
+        if (!allGalleryImages || allGalleryImages.length === 0) return;
         currentGalleryIndex += direction;
         if (currentGalleryIndex >= allGalleryImages.length) currentGalleryIndex = 0;
         if (currentGalleryIndex < 0) currentGalleryIndex = allGalleryImages.length - 1;
+        window.currentGalleryIndex = currentGalleryIndex;
         updateModalImage();
     }
 
     function updateModalImage() {
-        if (!modalImg || !modalIndexEl) return;
+        const modalImg = document.getElementById('gallery-main-img');
+        const modalIndexEl = document.getElementById('gallery-current-index');
+        if (!modalImg || !modalIndexEl || !allGalleryImages || !allGalleryImages[currentGalleryIndex]) return;
         modalImg.src = allGalleryImages[currentGalleryIndex];
         modalIndexEl.innerText = Number(currentGalleryIndex + 1).toLocaleString('fa-IR').replace(/٬/g, ',');
         if (window.syncGalleryDownload) window.syncGalleryDownload(allGalleryImages[currentGalleryIndex]);
         if (window.resetGalleryZoom) window.resetGalleryZoom();
     }
+
+    // ثبت توابع در scope عمومی window
+    window.allGalleryImages = allGalleryImages;
+    window.currentGalleryIndex = currentGalleryIndex;
+    window.initProductGallery = initProductGallery;
+    window.openGalleryModal = openGalleryModal;
+    window.closeGalleryModal = closeGalleryModal;
+    window.changeGalleryImage = changeGalleryImage;
+    window.updateModalImage = updateModalImage;
+    window.switchView = switchView;
+
+    // اجرای راه‌اندازی گالری در بارگذاری اولیه و ناوبری SPA
+    initProductGallery();
+    document.addEventListener('page:loaded', initProductGallery);
+    document.addEventListener('DOMContentLoaded', initProductGallery);
 
     // ============================================
     // توابع مودال پخش ویدئو
@@ -945,8 +979,13 @@
         .catch(error => console.error('Error:', error));
     }
 
-
-    // ============================================
+    // ثبت توابع مودال و تعاملات در scope عمومی window
+    window.openVideoModal = openVideoModal;
+    window.closeVideoModal = closeVideoModal;
+    window.openConfirmModal = openConfirmModal;
+    window.closeConfirmModal = closeConfirmModal;
+    window.submitTelegramRequest = submitTelegramRequest;
+    window.toggleLike = toggleLike;
     // کلیدهای میانبر کیبورد (Escape و ناوبری با Arrow Keys)
     // ============================================
     document.addEventListener('keydown', function(event) {

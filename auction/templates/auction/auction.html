@@ -10,7 +10,7 @@
              id="menu-overlay"
              onclick="closeMenu()"></div>
 
-        <main class="flex-grow w-full max-w-[1300px] mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10">
+        <div class="flex-grow w-full max-w-[1300px] mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10">
             <!-- هدر مزایده همراه با پیشوند «مزایده» -->
             <div class="text-center max-w-3xl mx-auto space-y-2 animate-fadeIn">
                 <h2 class="text-2xl sm:text-3xl md:text-4xl font-normal tracking-tight text-[#988454] dark:text-amber-200 font-display">
@@ -148,7 +148,7 @@
                          data-endpoint="{{ request.path }}"></div>
                 </div>
             {% endif %}
-        </main>
+        </div>
     </div>
 
     <!-- مدال درخواست شرکت در مزایده -->
@@ -727,24 +727,29 @@
         }
 
         async function syncAuctionData() {
+            if (document.visibilityState !== 'visible') return;
             const cards = Array.from(document.querySelectorAll('[data-product-card]'));
             if (!cards.length) return;
 
-            const requests = cards.map(async (card) => {
-                const productId = card.getAttribute('data-product-card');
-                const liveStateUrl = card.getAttribute('data-live-state-url');
-                if (!productId || !liveStateUrl) return;
+            // Update cards in small batches to avoid network bottlenecks
+            const chunkSize = 4;
+            for (let i = 0; i < cards.length; i += chunkSize) {
+                const chunk = cards.slice(i, i + chunkSize);
+                await Promise.allSettled(chunk.map(async (card) => {
+                    const productId = card.getAttribute('data-product-card');
+                    const liveStateUrl = card.getAttribute('data-live-state-url');
+                    if (!productId || !liveStateUrl) return;
 
-                const response = await fetch(liveStateUrl, {
-                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Cache-Control': 'no-cache' }
-                });
-                if (!response.ok) throw new Error(`sync_failed_${productId}`);
-
-                const data = await response.json();
-                if (data && data.success) applyProductLiveState(productId, data);
-            });
-
-            await Promise.allSettled(requests);
+                    try {
+                        const response = await fetch(liveStateUrl, {
+                            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Cache-Control': 'no-cache' }
+                        });
+                        if (!response.ok) return;
+                        const data = await response.json();
+                        if (data && data.success) applyProductLiveState(productId, data);
+                    } catch (_) {}
+                }));
+            }
         }
 
         let liveSockets = new Map();
@@ -758,8 +763,7 @@
 
         function startLivePolling() {
             if (livePollingTimer) return;
-            syncAuctionData();
-            livePollingTimer = window.setInterval(syncAuctionData, 5000);
+            livePollingTimer = window.setInterval(syncAuctionData, 15000);
         }
 
         function connectAuctionLiveUpdates(cardsInput = null) {
@@ -778,22 +782,30 @@
                 const productId = card.getAttribute('data-product-card');
                 if (!productId || liveSockets.has(String(productId))) return;
 
-                const socket = new WebSocket(`${protocol}//${window.location.host}/ws/auction/product/${productId}/?compact=1`);
-                liveSockets.set(String(productId), socket);
+                try {
+                    const socket = new WebSocket(`${protocol}//${window.location.host}/ws/auction/product/${productId}/?compact=1`);
+                    liveSockets.set(String(productId), socket);
 
-                socket.addEventListener('message', function(event) {
-                    try {
-                        const message = JSON.parse(event.data);
-                        applyProductLiveState(productId, message.payload || message);
-                    } catch (err) {
-                        console.error('Auction live update parse failed:', err);
-                    }
-                });
+                    socket.addEventListener('message', function(event) {
+                        try {
+                            const message = JSON.parse(event.data);
+                            applyProductLiveState(productId, message.payload || message);
+                        } catch (err) {
+                            console.error('Auction live update parse failed:', err);
+                        }
+                    });
 
-                socket.addEventListener('close', function() {
-                    liveSockets.delete(String(productId));
-                    if (liveSockets.size === 0) startLivePolling();
-                });
+                    socket.addEventListener('close', function() {
+                        liveSockets.delete(String(productId));
+                        if (liveSockets.size === 0) startLivePolling();
+                    });
+
+                    socket.addEventListener('error', function() {
+                        try { socket.close(); } catch (_) {}
+                    });
+                } catch (_) {
+                    startLivePolling();
+                }
             });
         }
 
@@ -896,19 +908,39 @@
             qbAmountInput.value = String(minNext);
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            if (authModal) document.body.appendChild(authModal);
-            if (qbModal) document.body.appendChild(qbModal);
+        function initAuctionPage() {
+            const authM = document.getElementById('auth-verification-modal');
+            const qbM = document.getElementById('quick-bid-modal');
+            if (authM && authM.parentElement !== document.body) document.body.appendChild(authM);
+            if (qbM && qbM.parentElement !== document.body) document.body.appendChild(qbM);
             bindGuardedAuctionActions();
             initInfiniteScroll();
             connectAuctionLiveUpdates();
+        }
+
+        window.openQuickBidModal = openQuickBidModal;
+        window.closeQuickBidModal = closeQuickBidModal;
+        window.openAuthVerificationModal = openAuthVerificationModal;
+        window.closeAuthVerificationModal = closeAuthVerificationModal;
+        window.loadMoreProducts = loadMoreProducts;
+        window.initInfiniteScroll = initInfiniteScroll;
+        window.refreshExtendedProductsLayout = refreshExtendedProductsLayout;
+
+        initAuctionPage();
+        document.addEventListener('DOMContentLoaded', initAuctionPage);
+        document.addEventListener('page:loaded', initAuctionPage);
+        document.addEventListener('page:unloaded', () => {
+            stopLivePolling();
+            liveSockets.forEach(ws => { try { ws.close(); } catch(_) {} });
+            liveSockets.clear();
         });
     </script>
 
     <!-- جاوااسکریپت تایمر ثابت زیر عنوان مزایده -->
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const timeWindow = document.getElementById('auction-time-window');
+        (function() {
+            function initAuctionCountdown() {
+                const timeWindow = document.getElementById('auction-time-window');
             if (!timeWindow) return;
 
             const startStr = timeWindow.getAttribute('data-start');
@@ -996,8 +1028,14 @@
                 if (ms) ms.textContent = toFaDigits(String(secs).padStart(2, '0'));
             }
 
-            tickMain();
-            setInterval(tickMain, 1000);
-        });
+                tickMain();
+                const timerId = setInterval(tickMain, 1000);
+                document.addEventListener('page:unloaded', () => clearInterval(timerId), { once: true });
+            }
+
+            initAuctionCountdown();
+            document.addEventListener('DOMContentLoaded', initAuctionCountdown);
+            document.addEventListener('page:loaded', initAuctionCountdown);
+        })();
     </script>
 {% endblock %}

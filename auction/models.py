@@ -400,10 +400,16 @@ class AuctionProduct(models.Model):
             return []
 
         image_files = self._get_product_image_files(self._gallery_image_extensions())
-        if not image_files:
-            return []
-
         images_urls = [f"{settings.STATIC_URL}images/action/{self.product_id}/{file_path.name}" for file_path in image_files]
+
+        main_url = self.main_image_url
+        if main_url:
+            if main_url not in images_urls:
+                images_urls.insert(0, main_url)
+            elif images_urls and images_urls[0] != main_url:
+                images_urls.remove(main_url)
+                images_urls.insert(0, main_url)
+
         return images_urls
 
     @property

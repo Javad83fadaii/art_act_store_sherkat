@@ -1352,7 +1352,9 @@
         })();
     </script>
 
-    {% block extra_js %}{% endblock %}
+    <div id="page-scripts" class="hidden">
+        {% block extra_js %}{% endblock %}
+    </div>
 
 </body>
 </html>

@@ -21,7 +21,10 @@ from .services import (
     build_winner_access_token,
     create_or_get_invoice_for_winner,
 )
-from .invoice_pdf import generate_invoice_pdf_buffer
+try:
+    from .invoice_pdf import generate_invoice_pdf_buffer
+except ImportError:
+    generate_invoice_pdf_buffer = None
 from accounts.models import VerificationRequest, CreditIncreaseRequest  # CreditIncreaseRequest اضافه شد
 from store.models import Artwork
 
@@ -370,7 +373,11 @@ def auction_product_detail(request, pk: int):
     context['bid_error'] = request.GET.get('bid_error', '') or context['bid_error']
     context['bid_success'] = request.GET.get('bid_success', '') or context['bid_success']
 
-    return render(request, 'auction/product_auction.html', context)
+    response = render(request, 'auction/product_auction.html', context)
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+    response['Pragma'] = 'no-cache'
+    response['Expires'] = '0'
+    return response
 
 
 def auction_product_live_state(request, pk: int):

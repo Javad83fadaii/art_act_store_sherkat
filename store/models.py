@@ -224,6 +224,9 @@ class Artwork(models.Model):
         if main_url and 'no-image' not in main_url:
             if main_url not in images_urls:
                 images_urls.insert(0, main_url)
+            elif images_urls and images_urls[0] != main_url:
+                images_urls.remove(main_url)
+                images_urls.insert(0, main_url)
 
         return images_urls
 

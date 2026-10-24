@@ -449,6 +449,9 @@ class ArtworkDetailView(DetailView):
             response["Accept-CH"] = ACCEPT_CH_HEADER
         except Exception:
             pass
+        response['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+        response['Pragma'] = 'no-cache'
+        response['Expires'] = '0'
         return response
 
     def get_context_data(self, **kwargs):

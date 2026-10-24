@@ -120,6 +120,7 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
+    'accounts.middleware.SessionValidationMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'auction.middleware.AuctionEmailDispatchMiddleware',
     'accounts.middleware.EmailVerificationRequiredMiddleware',

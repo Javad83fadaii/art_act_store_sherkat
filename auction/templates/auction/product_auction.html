@@ -145,7 +145,7 @@
 
                     <div class="w-full h-full bg-contain bg-center bg-no-repeat bg-white transition-opacity duration-300 cursor-pointer"
                         id="product-main-image" data-alt="{{ auction.title|fa_digits }}"
-                        style="background-image: url('{{ auction.gallery_images|first }}');"
+                        style="background-image: url('{{ auction.gallery_images|first|default:auction.main_image_url }}');"
                         onclick="openGalleryModal(currentGalleryIndex)">
                     </div>
 
@@ -158,7 +158,7 @@
                     {% if auction.model_360_url %}
                     <div id="product-360-view"
                         class="hidden absolute inset-0 bg-white flex items-center justify-center select-none overflow-hidden">
-                        <model-viewer src="{{ auction.model_360_url }}" poster="{{ auction.gallery_images|first }}"
+                        <model-viewer src="{{ auction.model_360_url }}" poster="{{ auction.gallery_images|first|default:auction.main_image_url }}"
                             alt="360 View" camera-controls touch-action="pan-y" exposure="1" shadow-intensity="1"
                             class="w-full h-full"></model-viewer>
                         <div class="absolute bottom-6 inset-x-0 text-center pointer-events-none">
@@ -1441,8 +1441,95 @@
             // ------------------------------------------------------------------
             // بقیه کدهای منطقی گالری، تایمر و ماشین‌حساب
             // ------------------------------------------------------------------
-            let allGalleryImages = [];
-            let currentGalleryIndex = 0;
+            var allGalleryImages = [];
+            var currentGalleryIndex = 0;
+
+            function initAuctionGallery() {
+                allGalleryImages = [];
+                currentGalleryIndex = 0;
+
+                document.querySelectorAll('.product-thumb').forEach(el => {
+                    const url = el.getAttribute('data-image-url');
+                    if (url && !allGalleryImages.includes(url)) allGalleryImages.push(url);
+                });
+
+                document.querySelectorAll('.product-hidden-img').forEach(el => {
+                    const url = el.getAttribute('data-image-url');
+                    if (url && !allGalleryImages.includes(url)) allGalleryImages.push(url);
+                });
+
+                const mainImage = document.getElementById('product-main-image');
+                if (allGalleryImages.length === 0 && mainImage) {
+                    const styleBg = mainImage.style.backgroundImage;
+                    const match = styleBg && styleBg.match(/url\(['"]?(.*?)['"]?\)/);
+                    if (match && match[1]) {
+                        allGalleryImages.push(match[1]);
+                    }
+                }
+
+                window.allGalleryImages = allGalleryImages;
+                window.currentGalleryIndex = currentGalleryIndex;
+
+                const thumbs = document.querySelectorAll('.product-thumb');
+
+                function updatePageDisplay(url) {
+                    if (!mainImage) return;
+                    mainImage.style.opacity = '0.5';
+                    setTimeout(() => {
+                        mainImage.style.backgroundImage = `url('${url}')`;
+                        mainImage.style.opacity = '1';
+                    }, 200);
+
+                    thumbs.forEach(t => {
+                        t.classList.remove('border-primary', 'shadow-sm', 'opacity-100', 'ring-2', 'ring-primary');
+                        t.classList.add('border-transparent', 'opacity-70');
+                    });
+
+                    const visibleThumb = document.querySelector(`.product-thumb[data-image-url="${url}"]`);
+                    if (visibleThumb) {
+                        visibleThumb.classList.remove('border-transparent', 'opacity-70');
+                        visibleThumb.classList.add('border-primary', 'shadow-sm', 'opacity-100');
+                    }
+                }
+
+                const prevBtn = document.getElementById('prev-slide');
+                const nextBtn = document.getElementById('next-slide');
+
+                thumbs.forEach((thumb) => {
+                    thumb.onclick = function () {
+                        const url = this.getAttribute('data-image-url');
+                        if (!url) return;
+                        updatePageDisplay(url);
+                        const idx = allGalleryImages.indexOf(url);
+                        if (idx >= 0) {
+                            currentGalleryIndex = idx;
+                            window.currentGalleryIndex = idx;
+                        }
+                    };
+                });
+
+                if (nextBtn) {
+                    nextBtn.onclick = function (e) {
+                        e.stopPropagation();
+                        if (allGalleryImages.length === 0) return;
+                        currentGalleryIndex++;
+                        if (currentGalleryIndex >= allGalleryImages.length) currentGalleryIndex = 0;
+                        window.currentGalleryIndex = currentGalleryIndex;
+                        updatePageDisplay(allGalleryImages[currentGalleryIndex]);
+                    };
+                }
+
+                if (prevBtn) {
+                    prevBtn.onclick = function (e) {
+                        e.stopPropagation();
+                        if (allGalleryImages.length === 0) return;
+                        currentGalleryIndex--;
+                        if (currentGalleryIndex < 0) currentGalleryIndex = allGalleryImages.length - 1;
+                        window.currentGalleryIndex = currentGalleryIndex;
+                        updatePageDisplay(allGalleryImages[currentGalleryIndex]);
+                    };
+                }
+            }
 
             function switchView(view) {
                 const imgContainer = document.getElementById('product-main-image');
@@ -1486,85 +1573,22 @@
                 }
             }
 
-            document.addEventListener('DOMContentLoaded', function () {
-                document.querySelectorAll('.product-thumb').forEach(el => {
-                    const url = el.getAttribute('data-image-url');
-                    if (url && !allGalleryImages.includes(url)) allGalleryImages.push(url);
-                });
-
-                document.querySelectorAll('.product-hidden-img').forEach(el => {
-                    const url = el.getAttribute('data-image-url');
-                    if (url && !allGalleryImages.includes(url)) allGalleryImages.push(url);
-                });
-
-                const mainImage = document.getElementById('product-main-image');
-                const thumbs = document.querySelectorAll('.product-thumb');
-
-                function updatePageDisplay(url) {
-                    if (!mainImage) return;
-                    mainImage.style.opacity = '0.5';
-                    setTimeout(() => {
-                        mainImage.style.backgroundImage = `url('${url}')`;
-                        mainImage.style.opacity = '1';
-                    }, 200);
-
-                    thumbs.forEach(t => {
-                        t.classList.remove('border-primary', 'shadow-sm', 'opacity-100', 'ring-2', 'ring-primary');
-                        t.classList.add('border-transparent', 'opacity-70');
-                    });
-
-                    const visibleThumb = document.querySelector(`.product-thumb[data-image-url="${url}"]`);
-                    if (visibleThumb) {
-                        visibleThumb.classList.remove('border-transparent', 'opacity-70');
-                        visibleThumb.classList.add('border-primary', 'shadow-sm', 'opacity-100');
-                    }
-                }
-
-                const prevBtn = document.getElementById('prev-slide');
-                const nextBtn = document.getElementById('next-slide');
-
-                thumbs.forEach((thumb) => {
-                    thumb.addEventListener('click', function () {
-                        const url = this.getAttribute('data-image-url');
-                        if (!url) return;
-                        updatePageDisplay(url);
-                        const idx = allGalleryImages.indexOf(url);
-                        if (idx >= 0) currentGalleryIndex = idx;
-                    });
-                });
-
-                if (nextBtn) {
-                    nextBtn.addEventListener('click', function (e) {
-                        e.stopPropagation();
-                        if (allGalleryImages.length === 0) return;
-                        currentGalleryIndex++;
-                        if (currentGalleryIndex >= allGalleryImages.length) currentGalleryIndex = 0;
-                        updatePageDisplay(allGalleryImages[currentGalleryIndex]);
-                    });
-                }
-
-                if (prevBtn) {
-                    prevBtn.addEventListener('click', function (e) {
-                        e.stopPropagation();
-                        if (allGalleryImages.length === 0) return;
-                        currentGalleryIndex--;
-                        if (currentGalleryIndex < 0) currentGalleryIndex = allGalleryImages.length - 1;
-                        updatePageDisplay(allGalleryImages[currentGalleryIndex]);
-                    });
-                }
-            });
-
-            const modal = document.getElementById('gallery-modal');
-            const modalImg = document.getElementById('gallery-main-img');
-            const modalCountEl = document.getElementById('gallery-total-count');
-            const modalIndexEl = document.getElementById('gallery-current-index');
-            const modalContent = document.getElementById('gallery-modal-content');
-
             function openGalleryModal(startIndex = 0) {
-                if (!modal || !modalImg || !modalCountEl || !modalIndexEl) return;
-                if (allGalleryImages.length === 0) return;
+                if (!allGalleryImages || allGalleryImages.length === 0) {
+                    initAuctionGallery();
+                }
+                const modal = document.getElementById('gallery-modal');
+                const modalImg = document.getElementById('gallery-main-img');
+                const modalCountEl = document.getElementById('gallery-total-count');
+                const modalIndexEl = document.getElementById('gallery-current-index');
+                const modalContent = document.getElementById('gallery-modal-content');
 
-                currentGalleryIndex = startIndex;
+                if (!modal || !modalImg || !modalCountEl || !modalIndexEl) return;
+                if (!allGalleryImages || allGalleryImages.length === 0) return;
+
+                currentGalleryIndex = (startIndex >= 0 && startIndex < allGalleryImages.length) ? startIndex : 0;
+                window.currentGalleryIndex = currentGalleryIndex;
+
                 modal.classList.remove('hidden');
                 setTimeout(() => {
                     modal.classList.remove('opacity-0');
@@ -1582,6 +1606,8 @@
             }
 
             function closeGalleryModal() {
+                const modal = document.getElementById('gallery-modal');
+                const modalContent = document.getElementById('gallery-modal-content');
                 if (!modal) return;
                 modal.classList.add('opacity-0');
                 if (modalContent) {
@@ -1595,26 +1621,28 @@
             }
 
             function changeGalleryImage(direction) {
-                if (allGalleryImages.length === 0) return;
+                if (!allGalleryImages || allGalleryImages.length === 0) return;
                 currentGalleryIndex += direction;
                 if (currentGalleryIndex >= allGalleryImages.length) currentGalleryIndex = 0;
                 if (currentGalleryIndex < 0) currentGalleryIndex = allGalleryImages.length - 1;
+                window.currentGalleryIndex = currentGalleryIndex;
                 updateModalImage();
             }
 
             function updateModalImage() {
-                if (!modalImg || !modalIndexEl) return;
+                const modalImg = document.getElementById('gallery-main-img');
+                const modalIndexEl = document.getElementById('gallery-current-index');
+                if (!modalImg || !modalIndexEl || !allGalleryImages || !allGalleryImages[currentGalleryIndex]) return;
                 modalImg.src = allGalleryImages[currentGalleryIndex];
                 modalIndexEl.innerText = Number(currentGalleryIndex + 1).toLocaleString('fa-IR').replace(/٬/g, ',');
                 if (window.syncGalleryDownload) window.syncGalleryDownload(allGalleryImages[currentGalleryIndex]);
                 if (window.resetGalleryZoom) window.resetGalleryZoom();
             }
 
-            const videoModal = document.getElementById('video-modal');
-            const videoModalContent = document.getElementById('video-modal-content');
-            const videoPlayer = document.getElementById('product-video-player');
-
             function openVideoModal(videoUrl) {
+                const videoModal = document.getElementById('video-modal');
+                const videoModalContent = document.getElementById('video-modal-content');
+                const videoPlayer = document.getElementById('product-video-player');
                 if (!videoModal || !videoModalContent || !videoPlayer) return;
 
                 if (window.prepareVideoModal) {
@@ -1636,6 +1664,9 @@
             }
 
             function closeVideoModal() {
+                const videoModal = document.getElementById('video-modal');
+                const videoModalContent = document.getElementById('video-modal-content');
+                const videoPlayer = document.getElementById('product-video-player');
                 if (!videoModal || !videoModalContent || !videoPlayer) return;
 
                 videoModal.classList.add('opacity-0');
@@ -1653,6 +1684,23 @@
 
                 if (window.resetVideoModalUI) window.resetVideoModalUI();
             }
+
+            // ثبت توابع در scope عمومی window
+            window.allGalleryImages = allGalleryImages;
+            window.currentGalleryIndex = currentGalleryIndex;
+            window.initAuctionGallery = initAuctionGallery;
+            window.openGalleryModal = openGalleryModal;
+            window.closeGalleryModal = closeGalleryModal;
+            window.changeGalleryImage = changeGalleryImage;
+            window.updateModalImage = updateModalImage;
+            window.switchView = switchView;
+            window.openVideoModal = openVideoModal;
+            window.closeVideoModal = closeVideoModal;
+
+            // اجرای راه‌اندازی گالری مزایده در بارگذاری اولیه و ناوبری SPA
+            initAuctionGallery();
+            document.addEventListener('page:loaded', initAuctionGallery);
+            document.addEventListener('DOMContentLoaded', initAuctionGallery);
 
             if (videoModal) {
                 videoModal.addEventListener('click', function (e) {

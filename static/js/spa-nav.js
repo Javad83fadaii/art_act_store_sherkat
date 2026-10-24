@@ -200,6 +200,19 @@
         });
     }
 
+    function shouldCacheUrl(urlObj) {
+        // Never cache dynamic e-commerce, live auction, or user account pages
+        const p = urlObj.pathname;
+        if (p.startsWith('/auction') || p.startsWith('/store') || p.startsWith('/accounts') || p.startsWith('/cart')) {
+            return false;
+        }
+        return true;
+    }
+
+    window.clearPageCache = function() {
+        pageCache.clear();
+    };
+
     // =========================================================================
     // 4. Script Execution Engine for Swapped Content
     // =========================================================================
@@ -295,12 +308,58 @@
             }
         }
 
+        // Close any active modals, clear body overflow and notify components
+        try {
+            document.dispatchEvent(new CustomEvent('page:unloaded'));
+        } catch (_) {}
+
+        const galleryModal = document.getElementById('gallery-modal');
+        if (galleryModal) {
+            galleryModal.classList.add('hidden', 'opacity-0');
+        }
+        const videoModal = document.getElementById('video-modal');
+        if (videoModal) {
+            videoModal.classList.add('hidden', 'opacity-0');
+            const vp = document.getElementById('product-video-player');
+            if (vp) {
+                try { vp.pause(); vp.removeAttribute('src'); vp.load(); } catch (_) {}
+            }
+        }
+        const confirmModal = document.getElementById('confirm-modal');
+        if (confirmModal) confirmModal.classList.add('hidden', 'opacity-0');
+
+        const confirmBidModal = document.getElementById('confirm-bid-modal');
+        if (confirmBidModal) confirmBidModal.classList.add('opacity-0', 'pointer-events-none');
+
+        const qbModal = document.getElementById('quick-bid-modal');
+        if (qbModal) {
+            qbModal.classList.add('hidden', 'opacity-0');
+            qbModal.classList.remove('flex');
+        }
+
+        const authModal = document.getElementById('auth-verification-modal');
+        if (authModal) {
+            authModal.classList.add('hidden', 'opacity-0');
+            authModal.classList.remove('flex');
+        }
+
+        // Reset document body overflow
+        document.body.style.overflow = '';
+
+        // Reset global gallery state
+        window.allGalleryImages = [];
+        window.currentGalleryIndex = 0;
+        if (typeof window.resetGalleryZoom === 'function') {
+            try { window.resetGalleryZoom(); } catch (_) {}
+        }
+
         // Optimistic UI update on bottom navigation for instant 0ms tactile feel
         syncBottomNav(targetUrl.pathname, false);
         syncHeaderNav(targetUrl.pathname);
 
         try {
-            let pageData = pageCache.get(targetUrl.href);
+            const canCache = shouldCacheUrl(targetUrl);
+            let pageData = canCache ? pageCache.get(targetUrl.href) : null;
 
             if (!pageData) {
                 const res = await fetchPage(targetUrl.href, activeController.signal);
@@ -313,6 +372,7 @@
                 const parser = new DOMParser();
                 const newDoc = parser.parseFromString(res.html, 'text/html');
                 const newMain = newDoc.getElementById('main-content') || newDoc.querySelector('main');
+                const newPageScripts = newDoc.getElementById('page-scripts');
 
                 if (!newMain) {
                     // Target page has different layout (e.g. admin panel or login), fall back natively
@@ -323,15 +383,18 @@
                 pageData = {
                     title: newDoc.title || document.title,
                     mainHtml: newMain.innerHTML,
-                    mainClass: newMain.className
+                    mainClass: newMain.className,
+                    pageScriptsHtml: newPageScripts ? newPageScripts.innerHTML : ''
                 };
 
-                // Store in memory cache
-                if (pageCache.size >= MAX_CACHE_SIZE) {
-                    const firstKey = pageCache.keys().next().value;
-                    pageCache.delete(firstKey);
+                // Store in memory cache only if allowed
+                if (canCache) {
+                    if (pageCache.size >= MAX_CACHE_SIZE) {
+                        const firstKey = pageCache.keys().next().value;
+                        pageCache.delete(firstKey);
+                    }
+                    pageCache.set(targetUrl.href, pageData);
                 }
-                pageCache.set(targetUrl.href, pageData);
             }
 
             const currentMain = document.getElementById('main-content') || document.querySelector('main');
@@ -358,6 +421,20 @@
                 currentMain.className = pageData.mainClass;
             }
 
+            // Swap page scripts container
+            let currentScriptsContainer = document.getElementById('page-scripts');
+            if (pageData.pageScriptsHtml) {
+                if (!currentScriptsContainer) {
+                    currentScriptsContainer = document.createElement('div');
+                    currentScriptsContainer.id = 'page-scripts';
+                    currentScriptsContainer.className = 'hidden';
+                    document.body.appendChild(currentScriptsContainer);
+                }
+                currentScriptsContainer.innerHTML = pageData.pageScriptsHtml;
+            } else if (currentScriptsContainer) {
+                currentScriptsContainer.innerHTML = '';
+            }
+
             // Scroll to top
             window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
 
@@ -375,6 +452,9 @@
 
             // Re-execute scripts within the newly inserted content
             executeScripts(currentMain);
+            if (currentScriptsContainer) {
+                executeScripts(currentScriptsContainer);
+            }
 
             // Re-sync navigation state in case pathname shifted
             syncBottomNav(window.location.pathname, false);

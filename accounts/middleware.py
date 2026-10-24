@@ -92,3 +92,31 @@ class EmailVerificationRequiredMiddleware:
                 return redirect(f"{verification_url}?{params}")
 
         return self.get_response(request)
+
+
+class SessionValidationMiddleware:
+    """
+    اعتبارسنجی شناسه کاربر ذخیره‌شده در سشن قبل از لود شدن توسط AuthenticationMiddleware.
+    در صورتی که مقدار _auth_user_id یک UUID معتبر نباشد (مثلا مقادیر تست، اضطراری یا نامعتبر)،
+    کلیدهای نامعتبر احراز هویت از سشن حذف می‌شوند تا خطای ValidationError رخ ندهد.
+    """
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if hasattr(request, "session"):
+            from django.contrib.auth import SESSION_KEY
+            from django.core.exceptions import ValidationError
+
+            user_id = request.session.get(SESSION_KEY)
+            if user_id:
+                try:
+                    CustomUser._meta.pk.to_python(user_id)
+                except (ValidationError, ValueError, TypeError):
+                    request.session.pop(SESSION_KEY, None)
+                    request.session.pop("_auth_user_backend", None)
+                    request.session.pop("_auth_user_hash", None)
+                    request.session.modified = True
+
+        return self.get_response(request)
+
