@@ -1918,3 +1918,60 @@ class AuctionUserStoriesTests(TestCase):
         self.assertEqual(data['outbid_count'], 0)
         self.assertTrue(data['items'][0]['is_winning'])
         self.assertIn('auction-user-stories-section', data['html'])
+
+
+class AuctionPaginationTwelveItemsTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.artist = Artist.objects.create(id=101, name='هنرمند تست')
+        self.artwork_type = ArtworkType.objects.create(name='نقاشی')
+        self.auction = Auction.objects.create(
+            name='مزایده آزمون ۱۲ تایی',
+            start_date=timezone.now() - timedelta(hours=1),
+            end_date=timezone.now() + timedelta(hours=5),
+            products_count=25,
+        )
+        for i in range(25):
+            AuctionProduct.objects.create(
+                auction=self.auction,
+                product_id=f'LOT-{i+1:03d}',
+                title=f'اثر آزمایشی {i+1}',
+                base_price=Decimal('10000000'),
+                artist=self.artist,
+                artwork_type=self.artwork_type,
+            )
+
+    def test_initial_page_loads_12_products(self):
+        url = reverse('auction:auction_products', kwargs={'pk': self.auction.pk})
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.headers.get('Cache-Control'), 'no-cache, no-store, must-revalidate, max-age=0')
+        content = resp.content.decode('utf-8')
+        import re
+        cards = re.findall(r'data-product-card="(\d+)"', content)
+        self.assertEqual(len(cards), 12)
+        self.assertIn('data-has-next="1"', content)
+        self.assertIn('data-next-page="2"', content)
+
+    def test_load_more_page_2_loads_12_products(self):
+        url = reverse('auction:auction_products', kwargs={'pk': self.auction.pk})
+        resp = self.client.get(f'{url}?load_more=1&page=2', HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.headers.get('Cache-Control'), 'no-cache, no-store, must-revalidate, max-age=0')
+        data = resp.json()
+        import re
+        cards = re.findall(r'data-product-card="(\d+)"', data['html'])
+        self.assertEqual(len(cards), 12)
+        self.assertTrue(data['has_next'])
+        self.assertEqual(data['next_page'], 3)
+
+    def test_load_more_page_3_loads_remaining_product(self):
+        url = reverse('auction:auction_products', kwargs={'pk': self.auction.pk})
+        resp = self.client.get(f'{url}?load_more=1&page=3', HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        import re
+        cards = re.findall(r'data-product-card="(\d+)"', data['html'])
+        self.assertEqual(len(cards), 1)
+        self.assertFalse(data['has_next'])
+        self.assertIsNone(data['next_page'])
