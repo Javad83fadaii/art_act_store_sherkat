@@ -142,6 +142,10 @@
                     <div id="infinite-scroll-end" class="{% if page_obj.has_next or not products %}hidden{% endif %} text-xs font-normal text-neutral-400 dark:text-neutral-500">
                         همه محصولات بارگذاری شدند.
                     </div>
+                    <button type="button" id="btn-load-more-manual" class="{% if not page_obj.has_next %}hidden{% endif %} inline-flex items-center gap-2 px-6 py-2.5 rounded-full border border-[#AB8C58]/60 bg-[#FAF7F2] dark:bg-zinc-800 text-[#AB8C58] hover:bg-[#AB8C58] hover:text-white text-xs font-semibold transition-all shadow-sm" onclick="loadMoreProducts()">
+                        <span class="material-symbols-outlined text-[18px]">expand_more</span>
+                        <span>بارگذاری آثار بیشتر</span>
+                    </button>
                     <div id="infinite-scroll-sentinel"
                          class="{% if not page_obj.has_next %}hidden{% endif %} h-8 w-full"
                          data-has-next="{% if page_obj.has_next %}1{% else %}0{% endif %}"
@@ -649,10 +653,15 @@
             const loader = getInfiniteScrollLoader();
             const sentinel = getInfiniteScrollSentinel();
             const end = getInfiniteScrollEnd();
+            const manualBtn = document.getElementById('btn-load-more-manual');
 
             if (loader) {
                 loader.classList.toggle('hidden', !loading);
                 loader.classList.toggle('flex', loading);
+            }
+
+            if (manualBtn) {
+                manualBtn.classList.toggle('hidden', loading || !hasNext);
             }
 
             if (sentinel) {
@@ -670,6 +679,7 @@
         let loadMoreWatchdogTimer = null;
         let livePageSocket = null;
         let livePollingTimer = null;
+        let scrollCheckInterval = null;
 
         function enhanceLoadedProductCards() {
             bindGuardedAuctionActions();
@@ -687,7 +697,20 @@
 
             const rect = sentinel.getBoundingClientRect();
             const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 800;
-            if (rect.top <= viewportHeight + 400) {
+
+            // ۱. بررسی موقعیت مکانی سنتینل در پنجره نمایش یا نزدیک آن (تا ۳۵۰ پیکسل قبل از رسیدن)
+            if (rect.top <= viewportHeight + 350) {
+                loadMoreProducts();
+                return;
+            }
+
+            // ۲. پشتیبان بر مبنای فاصله تا انتهای کل صفحه
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+            const scrollHeight = Math.max(
+                document.documentElement.scrollHeight || 0,
+                document.body.scrollHeight || 0
+            );
+            if (scrollHeight > viewportHeight && (scrollHeight - (scrollTop + viewportHeight)) <= 550) {
                 loadMoreProducts();
             }
         }
@@ -764,7 +787,7 @@
                     curSentinel.dataset.nextPage = hasNext ? String(data.next_page || '') : '';
                     setInfiniteScrollStatus({ loading: false, hasNext });
 
-                    // بروزرسانی رصدگر تقاطع برای محاسبه مجدد موقعیت جدید سنتینل
+                    // بروزرسانی رصدگر تقاطع برای موقعیت جدید
                     if (infiniteScrollObserver) {
                         try {
                             infiniteScrollObserver.unobserve(curSentinel);
@@ -804,23 +827,20 @@
                 infiniteScrollObserver = null;
             }
 
+            // ۱. رصدگر تقاطع مستقل و مستقیم بدون شرط‌های مسدودکننده
             if ('IntersectionObserver' in window) {
                 infiniteScrollObserver = new IntersectionObserver((entries) => {
                     entries.forEach((entry) => {
                         if (entry.isIntersecting) {
-                            // فقط در صورتی لود شود که کاربر واقعاً اسکرول کرده باشد یا کل محتوا کمتر از ارتفاع صفحه باشد
-                            const userHasScrolled = (window.scrollY > 40 || document.documentElement.scrollTop > 40);
-                            const contentShorterThanScreen = document.documentElement.scrollHeight <= (window.innerHeight + 80);
-                            if (userHasScrolled || contentShorterThanScreen) {
-                                loadMoreProducts();
-                            }
+                            loadMoreProducts();
                         }
                     });
-                }, { rootMargin: '300px 0px' });
+                }, { rootMargin: '250px 0px' });
 
                 infiniteScrollObserver.observe(sentinel);
             }
 
+            // ۲. لیسنر چندگانه روی پنجره، سند و رویدادهای لمسی
             if (!scrollListenerAttached) {
                 scrollListenerAttached = true;
                 let ticking = false;
@@ -838,16 +858,27 @@
                 };
 
                 window.addEventListener('scroll', onScrollOrTouch, { passive: true });
+                document.addEventListener('scroll', onScrollOrTouch, { passive: true });
                 window.addEventListener('touchmove', onScrollOrTouch, { passive: true });
                 window.addEventListener('resize', onScrollOrTouch, { passive: true });
             }
 
-            // فقط در صورتی چک اولیه انجام شود که ارتفاع صفحه خیلی کم باشد و اسکرول وجود نداشته باشد
-            if (document.documentElement.scrollHeight <= (window.innerHeight + 80)) {
-                requestAnimationFrame(() => {
-                    checkScrollPosition();
-                });
+            // ۳. تایمر بررسی دوره‌ای ضربان (Heartbeat) - هر ۱ ثانیه
+            // تضمین قطعی لود محصولات حتی اگر کاربر ثانیه‌ها یا دقیقه‌ها مکث کند
+            if (scrollCheckInterval) {
+                clearInterval(scrollCheckInterval);
             }
+            scrollCheckInterval = setInterval(() => {
+                const curSentinel = getInfiniteScrollSentinel();
+                if (curSentinel && curSentinel.dataset.hasNext === '1' && !isLoadingMoreProducts) {
+                    checkScrollPosition();
+                }
+            }, 1000);
+
+            // بررسی موقعیت پس از رندر اولیه
+            requestAnimationFrame(() => {
+                checkScrollPosition();
+            });
         }
 
         async function syncSingleProduct(productId) {
@@ -1098,6 +1129,10 @@
             if (loadMoreWatchdogTimer) {
                 clearTimeout(loadMoreWatchdogTimer);
                 loadMoreWatchdogTimer = null;
+            }
+            if (scrollCheckInterval) {
+                clearInterval(scrollCheckInterval);
+                scrollCheckInterval = null;
             }
             scrollListenerAttached = false;
         });
