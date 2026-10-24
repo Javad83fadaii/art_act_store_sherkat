@@ -126,7 +126,7 @@ def build_bid_live_payload(
     return payload
 
 
-def broadcast_product_bid_update(product_pk: int) -> bool:
+def broadcast_product_bid_update(product_pk: int, auction_pk: int | None = None) -> bool:
     try:
         from asgiref.sync import async_to_sync
         from channels.layers import get_channel_layer
@@ -144,6 +144,27 @@ def broadcast_product_bid_update(product_pk: int) -> bool:
             'product_pk': product_pk,
         },
     )
+
+    if auction_pk is None:
+        try:
+            auction_pk = (
+                AuctionProduct.objects.filter(pk=product_pk)
+                .values_list('auction_id', flat=True)
+                .first()
+            )
+        except Exception:
+            pass
+
+    if auction_pk:
+        async_to_sync(channel_layer.group_send)(
+            get_auction_page_group_name(auction_pk),
+            {
+                'type': 'auction.bid.update',
+                'product_pk': product_pk,
+                'auction_pk': auction_pk,
+            },
+        )
+
     return True
 
 

@@ -28,6 +28,7 @@
 
             {% if auction %}
                 <div id="auction-time-window" class="hidden"
+                     data-auction-id="{{ auction.pk|default:'' }}"
                      data-start="{{ auction.start_date|date:'c' }}"
                      data-end="{{ auction.end_date|date:'c' }}"
                      data-max-end="{{ auction.get_max_end_date|date:'c' }}"
@@ -299,6 +300,7 @@
         const auctionStatus = "{{ auction.status|default:'' }}";
         const loginUrl = "{% url 'login' %}?next=" + encodeURIComponent(window.location.pathname + window.location.search);
         const editUrl = "{% url 'profile' %}?next=" + encodeURIComponent(window.location.pathname + window.location.search);
+        const auctionId = "{{ auction.pk|default:'' }}";
         const productsGrid = document.getElementById('products-grid');
         const infiniteScrollSentinel = document.getElementById('infinite-scroll-sentinel');
         const infiniteScrollLoader = document.getElementById('infinite-scroll-loader');
@@ -490,9 +492,9 @@
 
         function getProductCardOrderIndex(card, fallbackIndex = 0) {
             if (!card) return fallbackIndex;
-            const existingOrder = Number(card.dataset.initialOrder || '');
-            if (Number.isFinite(existingOrder)) {
-                return existingOrder;
+            if (card.dataset.initialOrder !== undefined && card.dataset.initialOrder !== '') {
+                const parsed = Number(card.dataset.initialOrder);
+                if (Number.isFinite(parsed)) return parsed;
             }
             card.dataset.initialOrder = String(fallbackIndex);
             return fallbackIndex;
@@ -534,6 +536,15 @@
                     regularCards.push(card);
                 }
             });
+
+            // If no cards are in extension and no card is promoted, avoid unnecessary DOM reflows
+            if (extendedCards.length === 0 && !promotedId) {
+                const timeWindow = document.getElementById('auction-time-window');
+                if (timeWindow) {
+                    timeWindow.setAttribute('data-extended-count', '0');
+                }
+                return 0;
+            }
 
             extendedCards.sort((leftCard, rightCard) => {
                 const leftId = String(leftCard.getAttribute('data-product-card') || '');
@@ -650,13 +661,26 @@
             }
         }
 
+        let scrollListenerAttached = false;
+        let loadMoreWatchdogTimer = null;
+        let livePageSocket = null;
+        let livePollingTimer = null;
+
         function enhanceLoadedProductCards() {
             bindGuardedAuctionActions();
             if (typeof window.applyAuctionCardVisualState === 'function' && window.currentAuctionVisualState) {
                 window.applyAuctionCardVisualState(window.currentAuctionVisualState);
             }
             refreshExtendedProductsLayout();
-            connectAuctionLiveUpdates();
+        }
+
+        function checkScrollPosition() {
+            if (!infiniteScrollSentinel || !productsGrid || isLoadingMoreProducts) return;
+            if (infiniteScrollSentinel.dataset.hasNext !== '1') return;
+            const rect = infiniteScrollSentinel.getBoundingClientRect();
+            if (rect.top <= window.innerHeight + 500) {
+                loadMoreProducts();
+            }
         }
 
         async function loadMoreProducts() {
@@ -669,6 +693,19 @@
             isLoadingMoreProducts = true;
             setInfiniteScrollStatus({ loading: true, hasNext: true });
 
+            if (loadMoreWatchdogTimer) clearTimeout(loadMoreWatchdogTimer);
+            loadMoreWatchdogTimer = setTimeout(() => {
+                if (isLoadingMoreProducts) {
+                    console.warn('[InfiniteScroll] Loading watchdog reset.');
+                    isLoadingMoreProducts = false;
+                    const stillHasNext = infiniteScrollSentinel && infiniteScrollSentinel.dataset.hasNext === '1';
+                    setInfiniteScrollStatus({ loading: false, hasNext: stillHasNext });
+                }
+            }, 7500);
+
+            const abortCtrl = new AbortController();
+            const abortTimeout = setTimeout(() => abortCtrl.abort(), 6500);
+
             try {
                 const requestUrl = new URL(infiniteScrollSentinel.dataset.endpoint || window.location.pathname, window.location.origin);
                 const currentUrl = new URL(window.location.href);
@@ -680,8 +717,11 @@
                 requestUrl.searchParams.set('load_more', '1');
 
                 const response = await fetch(requestUrl.toString(), {
-                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+                    signal: abortCtrl.signal
                 });
+
+                clearTimeout(abortTimeout);
 
                 if (!response.ok) throw new Error('بارگذاری محصولات بیشتر انجام نشد.');
 
@@ -694,10 +734,21 @@
                 const hasNext = Boolean(data.has_next);
                 infiniteScrollSentinel.dataset.nextPage = hasNext ? String(data.next_page || '') : '';
                 setInfiniteScrollStatus({ loading: false, hasNext });
+
+                if (hasNext) {
+                    requestAnimationFrame(() => {
+                        checkScrollPosition();
+                    });
+                }
             } catch (error) {
+                clearTimeout(abortTimeout);
                 setInfiniteScrollStatus({ loading: false, hasNext: true });
-                console.error(error);
+                console.error('[InfiniteScroll error]:', error);
             } finally {
+                if (loadMoreWatchdogTimer) {
+                    clearTimeout(loadMoreWatchdogTimer);
+                    loadMoreWatchdogTimer = null;
+                }
                 isLoadingMoreProducts = false;
             }
         }
@@ -708,22 +759,55 @@
             setInfiniteScrollStatus({ loading: false, hasNext });
             if (!hasNext) return;
 
-            if (!('IntersectionObserver' in window)) {
-                window.addEventListener('scroll', function() {
-                    if (isLoadingMoreProducts || infiniteScrollSentinel.dataset.hasNext !== '1') return;
-                    const sentinelTop = infiniteScrollSentinel.getBoundingClientRect().top;
-                    if (sentinelTop - window.innerHeight < 300) loadMoreProducts();
-                }, { passive: true });
-                return;
+            if (infiniteScrollObserver) {
+                try { infiniteScrollObserver.disconnect(); } catch (_) {}
+                infiniteScrollObserver = null;
             }
 
-            infiniteScrollObserver = new IntersectionObserver((entries) => {
-                entries.forEach((entry) => {
-                    if (entry.isIntersecting) loadMoreProducts();
-                });
-            }, { rootMargin: '350px 0px' });
+            if ('IntersectionObserver' in window) {
+                infiniteScrollObserver = new IntersectionObserver((entries) => {
+                    entries.forEach((entry) => {
+                        if (entry.isIntersecting) loadMoreProducts();
+                    });
+                }, { rootMargin: '450px 0px' });
 
-            infiniteScrollObserver.observe(infiniteScrollSentinel);
+                infiniteScrollObserver.observe(infiniteScrollSentinel);
+            }
+
+            if (!scrollListenerAttached) {
+                scrollListenerAttached = true;
+                let ticking = false;
+                window.addEventListener('scroll', () => {
+                    if (!ticking) {
+                        window.requestAnimationFrame(() => {
+                            checkScrollPosition();
+                            ticking = false;
+                        });
+                        ticking = true;
+                    }
+                }, { passive: true });
+            }
+
+            requestAnimationFrame(() => {
+                checkScrollPosition();
+            });
+        }
+
+        async function syncSingleProduct(productId) {
+            if (!productId) return;
+            const card = document.querySelector(`[data-product-card="${productId}"]`);
+            if (!card) return;
+            const liveStateUrl = card.getAttribute('data-live-state-url');
+            if (!liveStateUrl) return;
+
+            try {
+                const response = await fetch(liveStateUrl, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Cache-Control': 'no-cache' }
+                });
+                if (!response.ok) return;
+                const data = await response.json();
+                if (data && data.success) applyProductLiveState(productId, data);
+            } catch (_) {}
         }
 
         async function syncAuctionData() {
@@ -731,7 +815,6 @@
             const cards = Array.from(document.querySelectorAll('[data-product-card]'));
             if (!cards.length) return;
 
-            // Update cards in small batches to avoid network bottlenecks
             const chunkSize = 4;
             for (let i = 0; i < cards.length; i += chunkSize) {
                 const chunk = cards.slice(i, i + chunkSize);
@@ -752,9 +835,6 @@
             }
         }
 
-        let liveSockets = new Map();
-        let livePollingTimer = null;
-
         function stopLivePolling() {
             if (!livePollingTimer) return;
             window.clearInterval(livePollingTimer);
@@ -763,54 +843,73 @@
 
         function startLivePolling() {
             if (livePollingTimer) return;
-            livePollingTimer = window.setInterval(syncAuctionData, 15000);
+            livePollingTimer = window.setInterval(syncAuctionData, 20000);
         }
 
-        function connectAuctionLiveUpdates(cardsInput = null) {
-            const cards = Array.isArray(cardsInput) && cardsInput.length ? cardsInput : Array.from(document.querySelectorAll('[data-product-card]'));
-            if (!cards.length) return;
+        function connectAuctionLiveUpdates() {
+            if (!auctionId) {
+                startLivePolling();
+                return;
+            }
 
             if (!('WebSocket' in window)) {
                 startLivePolling();
                 return;
             }
 
+            if (livePageSocket && (livePageSocket.readyState === WebSocket.OPEN || livePageSocket.readyState === WebSocket.CONNECTING)) {
+                return;
+            }
+
             stopLivePolling();
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            try {
+                livePageSocket = new WebSocket(`${protocol}//${window.location.host}/ws/auction/${auctionId}/page/`);
 
-            cards.forEach((card) => {
-                const productId = card.getAttribute('data-product-card');
-                if (!productId || liveSockets.has(String(productId))) return;
+                livePageSocket.addEventListener('open', function() {
+                    stopLivePolling();
+                });
 
-                try {
-                    const socket = new WebSocket(`${protocol}//${window.location.host}/ws/auction/product/${productId}/?compact=1`);
-                    liveSockets.set(String(productId), socket);
-
-                    socket.addEventListener('message', function(event) {
-                        try {
-                            const message = JSON.parse(event.data);
-                            applyProductLiveState(productId, message.payload || message);
-                        } catch (err) {
-                            console.error('Auction live update parse failed:', err);
+                livePageSocket.addEventListener('message', function(event) {
+                    try {
+                        const message = JSON.parse(event.data);
+                        if (message.type === 'bid_update' && message.product_pk && message.payload) {
+                            applyProductLiveState(message.product_pk, message.payload);
+                        } else if (message.type === 'auction_page_refresh') {
+                            if (message.payload && message.payload.product_pk) {
+                                syncSingleProduct(message.payload.product_pk);
+                            }
                         }
-                    });
+                    } catch (err) {
+                        console.error('Auction page live update parse failed:', err);
+                    }
+                });
 
-                    socket.addEventListener('close', function() {
-                        liveSockets.delete(String(productId));
-                        if (liveSockets.size === 0) startLivePolling();
-                    });
-
-                    socket.addEventListener('error', function() {
-                        try { socket.close(); } catch (_) {}
-                    });
-                } catch (_) {
+                livePageSocket.addEventListener('close', function() {
+                    livePageSocket = null;
                     startLivePolling();
-                }
-            });
+                });
+
+                livePageSocket.addEventListener('error', function() {
+                    try { if (livePageSocket) livePageSocket.close(); } catch (_) {}
+                    livePageSocket = null;
+                    startLivePolling();
+                });
+            } catch (_) {
+                startLivePolling();
+            }
         }
 
-        window.addEventListener('pageshow', () => { syncAuctionData(); });
-        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') syncAuctionData(); });
+        window.addEventListener('pageshow', (event) => {
+            if (event.persisted) {
+                syncAuctionData();
+            }
+        });
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && !livePageSocket) {
+                syncAuctionData();
+            }
+        });
 
         const qbModal = document.getElementById('quick-bid-modal');
         const qbModalContent = document.getElementById('qb-modal-content');
@@ -931,8 +1030,19 @@
         document.addEventListener('page:loaded', initAuctionPage);
         document.addEventListener('page:unloaded', () => {
             stopLivePolling();
-            liveSockets.forEach(ws => { try { ws.close(); } catch(_) {} });
-            liveSockets.clear();
+            if (livePageSocket) {
+                try { livePageSocket.close(); } catch(_) {}
+                livePageSocket = null;
+            }
+            if (infiniteScrollObserver) {
+                try { infiniteScrollObserver.disconnect(); } catch (_) {}
+                infiniteScrollObserver = null;
+            }
+            if (loadMoreWatchdogTimer) {
+                clearTimeout(loadMoreWatchdogTimer);
+                loadMoreWatchdogTimer = null;
+            }
+            scrollListenerAttached = false;
         });
     </script>
 

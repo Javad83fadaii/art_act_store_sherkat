@@ -24,9 +24,15 @@
 
         <!-- نوار دسترسی سریع به فصول (Sticky Navigation) -->
         <div class="sticky top-4 z-40 mb-8 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl p-3 shadow-md print:hidden">
-            <div class="flex items-center gap-2 mb-2 text-xs font-bold text-gray-500 dark:text-gray-400">
-                <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/></svg>
-                <span>دسترسی سریع به فصول و بندها:</span>
+            <div class="flex items-center justify-between mb-2 text-xs font-bold text-gray-500 dark:text-gray-400">
+                <div class="flex items-center gap-2">
+                    <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/></svg>
+                    <span>دسترسی سریع به فصول و بندها:</span>
+                </div>
+                <a href="{% url 'signup' %}" class="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline">
+                    <span>بازگشت به فرم ثبت‌نام</span>
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                </a>
             </div>
             <div class="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs">
                 <a href="#intro" class="whitespace-nowrap px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-primary hover:text-white dark:bg-gray-700 dark:hover:bg-primary transition-colors font-medium">مقدمه</a>
@@ -131,7 +137,7 @@
                     حراج‌گزار، مالک اثر نبوده و صرفاً به نمایندگی از طرف مالک اثر، برای فروش آن اقدام می‌نماید و هیچ‌گونه انتقال مالکیتی در خصوص اثر به حراج‌گزار صورت نمی‌پذیرد.
                 </p>
 
-                <div class="p-4 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/70 dark:border-gray-700">
+                <div class="p-4 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200/70 dark:border-gray-700">
                     <p class="text-gray-700 dark:text-gray-300 leading-8 text-justify">
                         <strong class="text-primary font-bold">۵.۱ - </strong>
                         حق‌الزحمه (حق‌العمل) حراج‌گزار صرفاً بابت آماده‌سازی شرایط حراج و برگزاری نمایشگاه آن و فراهم نمودن تسهیلات اجرای این معامله است. حراج‌گزار هیچ‌گونه مالکیتی و یا حقوق مالکانه‌ی دیگری چه جزئی و چه کلی، در آثار ارائه شده برای فروش در حراج ندارد. مالک اثر سابقاً کلیه‌ی اختیارات لازم جهت اجرا و تحقق مفاد شرایط عمومی حراج آنلاین ماه را به حراج‌گزار اعطا نموده است و خریدار در این خصوص عالم بوده و حق هیچ‌گونه اعتراضی را ندارد و نخواهد داشت.
@@ -167,27 +173,27 @@
                 </p>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                    <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/80 dark:border-gray-700 text-sm flex items-center justify-between">
+                    <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200/80 dark:border-gray-700 text-sm flex items-center justify-between">
                         <span class="font-medium text-gray-700 dark:text-gray-300">الف) تا مبلغ ۵۰ میلیون تومان</span>
                         <span class="font-bold text-primary">هر بار ۵ میلیون تومان افزایش</span>
                     </div>
-                    <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/80 dark:border-gray-700 text-sm flex items-center justify-between">
+                    <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200/80 dark:border-gray-700 text-sm flex items-center justify-between">
                         <span class="font-medium text-gray-700 dark:text-gray-300">ب) از مبلغ ۵۰ تا ۲۰۰ میلیون تومان</span>
                         <span class="font-bold text-primary">هر بار ۱۰ میلیون تومان افزایش</span>
                     </div>
-                    <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/80 dark:border-gray-700 text-sm flex items-center justify-between">
+                    <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200/80 dark:border-gray-700 text-sm flex items-center justify-between">
                         <span class="font-medium text-gray-700 dark:text-gray-300">پ) از مبلغ ۲۰۰ تا ۵۰۰ میلیون تومان</span>
                         <span class="font-bold text-primary">هر بار ۲۰ میلیون تومان افزایش</span>
                     </div>
-                    <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/80 dark:border-gray-700 text-sm flex items-center justify-between">
+                    <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200/80 dark:border-gray-700 text-sm flex items-center justify-between">
                         <span class="font-medium text-gray-700 dark:text-gray-300">ت) از مبلغ ۵۰۰ تا ۱ میلیارد تومان</span>
                         <span class="font-bold text-primary">هر بار ۵۰ میلیون تومان افزایش</span>
                     </div>
-                    <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/80 dark:border-gray-700 text-sm flex items-center justify-between">
+                    <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200/80 dark:border-gray-700 text-sm flex items-center justify-between">
                         <span class="font-medium text-gray-700 dark:text-gray-300">ث) از مبلغ ۱ تا ۴ میلیارد تومان</span>
                         <span class="font-bold text-primary">هر بار ۱۰۰ میلیون تومان افزایش</span>
                     </div>
-                    <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/80 dark:border-gray-700 text-sm flex items-center justify-between">
+                    <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200/80 dark:border-gray-700 text-sm flex items-center justify-between">
                         <span class="font-medium text-gray-700 dark:text-gray-300">ح) از مبلغ ۴ میلیارد تومان به بالا</span>
                         <span class="font-bold text-primary">هر بار ۲۰۰ میلیون تومان افزایش</span>
                     </div>
@@ -202,14 +208,14 @@
                 </div>
 
                 <div class="space-y-3.5">
-                    <div class="p-4 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/70 dark:border-gray-700">
+                    <div class="p-4 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200/70 dark:border-gray-700">
                         <p class="text-gray-700 dark:text-gray-300 leading-8 text-justify">
                             <strong class="text-primary font-bold">۸.۱ - </strong>
                             خریدار مکلف است مبلغی معادل ده درصد (۱۰٪) از مبلغ ثمن اثر خریداری‌شده را به عنوان حق‌الزحمه (حق‌العمل) حراج‌گزار در مدت مقرر به حراج‌گزار پرداخت نماید. در صورت تاخیر می‌بایست علاوه بر پرداخت اصل مبلغ مذکور، روزانه مبلغی معادل یک درصد (۱٪) از مبلغ ثمن اثر خریداری‌شده را به عنوان وجه التزام به حراج‌گزار پرداخت نماید.
                         </p>
                     </div>
 
-                    <div class="p-4 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/70 dark:border-gray-700">
+                    <div class="p-4 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200/70 dark:border-gray-700">
                         <p class="text-gray-700 dark:text-gray-300 leading-8 text-justify">
                             <strong class="text-primary font-bold">۸.۲ - </strong>
                             خریدار موظف است کل مبلغ ثمن اثر خریداری‌شده (رقم چکش‌خورده‌ی نهایی) به علاوه‌ی حق‌الزحمه (حق‌العمل) حراج‌گزار را حداکثر ظرف مدت پنج روز پس از اتمام حراج و خرید اثر به حراج‌گزار، که نماینده‌ی مالک اثر می‌باشد، پرداخت کند.<br>
@@ -217,14 +223,14 @@
                         </p>
                     </div>
 
-                    <div class="p-4 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/70 dark:border-gray-700">
+                    <div class="p-4 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200/70 dark:border-gray-700">
                         <p class="text-gray-700 dark:text-gray-300 leading-8 text-justify">
                             <strong class="text-primary font-bold">۸.۳ - </strong>
                             در صورتی که خریدار ظرف مهلت مذکور در بند ۸.۲ اقدام به پرداخت کامل مبلغ ثمن اثر خریداری‌شده (رقم چکش‌خورده‌ی نهایی) و حق‌الزحمه (حق‌العمل) حراج‌گزار ننماید، حراج‌گزار می‌تواند ظرف مدت پانزده روز از تاریخ پایان مهلت تعیین‌شده در بند ۸.۲، صرفاً از طریق اعلام کتبی به نشانی و یا شماره‌ی همراه و یا آدرس ایمیل‌های اعلامی از جانب خریدار در فرم ثبت‌نام، بیع را به صورت یک‌جانبه فسخ نماید. بدیهی است در این صورت حراج‌گزار هیچ‌گونه تعهدی نسبت به تحویل اثر به خریدار ندارد و در صورت دریافت اثر توسط خریدار وی موظف به استرداد آن به حراج‌گزار خواهد بود. در صورت اعمال حق فسخ مندرج در این بند، به عنوان توافقی مستقل از قرارداد، خریدار موظف است حق‌الزحمه (حق‌العمل) حراج‌گزار یعنی مبلغی معادل ده درصد (۱۰٪) از مبلغ ثمن اثر (رقم چکش‌خورده‌ی نهایی) را به حراج‌گزار پرداخت نماید. عدم اعمال حق فسخ مزبور از جانب حراج‌گزار، رافع مسئولیت خریدار به پرداخت وجه التزام مقرر در بند ۸.۱ نمی‌باشد.
                         </p>
                     </div>
 
-                    <div class="p-4 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/70 dark:border-gray-700">
+                    <div class="p-4 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200/70 dark:border-gray-700">
                         <p class="text-gray-700 dark:text-gray-300 leading-8 text-justify">
                             <strong class="text-primary font-bold">۸.۴ - </strong>
                             خریدار تا زمان پرداخت کامل مبلغ ثمن اثر خریداری‌شده (رقم چکش‌خورده‌ی نهایی) به علاوه‌ی حق‌الزحمه (حق‌العمل) حراج‌گزار و وجه التزام مقرر در بند ۸.۱، حق انتقال اثر را به غیر ندارد و در صورت عمل بر خلاف این بند، انتقال انجام‌شده به غیر، باطل می‌باشد.
@@ -243,15 +249,15 @@
                     مالک اثر نیز بابت هزینه‌ی معرفی و فروش اثر و برگزاری مراسم حراج، موظف به پرداخت حق‌الزحمه (حق‌العمل) حراج‌گزار به شرح زیر است که این مبلغ از درآمد فروش اثر کسر و مابقی به مالک اثر پرداخت خواهد شد:
                 </p>
                 <div class="space-y-2">
-                    <div class="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/80 dark:border-gray-700 flex items-center justify-between text-sm">
+                    <div class="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200/80 dark:border-gray-700 flex items-center justify-between text-sm">
                         <span class="text-gray-700 dark:text-gray-300 font-medium">الف) برای فروش تا مبلغ ۱,۰۰۰,۰۰۰,۰۰۰ ریال</span>
                         <span class="font-bold text-primary">مبلغی معادل ۱۵ درصد رقم چکش‌خورده‌ی نهایی</span>
                     </div>
-                    <div class="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/80 dark:border-gray-700 flex items-center justify-between text-sm">
+                    <div class="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200/80 dark:border-gray-700 flex items-center justify-between text-sm">
                         <span class="text-gray-700 dark:text-gray-300 font-medium">ب) برای فروش بیش از ۱,۰۰۰,۰۰۰,۰۰۰ ریال تا مبلغ ۵,۰۰۰,۰۰۰,۰۰۰ ریال</span>
                         <span class="font-bold text-primary">مبلغی معادل ۱۲ درصد رقم چکش‌خورده‌ی نهایی</span>
                     </div>
-                    <div class="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/80 dark:border-gray-700 flex items-center justify-between text-sm">
+                    <div class="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200/80 dark:border-gray-700 flex items-center justify-between text-sm">
                         <span class="text-gray-700 dark:text-gray-300 font-medium">ج) برای فروش بیش از ۵,۰۰۰,۰۰۰,۰۰۰ ریال</span>
                         <span class="font-bold text-primary">مبلغی معادل ۱۰ درصد رقم چکش‌خورده‌ی نهایی</span>
                     </div>
@@ -268,14 +274,14 @@
                     کلیه‌ی اطلاعات شخصی و اطلاعات بانکی اشخاص شرکت‌کننده در حراج، در صورتی که از جانب آن‌ها به صورت کتبی در زمان ثبت‌نام درخواست شود، به صورت محرمانه نزد حراج‌گزار حفظ و نگهداری خواهد شد و به هیچ عنوان در معرض اطلاع عموم و یا در دسترس اشخاص ثالث قرار نخواهد گرفت مگر:
                 </p>
                 <ul class="list-none space-y-2 mb-4 pr-3 text-sm">
-                    <li class="p-3 rounded-xl bg-gray-50 dark:bg-gray-750 border border-gray-200/70 dark:border-gray-700 text-gray-700 dark:text-gray-300 leading-7">
+                    <li class="p-3 rounded-xl bg-gray-50 dark:bg-gray-700/60 border border-gray-200/70 dark:border-gray-700 text-gray-700 dark:text-gray-300 leading-7">
                         <strong>الف)</strong> به دستور مقام قضایی که در آن‌صورت حراج‌گزار موظف خواهد بود که اطلاعات مزبور را در حد موضوع دستور در اختیار مقامات مربوطه قرار دهد.
                     </li>
-                    <li class="p-3 rounded-xl bg-gray-50 dark:bg-gray-750 border border-gray-200/70 dark:border-gray-700 text-gray-700 dark:text-gray-300 leading-7">
+                    <li class="p-3 rounded-xl bg-gray-50 dark:bg-gray-700/60 border border-gray-200/70 dark:border-gray-700 text-gray-700 dark:text-gray-300 leading-7">
                         <strong>ب)</strong> هر یک از خریداران یا فروشندگان که جهت پیگیری قانونی و مطالبه‌ی حقوق خود طبق شرایط عمومی حراج به این اطلاعات نیاز داشته باشند.
                     </li>
                 </ul>
-                <div class="p-4 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/70 dark:border-gray-700">
+                <div class="p-4 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200/70 dark:border-gray-700">
                     <p class="text-gray-700 dark:text-gray-300 leading-8 text-justify">
                         <strong class="text-primary font-bold">۱۰.۱ - </strong>
                         حراج‌گزار مختار است در خصوص قیمت نهایی آثار به فروش‌رفته و همچنین نام خریدار و یا فروشنده‌ی اثر جهت تبلیغات و یا هر منظور دیگری اطلاع‌رسانی نماید، مگر آنکه خریدار یا فروشنده‌ی اثر کتباً حراج‌گزار را از این امر منع نمایند.<br>
@@ -306,49 +312,49 @@
                 </p>
 
                 <div class="space-y-3">
-                    <div class="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/70 dark:border-gray-700">
+                    <div class="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200/70 dark:border-gray-700">
                         <p class="text-gray-700 dark:text-gray-300 leading-8 text-justify">
                             <strong class="text-primary font-bold">۱۲.۱ - </strong>
                             در صورت بروز هرگونه اختلاف هر یک از طرفین می‌تواند با معرفی و ارائه‌ی نامه‌ی قبولی داور اختصاصی خود که دارای تابعیت ایرانی می‌باشد از طریق اظهارنامه درخواست ارجاع به داوری را به طرف دیگر اعلام نماید. طرف مقابل مکلف است ظرف مهلت ده روز داور اختصاصی خود را که دارای تابعیت ایرانی می‌باشد از طریق اظهارنامه به همراه نامه‌ی قبولی داور اختصاصی خود معرفی نماید. دو داور اختصاصی طرفین ظرف مهلت ده روز داور سوم را تعیین می‌نمایند. در صورت عدم حصول توافق در تعیین داور سوم، داور سوم از طریق دادگاه صالح تعیین می‌گردد.
                         </p>
                     </div>
 
-                    <div class="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/70 dark:border-gray-700">
+                    <div class="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200/70 dark:border-gray-700">
                         <p class="text-gray-700 dark:text-gray-300 leading-8 text-justify">
                             <strong class="text-primary font-bold">۱۲.۲ - </strong>
                             در صورت عدم معرفی داور اختصاصی به همراه نامه‌ی قبولی وی در مدت زمان مقرر در ماده‌ی ۱۲.۱، داور اعلامی از جانب طرف دیگر به عنوان داور مرضی‌الطرفین تلقی شده و به صورت انفرادی و مستقل اقدام به صدور رای می‌نماید. (عدم ارائه‌ی نامه‌ی قبولی داور اختصاصی در مدت مزبور به منزله‌ی عدم معرفی داور اختصاصی می‌باشد.)
                         </p>
                     </div>
 
-                    <div class="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/70 dark:border-gray-700">
+                    <div class="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200/70 dark:border-gray-700">
                         <p class="text-gray-700 dark:text-gray-300 leading-8 text-justify">
                             <strong class="text-primary font-bold">۱۲.۳ - </strong>
                             هیئت داوری ظرف مهلت یک ماه (سی روز) از تاریخ دریافت قبولی داور سوم، موظف به رسیدگی به موضوع اختلاف بوده و مکلف به صدور رای طی مدت مزبور می‌باشد. در صورتی‌که وفق ماده‌ی ۱۲.۲ داور واحد مرضی‌الطرفین موظف به رسیدگی در موضوع اختلاف باشد، زمان شروع داوری از تاریخ انقضای مهلت ده روزه‌ی مقرر در ماده‌ی ۱۲.۱ می‌باشد.
                         </p>
                     </div>
 
-                    <div class="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/70 dark:border-gray-700">
+                    <div class="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200/70 dark:border-gray-700">
                         <p class="text-gray-700 dark:text-gray-300 leading-8 text-justify">
                             <strong class="text-primary font-bold">۱۲.۴ - </strong>
                             رای صادره قاطع دعوی و برای طرفین دعوی لازم‌الاتباع می‌باشد. اجرای رای داوری وفق قانون با دادگاه صالح به رسیدگی به اصل دعوی می‌باشد.
                         </p>
                     </div>
 
-                    <div class="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/70 dark:border-gray-700">
+                    <div class="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200/70 dark:border-gray-700">
                         <p class="text-gray-700 dark:text-gray-300 leading-8 text-justify">
                             <strong class="text-primary font-bold">۱۲.۵ - </strong>
                             هیئت داوری یا داور موظف است رای صادره را حداکثر ظرف مهلت ۵ روز از تاریخ اتمام مهلت یک ماه مقرر در ماده‌ی ۱۲.۳ از طریق اظهارنامه به طرفین ابلاغ نماید.
                         </p>
                     </div>
 
-                    <div class="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/70 dark:border-gray-700">
+                    <div class="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200/70 dark:border-gray-700">
                         <p class="text-gray-700 dark:text-gray-300 leading-8 text-justify">
                             <strong class="text-primary font-bold">۱۲.۶ - </strong>
                             قانون حاکم بر شرایط عمومی حراج و شرط داوری قوانین کشور جمهوری اسلامی ایران بوده و مقر داوری شهر قم می‌باشد.
                         </p>
                     </div>
 
-                    <div class="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-750/70 border border-gray-200/70 dark:border-gray-700">
+                    <div class="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200/70 dark:border-gray-700">
                         <p class="text-gray-700 dark:text-gray-300 leading-8 text-justify">
                             <strong class="text-primary font-bold">۱۲.۷ - </strong>
                             شرط داوری مندرج در این ماده شرط مستقلی از قرارداد بوده و ابطال، فسخ، انفساخ، اقاله و انقضای این قرارداد تاثیری در آن ندارد.

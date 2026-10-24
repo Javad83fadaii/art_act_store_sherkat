@@ -1427,15 +1427,19 @@
 
                 connectLiveUpdates();
 
-                window.addEventListener('beforeunload', function () {
+                const cleanupProductAuctionLive = function () {
                     stopLivePolling();
                     if (reconnectTimer) {
                         window.clearTimeout(reconnectTimer);
+                        reconnectTimer = null;
                     }
-                    if (liveSocket && liveSocket.readyState === WebSocket.OPEN) {
-                        liveSocket.close();
+                    if (liveSocket) {
+                        try { liveSocket.close(); } catch(_) {}
+                        liveSocket = null;
                     }
-                });
+                };
+                window.addEventListener('beforeunload', cleanupProductAuctionLive);
+                document.addEventListener('page:unloaded', cleanupProductAuctionLive, { once: true });
             });
 
             // ------------------------------------------------------------------

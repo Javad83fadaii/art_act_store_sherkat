@@ -257,28 +257,77 @@
                     </div>
                 </div>
 
-                <!-- تایید قوانین و مقررات (اجباری) -->
-                <div class="mt-6 mb-2">
-                    <label class="relative flex items-start gap-3 cursor-pointer group">
-                        <!-- آیکون چک باکس سفارشی -->
-                        <div class="flex items-center justify-center w-[22px] h-[22px] mt-0.5 border-2 border-gray-400 dark:border-gray-500 rounded-md transition-all duration-300 group-has-[:checked]:bg-blue-600 group-has-[:checked]:border-blue-600 shrink-0 shadow-sm">
-                            <svg class="w-3.5 h-3.5 text-white opacity-0 group-has-[:checked]:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                            </svg>
+                <!-- بخش قوانین و مقررات با متن کامل، اسکرول الزامی و گزینه تایید -->
+                <div id="rules-section-container" class="mt-6 mb-2 flex flex-col gap-2.5">
+                    <!-- هدر بخش قوانین -->
+                    <div class="flex items-center justify-between pb-1">
+                        <div class="flex items-center gap-2">
+                            <span class="w-7 h-7 rounded-lg bg-primary/15 text-primary flex items-center justify-center shrink-0">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            </span>
+                            <span class="text-sm font-bold text-gray-900 dark:text-white">قوانین و مقررات سامانه</span>
+                            <span class="text-red-500 font-bold">*</span>
                         </div>
-                        <!-- متن -->
-                        <div class="flex-1 text-[13px] text-gray-800 dark:text-gray-200 mt-0.5">
-                            <!-- لینک به‌روز شده برای باز شدن در صفحه جدید و آدرس‌دهی صحیح -->
-                            <a href="{% url 'site_rules' %}" target="_blank" class="font-bold text-blue-600 dark:text-blue-400 hover:underline">قوانین و مقررات</a> سایت را مطالعه کرده و آن‌ها را می‌پذیرم. <span class="text-red-500">*</span>
+                        <div class="flex items-center gap-2">
+                            <span id="rules-read-badge" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/25 transition-all duration-300">
+                                <svg class="w-3 h-3 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                                <span>مطالعه تا انتها</span>
+                            </span>
+                            <a href="{% url 'site_rules' %}" target="_blank" rel="noopener noreferrer" class="text-[11px] font-medium text-primary hover:text-primary-dark hover:underline inline-flex items-center gap-0.5" title="مشاهده در صفحه مجزا">
+                                <span>صفحه کامل</span>
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                            </a>
                         </div>
-                        <!-- اینپوت واقعی (مخفی) -->
-                        <div class="hidden">
-                            {{ form.participate_in_auction }}
+                    </div>
+
+                    <!-- کادر اسکرول شونده متن کامل قوانین -->
+                    <div id="rules-box-wrapper" class="relative rounded-2xl border border-white/60 dark:border-gray-700/60 bg-white/50 dark:bg-gray-800/50 backdrop-blur-md overflow-hidden shadow-sm transition-all duration-300">
+                        <!-- نوار باریک پیشرفت اسکرول در بالای کادر -->
+                        <div class="h-1 w-full bg-gray-200/80 dark:bg-gray-700/60">
+                            <div id="rules-scroll-progress" class="h-full bg-primary transition-all duration-150" style="width: 0%;"></div>
                         </div>
-                    </label>
-                    <p id="auction-live-message" class="hidden text-[11px] font-bold text-red-600 dark:text-red-400 mt-2 mr-1"></p>
+
+                        <!-- محفظه اسکرول متن قوانین -->
+                        <div id="rules-scroll-box" 
+                             tabindex="0"
+                             role="region"
+                             aria-label="متن قوانین و مقررات حراج ماه"
+                             class="max-h-56 sm:max-h-64 overflow-y-auto custom-scrollbar p-3.5 sm:p-4 text-right select-text focus:outline-none focus:ring-1 focus:ring-primary/40">
+                            {% include "partials/rules_text.html" %}
+                        </div>
+                    </div>
+
+                    <!-- نوار وضعیت و راهنمای اسکرول -->
+                    <div id="rules-status-bar" class="flex items-center justify-between px-3 py-1.5 rounded-xl text-[11px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 transition-all duration-300">
+                        <span id="rules-status-text" class="flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                            <span>لطفاً متن قوانین را تا انتها اسکرول کنید تا امکان تأیید فعال شود.</span>
+                        </span>
+                        <span id="rules-percent-badge" class="font-mono text-[10px] ltr">0%</span>
+                    </div>
+
+                    <!-- چک‌باکس تایید قوانین و مقررات (در ابتدا غیرفعال) -->
+                    <div id="rules-agreement-wrapper" class="relative mt-1 opacity-50 cursor-not-allowed select-none transition-all duration-300">
+                        <label id="rules-checkbox-label" class="relative flex items-start gap-3 cursor-not-allowed group p-1.5 rounded-xl transition-all duration-300">
+                            <!-- آیکون چک باکس سفارشی -->
+                            <div id="rules-checkbox-custom" class="flex items-center justify-center w-[22px] h-[22px] mt-0.5 border-2 border-gray-400 dark:border-gray-500 rounded-md transition-all duration-300 group-has-[:checked]:bg-primary group-has-[:checked]:border-primary shrink-0 shadow-sm bg-white/40 dark:bg-gray-800/40">
+                                <svg class="w-3.5 h-3.5 text-white opacity-0 group-has-[:checked]:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                            </div>
+                            <!-- متن -->
+                            <div class="flex-1 text-[13px] text-gray-800 dark:text-gray-200 mt-0.5 font-medium leading-5">
+                                متن کامل <span class="font-bold text-primary">قوانین و مقررات</span> سایت را مطالعه کرده و کلیه‌ی مفاد آن را می‌پذیرم. <span class="text-red-500 font-bold">*</span>
+                            </div>
+                            <!-- اینپوت واقعی (مخفی، در ابتدا غیرفعال) -->
+                            <div class="hidden">
+                                {{ form.participate_in_auction }}
+                            </div>
+                        </label>
+                    </div>
+                    <p id="auction-live-message" class="hidden text-[11px] font-bold text-red-600 dark:text-red-400 mt-1 mr-1"></p>
                     {% if form.participate_in_auction.errors %}
-                        <p class="text-[11px] font-bold text-red-600 dark:text-red-400 mt-2 mr-1">
+                        <p class="text-[11px] font-bold text-red-600 dark:text-red-400 mt-1 mr-1">
                             {{ form.participate_in_auction.errors.0|fa_digits }}
                         </p>
                     {% endif %}
@@ -344,6 +393,7 @@
         const INVALID_EMAIL_MESSAGE = "لطفا یک آدرس ایمیل معتبر وارد کنید";
         const REQUIRED_FULL_NAME_MESSAGE = "وارد کردن نام و نام خانوادگی الزامی است.";
         const REQUIRED_AUCTION_MESSAGE = "برای ثبت‌نام، پذیرش قوانین و مقررات الزامی است.";
+        const SCROLL_RULES_FIRST_MESSAGE = "لطفاً ابتدا متن قوانین را تا انتها اسکرول و مطالعه نمایید.";
         const REQUIRED_PHONE_MESSAGE = "وارد کردن شماره موبایل الزامی است.";
         const REQUIRED_PASSWORD1_MESSAGE = "وارد کردن رمز عبور الزامی است.";
         const REQUIRED_PASSWORD2_MESSAGE = "وارد کردن تکرار رمز عبور الزامی است.";
@@ -357,6 +407,18 @@
         const emailInput = document.getElementById("{{ form.email.id_for_label }}");
         const emailIndicator = document.getElementById("email-required-indicator");
         const telegramWrapper = document.getElementById("telegram-id-wrapper");
+        
+        // المان‌های بخش قوانین و مقررات
+        const rulesScrollBox = document.getElementById("rules-scroll-box");
+        const rulesProgressBar = document.getElementById("rules-scroll-progress");
+        const rulesStatusBar = document.getElementById("rules-status-bar");
+        const rulesStatusText = document.getElementById("rules-status-text");
+        const rulesPercentBadge = document.getElementById("rules-percent-badge");
+        const rulesReadBadge = document.getElementById("rules-read-badge");
+        const rulesAgreementWrapper = document.getElementById("rules-agreement-wrapper");
+        const rulesCheckboxLabel = document.getElementById("rules-checkbox-label");
+        const rulesBoxWrapper = document.getElementById("rules-box-wrapper");
+        const rulesSentinel = document.getElementById("rules-bottom-sentinel");
         const auctionCheckbox = document.getElementById("{{ form.participate_in_auction.id_for_label }}") || document.querySelector('input[name="participate_in_auction"]');
         
         const password1Input = document.getElementById("{{ form.password1.id_for_label }}");
@@ -371,10 +433,152 @@
         const passwordMatchMessage = document.getElementById("password-match-message");
         const auctionLiveMessage = document.getElementById("auction-live-message");
 
-        // اعمال ویژگی required از همان ابتدا برای چک‌باکس قوانین
+        // وضعیت قفل بودن گزینه تایید قوانین
+        let isRulesUnlocked = false;
+
+        // غیرفعال‌سازی اولیه چک‌باکس قوانین تا زمان اسکرول کامل
         if (auctionCheckbox) {
+            auctionCheckbox.disabled = true;
+            auctionCheckbox.checked = false;
             auctionCheckbox.setAttribute("required", "required");
         }
+
+        // تابع فعال‌سازی گزینه تایید قوانین
+        function unlockRulesAgreement() {
+            if (isRulesUnlocked) return;
+            isRulesUnlocked = true;
+
+            // فعال‌سازی اینپوت
+            if (auctionCheckbox) {
+                auctionCheckbox.disabled = false;
+            }
+
+            // خروج از حالت غیرفعال در UI
+            if (rulesAgreementWrapper) {
+                rulesAgreementWrapper.classList.remove("opacity-50", "cursor-not-allowed");
+                rulesAgreementWrapper.classList.add("cursor-pointer");
+            }
+            if (rulesCheckboxLabel) {
+                rulesCheckboxLabel.classList.remove("cursor-not-allowed");
+                rulesCheckboxLabel.classList.add("cursor-pointer", "hover:bg-white/40", "dark:hover:bg-gray-800/40");
+            }
+
+            // به‌روزرسانی نوار پیشرفت اسکرول به ۱۰۰٪ و رنگ سبز
+            if (rulesProgressBar) {
+                rulesProgressBar.style.width = "100%";
+                rulesProgressBar.classList.remove("bg-primary");
+                rulesProgressBar.classList.add("bg-emerald-500");
+            }
+            if (rulesPercentBadge) {
+                rulesPercentBadge.textContent = "۱۰۰٪";
+            }
+
+            // نشان بالای کادر
+            if (rulesReadBadge) {
+                rulesReadBadge.className = "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25 transition-all duration-300";
+                rulesReadBadge.innerHTML = `
+                    <svg class="w-3 h-3 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                    <span>مطالعه شد</span>
+                `;
+            }
+
+            // نوار وضعیت
+            if (rulesStatusBar) {
+                rulesStatusBar.className = "flex items-center justify-between px-3 py-1.5 rounded-xl text-[11px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 transition-all duration-300";
+            }
+            if (rulesStatusText) {
+                rulesStatusText.innerHTML = `
+                    <svg class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                    <span>متن قوانین تا انتها مطالعه شد. اکنون تیک تأیید زیر را بزنید.</span>
+                `;
+            }
+
+            // افکت جلب توجه روی کادر چک‌باکس
+            if (rulesAgreementWrapper) {
+                rulesAgreementWrapper.classList.add("ring-2", "ring-primary/60");
+                window.setTimeout(function() {
+                    rulesAgreementWrapper.classList.remove("ring-2", "ring-primary/60");
+                }, 1200);
+            }
+        }
+
+        // بررسی اینکه آیا اسکرول نیاز است یا خیر (اگر متن کوتاه بود)
+        function isScrollRequired() {
+            if (!rulesScrollBox) return false;
+            return (rulesScrollBox.scrollHeight - rulesScrollBox.clientHeight) > 10;
+        }
+
+        // بررسی وضعیت اسکرول کادر قوانین
+        function checkRulesScrollState() {
+            if (!rulesScrollBox) return;
+
+            // الزامات: اگر متن به اندازه‌ای کوتاه بود که نیازی به اسکرول نداشت، امکان تایید فعال شود
+            if (!isScrollRequired()) {
+                unlockRulesAgreement();
+                return;
+            }
+
+            const scrollTop = rulesScrollBox.scrollTop;
+            const scrollHeight = rulesScrollBox.scrollHeight;
+            const clientHeight = rulesScrollBox.clientHeight;
+            const maxScroll = Math.max(1, scrollHeight - clientHeight);
+
+            const percent = Math.min(100, Math.max(0, Math.round((scrollTop / maxScroll) * 100)));
+            if (rulesProgressBar && !isRulesUnlocked) {
+                rulesProgressBar.style.width = percent + "%";
+            }
+            if (rulesPercentBadge && !isRulesUnlocked) {
+                rulesPercentBadge.textContent = toPersianDigits(String(percent)) + "٪";
+            }
+
+            // الزامات: اسکرول تا انتها (با ۱۵ پیکسل تلورانس جهت سازگاری کامل با موبایل و دقت‌های اعشاری رندرینگ)
+            if (scrollTop + clientHeight >= scrollHeight - 15) {
+                unlockRulesAgreement();
+            }
+        }
+
+        rulesScrollBox?.addEventListener("scroll", checkRulesScrollState, { passive: true });
+
+        // ناظر تقاطع برای عنصر انتهای متن جهت شناسایی دقیق در تمام پلتفرم‌ها
+        if (window.IntersectionObserver && rulesSentinel && rulesScrollBox) {
+            const sentinelObserver = new IntersectionObserver(function(entries) {
+                entries.forEach(function(entry) {
+                    if (entry.isIntersecting) {
+                        unlockRulesAgreement();
+                    }
+                });
+            }, {
+                root: rulesScrollBox,
+                threshold: 0.1
+            });
+            sentinelObserver.observe(rulesSentinel);
+        }
+
+        // راهنمایی کاربر در صورت کلیک روی چک‌باکس قبل از اسکرول کامل
+        rulesAgreementWrapper?.addEventListener("click", function(e) {
+            if (!isRulesUnlocked) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                if (rulesBoxWrapper) {
+                    rulesBoxWrapper.classList.add("ring-2", "ring-amber-500", "scale-[1.01]");
+                    window.setTimeout(function() {
+                        rulesBoxWrapper.classList.remove("ring-2", "ring-amber-500", "scale-[1.01]");
+                    }, 600);
+                }
+                rulesScrollBox?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                setMessage(auctionLiveMessage, SCROLL_RULES_FIRST_MESSAGE, "error");
+            }
+        });
+
+        // بررسی اولیه پس از بارگذاری صفحه و لود فونت‌ها
+        function initialRulesCheck() {
+            checkRulesScrollState();
+        }
+        window.addEventListener("load", initialRulesCheck);
+        window.addEventListener("resize", checkRulesScrollState);
+        window.setTimeout(initialRulesCheck, 150);
+        window.setTimeout(initialRulesCheck, 600);
 
         document.querySelectorAll('[data-server-error-for]').forEach(function (errorEl) {
             const field = document.getElementById(errorEl.dataset.serverErrorFor);
@@ -418,10 +622,22 @@
 
         // بررسی خطای قوانین و مقررات زمان Submit
         function validateAuctionRulesOnSubmit() {
-            if (!auctionCheckbox) return true;
-            if (!auctionCheckbox.checked) {
-                auctionCheckbox.setCustomValidity(REQUIRED_AUCTION_MESSAGE);
+            if (!isRulesUnlocked) {
+                if (rulesBoxWrapper) {
+                    rulesBoxWrapper.classList.add("ring-2", "ring-red-500");
+                    window.setTimeout(function() {
+                        rulesBoxWrapper.classList.remove("ring-2", "ring-red-500");
+                    }, 1200);
+                }
+                rulesScrollBox?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                setMessage(auctionLiveMessage, SCROLL_RULES_FIRST_MESSAGE, "error");
+                return false;
+            }
+
+            if (!auctionCheckbox || !auctionCheckbox.checked) {
+                auctionCheckbox?.setCustomValidity(REQUIRED_AUCTION_MESSAGE);
                 setMessage(auctionLiveMessage, REQUIRED_AUCTION_MESSAGE, "error");
+                rulesAgreementWrapper?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 return false;
             } else {
                 auctionCheckbox.setCustomValidity("");
@@ -452,7 +668,7 @@
                 // چک کردن موارد در لحظه ثبت
                 if (!validateAuctionRulesOnSubmit()) {
                     isFormValid = false;
-                    toastErrors.push(REQUIRED_AUCTION_MESSAGE);
+                    toastErrors.push(!isRulesUnlocked ? SCROLL_RULES_FIRST_MESSAGE : REQUIRED_AUCTION_MESSAGE);
                 }
 
                 if (fullNameInput) {

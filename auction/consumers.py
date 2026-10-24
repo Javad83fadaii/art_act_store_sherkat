@@ -89,3 +89,25 @@ class AuctionPageRefreshConsumer(AsyncWebsocketConsumer):
                 }
             )
         )
+
+    async def auction_bid_update(self, event):
+        product_pk = event.get('product_pk')
+        if not product_pk:
+            return
+        try:
+            payload = await database_sync_to_async(build_bid_live_payload)(
+                product_pk,
+                self.scope.get('user'),
+                include_user_history=False,
+            )
+            await self.send(
+                text_data=json.dumps(
+                    {
+                        'type': 'bid_update',
+                        'product_pk': product_pk,
+                        'payload': payload,
+                    }
+                )
+            )
+        except Exception:
+            pass
