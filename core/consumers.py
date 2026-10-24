@@ -11,7 +11,7 @@ except ImportError:
 class AdminNotificationConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         user = self.scope.get('user')
-        if not getattr(user, 'is_staff', False):
+        if not (getattr(user, 'is_staff', False) or getattr(user, 'is_superuser', False)):
             await self.close()
             return
 

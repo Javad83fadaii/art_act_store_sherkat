@@ -3,6 +3,18 @@
 from django.db import migrations
 
 
+def _drop_credit_request_triggers(apps, schema_editor):
+    if schema_editor.connection.vendor != "mysql":
+        return
+
+    statements = [
+        "DROP TRIGGER IF EXISTS update_user_credit_after_insert",
+        "DROP TRIGGER IF EXISTS update_user_credit_after_update",
+    ]
+    for sql in statements:
+        schema_editor.execute(sql)
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -10,12 +22,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunSQL(
-            sql=[
-                "DROP TRIGGER IF EXISTS update_user_credit_after_insert",
-                "DROP TRIGGER IF EXISTS update_user_credit_after_update",
-            ],
-            reverse_sql=migrations.RunSQL.noop,
-        ),
+        migrations.RunPython(_drop_credit_request_triggers, migrations.RunPython.noop),
     ]
 

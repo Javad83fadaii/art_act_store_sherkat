@@ -52,12 +52,27 @@ def cache_response(timeout=300, key_prefix=''):
 
 def invalidate_cache(key_pattern):
     if hasattr(cache, 'delete_pattern'):
-        return cache.delete_pattern(key_pattern)
+        try:
+            return cache.delete_pattern(key_pattern)
+        except Exception:
+            pass
 
     if hasattr(cache, 'keys'):
-        keys = cache.keys(key_pattern)
-        if keys:
-            return cache.delete_many(keys)
+        try:
+            keys = cache.keys(key_pattern)
+            if keys:
+                return cache.delete_many(keys)
+        except Exception:
+            pass
+
+    if hasattr(cache, '_cache') and hasattr(cache._cache, 'keys'):
+        import fnmatch
+        try:
+            matched = fnmatch.filter(list(cache._cache.keys()), f"*{key_pattern}*")
+            if matched:
+                return cache.delete_many(matched)
+        except Exception:
+            pass
 
     return 0
 

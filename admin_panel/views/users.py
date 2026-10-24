@@ -1,13 +1,16 @@
 import json
+import re
+from collections import defaultdict
 from decimal import Decimal
 from datetime import datetime
 
 from django.core.paginator import Paginator
-from django.db.models import Count, Q, Max, Subquery, OuterRef, IntegerField, DateTimeField
+from django.db.models import Count, Q, Max, Subquery, OuterRef, IntegerField, DateTimeField, Case, When, Value
 from django.db.models.functions import Coalesce
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.template.loader import render_to_string
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
@@ -18,6 +21,7 @@ from accounts.models import CustomUser
 from core.models import SavedFilter
 from auction.models import AuctionCartItem, AuctionVisitHistory, Bid
 from core.decorators import log_admin_action, staff_required, superuser_required
+from core.logging_service import compute_field_diff, format_user_display, record_admin_activity
 from core.models import ActivityLog
 from core.utils import cache_response, invalidate_cache
 from store.models import SiteVisitLog, VisitHistory, PurchaseHistory, TelegramPurchaseRequest
@@ -25,6 +29,17 @@ from store.models import SiteVisitLog, VisitHistory, PurchaseHistory, TelegramPu
 # from auction.models import AuctionVisit
 
 AUTH_ACTIVITY_ACTIONS = ['Login', 'Logout', 'Login Failed']
+
+
+def _check_superuser_access(request, user):
+    """
+    بررسی می‌کند آیا کاربر درخواست‌کننده (staff) مجاز به دسترسی به اطلاعات یک سوپریوزر هست یا نه.
+    اگر هدف سوپریوزر باشد و درخواست‌کننده سوپریوزر نباشد، یک JsonResponse با 403 برمی‌گرداند.
+    در غیر این صورت None برمی‌گرداند (یعنی دسترسی مجاز است).
+    """
+    if user.is_superuser and not request.user.is_superuser:
+        return JsonResponse({'error': 'Forbidden'}, status=403)
+    return None
 
 
 def _request_payload(request):
@@ -58,11 +73,14 @@ def _serialize_user_detail(user):
         "email": user.email or "",
         "telegram_id": user.telegram_id or "",
         "preferred_contact_methods": user.preferred_contact_methods or [],
+        "newsletter_catalog_opt_in": bool(getattr(user, "newsletter_catalog_opt_in", False)),
         "address_country": user.address_country or "",
         "address_city": user.address_city or "",
         "address_street": user.address_street or "",
         "description": user.description or "",
         "is_active": user.is_active,
+        "user_status": getattr(user, "user_status", "active" if user.is_active else "inactive"),
+        "user_status_label": getattr(user, "user_status_label", "فعال" if user.is_active else "غیرفعال"),
         "is_staff": user.is_staff,
         "is_superuser": user.is_superuser,
         "is_verified": int(user.is_verified or 0),
@@ -114,6 +132,7 @@ def _build_auth_activity_entry(activity):
 def _build_site_visit_entry(log):
     duration_min = getattr(log, 'duration_in_minutes', 0)
     is_closed = bool(getattr(log, 'is_closed', False))
+    operating_system = getattr(log, 'operating_system', '') or ''
     return {
         'source': 'visit',
         'source_label': 'حضور در سایت',
@@ -128,6 +147,7 @@ def _build_site_visit_entry(log):
         'start_time': _safe_iso(log.start_time),
         'last_activity': _safe_iso(log.last_activity),
         'duration_min': duration_min,
+        'operating_system': operating_system,
         'session_key': log.session_key or '',
         'session_key_short': _short_session_key(log.session_key),
         'is_closed': is_closed,
@@ -188,8 +208,14 @@ def page_view(request):
 def history_page_view(request, pk):
     """
     رندر کردن قالب HTML صفحه تاریخچه کاربر (حضور در سایت و ورود/خروج).
+    Staff نمی‌تواند صفحه تاریخچه سوپریوزر را باز کند.
     """
     user = get_object_or_404(CustomUser, pk=pk)
+
+    if user.is_superuser and not request.user.is_superuser:
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden()
+
     context = {
         'user_id': pk,
         'user_name': user.get_full_name() or user.email,
@@ -208,8 +234,13 @@ def login_history_page_view(request):
 def history_api_view(request, pk):
     """
     API دریافت تاریخچه ورود و خروج، و حضور کاربر در سایت.
+    Staff نمی‌تواند لاگ‌های سوپریوزر را ببیند.
     """
     user = get_object_or_404(CustomUser, pk=pk)
+
+    # staff نمی‌تواند تاریخچه سوپریوزر را ببیند
+    if user.is_superuser and not request.user.is_superuser:
+        return JsonResponse({'error': 'Forbidden'}, status=403)
     try:
         activity_page = max(1, int(request.GET.get('page', request.GET.get('activity_page', 1))))
     except (ValueError, TypeError):
@@ -245,6 +276,7 @@ def history_api_view(request, pk):
             'session_key': log.session_key,
             'session_key_short': _short_session_key(log.session_key),
             'ip': log.ip_address or 'نامشخص',
+            'operating_system': getattr(log, 'operating_system', '') or '',
             'start_time': _safe_iso(log.start_time),
             'last_activity': _safe_iso(log.last_activity),
             'duration_min': getattr(log, 'duration_in_minutes', 0),
@@ -297,7 +329,6 @@ def history_api_view(request, pk):
 def login_history_api_view(request):
     auth_queryset = ActivityLog.objects.select_related('user').order_by('-timestamp')
     visit_queryset = SiteVisitLog.objects.select_related('user').order_by('-last_activity')
-
     user_id = request.GET.get('user_id', '').strip()
     if user_id:
         auth_queryset = auth_queryset.filter(user_id=user_id)
@@ -307,6 +338,33 @@ def login_history_api_view(request):
     if guest_ip:
         auth_queryset = auth_queryset.none()
         visit_queryset = visit_queryset.filter(user__isnull=True, ip_address__iexact=guest_ip)
+
+    ip_filter = request.GET.get('ip', '').strip()
+    if ip_filter:
+        auth_queryset = auth_queryset.filter(details__icontains=ip_filter)
+        visit_queryset = visit_queryset.filter(ip_address__iexact=ip_filter)
+
+    os_filter = request.GET.get('os', '').strip()
+    if os_filter:
+        auth_queryset = auth_queryset.none()
+        visit_queryset = visit_queryset.filter(operating_system__icontains=os_filter)
+
+    identity_filter = request.GET.get('identity', 'all').strip() or 'all'
+    if identity_filter == 'users_only':
+        auth_queryset = auth_queryset.filter(user__isnull=False)
+        visit_queryset = visit_queryset.filter(user__isnull=False)
+    elif identity_filter == 'guests_only':
+        auth_queryset = auth_queryset.none()
+        visit_queryset = visit_queryset.filter(user__isnull=True)
+    elif identity_filter == 'matched_guests_only':
+        auth_queryset = auth_queryset.none()
+        known_ips = list(
+            SiteVisitLog.objects
+            .filter(user__isnull=False, ip_address__isnull=False)
+            .values_list('ip_address', flat=True)
+            .distinct()
+        )
+        visit_queryset = visit_queryset.filter(user__isnull=True, ip_address__in=known_ips)
 
     search = request.GET.get('search', '').strip()
     if search:
@@ -321,6 +379,7 @@ def login_history_api_view(request):
         visit_queryset = visit_queryset.filter(
             Q(ip_address__icontains=search)
             | Q(session_key__icontains=search)
+            | Q(operating_system__icontains=search)
             | Q(user__email__icontains=search)
             | Q(user__first_name__icontains=search)
             | Q(user__last_name__icontains=search)
@@ -339,6 +398,10 @@ def login_history_api_view(request):
     if source in {'all', 'auth'}:
         for item in auth_queryset:
             entry = _build_auth_activity_entry(item)
+            details = item.details or ''
+            ip_match = re.search(r'(?:from IP:\s*|IP:\s*)([0-9a-fA-F\.:]+)', details)
+            extracted_ip = ip_match.group(1).strip() if ip_match else ''
+
             auth_payload.append(
                 {
                     'id': item.id,
@@ -348,10 +411,14 @@ def login_history_api_view(request):
                     'source_label': entry['source_label'],
                     'action': item.action,
                     'event_label': entry['event_label'],
-                    'details': item.details or '',
+                    'details': details,
                     'status': entry['status'],
                     'status_label': entry['status_label'],
                     'timestamp': _safe_iso(item.timestamp),
+                    'ip_address': extracted_ip,
+                    'operating_system': '',
+                    'duration_min': None,
+                    'session_key_short': '',
                     '_sort_at': item.timestamp,
                 }
             )
@@ -361,15 +428,20 @@ def login_history_api_view(request):
         for log in visit_queryset:
             entry = _build_site_visit_entry(log)
             user_display = 'مهمان (ناشناس)'
-            user_id = None
+            user_id_val = None
             if log.user:
                 user_display = log.user.get_full_name() or log.user.email or log.user.phone_number
-                user_id = str(log.user_id)
+                user_id_val = str(log.user_id)
+
+            raw_ip = log.ip_address or ''
+            if not raw_ip and entry.get('ip') != 'نامشخص':
+                raw_ip = entry.get('ip') or ''
+
             visit_payload.append(
                 {
                     'id': f'visit-{log.id}',
                     'user_name': user_display,
-                    'user_id': user_id,
+                    'user_id': user_id_val,
                     'source': entry['source'],
                     'source_label': entry['source_label'],
                     'action': entry['event_type'],
@@ -378,7 +450,8 @@ def login_history_api_view(request):
                     'status': entry['status'],
                     'status_label': entry['status_label'],
                     'timestamp': entry['occurred_at'],
-                    'ip_address': entry['ip'],
+                    'ip_address': raw_ip,
+                    'operating_system': log.operating_system or entry.get('operating_system', '') or '',
                     'duration_min': entry['duration_min'],
                     'session_key_short': entry['session_key_short'],
                     '_sort_at': log.last_activity,
@@ -388,14 +461,106 @@ def login_history_api_view(request):
     combined_payload = [*auth_payload, *visit_payload]
     combined_payload.sort(key=lambda item: item.get('_sort_at') or datetime.min, reverse=True)
 
-    paginator = Paginator(combined_payload, 100)
+    try:
+        page_size = max(10, min(100, int(request.GET.get('page_size', 50))))
+    except (TypeError, ValueError):
+        page_size = 50
+
+    paginator = Paginator(combined_payload, page_size)
     page_obj = paginator.get_page(request.GET.get('page', 1))
 
+    # واکشی و تطبیق هوشمند کاربر از روی IP برای رکوردهای صفحه جاری
+    page_ips = {
+        item.get('ip_address')
+        for item in page_obj.object_list
+        if item.get('ip_address') and item.get('ip_address') not in {'نامشخص', '', '-'}
+    }
+
+    ip_to_users = defaultdict(dict)
+    if page_ips:
+        known_visits = (
+            SiteVisitLog.objects
+            .filter(ip_address__in=page_ips, user__isnull=False)
+            .select_related('user')
+            .order_by('-last_activity')
+        )
+        for kv in known_visits:
+            ip = kv.ip_address
+            u = kv.user
+            uid = str(u.id)
+            if uid not in ip_to_users[ip]:
+                ip_to_users[ip][uid] = {
+                    'id': uid,
+                    'name': u.get_full_name() or u.phone_number or u.email,
+                    'phone': u.phone_number or '',
+                    'email': u.email or '',
+                    'last_seen': _safe_iso(kv.last_activity),
+                    'operating_system': kv.operating_system or '',
+                    'visit_count': 1,
+                }
+            else:
+                ip_to_users[ip][uid]['visit_count'] += 1
+
+        unresolved_ips = [ip for ip in page_ips if not ip_to_users.get(ip)]
+        if unresolved_ips:
+            q_auth = Q()
+            for uip in unresolved_ips:
+                q_auth |= Q(details__icontains=uip)
+            auth_matches = (
+                ActivityLog.objects
+                .filter(q_auth, user__isnull=False)
+                .select_related('user')
+                .order_by('-timestamp')
+            )
+            for am in auth_matches:
+                u = am.user
+                uid = str(u.id)
+                for uip in unresolved_ips:
+                    if uip in (am.details or ''):
+                        if uid not in ip_to_users[uip]:
+                            ip_to_users[uip][uid] = {
+                                'id': uid,
+                                'name': u.get_full_name() or u.phone_number or u.email,
+                                'phone': u.phone_number or '',
+                                'email': u.email or '',
+                                'last_seen': _safe_iso(am.timestamp),
+                                'operating_system': '',
+                                'visit_count': 1,
+                            }
+
     payload = []
+    matched_guests_on_page = 0
+    guests_on_page = 0
     for item in page_obj.object_list:
         entry = dict(item)
         entry.pop('_sort_at', None)
+
+        ip = entry.get('ip_address')
+        users_for_ip = list(ip_to_users.get(ip, {}).values()) if ip else []
+
+        entry['associated_users'] = users_for_ip
+        entry['associated_users_count'] = len(users_for_ip)
+
+        is_guest = not bool(entry.get('user_id'))
+        if is_guest:
+            guests_on_page += 1
+            if users_for_ip:
+                matched_guests_on_page += 1
+                entry['is_ip_matched'] = True
+                entry['matched_user'] = users_for_ip[0]
+                entry['match_confidence'] = 'high' if len(users_for_ip) == 1 else 'multiple'
+            else:
+                entry['is_ip_matched'] = False
+                entry['matched_user'] = None
+                entry['match_confidence'] = 'none'
+        else:
+            entry['is_ip_matched'] = False
+            entry['matched_user'] = None
+            entry['match_confidence'] = 'none'
+
         payload.append(entry)
+
+    guest_total = sum(1 for item in visit_payload if not item.get('user_id'))
 
     return JsonResponse(
         {
@@ -403,13 +568,124 @@ def login_history_api_view(request):
             'total': paginator.count,
             'pages': paginator.num_pages,
             'current_page': page_obj.number,
+            'page_size': page_size,
             'source': source,
             'auth_total': len(auth_payload),
             'visit_total': len(visit_payload),
+            'guest_total': guest_total,
+            'matched_guests_on_page': matched_guests_on_page,
+            'guests_on_page': guests_on_page,
             'active_user_id': user_id or None,
             'active_guest_ip': guest_ip or None,
+            'active_ip': ip_filter or None,
+            'active_os': os_filter or None,
+            'active_identity': identity_filter,
         }
     )
+
+
+@superuser_required
+@require_http_methods(['GET'])
+def ip_intelligence_api_view(request):
+    """
+    API تحلیل هوشمند یک آدرس IP:
+    استخراج تمام کاربران مرتبط، نشست‌ها، سیستم‌عامل‌ها و فعالیت‌های مرتبط با این IP.
+    """
+    ip = request.GET.get('ip', '').strip()
+    if not ip:
+        return JsonResponse({'error': 'آدرس آی‌پی ارسال نشده است.'}, status=400)
+
+    visit_logs = list(
+        SiteVisitLog.objects
+        .filter(ip_address__iexact=ip)
+        .select_related('user')
+        .order_by('-last_activity')
+    )
+
+    auth_logs = list(
+        ActivityLog.objects
+        .filter(details__icontains=ip)
+        .select_related('user')
+        .order_by('-timestamp')
+    )
+
+    associated_users_map = {}
+    for log in visit_logs:
+        if log.user:
+            uid = str(log.user.id)
+            if uid not in associated_users_map:
+                associated_users_map[uid] = {
+                    'id': uid,
+                    'name': log.user.get_full_name() or log.user.phone_number or log.user.email,
+                    'phone': log.user.phone_number or '',
+                    'email': log.user.email or '',
+                    'last_seen': _safe_iso(log.last_activity),
+                    'sessions_count': 1,
+                    'first_seen': _safe_iso(log.start_time),
+                    'last_os': log.operating_system or '',
+                }
+            else:
+                associated_users_map[uid]['sessions_count'] += 1
+
+    for alog in auth_logs:
+        if alog.user:
+            uid = str(alog.user.id)
+            if uid not in associated_users_map:
+                associated_users_map[uid] = {
+                    'id': uid,
+                    'name': alog.user.get_full_name() or alog.user.phone_number or alog.user.email,
+                    'phone': alog.user.phone_number or '',
+                    'email': alog.user.email or '',
+                    'last_seen': _safe_iso(alog.timestamp),
+                    'sessions_count': 1,
+                    'first_seen': _safe_iso(alog.timestamp),
+                    'last_os': '',
+                }
+
+    associated_users = sorted(
+        associated_users_map.values(),
+        key=lambda u: u['last_seen'] or '',
+        reverse=True
+    )
+
+    os_list = sorted(list({log.operating_system for log in visit_logs if log.operating_system}))
+    total_visits = len(visit_logs)
+    guest_visits = sum(1 for log in visit_logs if not log.user)
+    user_visits = sum(1 for log in visit_logs if log.user)
+
+    all_times = [l.last_activity for l in visit_logs if l.last_activity] + [al.timestamp for al in auth_logs if al.timestamp]
+    earliest_time = _safe_iso(min(all_times)) if all_times else None
+    latest_time = _safe_iso(max(all_times)) if all_times else None
+
+    recent_sessions = [
+        {
+            'id': log.id,
+            'user_name': (log.user.get_full_name() or log.user.phone_number or log.user.email) if log.user else 'مهمان (ناشناس)',
+            'user_id': str(log.user.id) if log.user else None,
+            'operating_system': log.operating_system or 'نامشخص',
+            'duration_min': getattr(log, 'duration_in_minutes', 0),
+            'start_time': _safe_iso(log.start_time),
+            'last_activity': _safe_iso(log.last_activity),
+            'is_closed': log.is_closed,
+        }
+        for log in visit_logs[:10]
+    ]
+
+    return JsonResponse({
+        'ip': ip,
+        'associated_users': associated_users,
+        'associated_users_count': len(associated_users),
+        'is_matched': len(associated_users) > 0,
+        'confidence': 'high' if len(associated_users) == 1 else ('multiple' if len(associated_users) > 1 else 'none'),
+        'operating_systems': os_list,
+        'total_visits': total_visits,
+        'guest_visits': guest_visits,
+        'user_visits': user_visits,
+        'auth_logs_count': len(auth_logs),
+        'first_seen': earliest_time,
+        'last_seen': latest_time,
+        'recent_sessions': recent_sessions,
+    })
 
 
 @staff_required
@@ -468,11 +744,18 @@ def list_view(request):
         .values('total')[:1]
     )
 
+    pending_q = CustomUser.get_pending_verification_q()
     users = (
         CustomUser.objects
         .all()
         .prefetch_related('verification_requests')
         .annotate(
+            status_order=Case(
+                When(pending_q, then=Value(2)),
+                When(is_active=True, then=Value(1)),
+                default=Value(3),
+                output_field=IntegerField(),
+            ),
             last_activity_time=Subquery(activity_subquery, output_field=DateTimeField()),
             store_visits_count=Coalesce(Subquery(store_visits_subquery, output_field=IntegerField()), 0),
             auction_visits_count=Coalesce(Subquery(auction_visits_subquery, output_field=IntegerField()), 0),
@@ -489,6 +772,10 @@ def list_view(request):
         )
     )
 
+    # staff نمی‌تواند سوپریوزرها را در لیست ببیند
+    if not request.user.is_superuser:
+        users = users.filter(is_superuser=False)
+
     has_manual_filters = any([
         request.GET.get('status'),
         request.GET.get('search'),
@@ -503,10 +790,9 @@ def list_view(request):
             filter_kwargs = {}
             for key, value in default_filter.criteria.items():
                 if key == 'status':
-                    if value == 'active':
-                        filter_kwargs['is_active'] = True
-                    elif value == 'inactive':
-                        filter_kwargs['is_active'] = False
+                    status_q = CustomUser.get_status_q(value)
+                    if status_q:
+                        users = users.filter(status_q)
                     continue
                 if '__gte' in key or '__lte' in key or 'date_joined' in key:
                     try:
@@ -521,19 +807,43 @@ def list_view(request):
     else:
         status = request.GET.get('status')
         if status:
-            if status == 'active':
-                users = users.filter(is_active=True)
-            elif status == 'inactive':
-                users = users.filter(is_active=False)
+            status_q = CustomUser.get_status_q(status)
+            if status_q:
+                users = users.filter(status_q)
 
         search = request.GET.get('search')
         if search:
             users = users.filter(CustomUser.search_q(search))
 
+        if request.GET.get('date_joined__gte'):
+            try:
+                val = datetime.fromisoformat(request.GET.get('date_joined__gte')).date()
+                users = users.filter(date_joined__date__gte=val)
+            except (ValueError, AttributeError):
+                pass
+
+        if request.GET.get('date_joined__lte'):
+            try:
+                val = datetime.fromisoformat(request.GET.get('date_joined__lte')).date()
+                users = users.filter(date_joined__date__lte=val)
+            except (ValueError, AttributeError):
+                pass
+
+        if request.GET.get('is_staff'):
+            users = users.filter(is_staff=request.GET.get('is_staff').lower() in ('1', 'true'))
+
     # مرتب‌سازی پایه
     sort_param = request.GET.get('sort', '-date_joined')
     if sort_param:
-        sort_fields = [s.strip() for s in sort_param.split(',') if s.strip()]
+        raw_fields = [s.strip() for s in sort_param.split(',') if s.strip()]
+        sort_fields = []
+        for s in raw_fields:
+            if s in ('status', 'is_active', 'user_status'):
+                sort_fields.append('status_order')
+            elif s in ('-status', '-is_active', '-user_status'):
+                sort_fields.append('-status_order')
+            else:
+                sort_fields.append(s)
         if sort_fields:
             users = users.order_by(*sort_fields)
         else:
@@ -562,11 +872,14 @@ def list_view(request):
             'name': user.get_full_name() or user.email,
             'username': user.username or '',
             'is_active': user.is_active,
+            'user_status': getattr(user, 'user_status', 'active' if user.is_active else 'inactive'),
+            'user_status_label': getattr(user, 'user_status_label', 'فعال' if user.is_active else 'غیرفعال'),
             'is_staff': user.is_staff,
             'is_superuser': user.is_superuser,
             'is_verified': int(user.is_verified or 0),
             'email': user.email or '',
             'telegram_id': user.telegram_id or '',
+            'newsletter_catalog_opt_in': bool(getattr(user, 'newsletter_catalog_opt_in', False)),
             'address_city': user.address_city or '',
             'address_country': user.address_country or '',
             'credit': str(user.credit or 0),
@@ -599,9 +912,14 @@ def list_view(request):
 @log_admin_action('update')
 def detail_view(request, pk):
     """
-    دریافت (GET) و به‌روزرسانی (PUT/POST) اطلاعات یک کاربر خاص.
+    دریافت (GET) و به‌روزرسانی (PUT/POST) اطلاعات یک کاربر خاص به همراه ثبت لاگ تغییرات.
+    Staff نمی‌تواند اطلاعات سوپریوزر را مشاهده یا ویرایش کند.
     """
     user = get_object_or_404(CustomUser, pk=pk)
+
+    # staff نمی‌تواند اطلاعات سوپریوزر را ببیند یا ویرایش کند
+    if user.is_superuser and not request.user.is_superuser:
+        return JsonResponse({'error': 'Forbidden'}, status=403)
 
     if request.method in ['PUT', 'POST']:
         if request.content_type and 'application/json' in request.content_type:
@@ -613,8 +931,69 @@ def detail_view(request, pk):
         if not form.is_valid():
             return JsonResponse({'success': False, 'errors': form.errors.get_json_data()}, status=400)
 
+        # ذخیره مقادیر قبلی برای مقایسه و محاسبه تفاوت‌ها (Diff)
+        old_data = {
+            'is_active': user.is_active,
+            'credit': user.credit,
+            'current_credit': user.current_credit,
+            'is_verified': user.is_verified,
+            'is_staff': user.is_staff,
+            'is_superuser': user.is_superuser,
+            'full_name': user.full_name,
+            'phone_number': user.phone_number,
+            'email': user.email,
+            'address_country': user.address_country,
+            'address_city': user.address_city,
+            'address_street': user.address_street,
+            'description': user.description,
+            'newsletter_catalog_opt_in': user.newsletter_catalog_opt_in,
+        }
+
         user = form.save()
         invalidate_cache('admin_users*')
+
+        # برچسب‌های فارسی برای تغییرات فیلدها
+        fields_map = {
+            'is_active': 'وضعیت فعال‌سازی',
+            'credit': 'اعتبار کل',
+            'current_credit': 'اعتبار جاری',
+            'is_verified': 'وضعیت احراز هویت',
+            'is_staff': 'دسترسی مدیریت (Staff)',
+            'is_superuser': 'دسترسی مدیر ارشد (Superuser)',
+            'full_name': 'نام کامل',
+            'phone_number': 'شماره موبایل',
+            'email': 'ایمیل',
+            'address_city': 'شهر',
+            'address_street': 'آدرس',
+            'description': 'توضیحات',
+            'newsletter_catalog_opt_in': 'دریافت خبرنامه',
+        }
+
+        changes, diff_descriptions = compute_field_diff(old_data, user, fields_map)
+        user_repr = format_user_display(user)
+
+        if changes:
+            # تشخیص نوع عملیات بر اساس مهم‌ترین فیلدهای تغییریافته
+            action_code = 'user_update'
+            if 'is_active' in changes:
+                action_code = 'user_activate' if user.is_active else 'user_deactivate'
+            elif 'credit' in changes or 'current_credit' in changes:
+                action_code = 'user_credit_update'
+
+            desc_text = f"ویرایش اطلاعات کاربر «{user_repr}»: " + ' | '.join(diff_descriptions)
+
+            record_admin_activity(
+                admin_user=request.user,
+                action=action_code,
+                description=desc_text,
+                target_type='کاربر',
+                target_id=str(user.pk),
+                target_repr=user_repr,
+                changes=changes,
+                request=request,
+                content_object=user,
+            )
+            request._admin_log_recorded = True
 
         return JsonResponse({'success': True, 'user': _serialize_user_detail(user)})
 
@@ -627,7 +1006,7 @@ def detail_view(request, pk):
 @log_admin_action('update')
 def bulk_action(request):
     """
-    انجام عملیات گروهی روی چند کاربر (مانند فعال/غیرفعال سازی دسته‌جمعی).
+    انجام عملیات گروهی روی چند کاربر (مانند فعال/غیرفعال سازی دسته‌جمعی) با ثبت لاگ تفصیلی.
     """
     data = _request_payload(request)
     ids = data.get('ids', [])
@@ -637,13 +1016,42 @@ def bulk_action(request):
         return JsonResponse({'error': 'Invalid payload'}, status=400)
 
     queryset = CustomUser.objects.filter(pk__in=ids)
+    users_list = list(queryset)
+
+    if not users_list:
+        return JsonResponse({'error': 'No users found for given IDs'}, status=404)
+
+    # staff نمی‌تواند سوپریوزرها را در عملیات گروهی تغییر دهد
+    if not request.user.is_superuser:
+        if any(u.is_superuser for u in users_list):
+            return JsonResponse({'error': 'Forbidden: cannot modify superuser accounts'}, status=403)
+
+    target_names = [format_user_display(u) for u in users_list[:4]]
+    extra_count = len(users_list) - len(target_names)
+    names_summary = '، '.join(target_names) + (f' و {extra_count} کاربر دیگر' if extra_count > 0 else '')
 
     if action == 'activate':
         queryset.update(is_active=True)
+        action_code = 'user_bulk_activate'
+        desc_text = f"فعال‌سازی دسته‌جمعی {len(users_list)} کاربر ({names_summary})"
     elif action == 'deactivate':
         queryset.update(is_active=False)
+        action_code = 'user_bulk_deactivate'
+        desc_text = f"غیرفعال‌سازی دسته‌جمعی {len(users_list)} کاربر ({names_summary})"
     else:
         return JsonResponse({'error': 'Unknown action'}, status=400)
+
+    record_admin_activity(
+        admin_user=request.user,
+        action=action_code,
+        description=desc_text,
+        target_type='کاربران (گروهی)',
+        target_id=','.join([str(u.pk) for u in users_list[:10]]),
+        target_repr=names_summary,
+        changes={'action': action, 'affected_user_ids': [str(u.pk) for u in users_list], 'count': len(users_list)},
+        request=request,
+    )
+    request._admin_log_recorded = True
 
     invalidate_cache('admin_users*')
     return JsonResponse({'success': True})
@@ -654,8 +1062,12 @@ def bulk_action(request):
 def auction_activity(request, pk):
     """
     دریافت آمار فعالیت‌های کاربر در مزایده‌ها با استفاده از کوئری‌های بهینه‌شده دیتابیس.
+    Staff نمی‌تواند فعالیت مزایده سوپریوزر را ببیند.
     """
     user = get_object_or_404(CustomUser, pk=pk)
+
+    if user.is_superuser and not request.user.is_superuser:
+        return JsonResponse({'error': 'Forbidden'}, status=403)
 
     bids = (
         Bid.objects.filter(user=user)
@@ -754,6 +1166,7 @@ def global_site_visits_api_view(request):
             'user_display': user_display,
             'user_id': user_id,
             'ip_address': log.ip_address or 'نامشخص',
+            'operating_system': getattr(log, 'operating_system', '') or '',
             'start_time': log.start_time.isoformat() if log.start_time else None,
             'last_activity': log.last_activity.isoformat() if log.last_activity else None,
             'duration_minutes': duration,
@@ -778,6 +1191,10 @@ def user_product_visits_api(request, pk):
     محصولات فروشگاه، محصولات مزایده و خود مزایده‌ها.
     """
     user = get_object_or_404(CustomUser, pk=pk)
+
+    denied = _check_superuser_access(request, user)
+    if denied:
+        return denied
 
     visit_type = request.GET.get('type', 'store_products').strip()
     valid_types = {'store_products', 'auction_products', 'auctions'}
@@ -894,6 +1311,10 @@ def user_product_visits_api(request, pk):
 @require_http_methods(['GET'])
 def user_bids_api(request, pk):
     user = get_object_or_404(CustomUser, pk=pk)
+
+    denied = _check_superuser_access(request, user)
+    if denied:
+        return denied
     queryset = Bid.objects.filter(user=user).select_related('auction', 'product').order_by('-created_at')
 
     search = request.GET.get('search', '').strip()
@@ -933,6 +1354,10 @@ def user_bids_api(request, pk):
 @staff_required
 def user_bids(request, pk):
     user = get_object_or_404(CustomUser, pk=pk)
+
+    denied = _check_superuser_access(request, user)
+    if denied:
+        return denied
     queryset = Bid.objects.filter(user=user).select_related('auction', 'product').order_by('-created_at')
 
     search = request.GET.get('search', '').strip()
@@ -975,6 +1400,10 @@ def user_purchased_products_api(request, pk):
     API برای دریافت محصولات خریداری شده توسط کاربر
     """
     user = get_object_or_404(CustomUser, pk=pk)
+
+    denied = _check_superuser_access(request, user)
+    if denied:
+        return denied
     
     # محصولات خریداری شده از فروشگاه
     purchases = PurchaseHistory.objects.filter(user=user).select_related('artwork').order_by('-created_at')
@@ -1014,6 +1443,10 @@ def user_purchased_products_api(request, pk):
 @staff_required
 def user_cart_bids_summary_api(request, pk):
     user = get_object_or_404(CustomUser, pk=pk)
+
+    denied = _check_superuser_access(request, user)
+    if denied:
+        return denied
     now = timezone.now()
     profile_context = build_profile_live_context(user)
 
@@ -1054,9 +1487,10 @@ def user_cart_bids_summary_api(request, pk):
             })
 
     active_cart_items = cart_items.filter(
+        Q(product__extended_end_time__isnull=False, product__extended_end_time__gte=now)
+        | Q(product__extended_end_time__isnull=True, auction__end_date__gte=now),
         is_active=True,
         auction__start_date__lte=now,
-        auction__end_date__gte=now,
     )
     active_count = active_cart_items.count()
     reserved_total_amount = sum(
@@ -1107,16 +1541,21 @@ def user_reserved_products_api(request, pk):
     API برای دریافت محصولات در حال رزرو (سبد مزایده) کاربر
     """
     user = get_object_or_404(CustomUser, pk=pk)
+
+    denied = _check_superuser_access(request, user)
+    if denied:
+        return denied
     now = timezone.now()
     
     # محصولات رزرو شده در مزایده
     cart_items = (
         AuctionCartItem.objects
         .filter(
+            Q(product__extended_end_time__isnull=False, product__extended_end_time__gte=now)
+            | Q(product__extended_end_time__isnull=True, auction__end_date__gte=now),
             user=user,
             is_active=True,
             auction__start_date__lte=now,
-            auction__end_date__gte=now,
         )
         .select_related('auction', 'product', 'bid')
         .order_by('-created_at')
@@ -1159,6 +1598,10 @@ def user_reserved_products_api(request, pk):
 @staff_required
 def user_purchase_requests_summary_api(request, pk):
     user = get_object_or_404(CustomUser, pk=pk)
+
+    denied = _check_superuser_access(request, user)
+    if denied:
+        return denied
     profile_context = build_profile_live_context(user)
     store_purchases = profile_context.get('store_purchases', [])
     auction_purchases = profile_context.get('auction_purchases', [])
@@ -1187,6 +1630,10 @@ def user_telegram_requests_api(request, pk):
     API برای دریافت درخواست‌های خرید تلگرامی کاربر
     """
     user = get_object_or_404(CustomUser, pk=pk)
+
+    denied = _check_superuser_access(request, user)
+    if denied:
+        return denied
     
     telegram_requests = (
         TelegramPurchaseRequest.objects
@@ -1225,3 +1672,57 @@ def user_telegram_requests_api(request, pk):
         'pages': paginator.num_pages,
         'current_page': page_obj.number,
     })
+
+
+@require_http_methods(['GET'])
+@staff_required
+def user_auction_invoices_api(request, pk):
+    """
+    API دریافت فاکتورهای مزایده صادر شده برای کاربر به همراه لینک دانلود PDF
+    """
+    user = get_object_or_404(CustomUser, pk=pk)
+
+    denied = _check_superuser_access(request, user)
+    if denied:
+        return denied
+    from auction.models import AuctionInvoice
+
+    invoices = (
+        AuctionInvoice.objects.filter(user=user)
+        .select_related('auction')
+        .order_by('-issued_at')
+    )
+
+    search = request.GET.get('search', '').strip()
+    if search:
+        invoices = invoices.filter(
+            Q(invoice_number__icontains=search)
+            | Q(auction__name__icontains=search)
+        )
+
+    paginator = Paginator(invoices, 20)
+    page_obj = paginator.get_page(request.GET.get('page', 1))
+
+    results = []
+    for inv in page_obj.object_list:
+        results.append({
+            'id': inv.id,
+            'invoice_number': inv.invoice_number,
+            'auction_id': inv.auction_id,
+            'auction_name': inv.auction.name if inv.auction else '-',
+            'total_hammer_price': str(inv.total_hammer_price),
+            'buyers_premium': str(inv.buyers_premium),
+            'total_amount': str(inv.total_amount),
+            'issued_at': inv.issued_at.isoformat() if inv.issued_at else None,
+            'jalali_issued_at': inv.jalali_issued_at,
+            'pdf_url': reverse('auction:invoice_pdf', args=[inv.pk]),
+            'detail_url': reverse('auction:invoice_detail', args=[inv.pk]),
+        })
+
+    return JsonResponse({
+        'results': results,
+        'total': paginator.count,
+        'pages': paginator.num_pages,
+        'current_page': page_obj.number,
+    })
+

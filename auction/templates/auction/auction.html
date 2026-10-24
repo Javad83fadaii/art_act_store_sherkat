@@ -10,89 +10,101 @@
              id="menu-overlay"
              onclick="closeMenu()"></div>
 
-        <main class="flex-grow w-full max-w-[1300px] mx-auto px-4 sm:px-6 lg:px-8 py-10">
-            <div class="mb-10 text-center max-w-3xl mx-auto space-y-4 animate-fadeIn" style="animation-delay: 0.1s;">
-                <h2 class="text-3xl md:text-5xl font-bold leading-tight tracking-tight text-text-main dark:text-white font-display">
-                    {% if auction %}محصولات مزایده{% else %}مزایده{% endif %}
+        <div class="flex-grow w-full max-w-[1300px] mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10">
+            <!-- هدر مزایده همراه با پیشوند «مزایده» -->
+            <div class="text-center max-w-3xl mx-auto space-y-2 animate-fadeIn">
+                <h2 class="text-2xl sm:text-3xl md:text-4xl font-normal tracking-tight text-[#988454] dark:text-amber-200 font-display">
+                    {% if auction %}مزایده {{ auction.name|default:auction }}{% else %}مزایده{% endif %}
                 </h2>
-                <p class="text-text-muted dark:text-neutral-400 text-lg md:text-xl font-medium leading-relaxed font-body">
-                    {% if auction %}{{ auction.name|default:auction }}{% else %}فرصتی بی‌نظیر برای سرمایه‌گذاری در هنر. آثار نفیس از هنرمندان معاصر و کلاسیک در مزایده آنلاین.{% endif %}
-                </p>
-                <div class="w-16 h-0.5 bg-primary mx-auto mt-8 opacity-80"></div>
+                {% if not auction %}
+                    <p class="text-neutral-500 dark:text-neutral-400 text-sm md:text-base font-normal leading-relaxed">
+                        فرصتی بی‌نظیر برای سرمایه‌گذاری در هنر. آثار نفیس از هنرمندان معاصر و کلاسیک در مزایده آنلاین.
+                    </p>
+                {% endif %}
             </div>
 
-            <div class="mb-12 flex flex-col lg:flex-row items-center justify-between gap-6 pb-6 border-b border-neutral-200 dark:border-zinc-800"></div>
+            <!-- بخش استوری‌های اینستاگرامی سبد خرید مزایده کاربر -->
+            {% include 'auction/partials/auction_user_stories.html' %}
 
             {% if auction %}
                 <div id="auction-time-window" class="hidden"
+                     data-auction-id="{{ auction.pk|default:'' }}"
                      data-start="{{ auction.start_date|date:'c' }}"
-                     data-end="{{ auction.end_date|date:'c' }}"></div>
+                     data-end="{{ auction.end_date|date:'c' }}"
+                     data-max-end="{{ auction.get_max_end_date|date:'c' }}"
+                     data-status="{{ auction.status }}"
+                     data-extended-count="{{ auction.get_active_extended_products_count }}"></div>
                 <div id="credit-request-status" class="hidden" data-status="{{ latest_credit_request_status }}"></div>
                 
-                <div class="mb-10 flex flex-col items-center animate-fadeIn" style="animation-delay: 0.2s; min-height: 120px;">
-                    <!-- لیبل تایمر -->
-                    <div id="timer-label" class="text-xs sm:text-sm font-bold uppercase tracking-widest mb-4 flex items-center justify-center gap-2 text-primary transition-all duration-300">
-                        <span class="material-symbols-outlined text-[20px]">pending</span>
-                        در حال محاسبه وضعیت...
-                    </div>
-                    
-                    <!-- کانتینر شمارش معکوس -->
-                    <div id="auction-main-countdown" class="flex items-center gap-2 justify-center transition-all duration-500">
-                        <div class="flex flex-col items-center justify-center min-w-[3.2rem] h-14 bg-white dark:bg-zinc-800 rounded-lg border border-neutral-200 dark:border-zinc-700 shadow-sm transition-colors duration-300 timer-box">
-                            <span id="main-secs" class="tabular-nums text-2xl font-en font-black text-neutral-900 dark:text-white">۰۰</span>
-                            <span class="text-[10px] font-bold text-neutral-400">ثانیه</span>
+                <!-- تایمر ثابت دقیقاً زیر عنوان مزایده -->
+                <div class="w-full flex justify-center mt-4 mb-6 animate-fadeIn">
+                    <div id="auction-timer-bar" class="inline-flex items-center gap-3 sm:gap-5 px-5 py-2.5 rounded-2xl border border-[#E6DFD5] bg-[#FAF0D7]/90 dark:bg-zinc-900/90 dark:border-zinc-800 shadow-[0_4px_16px_rgba(36,33,29,0.06)] transition-all">
+                        
+                        <!-- وضعیت -->
+                        <div id="timer-label" class="flex items-center gap-2 text-xs sm:text-[13px] font-bold text-[#7A6A43] dark:text-amber-300 whitespace-nowrap">
+                            <span class="w-2 h-2 rounded-full bg-[#D9962A] animate-pulse shrink-0"></span>
+                            <span>در حال محاسبه...</span>
                         </div>
-                        <span class="text-xl text-neutral-300 font-bold pb-4">:</span>
-                        <div class="flex flex-col items-center justify-center min-w-[3.2rem] h-14 bg-white dark:bg-zinc-800 rounded-lg border border-neutral-200 dark:border-zinc-700 shadow-sm transition-colors duration-300 timer-box">
-                            <span id="main-mins" class="tabular-nums text-2xl font-en font-black text-neutral-900 dark:text-white">۰۰</span>
-                            <span class="text-[10px] font-bold text-neutral-400">دقیقه</span>
-                        </div>
-                        <span class="text-xl text-neutral-300 font-bold pb-4">:</span>
-                        <div class="flex flex-col items-center justify-center min-w-[3.2rem] h-14 bg-white dark:bg-zinc-800 rounded-lg border border-neutral-200 dark:border-zinc-700 shadow-sm transition-colors duration-300 timer-box">
-                            <span id="main-hours" class="tabular-nums text-2xl font-en font-black text-neutral-900 dark:text-white">۰۰</span>
-                            <span class="text-[10px] font-bold text-neutral-400">ساعت</span>
-                        </div>
-                        <span class="text-xl text-neutral-300 font-bold pb-4">:</span>
-                        <div class="flex flex-col items-center justify-center min-w-[3.2rem] h-14 bg-white dark:bg-zinc-800 rounded-lg border border-neutral-200 dark:border-zinc-700 shadow-sm transition-colors duration-300 timer-box">
-                            <span id="main-days" class="tabular-nums text-2xl font-en font-black text-neutral-900 dark:text-white">۰۰</span>
-                            <span class="text-[10px] font-bold text-neutral-400">روز</span>
-                        </div>
-                    </div>
 
-                    <!-- باکس پایان مزایده -->
-                    <div id="auction-main-ended" class="hidden animate-fadeIn flex flex-col items-center justify-center w-full max-w-lg">
-                        <div class="w-14 h-14 bg-red-50 dark:bg-red-500/10 rounded-2xl border border-red-100 dark:border-red-500/20 flex items-center justify-center mb-4">
-                            <span class="material-symbols-outlined text-3xl text-red-500">gavel</span>
+                        <!-- جداکننده خطی -->
+                        <div id="timer-divider" class="h-4 w-px bg-[#E6DFD5] dark:bg-zinc-700"></div>
+
+                        <!-- ارقام تایمر -->
+                        <div id="auction-main-countdown" class="flex items-center gap-2 text-xs sm:text-sm font-en font-black dir-ltr text-[#24211D] dark:text-zinc-100 whitespace-nowrap">
+                            <div class="flex items-baseline gap-0.5">
+                                <span id="main-days" class="tabular-nums text-base sm:text-lg">۰۰</span>
+                                <span class="text-[10px] text-[#7A6A43] dark:text-zinc-400 font-bold font-body">روز</span>
+                            </div>
+                            <span class="text-[#988454] dark:text-zinc-500 font-bold">:</span>
+                            <div class="flex items-baseline gap-0.5">
+                                <span id="main-hours" class="tabular-nums text-base sm:text-lg">۰۰</span>
+                                <span class="text-[10px] text-[#7A6A43] dark:text-zinc-400 font-bold font-body">ساعت</span>
+                            </div>
+                            <span class="text-[#988454] dark:text-zinc-500 font-bold">:</span>
+                            <div class="flex items-baseline gap-0.5">
+                                <span id="main-mins" class="tabular-nums text-base sm:text-lg">۰۰</span>
+                                <span class="text-[10px] text-[#7A6A43] dark:text-zinc-400 font-bold font-body">دقیقه</span>
+                            </div>
+                            <span class="text-[#988454] dark:text-zinc-500 font-bold">:</span>
+                            <div class="flex items-baseline gap-0.5">
+                                <span id="main-secs" class="tabular-nums text-base sm:text-lg">۰۰</span>
+                                <span class="text-[10px] text-[#7A6A43] dark:text-zinc-400 font-bold font-body">ثانیه</span>
+                            </div>
                         </div>
-                        <h3 class="text-xl md:text-2xl font-bold text-neutral-900 dark:text-white mb-2 font-display">این مزایده به پایان رسیده است</h3>
-                        <p class="text-sm md:text-base text-neutral-500 dark:text-neutral-400 font-medium">فرصت شرکت و ثبت پیشنهاد در این رویداد تمام شده است.</p>
+
+                        <!-- وضعیت پایان یافته -->
+                        <div id="auction-main-ended" class="hidden items-center gap-1.5 text-xs text-[#646464] dark:text-zinc-400 whitespace-nowrap">
+                            <span class="material-symbols-outlined text-[16px]">lock</span>
+                            <span>مزایده به پایان رسید</span>
+                        </div>
                     </div>
                 </div>
             {% endif %}
 
-            <div id="products-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-8">
+            <!-- گرید محصولات -->
+            <div id="products-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-8 mt-4">
                 {% if auction %}
                     {% include 'auction/partials/product_cards.html' with products=products %}
                 {% elif auctions %}
                     {% for auction in auctions %}
-                        <div class="group bg-white dark:bg-zinc-900 rounded-[1.5rem] overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 border border-neutral-200 dark:border-zinc-800 p-2 pb-5">
-                            <div class="relative w-full aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-neutral-100 dark:bg-zinc-800">
+                        <div class="group bg-white dark:bg-zinc-900 rounded-none overflow-hidden shadow-none transition-all duration-300 border border-[#E6DFD5] dark:border-zinc-800 p-2 pb-5">
+                            <div class="relative w-full aspect-[112/135] rounded-none overflow-hidden mb-4 bg-neutral-100 dark:bg-zinc-800">
                                 <img alt="{{ auction.name|default:auction }}"
-                                     class="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+                                     class="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                                      src="{% static 'images/action/' %}{{ auction.pk }}.webp"/>
                             </div>
                             <div class="px-4 text-right">
-                                <h3 class="font-bold text-xl text-neutral-900 dark:text-white leading-tight mb-4 font-display tracking-tight">
+                                <h3 class="font-normal text-xl text-[#988454] leading-tight mb-4 font-display tracking-tight">
                                     {{ auction.name|default:auction }}
                                 </h3>
-                                <div class="bg-neutral-50 dark:bg-zinc-800/50 rounded-xl p-4 mb-4 border border-neutral-100 dark:border-zinc-700">
+                                <div class="bg-[#FAF7F2] dark:bg-zinc-800/50 rounded-none p-4 mb-4 border border-[#E6DFD5] dark:border-zinc-700">
                                     <div class="flex justify-between items-center mb-3">
-                                        <span class="text-xs text-neutral-500 dark:text-neutral-400 font-medium">تعداد آثار</span>
-                                        <span class="font-en font-bold text-sm text-neutral-900 dark:text-white">
+                                        <span class="text-xs text-neutral-500 dark:text-neutral-400 font-normal">تعداد آثار</span>
+                                        <span class="font-en font-semibold text-sm text-neutral-900 dark:text-white">
                                             {{ auction.products_count|default:0|intcomma|fa_digits }}
                                         </span>
                                     </div>
-                                    <div class="space-y-2 text-xs text-neutral-500 dark:text-neutral-400 font-medium">
+                                    <div class="space-y-2 text-xs text-neutral-500 dark:text-neutral-400 font-normal">
                                         <div class="flex items-center justify-between">
                                             <span>شروع</span>
                                             <span class="font-en dir-ltr">{{ auction.start_date|date:"Y/m/d H:i"|fa_digits }}</span>
@@ -103,9 +115,10 @@
                                         </div>
                                     </div>
                                 </div>
-                                <a class="w-full block text-center bg-primary hover:bg-primary-dark text-white text-sm font-bold py-3.5 rounded-xl transition-all shadow-md shadow-primary/20 hover:shadow-lg"
+                                <a class="w-full block text-center bg-[#fce9c4] hover:brightness-95 text-black text-sm font-normal py-3 rounded-none transition-all"
                                    href="{% url 'auction:auction_products' auction.pk %}"
                                    data-track-visit="1"
+                                   data-track-guard="auction-access"
                                    data-track-kind="auction"
                                    data-track-id="{{ auction.pk }}">
                                     مشاهده محصولات مزایده
@@ -113,19 +126,20 @@
                             </div>
                         </div>
                     {% empty %}
-                        <div class="col-span-full py-12 text-center text-neutral-500 dark:text-neutral-400 font-medium bg-neutral-50 dark:bg-zinc-800 rounded-2xl border border-neutral-200 dark:border-zinc-700">
+                        <div class="col-span-full py-12 text-center text-neutral-500 dark:text-neutral-400 font-normal bg-transparent">
                             در حال حاضر مزایده‌ای وجود ندارد.
                         </div>
                     {% endfor %}
                 {% endif %}
             </div>
+
             {% if auction and page_obj %}
                 <div class="mt-8 flex flex-col items-center justify-center gap-4">
-                    <div id="infinite-scroll-loader" class="hidden items-center gap-2 rounded-full border border-neutral-200 dark:border-zinc-700 bg-white/90 dark:bg-zinc-900/90 px-4 py-2 text-sm font-medium text-neutral-600 dark:text-neutral-300 shadow-sm backdrop-blur">
+                    <div id="infinite-scroll-loader" class="hidden items-center gap-2 rounded-full border border-[#E6DFD5] dark:border-zinc-700 bg-white/90 dark:bg-zinc-900/90 px-4 py-2 text-sm font-normal text-neutral-600 dark:text-neutral-300 shadow-sm backdrop-blur">
                         <span class="material-symbols-outlined animate-spin-custom text-base">progress_activity</span>
                         در حال بارگذاری آثار بیشتر...
                     </div>
-                    <div id="infinite-scroll-end" class="{% if page_obj.has_next or not products %}hidden{% endif %} text-sm font-medium text-neutral-500 dark:text-neutral-400">
+                    <div id="infinite-scroll-end" class="{% if page_obj.has_next or not products %}hidden{% endif %} text-xs font-normal text-neutral-400 dark:text-neutral-500">
                         همه محصولات بارگذاری شدند.
                     </div>
                     <div id="infinite-scroll-sentinel"
@@ -135,48 +149,48 @@
                          data-endpoint="{{ request.path }}"></div>
                 </div>
             {% endif %}
-        </main>
+        </div>
     </div>
 
     <!-- مدال درخواست شرکت در مزایده -->
     <div id="auth-verification-modal" class="site-modal-overlay fixed inset-0 z-[999998] bg-black/60 backdrop-blur-sm hidden items-center justify-center opacity-0 transition-opacity duration-300" onclick="if(event.target === this) closeAuthVerificationModal()">
-        <div class="bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl w-full max-w-md mx-4 p-8 border border-gray-200 dark:border-zinc-700 transform scale-95 transition-transform duration-300 relative text-center" id="auth-modal-content">
-            <button type="button" onclick="closeAuthVerificationModal()" class="absolute top-4 left-4 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-zinc-800 text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors z-10">
+        <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl w-full max-w-md mx-4 p-8 border border-neutral-200 dark:border-zinc-700 transform scale-95 transition-transform duration-300 relative text-center" id="auth-modal-content">
+            <button type="button" onclick="closeAuthVerificationModal()" class="absolute top-4 left-4 w-8 h-8 flex items-center justify-center rounded-full bg-neutral-100 dark:bg-zinc-800 text-neutral-500 hover:text-black transition-colors z-10">
                 <span class="material-symbols-outlined text-[20px]">close</span>
             </button>
 
             <div id="modal-dynamic-content" class="transition-opacity duration-300">
                 <div id="modal-state-request" class="block">
-                    <div class="w-20 h-20 mx-auto bg-amber-50 dark:bg-amber-900/20 text-amber-500 rounded-full flex items-center justify-center mb-6 border border-amber-100 dark:border-amber-900/30">
-                        <span class="material-symbols-outlined text-4xl">admin_panel_settings</span>
+                    <div class="w-16 h-16 mx-auto bg-[#FAF7F2] text-[#D9962A] rounded-full flex items-center justify-center mb-5 border border-[#E6DFD5]">
+                        <span class="material-symbols-outlined text-3xl">admin_panel_settings</span>
                     </div>
-                    <h3 class="font-bold text-xl text-text-main dark:text-white mb-3">نیاز به تایید حساب</h3>
-                    <p class="text-gray-500 dark:text-gray-400 text-sm leading-relaxed mb-8">
+                    <h3 class="font-normal text-lg text-neutral-900 dark:text-white mb-2 font-display">نیاز به تایید حساب</h3>
+                    <p class="text-neutral-500 dark:text-neutral-400 text-xs leading-relaxed mb-6">
                         جهت مشاهده جزئیات و شرکت در مزایده لازم است که حساب شما توسط مدیران تایید شود. لطفاً درخواست خود را ارسال کنید.
                     </p>
-                    <div class="space-y-3">
-                        <button type="button" id="btn-send-request" class="w-full flex items-center justify-center gap-2 bg-[#AB8C58] hover:bg-[#967949] text-white py-3.5 px-6 rounded-xl font-bold text-sm transition-all shadow-md shadow-[#AB8C58]/30 disabled:opacity-70 disabled:cursor-not-allowed">
-                            <span class="material-symbols-outlined text-lg">send</span>
+                    <div class="space-y-2.5">
+                        <button type="button" id="btn-send-request" class="w-full flex items-center justify-center gap-2 bg-[#fce9c4] hover:brightness-95 text-black py-3 px-6 rounded-xl font-normal text-xs sm:text-sm transition-all disabled:opacity-70 disabled:cursor-not-allowed">
+                            <span class="material-symbols-outlined text-base">send</span>
                             ارسال درخواست شرکت در مزایده
                         </button>
-                        <button type="button" class="btn-view-preview w-full flex items-center justify-center gap-2 bg-gray-50 hover:bg-gray-100 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-zinc-600 py-3.5 px-6 rounded-xl font-bold text-sm transition-all">
-                            <span class="material-symbols-outlined text-lg">visibility</span>
+                        <button type="button" class="btn-view-preview w-full flex items-center justify-center gap-2 bg-neutral-50 hover:bg-neutral-100 dark:bg-zinc-800 text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-zinc-700 py-3 px-6 rounded-xl font-normal text-xs sm:text-sm transition-all">
+                            <span class="material-symbols-outlined text-base">visibility</span>
                             ادامه مشاهده پیش‌نمایش مزایده
                         </button>
                     </div>
                 </div>
 
                 <div id="modal-state-pending" class="hidden">
-                    <div class="w-20 h-20 mx-auto bg-indigo-50 dark:bg-indigo-900/20 text-indigo-500 rounded-full flex items-center justify-center mb-6 border border-indigo-100 dark:border-indigo-900/30">
-                        <span class="material-symbols-outlined text-4xl animate-pulse">hourglass_top</span>
+                    <div class="w-16 h-16 mx-auto bg-[#FAF7F2] text-[#D9962A] rounded-full flex items-center justify-center mb-5 border border-[#E6DFD5]">
+                        <span class="material-symbols-outlined text-3xl animate-pulse">hourglass_top</span>
                     </div>
-                    <h3 class="font-bold text-xl text-text-main dark:text-white mb-3">درخواست در حال بررسی</h3>
-                    <p class="text-gray-500 dark:text-gray-400 text-sm leading-relaxed mb-8">
-                        درخواست شما برای شرکت در مزایده با موفقیت ثبت شده و هم‌اکنون در انتظار بررسی و تایید توسط مدیران سیستم می‌باشد.
+                    <h3 class="font-normal text-lg text-neutral-900 dark:text-white mb-2 font-display">درخواست در حال بررسی</h3>
+                    <p class="text-neutral-500 dark:text-neutral-400 text-xs leading-relaxed mb-6">
+                        درخواست شما با موفقیت ثبت شده و در انتظار بررسی و تایید توسط مدیران سیستم می‌باشد.
                     </p>
-                    <div class="space-y-3">
-                        <button type="button" class="btn-view-preview w-full flex items-center justify-center gap-2 bg-gray-50 hover:bg-gray-100 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-zinc-600 py-3.5 px-6 rounded-xl font-bold text-sm transition-all">
-                            <span class="material-symbols-outlined text-lg">visibility</span>
+                    <div class="space-y-2.5">
+                        <button type="button" class="btn-view-preview w-full flex items-center justify-center gap-2 bg-neutral-50 hover:bg-neutral-100 dark:bg-zinc-800 text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-zinc-700 py-3 px-6 rounded-xl font-normal text-xs sm:text-sm transition-all">
+                            <span class="material-symbols-outlined text-base">visibility</span>
                             ادامه مشاهده پیش‌نمایش مزایده
                         </button>
                     </div>
@@ -187,47 +201,41 @@
 
     <!-- مدال پیشنهاد سریع -->
     <div id="quick-bid-modal" class="fixed inset-0 z-[999999] bg-neutral-900/60 backdrop-blur-md hidden items-center justify-center opacity-0 transition-opacity duration-300" onclick="if(event.target === this) closeQuickBidModal()">
-        <div class="bg-white dark:bg-zinc-900 rounded-[2rem] shadow-2xl w-full max-w-sm mx-4 transform scale-95 opacity-0 transition-all duration-300 relative overflow-hidden" id="qb-modal-content">
-            <div class="flex justify-between items-center px-6 py-5 border-b border-neutral-100 dark:border-zinc-800">
-                <h3 class="font-bold text-lg text-neutral-900 dark:text-white" id="qb-title">ثبت پیشنهاد</h3>
+        <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl w-full max-w-sm mx-4 transform scale-95 opacity-0 transition-all duration-300 relative overflow-hidden" id="qb-modal-content">
+            <div class="flex justify-between items-center px-6 py-4 border-b border-neutral-100 dark:border-zinc-800">
+                <h3 class="font-normal text-base text-neutral-900 dark:text-white font-display" id="qb-title">ثبت پیشنهاد</h3>
                 <button type="button" onclick="closeQuickBidModal()" class="text-neutral-400 hover:text-neutral-600 transition-colors">
-                    <span class="material-symbols-outlined">close</span>
+                    <span class="material-symbols-outlined text-[20px]">close</span>
                 </button>
             </div>
-            <div id="qb-bid-state" class="p-6 space-y-6">
-                <div class="p-0 space-y-6" id="qb-calc-container" data-current-price="0" data-min-next="0" data-bid-value="0">
+            <div id="qb-bid-state" class="p-6 space-y-5">
+                <div class="p-0 space-y-5" id="qb-calc-container" data-current-price="0" data-min-next="0" data-bid-value="0">
                     <div class="text-center">
-                        <div class="text-sm text-neutral-500 mb-1">قیمت فعلی</div>
-                        <div class="inline-flex items-center gap-2.5 text-3xl font-black text-neutral-900 dark:text-white" id="qb-current-price-display" dir="rtl">
+                        <div class="text-xs text-neutral-400 mb-1">قیمت فعلی</div>
+                        <div class="inline-flex items-center gap-2 text-2xl font-black text-neutral-900 dark:text-white" id="qb-current-price-display" dir="rtl">
                             <span class="font-en" data-amount-value>--</span>
                             <img src="{% static 'images/toman-1.svg' %}"
                                  alt="تومان"
-                                 class="h-7 w-auto shrink-0 opacity-100"
+                                 class="h-6 w-auto shrink-0 opacity-90"
                                  loading="lazy">
                         </div>
                     </div>
 
-                    <div class="space-y-3">
-                        <div class="rounded-xl border border-primary/10 bg-primary/5 px-4 py-3 flex items-center justify-between">
-                            <span class="text-sm font-medium text-neutral-600 dark:text-neutral-400">افزایش هر گام</span>
-                            <span class="text-lg font-black text-primary" id="qb-step-percent-display">--</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-sm font-medium text-neutral-600 dark:text-neutral-400">تعداد گام افزایش:</span>
-                            <div class="step-input-group-bold">
-                                <button type="button" id="step-minus" class="step-btn-bold">−</button>
-                                <input type="number" id="step-input" name="step" value="1" min="1" max="100" class="step-input-bold">
-                                <button type="button" id="step-plus" class="step-btn-bold">+</button>
+                    <div class="space-y-2">
+                        <div class="rounded-xl border border-[#E6DFD5] bg-[#FAF7F2] px-4 py-2.5 flex items-center justify-between">
+                            <span class="text-xs text-neutral-600 dark:text-neutral-400">افزایش این پیشنهاد:</span>
+                            <div class="flex items-center gap-1 text-sm font-semibold text-[#988454]" id="qb-step-increment-display" dir="rtl">
+                                <span class="font-en" data-amount-value>--</span>
+                                <span class="text-xs font-normal">تومان</span>
                             </div>
                         </div>
                     </div>
 
-                    <!-- اصلاح ردیف مبلغ نهایی: بردن کامل به سمت چپ -->
-                    <div class="flex items-center bg-primary/5 rounded-xl p-4 border border-primary/10 w-full">
-                        <span class="text-sm text-primary font-bold">مبلغ نهایی پیشنهاد</span>
-                        <div class="mr-auto mr-[auto] flex items-center justify-end gap-1 text-2xl font-black text-primary" id="qb-final-bid-text" dir="rtl">
+                    <div class="flex items-center bg-[#FAF7F2] rounded-xl p-3.5 border border-[#E6DFD5] w-full">
+                        <span class="text-xs text-[#988454] font-normal font-display">مبلغ نهایی پیشنهاد</span>
+                        <div class="mr-auto flex items-center justify-end gap-1 text-xl font-bold text-[#988454]" id="qb-final-bid-text" dir="rtl">
                             <span class="font-en" data-amount-value>--</span>
-                            <span class="text-sm font-bold text-primary/80">تومان</span>
+                            <span class="text-xs font-normal">تومان</span>
                         </div>
                     </div>
 
@@ -235,45 +243,45 @@
                         {% csrf_token %}
                         <input type="hidden" name="amount" id="qb-bid-amount" value=""/>
                         {% if user.is_authenticated %}
-                            <button id="qb-submit-btn" class="w-full bg-primary hover:bg-primary-dark text-white font-bold py-3.5 rounded-xl transition-all flex items-center justify-center" type="submit">
+                            <button id="qb-submit-btn" class="w-full bg-[#fce9c4] hover:brightness-95 text-black font-normal py-3 rounded-xl transition-all flex items-center justify-center text-sm" type="submit">
                                 <span class="btn-text">ثبت پیشنهاد</span>
                                 <span class="loader hidden"></span>
                             </button>
                         {% else %}
-                            <a class="w-full block text-center bg-neutral-800 dark:bg-zinc-700 text-white font-bold py-3.5 rounded-xl" href="{% url 'login' %}?next={{ request.path }}">ورود برای ثبت پیشنهاد</a>
+                            <a class="w-full block text-center bg-neutral-800 text-white font-normal py-3 rounded-xl text-sm" href="{% url 'login' %}?next={{ request.path }}">ورود برای ثبت پیشنهاد</a>
                         {% endif %}
                     </form>
                 </div>
             </div>
 
-            <div id="qb-credit-state" class="hidden p-6 space-y-6 text-center">
-                <div class="w-20 h-20 mx-auto bg-red-50 dark:bg-red-900/20 text-red-500 rounded-full flex items-center justify-center border border-red-100 dark:border-red-900/30">
-                    <span class="material-symbols-outlined text-4xl">account_balance_wallet</span>
+            <div id="qb-credit-state" class="hidden p-6 space-y-5 text-center">
+                <div class="w-16 h-16 mx-auto bg-neutral-100 text-[#D9962A] rounded-full flex items-center justify-center border border-neutral-200">
+                    <span class="material-symbols-outlined text-3xl">account_balance_wallet</span>
                 </div>
-                <div class="space-y-3">
-                    <h4 class="font-bold text-xl text-text-main dark:text-white">اعتبار شما کافی نیست</h4>
-                    <p class="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">
-                        اعتبار فعلی شما برای ثبت این پیشنهاد کافی نیست. برای شرکت در این مزایده با مبالغ بالاتر، باید درخواست افزایش اعتبار ثبت کنید. آیا مایل هستید؟
+                <div class="space-y-2">
+                    <h4 class="font-normal text-base text-neutral-900 dark:text-white font-display">اعتبار شما کافی نیست</h4>
+                    <p class="text-neutral-500 dark:text-neutral-400 text-xs leading-relaxed">
+                        برای شرکت در این مزایده با مبالغ بالاتر، باید درخواست افزایش اعتبار ثبت کنید. آیا مایل هستید؟
                     </p>
                 </div>
-                <button type="button" id="btn-submit-credit-request" class="w-full flex items-center justify-center gap-2 bg-[#AB8C58] hover:bg-[#967949] text-white py-3.5 px-6 rounded-xl font-bold text-sm transition-all shadow-md shadow-[#AB8C58]/30 disabled:opacity-70 disabled:cursor-not-allowed">
-                    <span class="material-symbols-outlined text-lg">add_circle</span>
+                <button type="button" id="btn-submit-credit-request" class="w-full flex items-center justify-center gap-2 bg-[#fce9c4] hover:brightness-95 text-black py-3 px-6 rounded-xl font-normal text-xs sm:text-sm transition-all disabled:opacity-70 disabled:cursor-not-allowed">
+                    <span class="material-symbols-outlined text-base">add_circle</span>
                     ثبت درخواست افزایش اعتبار
                 </button>
             </div>
 
-            <div id="qb-credit-pending-state" class="hidden p-6 space-y-6 text-center">
-                <div class="w-20 h-20 mx-auto bg-indigo-50 dark:bg-indigo-900/20 text-indigo-500 rounded-full flex items-center justify-center border border-indigo-100 dark:border-indigo-900/30">
-                    <span class="material-symbols-outlined text-4xl animate-pulse">hourglass_top</span>
+            <div id="qb-credit-pending-state" class="hidden p-6 space-y-5 text-center">
+                <div class="w-16 h-16 mx-auto bg-neutral-100 text-[#D9962A] rounded-full flex items-center justify-center border border-neutral-200">
+                    <span class="material-symbols-outlined text-3xl animate-pulse">hourglass_top</span>
                 </div>
-                <div class="space-y-3">
-                    <h4 class="font-bold text-xl text-text-main dark:text-white">درخواست در حال بررسی</h4>
-                    <p class="text-gray-500 dark:text-gray-400 text-sm leading-relaxed" id="credit-success-message">
-                        درخواست شما با موفقیت ثبت شده و هم‌اکنون در انتظار بررسی و تایید توسط مدیران سیستم می‌باشد.
+                <div class="space-y-2">
+                    <h4 class="font-normal text-base text-neutral-900 dark:text-white font-display">درخواست در حال بررسی</h4>
+                    <p class="text-neutral-500 dark:text-neutral-400 text-xs leading-relaxed" id="credit-success-message">
+                        درخواست شما در انتظار تایید مدیران سیستم می‌باشد.
                     </p>
                 </div>
-                <a href="{% url 'profile' %}" id="btn-profile-link" class="w-full flex flex-row items-center justify-center gap-2 bg-gray-50 hover:bg-gray-100 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-zinc-600 py-3.5 px-6 rounded-xl font-bold text-sm transition-all">
-                    <span class="material-symbols-outlined text-lg">person</span>
+                <a href="{% url 'profile' %}" id="btn-profile-link" class="w-full flex flex-row items-center justify-center gap-2 bg-neutral-50 hover:bg-neutral-100 dark:bg-zinc-800 text-neutral-700 dark:text-neutral-300 border border-neutral-200 py-3 px-6 rounded-xl font-normal text-xs sm:text-sm transition-all">
+                    <span class="material-symbols-outlined text-base">person</span>
                     <span>مشاهده پروفایل</span>
                 </a>
             </div>
@@ -292,10 +300,11 @@
         const auctionStatus = "{{ auction.status|default:'' }}";
         const loginUrl = "{% url 'login' %}?next=" + encodeURIComponent(window.location.pathname + window.location.search);
         const editUrl = "{% url 'profile' %}?next=" + encodeURIComponent(window.location.pathname + window.location.search);
-        const productsGrid = document.getElementById('products-grid');
-        const infiniteScrollSentinel = document.getElementById('infinite-scroll-sentinel');
-        const infiniteScrollLoader = document.getElementById('infinite-scroll-loader');
-        const infiniteScrollEnd = document.getElementById('infinite-scroll-end');
+        const auctionId = "{{ auction.pk|default:'' }}";
+        function getProductsGrid() { return document.getElementById('products-grid'); }
+        function getInfiniteScrollSentinel() { return document.getElementById('infinite-scroll-sentinel'); }
+        function getInfiniteScrollLoader() { return document.getElementById('infinite-scroll-loader'); }
+        function getInfiniteScrollEnd() { return document.getElementById('infinite-scroll-end'); }
         let isPendingLocalStorage = false;
         let isLoadingMoreProducts = false;
         let infiniteScrollObserver = null;
@@ -329,16 +338,23 @@
 
         function isAuctionEnded() {
             const timeWindow = document.getElementById('auction-time-window');
-            if (timeWindow && timeWindow.getAttribute('data-end')) {
-                const endTime = new Date(timeWindow.getAttribute('data-end')).getTime();
-                return new Date().getTime() >= endTime;
+            if (timeWindow) {
+                const maxEnd = timeWindow.getAttribute('data-max-end');
+                const end = timeWindow.getAttribute('data-end');
+                const targetEnd = maxEnd || end;
+                if (targetEnd) {
+                    const endTime = new Date(targetEnd).getTime();
+                    return new Date().getTime() >= endTime;
+                }
             }
             return false;
         }
 
-        function showInactiveAuctionToast() {
+        function showInactiveAuctionToast(message = 'مهلت ثبت پیشنهاد برای این اثر به پایان رسیده است.') {
             if (window.showToast) {
-                window.showToast('مزایده فعال نیست', 'warning', 'bottom-left');
+                window.showToast(message, 'warning', 'bottom-left');
+            } else {
+                console.warn(message);
             }
         }
 
@@ -388,18 +404,41 @@
         }
 
         function hasAuctionAccessForNavigation() {
-            if (isAuctionNotStarted() || isAuctionEnded()) return false;
-            if (!userIsAuthenticated) return false;
-            return userIsVerified;
+            return !isAuctionNotStarted() && !isAuctionEnded();
         }
 
-        window.canTrackAuctionVisit = function() {
-            return hasAuctionAccessForNavigation();
+        function canViewAuctionProductDetails() {
+            return true;
+        }
+
+        window.canTrackAuctionVisit = function(link) {
+            if (link && link.dataset && link.dataset.trackKind === 'auction_product') {
+                return canViewAuctionProductDetails();
+            }
+            return true;
         };
 
-        function ensureAuctionAccess(targetUrl, loginMessage) {
-            if (isAuctionNotStarted() || isAuctionEnded()) {
-                showInactiveAuctionToast();
+        function ensureBidAccess(targetUrl, loginMessage, card = null) {
+            const now = new Date().getTime();
+            if (isAuctionNotStarted()) {
+                showInactiveAuctionToast('مزایده هنوز آغاز نشده است.');
+                return false;
+            }
+
+            if (card) {
+                const cardEndTimeStr = card.getAttribute('data-end-time');
+                if (cardEndTimeStr) {
+                    const cardEndTime = new Date(cardEndTimeStr).getTime();
+                    if (now >= cardEndTime) {
+                        showInactiveAuctionToast('مهلت ثبت پیشنهاد برای این اثر به پایان رسیده است.');
+                        return false;
+                    }
+                } else if (isAuctionEnded()) {
+                    showInactiveAuctionToast('مهلت مزایده به پایان رسیده است.');
+                    return false;
+                }
+            } else if (isAuctionEnded()) {
+                showInactiveAuctionToast('مهلت مزایده به پایان رسیده است.');
                 return false;
             }
 
@@ -408,7 +447,7 @@
             if (!userIsAuthenticated) {
                 window.openLoginRequiredModal(
                     targetUrl || (window.location.pathname + window.location.search),
-                    loginMessage || 'برای مشاهده جزئیات و شرکت در مزایده، لطفاً ابتدا وارد حساب کاربری خود شوید.'
+                    loginMessage || 'برای ثبت پیشنهاد در مزایده، لطفاً ابتدا وارد حساب کاربری خود شوید.'
                 );
                 return false;
             }
@@ -421,15 +460,6 @@
             document.querySelectorAll('a[data-auction-product-link="1"]').forEach(a => {
                 if (a.dataset.guardBound === '1') return;
                 a.dataset.guardBound = '1';
-
-                a.addEventListener('click', e => {
-                    if (!ensureAuctionAccess(
-                        a.getAttribute('href'),
-                        a.getAttribute('data-login-message') || 'برای مشاهده جزئیات محصول مزایده، لطفاً ابتدا وارد حساب کاربری خود شوید.'
-                    )) {
-                        e.preventDefault();
-                    }
-                });
             });
 
             document.querySelectorAll('button[data-auction-quick-bid="1"]').forEach(btn => {
@@ -444,7 +474,7 @@
 
         function formatFaNumber(value) {
             try {
-                return Number(value).toLocaleString('fa-IR');
+                return Number(value).toLocaleString('fa-IR').replace(/٬/g, ',');
             } catch {
                 return String(value);
             }
@@ -459,6 +489,109 @@
             }
             container.textContent = formatFaNumber(value);
         }
+
+        function getProductCardOrderIndex(card, fallbackIndex = 0) {
+            if (!card) return fallbackIndex;
+            if (card.dataset.initialOrder !== undefined && card.dataset.initialOrder !== '') {
+                const parsed = Number(card.dataset.initialOrder);
+                if (Number.isFinite(parsed)) return parsed;
+            }
+            card.dataset.initialOrder = String(fallbackIndex);
+            return fallbackIndex;
+        }
+
+        function getProductCardEndTimestamp(card) {
+            if (!card) return 0;
+            const rawValue = card.getAttribute('data-end-time');
+            if (!rawValue) return 0;
+            const timestamp = new Date(rawValue).getTime();
+            return Number.isFinite(timestamp) ? timestamp : 0;
+        }
+
+        function isProductCardInActiveExtension(card) {
+            if (!card) return false;
+            if (card.getAttribute('data-is-extended') !== '1') return false;
+            const endTimestamp = getProductCardEndTimestamp(card);
+            return endTimestamp > Date.now();
+        }
+
+        function refreshExtendedProductsLayout({ promotedCardId = null } = {}) {
+            const grid = getProductsGrid();
+            if (!grid) return 0;
+
+            const allCards = Array.from(grid.querySelectorAll('[data-product-card]'));
+            if (!allCards.length) return 0;
+
+            allCards.forEach((card, index) => {
+                getProductCardOrderIndex(card, index);
+            });
+
+            const promotedId = promotedCardId ? String(promotedCardId) : '';
+            const extendedCards = [];
+            const regularCards = [];
+
+            allCards.forEach((card) => {
+                if (isProductCardInActiveExtension(card)) {
+                    extendedCards.push(card);
+                } else {
+                    regularCards.push(card);
+                }
+            });
+
+            // If no cards are in extension and no card is promoted, avoid unnecessary DOM reflows
+            if (extendedCards.length === 0 && !promotedId) {
+                const timeWindow = document.getElementById('auction-time-window');
+                if (timeWindow) {
+                    timeWindow.setAttribute('data-extended-count', '0');
+                }
+                return 0;
+            }
+
+            extendedCards.sort((leftCard, rightCard) => {
+                const leftId = String(leftCard.getAttribute('data-product-card') || '');
+                const rightId = String(rightCard.getAttribute('data-product-card') || '');
+
+                if (promotedId) {
+                    if (leftId === promotedId && rightId !== promotedId) return -1;
+                    if (rightId === promotedId && leftId !== promotedId) return 1;
+                }
+
+                const endDiff = getProductCardEndTimestamp(rightCard) - getProductCardEndTimestamp(leftCard);
+                if (endDiff !== 0) return endDiff;
+
+                return getProductCardOrderIndex(leftCard) - getProductCardOrderIndex(rightCard);
+            });
+
+            regularCards.sort((leftCard, rightCard) => (
+                getProductCardOrderIndex(leftCard) - getProductCardOrderIndex(rightCard)
+            ));
+
+            Array.from(grid.children).forEach((child) => {
+                if (!child.matches('[data-product-card]')) {
+                    child.remove();
+                }
+            });
+
+            const fragment = document.createDocumentFragment();
+            extendedCards.forEach((card) => fragment.appendChild(card));
+            regularCards.forEach((card) => fragment.appendChild(card));
+
+            grid.appendChild(fragment);
+
+            const timeWindow = document.getElementById('auction-time-window');
+            if (timeWindow) {
+                timeWindow.setAttribute('data-extended-count', String(extendedCards.length));
+            }
+
+            return extendedCards.length;
+        }
+
+        window.refreshExtendedProductsLayout = refreshExtendedProductsLayout;
+        window.countActiveExtendedProducts = function() {
+            return Array.from(document.querySelectorAll('[data-product-card]')).filter(
+                (card) => isProductCardInActiveExtension(card)
+            ).length;
+        };
 
         function applyProductLiveState(productId, data) {
             if (!productId || !data) return;
@@ -482,199 +615,282 @@
                 card.setAttribute('data-has-winner', data.has_winner ? '1' : '0');
             }
 
-            if (btn) {
-                if (typeof data.current_price !== 'undefined') {
-                    btn.setAttribute('data-current-price', String(data.current_price));
+            if (data.end_time) {
+                card.setAttribute('data-end-time', data.end_time);
+                const timerContainer = card.querySelector('[data-card-timer-container]');
+                if (timerContainer) {
+                    timerContainer.setAttribute('data-end-time', data.end_time);
                 }
-                if (typeof data.min_next_bid !== 'undefined') {
-                    btn.setAttribute('data-min-next', String(data.min_next_bid));
-                }
-                if (typeof data.bid_count !== 'undefined') {
-                    btn.setAttribute('data-bid-count', String(data.bid_count));
+                if (typeof window.recordNewMaxEndTime === 'function') {
+                    window.recordNewMaxEndTime(data.end_time);
                 }
             }
 
-            if (
-                currentBidButton &&
-                String(currentBidButton.getAttribute('data-product-id')) === String(productId)
-            ) {
-                if (typeof data.current_price !== 'undefined') {
-                    currentBidButton.setAttribute('data-current-price', String(data.current_price));
-                    qbCalcContainer.dataset.currentPrice = String(data.current_price);
-                    setAmountWithToman(qbCurrentPriceDisplay, data.current_price);
-                }
-                if (typeof data.min_next_bid !== 'undefined') {
-                    currentBidButton.setAttribute('data-min-next', String(data.min_next_bid));
-                    qbCalcContainer.dataset.minNext = String(data.min_next_bid);
-                }
-                if (typeof data.bid_count !== 'undefined') {
-                    currentBidButton.setAttribute('data-bid-count', String(data.bid_count));
-                }
-                recalcQuickBid();
+            const isExtendedNow = Boolean(data.is_extended || data.is_in_extension);
+            card.setAttribute('data-is-extended', isExtendedNow ? '1' : '0');
+
+            if (typeof window.applyAuctionCardVisualState === 'function' && window.currentAuctionVisualState) {
+                window.applyAuctionCardVisualState(window.currentAuctionVisualState);
+            }
+
+            refreshExtendedProductsLayout({
+                promotedCardId: isExtendedNow ? productId : null,
+            });
+
+            if (btn) {
+                if (typeof data.current_price !== 'undefined') btn.setAttribute('data-current-price', String(data.current_price));
+                if (typeof data.min_next_bid !== 'undefined') btn.setAttribute('data-min-next', String(data.min_next_bid));
+                if (typeof data.step_increment !== 'undefined') btn.setAttribute('data-step-increment', String(data.step_increment));
+                if (typeof data.bid_count !== 'undefined') btn.setAttribute('data-bid-count', String(data.bid_count));
             }
         }
 
         function setInfiniteScrollStatus({ loading = false, hasNext = false } = {}) {
-            if (infiniteScrollLoader) {
-                infiniteScrollLoader.classList.toggle('hidden', !loading);
-                infiniteScrollLoader.classList.toggle('flex', loading);
+            const loader = getInfiniteScrollLoader();
+            const sentinel = getInfiniteScrollSentinel();
+            const end = getInfiniteScrollEnd();
+
+            if (loader) {
+                loader.classList.toggle('hidden', !loading);
+                loader.classList.toggle('flex', loading);
             }
 
-            if (infiniteScrollSentinel) {
-                infiniteScrollSentinel.classList.toggle('hidden', !hasNext);
-                infiniteScrollSentinel.dataset.hasNext = hasNext ? '1' : '0';
+            if (sentinel) {
+                sentinel.classList.toggle('hidden', !hasNext);
+                sentinel.dataset.hasNext = hasNext ? '1' : '0';
             }
 
-            if (infiniteScrollEnd) {
+            if (end) {
                 const hasProductCards = !!document.querySelector('[data-product-card]');
-                infiniteScrollEnd.classList.toggle('hidden', hasNext || !hasProductCards);
+                end.classList.toggle('hidden', hasNext || !hasProductCards);
             }
         }
+
+        let scrollListenerAttached = false;
+        let loadMoreWatchdogTimer = null;
+        let livePageSocket = null;
+        let livePollingTimer = null;
 
         function enhanceLoadedProductCards() {
             bindGuardedAuctionActions();
             if (typeof window.applyAuctionCardVisualState === 'function' && window.currentAuctionVisualState) {
                 window.applyAuctionCardVisualState(window.currentAuctionVisualState);
             }
-            connectAuctionLiveUpdates();
+            refreshExtendedProductsLayout();
+        }
+
+        function checkScrollPosition() {
+            const sentinel = getInfiniteScrollSentinel();
+            const grid = getProductsGrid();
+            if (!sentinel || !grid || isLoadingMoreProducts) return;
+            if (sentinel.dataset.hasNext !== '1') return;
+
+            const rect = sentinel.getBoundingClientRect();
+            const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 800;
+            if (rect.top <= viewportHeight + 400) {
+                loadMoreProducts();
+            }
         }
 
         async function loadMoreProducts() {
-            if (!infiniteScrollSentinel || !productsGrid || isLoadingMoreProducts) return;
-            if (infiniteScrollSentinel.dataset.hasNext !== '1') return;
+            const sentinel = getInfiniteScrollSentinel();
+            const grid = getProductsGrid();
+            if (!sentinel || !grid || isLoadingMoreProducts) return;
+            if (sentinel.dataset.hasNext !== '1') return;
 
-            const nextPage = infiniteScrollSentinel.dataset.nextPage;
+            const nextPage = sentinel.dataset.nextPage;
             if (!nextPage) return;
 
             isLoadingMoreProducts = true;
             setInfiniteScrollStatus({ loading: true, hasNext: true });
 
+            if (loadMoreWatchdogTimer) clearTimeout(loadMoreWatchdogTimer);
+            loadMoreWatchdogTimer = setTimeout(() => {
+                if (isLoadingMoreProducts) {
+                    console.warn('[InfiniteScroll] Loading watchdog reset.');
+                    isLoadingMoreProducts = false;
+                    const curSentinel = getInfiniteScrollSentinel();
+                    const stillHasNext = curSentinel && curSentinel.dataset.hasNext === '1';
+                    setInfiniteScrollStatus({ loading: false, hasNext: stillHasNext });
+                    requestAnimationFrame(() => checkScrollPosition());
+                }
+            }, 8000);
+
+            const abortCtrl = new AbortController();
+            const abortTimeout = setTimeout(() => abortCtrl.abort(), 7500);
+
             try {
-                const requestUrl = new URL(infiniteScrollSentinel.dataset.endpoint || window.location.pathname, window.location.origin);
+                const endpoint = sentinel.dataset.endpoint || window.location.pathname;
+                const requestUrl = new URL(endpoint, window.location.origin);
                 const currentUrl = new URL(window.location.href);
 
                 currentUrl.searchParams.forEach((value, key) => {
-                    if (key !== 'page') {
+                    if (key !== 'page' && key !== 'load_more' && key !== '_ts') {
                         requestUrl.searchParams.set(key, value);
                     }
                 });
                 requestUrl.searchParams.set('page', nextPage);
                 requestUrl.searchParams.set('load_more', '1');
+                requestUrl.searchParams.set('_ts', String(Date.now()));
 
                 const response = await fetch(requestUrl.toString(), {
+                    method: 'GET',
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
-                        'Accept': 'application/json'
-                    }
+                        'Accept': 'application/json',
+                        'Cache-Control': 'no-cache, no-store'
+                    },
+                    cache: 'no-store',
+                    credentials: 'same-origin',
+                    signal: abortCtrl.signal
                 });
 
-                if (!response.ok) {
-                    throw new Error('بارگذاری محصولات بیشتر انجام نشد.');
-                }
+                clearTimeout(abortTimeout);
+
+                if (!response.ok) throw new Error('بارگذاری محصولات بیشتر انجام نشد.');
 
                 const data = await response.json();
-                if (data.html) {
-                    productsGrid.insertAdjacentHTML('beforeend', data.html);
-                    enhanceLoadedProductCards();
+                if (data && data.html) {
+                    const curGrid = getProductsGrid();
+                    if (curGrid) {
+                        curGrid.insertAdjacentHTML('beforeend', data.html);
+                        enhanceLoadedProductCards();
+                    }
                 }
 
-                const hasNext = Boolean(data.has_next);
-                infiniteScrollSentinel.dataset.nextPage = hasNext ? String(data.next_page || '') : '';
-                setInfiniteScrollStatus({ loading: false, hasNext });
-            } catch (error) {
-                setInfiniteScrollStatus({ loading: false, hasNext: true });
-                if (window.showToast) {
-                    window.showToast(error.message || 'خطا در بارگذاری محصولات بیشتر.', 'error', 'bottom-left');
-                } else {
-                    console.error(error);
+                const hasNext = Boolean(data && data.has_next);
+                const curSentinel = getInfiniteScrollSentinel();
+                if (curSentinel) {
+                    curSentinel.dataset.nextPage = hasNext ? String(data.next_page || '') : '';
+                    setInfiniteScrollStatus({ loading: false, hasNext });
+
+                    // بروزرسانی رصدگر تقاطع برای محاسبه مجدد موقعیت جدید سنتینل
+                    if (infiniteScrollObserver) {
+                        try {
+                            infiniteScrollObserver.unobserve(curSentinel);
+                            if (hasNext) {
+                                infiniteScrollObserver.observe(curSentinel);
+                            }
+                        } catch (_) {}
+                    }
                 }
+            } catch (error) {
+                clearTimeout(abortTimeout);
+                setInfiniteScrollStatus({ loading: false, hasNext: true });
+                console.error('[InfiniteScroll error]:', error);
             } finally {
+                if (loadMoreWatchdogTimer) {
+                    clearTimeout(loadMoreWatchdogTimer);
+                    loadMoreWatchdogTimer = null;
+                }
                 isLoadingMoreProducts = false;
+                // بررسی مجدد موقعیت اسکرول پس از پایان بارگذاری
+                requestAnimationFrame(() => {
+                    checkScrollPosition();
+                });
             }
         }
 
         function initInfiniteScroll() {
-            if (!infiniteScrollSentinel || !productsGrid) return;
-
-            const hasNext = infiniteScrollSentinel.dataset.hasNext === '1';
+            const sentinel = getInfiniteScrollSentinel();
+            const grid = getProductsGrid();
+            if (!sentinel || !grid) return;
+            const hasNext = sentinel.dataset.hasNext === '1';
             setInfiniteScrollStatus({ loading: false, hasNext });
             if (!hasNext) return;
 
-            if (!('IntersectionObserver' in window)) {
-                window.addEventListener('scroll', function() {
-                    if (isLoadingMoreProducts || infiniteScrollSentinel.dataset.hasNext !== '1') return;
-                    const sentinelTop = infiniteScrollSentinel.getBoundingClientRect().top;
-                    if (sentinelTop - window.innerHeight < 300) {
-                        loadMoreProducts();
-                    }
-                }, { passive: true });
-                return;
+            if (infiniteScrollObserver) {
+                try { infiniteScrollObserver.disconnect(); } catch (_) {}
+                infiniteScrollObserver = null;
             }
 
-            infiniteScrollObserver = new IntersectionObserver((entries) => {
-                entries.forEach((entry) => {
-                    if (entry.isIntersecting) {
-                        loadMoreProducts();
-                    }
-                });
-            }, {
-                rootMargin: '350px 0px'
-            });
+            if ('IntersectionObserver' in window) {
+                infiniteScrollObserver = new IntersectionObserver((entries) => {
+                    entries.forEach((entry) => {
+                        if (entry.isIntersecting) {
+                            // فقط در صورتی لود شود که کاربر واقعاً اسکرول کرده باشد یا کل محتوا کمتر از ارتفاع صفحه باشد
+                            const userHasScrolled = (window.scrollY > 40 || document.documentElement.scrollTop > 40);
+                            const contentShorterThanScreen = document.documentElement.scrollHeight <= (window.innerHeight + 80);
+                            if (userHasScrolled || contentShorterThanScreen) {
+                                loadMoreProducts();
+                            }
+                        }
+                    });
+                }, { rootMargin: '300px 0px' });
 
-            infiniteScrollObserver.observe(infiniteScrollSentinel);
+                infiniteScrollObserver.observe(sentinel);
+            }
+
+            if (!scrollListenerAttached) {
+                scrollListenerAttached = true;
+                let ticking = false;
+                const onScrollOrTouch = () => {
+                    if (!ticking) {
+                        window.requestAnimationFrame(() => {
+                            try {
+                                checkScrollPosition();
+                            } finally {
+                                ticking = false;
+                            }
+                        });
+                        ticking = true;
+                    }
+                };
+
+                window.addEventListener('scroll', onScrollOrTouch, { passive: true });
+                window.addEventListener('touchmove', onScrollOrTouch, { passive: true });
+                window.addEventListener('resize', onScrollOrTouch, { passive: true });
+            }
+
+            // فقط در صورتی چک اولیه انجام شود که ارتفاع صفحه خیلی کم باشد و اسکرول وجود نداشته باشد
+            if (document.documentElement.scrollHeight <= (window.innerHeight + 80)) {
+                requestAnimationFrame(() => {
+                    checkScrollPosition();
+                });
+            }
+        }
+
+        async function syncSingleProduct(productId) {
+            if (!productId) return;
+            const card = document.querySelector(`[data-product-card="${productId}"]`);
+            if (!card) return;
+            const liveStateUrl = card.getAttribute('data-live-state-url');
+            if (!liveStateUrl) return;
+
+            try {
+                const response = await fetch(liveStateUrl, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Cache-Control': 'no-cache' }
+                });
+                if (!response.ok) return;
+                const data = await response.json();
+                if (data && data.success) applyProductLiveState(productId, data);
+            } catch (_) {}
         }
 
         async function syncAuctionData() {
-            try {
-                const response = await fetch(window.location.href, { 
-                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Cache-Control': 'no-cache' } 
-                });
-                const html = await response.text();
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
+            if (document.visibilityState !== 'visible') return;
+            const cards = Array.from(document.querySelectorAll('[data-product-card]'));
+            if (!cards.length) return;
 
-                document.querySelectorAll('[data-product-card]').forEach(card => {
-                    const pid = card.getAttribute('data-product-card');
-                    const freshCard = doc.querySelector(`[data-product-card="${pid}"]`);
-                    
-                    if (freshCard) {
-                        const priceEl = card.querySelector('[data-product-price-display]');
-                        const freshPriceEl = freshCard.querySelector('[data-product-price-display]');
-                        if (priceEl && freshPriceEl) priceEl.innerHTML = freshPriceEl.innerHTML;
+            const chunkSize = 4;
+            for (let i = 0; i < cards.length; i += chunkSize) {
+                const chunk = cards.slice(i, i + chunkSize);
+                await Promise.allSettled(chunk.map(async (card) => {
+                    const productId = card.getAttribute('data-product-card');
+                    const liveStateUrl = card.getAttribute('data-live-state-url');
+                    if (!productId || !liveStateUrl) return;
 
-                        const bidsEl = card.querySelector('[data-product-bids-display]');
-                        const freshBidsEl = freshCard.querySelector('[data-product-bids-display]');
-                        if (bidsEl && freshBidsEl) bidsEl.textContent = freshBidsEl.textContent;
-
-                        const btn = card.querySelector('button[data-product-id]');
-                        const freshBtn = freshCard.querySelector('button[data-product-id]');
-                        if (btn && freshBtn) {
-                            ['data-current-price', 'data-min-next', 'data-bid-count'].forEach(attr => {
-                                btn.setAttribute(attr, freshBtn.getAttribute(attr));
-                            });
-                        }
-
-                        if (freshCard.hasAttribute('data-has-winner')) {
-                            card.setAttribute('data-has-winner', freshCard.getAttribute('data-has-winner') || '0');
-                        }
-                        if (freshCard.hasAttribute('data-is-user-winner')) {
-                            card.setAttribute('data-is-user-winner', freshCard.getAttribute('data-is-user-winner') || '0');
-                        }
-                    }
-                });
-
-                const freshCreditStatus = doc.querySelector('#credit-request-status');
-                if (creditRequestStatus && freshCreditStatus) {
-                    creditRequestStatus.dataset.status = freshCreditStatus.dataset.status || '';
-                }
-            } catch (err) {
-                console.error("Sync failed:", err);
+                    try {
+                        const response = await fetch(liveStateUrl, {
+                            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Cache-Control': 'no-cache' }
+                        });
+                        if (!response.ok) return;
+                        const data = await response.json();
+                        if (data && data.success) applyProductLiveState(productId, data);
+                    } catch (_) {}
+                }));
             }
         }
-
-        let liveSockets = [];
-        let livePollingTimer = null;
-        let liveReconnectTimer = null;
 
         function stopLivePolling() {
             if (!livePollingTimer) return;
@@ -684,154 +900,135 @@
 
         function startLivePolling() {
             if (livePollingTimer) return;
-            syncAuctionData();
-            livePollingTimer = window.setInterval(syncAuctionData, 5000);
-        }
-
-        function closeLiveSockets() {
-            liveSockets.forEach((socket) => {
-                try {
-                    socket.close();
-                } catch {}
-            });
-            liveSockets = [];
+            livePollingTimer = window.setInterval(syncAuctionData, 20000);
         }
 
         function connectAuctionLiveUpdates() {
-            const cards = Array.from(document.querySelectorAll('[data-product-card]'));
-            if (!cards.length) return;
+            if (!auctionId) {
+                startLivePolling();
+                return;
+            }
 
             if (!('WebSocket' in window)) {
                 startLivePolling();
                 return;
             }
 
-            closeLiveSockets();
+            if (livePageSocket && (livePageSocket.readyState === WebSocket.OPEN || livePageSocket.readyState === WebSocket.CONNECTING)) {
+                return;
+            }
+
+            stopLivePolling();
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            try {
+                livePageSocket = new WebSocket(`${protocol}//${window.location.host}/ws/auction/${auctionId}/page/`);
 
-            cards.forEach((card) => {
-                const productId = card.getAttribute('data-product-card');
-                if (!productId) return;
-
-                const socket = new WebSocket(`${protocol}//${window.location.host}/ws/auction/product/${productId}/`);
-                liveSockets.push(socket);
-
-                socket.addEventListener('open', function() {
+                livePageSocket.addEventListener('open', function() {
                     stopLivePolling();
                 });
 
-                socket.addEventListener('message', function(event) {
+                livePageSocket.addEventListener('message', function(event) {
                     try {
                         const message = JSON.parse(event.data);
-                        applyProductLiveState(productId, message.payload || message);
+                        if (message.type === 'bid_update' && message.product_pk && message.payload) {
+                            applyProductLiveState(message.product_pk, message.payload);
+                        } else if (message.type === 'auction_page_refresh') {
+                            if (message.payload && message.payload.product_pk) {
+                                syncSingleProduct(message.payload.product_pk);
+                            }
+                        }
                     } catch (err) {
-                        console.error('Auction live update parse failed:', err);
+                        console.error('Auction page live update parse failed:', err);
                     }
                 });
 
-                socket.addEventListener('error', function() {
-                    try {
-                        socket.close();
-                    } catch {}
-                });
-
-                socket.addEventListener('close', function() {
+                livePageSocket.addEventListener('close', function() {
+                    livePageSocket = null;
                     startLivePolling();
-                    if (liveReconnectTimer) {
-                        window.clearTimeout(liveReconnectTimer);
-                    }
-                    liveReconnectTimer = window.setTimeout(connectAuctionLiveUpdates, 3000);
                 });
-            });
+
+                livePageSocket.addEventListener('error', function() {
+                    try { if (livePageSocket) livePageSocket.close(); } catch (_) {}
+                    livePageSocket = null;
+                    startLivePolling();
+                });
+            } catch (_) {
+                startLivePolling();
+            }
         }
 
-        window.addEventListener('pageshow', (event) => { syncAuctionData(); });
-        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') syncAuctionData(); });
-
-        const formatToman = (value) => Number(value).toLocaleString('fa-IR');
-        const ceilInt = (n) => Math.ceil(Number(n));
+        window.addEventListener('pageshow', (event) => {
+            if (event.persisted) {
+                syncAuctionData();
+            }
+        });
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && !livePageSocket) {
+                syncAuctionData();
+            }
+        });
 
         const qbModal = document.getElementById('quick-bid-modal');
         const qbModalContent = document.getElementById('qb-modal-content');
         const qbCalcContainer = document.getElementById('qb-calc-container');
-        const qbStepInput = document.getElementById('step-input');
-        const qbStepMinus = document.getElementById('step-minus');
-        const qbStepPlus = document.getElementById('step-plus');
         const qbFinalText = document.getElementById('qb-final-bid-text');
         const qbAmountInput = document.getElementById('qb-bid-amount');
         const qbForm = document.getElementById('qb-form');
         const qbTitle = document.getElementById('qb-title');
         const qbCurrentPriceDisplay = document.getElementById('qb-current-price-display');
-        const qbStepPercentDisplay = document.getElementById('qb-step-percent-display');
+        const qbStepIncrementDisplay = document.getElementById('qb-step-increment-display');
         const qbSubmitBtn = document.getElementById('qb-submit-btn');
         const basePlaceBidUrl = "{% url 'auction:place_bid' 123456789 %}";
         const qbBidState = document.getElementById('qb-bid-state');
         const qbCreditState = document.getElementById('qb-credit-state');
         const qbCreditPendingState = document.getElementById('qb-credit-pending-state');
         const btnSubmitCredit = document.getElementById('btn-submit-credit-request');
-        const btnProfileLink = document.getElementById('btn-profile-link');
         const qbCreditRequestUrl = "{% url 'auction:submit_credit_increase_ajax' %}";
-        const creditRequestStatus = document.getElementById('credit-request-status');
-        
-        let currentBidButton = null; 
-
-        function getLatestCreditRequestStatus() {
-            return String(creditRequestStatus?.dataset.status ?? '').trim();
-        }
+        let currentBidButton = null;
 
         function setQuickBidModalState(state) {
-            const states = {
-                bid: qbBidState,
-                credit: qbCreditState,
-                pending: qbCreditPendingState
-            };
-
+            const states = { bid: qbBidState, credit: qbCreditState, pending: qbCreditPendingState };
             Object.entries(states).forEach(([key, element]) => {
                 if (!element) return;
-                if (key === state) {
-                    element.classList.remove('hidden');
-                } else {
-                    element.classList.add('hidden');
-                }
+                element.classList.toggle('hidden', key !== state);
             });
-
             if (qbTitle) {
-                if (state === 'credit') {
-                    qbTitle.textContent = 'افزایش اعتبار';
-                } else if (state === 'pending') {
-                    qbTitle.textContent = 'در انتظار تایید';
-                } else {
-                    qbTitle.textContent = currentBidButton ? currentBidButton.getAttribute('data-product-title') : 'ثبت پیشنهاد';
-                }
+                qbTitle.textContent = state === 'credit' ? 'افزایش اعتبار' : state === 'pending' ? 'در انتظار تایید' : (currentBidButton ? currentBidButton.getAttribute('data-product-title') : 'ثبت پیشنهاد');
             }
         }
 
         function openQuickBidModal(btn) {
-            if (isAuctionNotStarted()) {
-                showInactiveAuctionToast();
-                return;
-            }
-            if (isAuctionEnded()) {
-                showInactiveAuctionToast();
-                return;
-            }
-            if (!ensureAuctionAccess(
-                window.location.pathname + window.location.search,
-                'برای ثبت پیشنهاد در مزایده، لطفاً ابتدا وارد حساب کاربری خود شوید.'
-            )) return;
-            currentBidButton = btn; 
+            const card = btn.closest('[data-product-card]');
+            const now = new Date().getTime();
 
+            if (isAuctionNotStarted()) {
+                showInactiveAuctionToast('مزایده هنوز آغاز نشده است.');
+                return;
+            }
+
+            if (card) {
+                const cardEndTimeStr = card.getAttribute('data-end-time');
+                if (cardEndTimeStr && now >= new Date(cardEndTimeStr).getTime()) {
+                    showInactiveAuctionToast('مهلت ثبت پیشنهاد برای این اثر به پایان رسیده است.');
+                    return;
+                }
+            } else if (isAuctionEnded()) {
+                showInactiveAuctionToast('مهلت مزایده به پایان رسیده است.');
+                return;
+            }
+
+            if (!ensureBidAccess(window.location.pathname + window.location.search, 'برای ثبت پیشنهاد در مزایده، لطفاً ابتدا وارد حساب کاربری خود شوید.', card)) return;
+
+            currentBidButton = btn;
             const pid = btn.getAttribute('data-product-id');
             const current = btn.getAttribute('data-current-price');
 
             qbForm.action = basePlaceBidUrl.replace('123456789', pid);
             setAmountWithToman(qbCurrentPriceDisplay, current);
-
             qbCalcContainer.dataset.currentPrice = current;
             qbCalcContainer.dataset.minNext = btn.getAttribute('data-min-next');
-            qbCalcContainer.dataset.bidValue = btn.getAttribute('data-bid-value');
+            qbCalcContainer.dataset.stepIncrement = btn.getAttribute('data-step-increment');
 
-            if(qbStepInput) qbStepInput.value = 1;
             recalcQuickBid();
             setQuickBidModalState('bid');
 
@@ -856,372 +1053,111 @@
 
         function recalcQuickBid() {
             const current = Number(qbCalcContainer.dataset.currentPrice || "0");
-            const minNext = Number(qbCalcContainer.dataset.minNext || "0");
-            const bidValue = Number(qbCalcContainer.dataset.bidValue || "0");
+            let minNext = Number(qbCalcContainer.dataset.minNext || "0");
+            let stepInc = Number(qbCalcContainer.dataset.stepIncrement || "0");
 
-            let steps = parseInt(qbStepInput.value);
-            if (isNaN(steps) || steps < 1) steps = 1;
+            if (!stepInc || stepInc <= 0) stepInc = 5000000;
+            if (!minNext || minNext <= 0) minNext = current + stepInc;
 
-            const increasePerStep = current * (bidValue / 100);
-            let computed = ceilInt(current + (increasePerStep * steps));
-
-            if (minNext > 0 && computed < minNext) computed = ceilInt(minNext);
-
-            if (qbStepPercentDisplay) {
-                qbStepPercentDisplay.textContent = formatFaNumber(bidValue) + '٪ از مبلغ فعلی';
-            }
-            setAmountWithToman(qbFinalText, computed);
-            qbAmountInput.value = String(computed);
+            if (qbStepIncrementDisplay) setAmountWithToman(qbStepIncrementDisplay, stepInc);
+            setAmountWithToman(qbFinalText, minNext);
+            qbAmountInput.value = String(minNext);
         }
 
-        async function handleQuickBidSubmit(event) {
-            event.preventDefault();
-            if(!qbSubmitBtn) return;
-            
-            qbSubmitBtn.disabled = true;
-            qbSubmitBtn.querySelector('.btn-text').classList.add('hidden');
-            qbSubmitBtn.querySelector('.loader').classList.remove('hidden');
-
-            const formData = new FormData(qbForm);
-            try {
-                const response = await fetch(qbForm.action, {
-                    method: 'POST',
-                    body: formData,
-                    headers: { 'X-CSRFToken': formData.get('csrfmiddlewaretoken'), 'X-Requested-With': 'XMLHttpRequest' }
-                });
-                
-                const data = await response.json();
-                if (data.success) {
-                    closeQuickBidModal();
-                    if(window.showToast) window.showToast(data.message || 'پیشنهاد با موفقیت ثبت شد.', 'success', 'bottom-left');
-                    syncAuctionData(); 
-                } else {
-                    if (data.needs_credit_increase) {
-                        setQuickBidModalState(data.credit_request_state === 'pending' ? 'pending' : 'credit');
-                    } else if(window.showToast) {
-                        window.showToast(data.message || 'خطایی رخ داده است.', 'error', 'bottom-left');
-                    }
-                }
-            } catch (error) {
-                if(window.showToast) window.showToast('خطا در ارتباط با سرور.', 'error', 'bottom-left');
-            } finally {
-                qbSubmitBtn.disabled = false;
-                qbSubmitBtn.querySelector('.btn-text').classList.remove('hidden');
-                qbSubmitBtn.querySelector('.loader').classList.add('hidden');
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            if (authModal) {
-                document.body.appendChild(authModal);
-            }
-            if (qbModal) document.body.appendChild(qbModal);
-            if (qbForm) qbForm.addEventListener('submit', handleQuickBidSubmit);
-            if (qbStepInput) qbStepInput.addEventListener('input', recalcQuickBid);
-            if (qbStepMinus) qbStepMinus.addEventListener('click', () => { 
-                let v = parseInt(qbStepInput.value); 
-                if(v > 1) { qbStepInput.value = v - 1; recalcQuickBid(); } 
-            });
-            if (qbStepPlus) qbStepPlus.addEventListener('click', () => { 
-                qbStepInput.value = (parseInt(qbStepInput.value) || 0) + 1; 
-                recalcQuickBid(); 
-            });
-            
-            document.querySelectorAll('.btn-view-preview').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    closeAuthVerificationModal();
-                });
-            });
-
-            const btnSendRequest = document.getElementById('btn-send-request');
-            if (btnSendRequest) {
-                btnSendRequest.addEventListener('click', function() {
-                    const originalHtml = this.innerHTML;
-                    this.disabled = true;
-                    this.innerHTML = '<span class="material-symbols-outlined text-lg animate-spin">autorenew</span> در حال ارسال...';
-
-                    fetch(requestVerificationUrl, {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRFToken': csrfToken,
-                            'Content-Type': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest'
-                        },
-                    })
-                    .then(response => {
-                        if (response.ok) {
-                            return response.json().catch(() => ({}));
-                        }
-                        throw new Error('خطا در برقراری ارتباط با سرور');
-                    })
-                    .then(data => {
-                        if (data.request_state === 'pending') {
-                            userHasPendingRequest = true;
-                            if (currentUserId) {
-                                localStorage.setItem('auction_req_pending_' + currentUserId, 'true');
-                            }
-                        }
-
-                        setAuthModalState();
-
-                        if (window.showToast && data.toast_message) {
-                            window.showToast(
-                                data.toast_message,
-                                data.toast_type || 'info',
-                                'bottom-left',
-                                data.toast_action_label
-                                    ? { actionLabel: data.toast_action_label, actionHref: data.toast_action_href || '#' }
-                                    : undefined
-                            );
-                        }
-
-                        if (data.request_state === 'incomplete_profile' && data.toast_action_href) {
-                            window.location.href = data.toast_action_href;
-                        }
-                    })
-                    .catch(error => {
-                        this.disabled = false;
-                        this.innerHTML = originalHtml;
-                        if (window.showToast) {
-                            window.showToast(error.message || 'خطا در ثبت درخواست', 'error', 'bottom-left');
-                        } else {
-                            alert(error.message || 'خطا در ثبت درخواست');
-                        }
-                    });
-                });
-            }
-
+        function initAuctionPage() {
+            const authM = document.getElementById('auth-verification-modal');
+            const qbM = document.getElementById('quick-bid-modal');
+            if (authM && authM.parentElement !== document.body) document.body.appendChild(authM);
+            if (qbM && qbM.parentElement !== document.body) document.body.appendChild(qbM);
             bindGuardedAuctionActions();
             initInfiniteScroll();
-
-            if (btnSubmitCredit) {
-                btnSubmitCredit.addEventListener('click', async function() {
-                    const csrfToken = qbForm ? qbForm.querySelector('[name=csrfmiddlewaretoken]')?.value : document.querySelector('[name=csrfmiddlewaretoken]')?.value;
-                    const originalText = btnSubmitCredit.innerHTML;
-
-                    btnSubmitCredit.innerHTML = '<span class="material-symbols-outlined animate-spin-custom text-lg">sync</span> در حال ثبت...';
-                    btnSubmitCredit.disabled = true;
-
-                    try {
-                        const response = await fetch(qbCreditRequestUrl, {
-                            method: 'POST',
-                            headers: {
-                                'X-Requested-With': 'XMLHttpRequest',
-                                'X-CSRFToken': csrfToken || '',
-                                'Content-Type': 'application/json'
-                            }
-                        });
-                        const data = await response.json();
-
-                        btnSubmitCredit.innerHTML = originalText;
-                        btnSubmitCredit.disabled = false;
-
-                        if (data.success) {
-                            if (creditRequestStatus) {
-                                creditRequestStatus.dataset.status = '0';
-                            }
-                            setQuickBidModalState('pending');
-
-                            if (btnProfileLink && data.profile_url) {
-                                btnProfileLink.href = data.profile_url;
-                            }
-                        } else if (window.showToast) {
-                            window.showToast(data.message || 'خطا در ثبت درخواست.', 'error', 'bottom-left');
-                        } else {
-                            alert(data.message || 'خطا در ثبت درخواست.');
-                        }
-                    } catch (error) {
-                        btnSubmitCredit.innerHTML = originalText;
-                        btnSubmitCredit.disabled = false;
-                        if (window.showToast) {
-                            window.showToast('خطا در ارتباط با سرور. لطفاً مجدداً تلاش کنید.', 'error', 'bottom-left');
-                        } else {
-                            alert('خطا در ارتباط با سرور. لطفاً مجدداً تلاش کنید.');
-                        }
-                    }
-                });
-            }
-
             connectAuctionLiveUpdates();
-        });
+        }
 
-        document.addEventListener('keydown', (e) => { 
-            if (e.key !== "Escape") return;
-            if (authModal && !authModal.classList.contains('hidden')) closeAuthVerificationModal();
-            if (qbModal && !qbModal.classList.contains('hidden')) closeQuickBidModal();
-        });
+        window.openQuickBidModal = openQuickBidModal;
+        window.closeQuickBidModal = closeQuickBidModal;
+        window.openAuthVerificationModal = openAuthVerificationModal;
+        window.closeAuthVerificationModal = closeAuthVerificationModal;
+        window.loadMoreProducts = loadMoreProducts;
+        window.initInfiniteScroll = initInfiniteScroll;
+        window.refreshExtendedProductsLayout = refreshExtendedProductsLayout;
 
-        window.addEventListener('beforeunload', () => {
+        initAuctionPage();
+        document.addEventListener('DOMContentLoaded', initAuctionPage);
+        document.addEventListener('page:loaded', initAuctionPage);
+        document.addEventListener('page:unloaded', () => {
             stopLivePolling();
-            if (liveReconnectTimer) {
-                window.clearTimeout(liveReconnectTimer);
+            if (livePageSocket) {
+                try { livePageSocket.close(); } catch(_) {}
+                livePageSocket = null;
             }
-            closeLiveSockets();
+            if (infiniteScrollObserver) {
+                try { infiniteScrollObserver.disconnect(); } catch (_) {}
+                infiniteScrollObserver = null;
+            }
+            if (loadMoreWatchdogTimer) {
+                clearTimeout(loadMoreWatchdogTimer);
+                loadMoreWatchdogTimer = null;
+            }
+            scrollListenerAttached = false;
         });
     </script>
 
+    <!-- جاوااسکریپت تایمر ثابت زیر عنوان مزایده -->
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const timeWindow = document.getElementById('auction-time-window');
+        (function() {
+            function initAuctionCountdown() {
+                const timeWindow = document.getElementById('auction-time-window');
             if (!timeWindow) return;
 
             const startStr = timeWindow.getAttribute('data-start');
             const endStr = timeWindow.getAttribute('data-end');
+            const maxEndStr = timeWindow.getAttribute('data-max-end') || endStr;
+            let extendedCount = parseInt(timeWindow.getAttribute('data-extended-count') || '0', 10);
             if (!startStr || !endStr) return;
 
             const startTime = new Date(startStr).getTime();
             const endTime = new Date(endStr).getTime();
+            let maxEndTime = new Date(maxEndStr).getTime();
 
             const timerLabel = document.getElementById('timer-label');
             const countdownContainer = document.getElementById('auction-main-countdown');
+            const timerDivider = document.getElementById('timer-divider');
             const endedEl = document.getElementById('auction-main-ended');
-            
-            const timerBoxes = document.querySelectorAll('.timer-box');
             
             const md = document.getElementById('main-days');
             const mh = document.getElementById('main-hours');
             const mm = document.getElementById('main-mins');
             const ms = document.getElementById('main-secs');
 
-            function updateCardsVisualState(state) {
-                window.currentAuctionVisualState = state;
-                const cards = document.querySelectorAll('[data-product-card]');
-                cards.forEach(card => {
-                    const overlayNotStarted = card.querySelector('[data-status-overlay="NOT_STARTED"]');
-                    const overlayEnded = card.querySelector('[data-status-overlay="ENDED"]');
-                    const glowNotStarted = card.querySelector('[data-glow="NOT_STARTED"]');
-                    const glowEnded = card.querySelector('[data-glow="ENDED"]');
-                    const img = card.querySelector('img[data-product-img]');
-                    const soldBadge = card.querySelector('[data-sold-badge]');
-                    
-                    const btnActive = card.querySelector('[data-btn-active="1"]');
-                    const btnWaiting = card.querySelector('[data-btn-waiting="1"]');
-                    const btnEnded = card.querySelector('[data-btn-ended="1"]');
-                    const hasWinner = card.getAttribute('data-has-winner') === '1';
-                    const isUserWinner = card.getAttribute('data-is-user-winner') === '1';
-                    const winnerMedal = card.querySelector('[data-winner-medal]');
-                    const soldBadgeIcon = card.querySelector('[data-sold-badge-icon]');
-                    const soldBadgeText = card.querySelector('[data-sold-badge-text]');
-
-                    if (state === 'NOT_STARTED') {
-                        // حاشیه و هاله آبی
-                        card.classList.add('border-blue-500/30', 'dark:border-blue-400/30');
-                        card.classList.remove('border-red-500/30', 'dark:border-red-500/30', 'border-neutral-200', 'dark:border-zinc-800');
-                        if(glowNotStarted) glowNotStarted.classList.remove('opacity-0');
-                        if(glowEnded) glowEnded.classList.add('opacity-0');
-                        
-                        if(img) img.classList.remove('grayscale');
-                        
-                        if (overlayNotStarted) { overlayNotStarted.classList.remove('hidden'); overlayNotStarted.classList.add('flex'); }
-                        if (overlayEnded) { overlayEnded.classList.add('hidden'); overlayEnded.classList.remove('flex'); }
-                        
-                        // دکمه‌ها
-                        if(btnActive) { btnActive.classList.add('hidden'); btnActive.classList.remove('flex'); }
-                        if(btnWaiting) { btnWaiting.classList.remove('hidden'); btnWaiting.classList.add('flex'); }
-                        if(btnEnded) { btnEnded.classList.add('hidden'); btnEnded.classList.remove('flex'); }
-                        if(soldBadge) { soldBadge.classList.add('hidden'); soldBadge.classList.remove('flex'); }
-                        if(winnerMedal) { winnerMedal.classList.add('hidden'); winnerMedal.classList.remove('flex'); }
-
-                    } else if (state === 'ENDED') {
-                        // حاشیه و هاله قرمز
-                        card.classList.add('border-red-500/30', 'dark:border-red-500/30');
-                        card.classList.remove('border-blue-500/30', 'dark:border-blue-400/30', 'border-neutral-200', 'dark:border-zinc-800');
-                        if(glowNotStarted) glowNotStarted.classList.add('opacity-0');
-                        if(glowEnded) glowEnded.classList.remove('opacity-0');
-                        
-                        if(img) img.classList.add('grayscale'); // افکت سیاه و سفید برای عکس
-                        
-                        if (overlayNotStarted) { overlayNotStarted.classList.add('hidden'); overlayNotStarted.classList.remove('flex'); }
-                        if (overlayEnded) { overlayEnded.classList.remove('hidden'); overlayEnded.classList.add('flex'); }
-                        
-                        // دکمه‌ها
-                        if(btnActive) { btnActive.classList.add('hidden'); btnActive.classList.remove('flex'); }
-                        if(btnWaiting) { btnWaiting.classList.add('hidden'); btnWaiting.classList.remove('flex'); }
-                        if(btnEnded) { btnEnded.classList.remove('hidden'); btnEnded.classList.add('flex'); }
-                        if(soldBadge) {
-                            if (hasWinner) {
-                                soldBadge.classList.remove('border-emerald-300/70', 'bg-emerald-500/90', 'shadow-emerald-500/20', 'border-amber-300/80', 'bg-amber-500/95', 'shadow-amber-500/25');
-                                if (isUserWinner) {
-                                    soldBadge.classList.add('border-amber-300/80', 'bg-amber-500/95', 'shadow-amber-500/25');
-                                } else {
-                                    soldBadge.classList.add('border-emerald-300/70', 'bg-emerald-500/90', 'shadow-emerald-500/20');
-                                }
-                                if (soldBadgeIcon) {
-                                    soldBadgeIcon.textContent = isUserWinner ? 'military_tech' : 'sell';
-                                }
-                                if (soldBadgeText) {
-                                    soldBadgeText.textContent = isUserWinner ? 'شما برنده شدید' : 'به فروش رسید';
-                                }
-                                soldBadge.classList.remove('hidden');
-                                soldBadge.classList.add('flex');
-                            } else {
-                                soldBadge.classList.add('hidden');
-                                soldBadge.classList.remove('flex');
-                            }
-                        }
-                        if(winnerMedal) {
-                            if (isUserWinner) {
-                                winnerMedal.classList.remove('hidden');
-                                winnerMedal.classList.add('flex');
-                            } else {
-                                winnerMedal.classList.add('hidden');
-                                winnerMedal.classList.remove('flex');
-                            }
-                        }
-
-                    } else {
-                        // وضعیت ACTIVE
-                        // حاشیه‌های حالت عادی
-                        card.classList.remove('border-blue-500/30', 'dark:border-blue-400/30', 'border-red-500/30', 'dark:border-red-500/30');
-                        card.classList.add('border-neutral-200', 'dark:border-zinc-800');
-                        if(glowNotStarted) glowNotStarted.classList.add('opacity-0');
-                        if(glowEnded) glowEnded.classList.add('opacity-0');
-                        
-                        if(img) img.classList.remove('grayscale');
-                        
-                        if (overlayNotStarted) { overlayNotStarted.classList.add('hidden'); overlayNotStarted.classList.remove('flex'); }
-                        if (overlayEnded) { overlayEnded.classList.add('hidden'); overlayEnded.classList.remove('flex'); }
-                        
-                        // دکمه‌ها
-                        if(btnActive) { btnActive.classList.remove('hidden'); btnActive.classList.add('flex'); }
-                        if(btnWaiting) { btnWaiting.classList.add('hidden'); btnWaiting.classList.remove('flex'); }
-                        if(btnEnded) { btnEnded.classList.add('hidden'); btnEnded.classList.remove('flex'); }
-                        if(soldBadge) { soldBadge.classList.add('hidden'); soldBadge.classList.remove('flex'); }
-                        if(winnerMedal) { winnerMedal.classList.add('hidden'); winnerMedal.classList.remove('flex'); }
-                    }
-                });
-            }
-
-            window.applyAuctionCardVisualState = updateCardsVisualState;
-
             function tickMain() {
                 const toFaDigits = (value) => String(value).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[d]);
                 const now = new Date().getTime();
                 let targetTime = 0;
                 let state = ''; 
+                const liveExtendedCount = typeof window.countActiveExtendedProducts === 'function' ? window.countActiveExtendedProducts() : extendedCount;
+
+                extendedCount = liveExtendedCount;
 
                 if (now < startTime) {
                     state = 'NOT_STARTED';
                     targetTime = startTime;
                     if (timerLabel) {
-                        timerLabel.innerHTML = '<span class="material-symbols-outlined text-[20px] animate-pulse">hourglass_empty</span>زمان باقی‌مانده تا شروع مزایده';
-                        timerLabel.classList.add('text-blue-500');
-                        timerLabel.classList.remove('text-primary');
+                        timerLabel.innerHTML = '<span class="w-2 h-2 rounded-full bg-blue-500 shrink-0"></span><span>زمان تا آغاز</span>';
                     }
-                    timerBoxes.forEach(box => {
-                        box.classList.add('border-blue-200', 'dark:border-blue-800', 'bg-blue-50/50', 'dark:bg-blue-900/10');
-                    });
                 } else if (now >= startTime && now < endTime) {
                     state = 'ACTIVE';
                     targetTime = endTime;
                     if (timerLabel) {
-                        timerLabel.innerHTML = '<span class="material-symbols-outlined text-[20px] animate-pulse">timer</span>زمان باقی‌مانده تا پایان مزایده';
-                        timerLabel.classList.remove('text-blue-500');
-                        timerLabel.classList.add('text-primary');
+                        timerLabel.innerHTML = '<span class="w-2 h-2 rounded-full bg-[#D9962A] animate-pulse shrink-0"></span><span>زمان تا پایان</span>';
                     }
-                    timerBoxes.forEach(box => {
-                        box.classList.remove('border-blue-200', 'dark:border-blue-800', 'bg-blue-50/50', 'dark:bg-blue-900/10');
-                    });
+                } else if (now >= endTime && now < maxEndTime) {
+                    state = 'EXTENDED';
+                    targetTime = maxEndTime;
+                    if (timerLabel) {
+                        const countText = extendedCount > 0 ? ` (${toFaDigits(extendedCount)})` : '';
+                        timerLabel.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0"></span><span>زمان تمدید${countText}</span>`;
+                    }
                 } else {
                     state = 'ENDED';
                     targetTime = 0; 
@@ -1232,12 +1168,20 @@
                 if (state === 'ENDED' || dist <= 0) {
                     dist = 0;
                     if (countdownContainer) countdownContainer.classList.add('hidden');
+                    if (timerDivider) timerDivider.classList.add('hidden');
                     if (timerLabel) timerLabel.classList.add('hidden');
-                    if (endedEl) endedEl.classList.remove('hidden');
+                    if (endedEl) {
+                        endedEl.classList.remove('hidden');
+                        endedEl.classList.add('flex');
+                    }
                 } else {
                     if (countdownContainer) countdownContainer.classList.remove('hidden');
+                    if (timerDivider) timerDivider.classList.remove('hidden');
                     if (timerLabel) timerLabel.classList.remove('hidden');
-                    if (endedEl) endedEl.classList.add('hidden');
+                    if (endedEl) {
+                        endedEl.classList.add('hidden');
+                        endedEl.classList.remove('flex');
+                    }
                 }
 
                 const days = Math.floor(dist / 86400000);
@@ -1249,12 +1193,16 @@
                 if (mh) mh.textContent = toFaDigits(String(hours).padStart(2, '0'));
                 if (mm) mm.textContent = toFaDigits(String(mins).padStart(2, '0'));
                 if (ms) ms.textContent = toFaDigits(String(secs).padStart(2, '0'));
-
-                updateCardsVisualState(state);
             }
 
-            tickMain();
-            setInterval(tickMain, 1000);
-        });
+                tickMain();
+                const timerId = setInterval(tickMain, 1000);
+                document.addEventListener('page:unloaded', () => clearInterval(timerId), { once: true });
+            }
+
+            initAuctionCountdown();
+            document.addEventListener('DOMContentLoaded', initAuctionCountdown);
+            document.addEventListener('page:loaded', initAuctionCountdown);
+        })();
     </script>
 {% endblock %}

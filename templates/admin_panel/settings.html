@@ -1,415 +1,255 @@
-{% extends 'admin_panel/base.html' %}
+{% comment %} {% extends 'admin_panel/base.html' %}
 
-{% block title %}تنظیمات سیستم | آرت‌پنل{% endblock %}
-{% block page_title %}تنظیمات سیستم{% endblock %}
+{% block title %}تنظیمات ادمین | آرت‌پنل{% endblock %}
+{% block page_title %}تنظیمات و ایمیل{% endblock %}
 
 {% block content %}
-<div class="flex flex-col gap-6" id="settings-app">
-    <div class="bg-admin-surface-light dark:bg-admin-surface-dark rounded-2xl p-5 md:p-6 shadow-sm border border-gray-100 dark:border-white/5">
-        <h3 class="text-lg font-black text-text-main dark:text-white">مدیریت تنظیمات و ترجیحات پنل</h3>
-        <p class="text-xs font-bold text-text-muted mt-1">وضعیت نشست، کش، اعلان‌ها و فیلترهای ذخیره‌شده را از این بخش مدیریت کنید.</p>
-    </div>
+<div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex flex-col gap-8">
+    
+    <section class="rounded-3xl border border-white/40 dark:border-white/5 bg-white/80 dark:bg-slate-800/80 p-6 shadow-sm sm:p-8">
+        <div class="flex flex-col gap-2">
+            <h1 class="flex items-center gap-3 text-2xl font-black text-slate-800 dark:text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-7 h-7 text-primary">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+                </svg>
+                وضعیت زیرساخت ایمیل
+            </h1>
+            <p class="text-sm font-medium text-slate-500 dark:text-slate-400">
+                وضعیت فعلی تنظیمات SMTP و آمادگی ارسال ایمیل از داخل پنل سفارشی.
+            </p>
+        </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div class="bg-admin-surface-light dark:bg-admin-surface-dark rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-white/5">
-            <div class="flex items-center justify-between gap-3 mb-5">
-                <div>
-                    <h4 class="font-black text-text-main dark:text-white">اطلاعات اصلی سیستم</h4>
-                    <p class="text-xs font-bold text-text-muted mt-1">این مقادیر از تنظیمات سمت سرور خوانده می‌شوند.</p>
-                </div>
+        <div class="mt-6 flex flex-wrap items-center gap-3">
+            {% if email_status.is_ready %}
+            <span class="inline-flex items-center gap-2 rounded-xl bg-emerald-100/70 px-4 py-2.5 text-sm font-black text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+                <span class="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                تنظیمات ایمیل کامل است
+            </span>
+            {% else %}
+            <span class="inline-flex items-center gap-2 rounded-xl bg-amber-100/70 px-4 py-2.5 text-sm font-black text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
+                <span class="h-2.5 w-2.5 rounded-full bg-amber-500"></span>
+                تنظیمات ایمیل نیاز به بررسی دارد
+            </span>
+            {% endif %}
+        </div>
+
+        {% if email_status.issues %}
+        <div class="mt-6 rounded-2xl border border-amber-200 bg-amber-50/90 p-5 dark:border-amber-500/20 dark:bg-amber-500/10">
+            <h2 class="flex items-center gap-2 text-sm font-black text-amber-700 dark:text-amber-300">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                    <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495ZM10 5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 5Zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clip-rule="evenodd" />
+                </svg>
+                مواردی که بررسی و اصلاح شدند یا باید حواست به آن‌ها باشد
+            </h2>
+            <ul class="mt-3 space-y-2 text-sm font-medium text-amber-800 dark:text-amber-200">
+                {% for issue in email_status.issues %}
+                <li class="flex items-start gap-2">
+                    <span class="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-amber-400"></span>
+                    <span>{{ issue }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <div class="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div class="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-5 dark:border-white/10 dark:bg-slate-900/40 transition hover:border-slate-300 dark:hover:border-white/20">
+                <div class="text-xs font-bold text-slate-500 dark:text-slate-400">SMTP Host</div>
+                <div class="mt-2 text-sm font-black text-slate-800 dark:text-white dir-ltr text-left">{{ email_status.host }}</div>
             </div>
-
-            <div id="settingsInfoGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div class="sm:col-span-2 text-center text-text-muted py-6">در حال دریافت اطلاعات...</div>
+            <div class="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-5 dark:border-white/10 dark:bg-slate-900/40 transition hover:border-slate-300 dark:hover:border-white/20">
+                <div class="text-xs font-bold text-slate-500 dark:text-slate-400">Port / Timeout</div>
+                <div class="mt-2 text-sm font-black text-slate-800 dark:text-white dir-ltr text-left">{{ email_status.port }} / {{ email_status.timeout }}s</div>
+            </div>
+            <div class="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-5 dark:border-white/10 dark:bg-slate-900/40 transition hover:border-slate-300 dark:hover:border-white/20">
+                <div class="text-xs font-bold text-slate-500 dark:text-slate-400">SMTP User</div>
+                <div class="mt-2 text-sm font-black text-slate-800 dark:text-white dir-ltr text-left break-all">{{ email_status.host_user }}</div>
+            </div>
+            <div class="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-5 dark:border-white/10 dark:bg-slate-900/40 transition hover:border-slate-300 dark:hover:border-white/20">
+                <div class="text-xs font-bold text-slate-500 dark:text-slate-400">From Email</div>
+                <div class="mt-2 text-sm font-black text-slate-800 dark:text-white dir-ltr text-left break-all">{{ email_status.default_from_email }}</div>
             </div>
         </div>
 
-        <div class="bg-admin-surface-light dark:bg-admin-surface-dark rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-white/5">
-            <div class="mb-5">
-                <h4 class="font-black text-text-main dark:text-white">اعلان‌های پنل</h4>
-                <p class="text-xs font-bold text-text-muted mt-1">نوع اعلان‌هایی که برای شما فعال باشد را انتخاب کنید.</p>
-            </div>
-
-            <div class="space-y-4">
-                <div class="flex items-center justify-between rounded-2xl border border-gray-100 dark:border-white/5 bg-admin-bg-light dark:bg-admin-bg-dark px-4 py-3">
-                    <div>
-                        <p class="text-sm font-black text-text-main dark:text-white">اعلان ایمیلی</p>
-                        <p class="text-[11px] font-bold text-text-muted mt-1">برای رویدادهای اصلی، ایمیل ارسال شود.</p>
-                    </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="emailToggle" class="sr-only peer">
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-[-100%] peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
-                    </label>
-                </div>
-
-                <div class="flex items-center justify-between rounded-2xl border border-gray-100 dark:border-white/5 bg-admin-bg-light dark:bg-admin-bg-dark px-4 py-3">
-                    <div>
-                        <p class="text-sm font-black text-text-main dark:text-white">اعلان داخل پنل</p>
-                        <p class="text-[11px] font-bold text-text-muted mt-1">هشدارها داخل پنل مدیریت نمایش داده شوند.</p>
-                    </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="browserToggle" class="sr-only peer">
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-[-100%] peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
-                    </label>
+        <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div class="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-5 dark:border-white/10 dark:bg-slate-900/40 transition hover:border-slate-300 dark:hover:border-white/20">
+                <div class="text-xs font-bold text-slate-500 dark:text-slate-400">TLS / SSL</div>
+                <div class="mt-2 text-sm font-black text-slate-800 dark:text-white">
+                    TLS: {{ email_status.use_tls|yesno:"فعال,غیرفعال" }} | SSL: {{ email_status.use_ssl|yesno:"فعال,غیرفعال" }}
                 </div>
             </div>
+            <div class="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-5 dark:border-white/10 dark:bg-slate-900/40 transition hover:border-slate-300 dark:hover:border-white/20">
+                <div class="text-xs font-bold text-slate-500 dark:text-slate-400">Backend</div>
+                <div class="mt-2 text-sm font-black text-slate-800 dark:text-white dir-ltr text-left break-all">{{ email_status.backend }}</div>
+            </div>
+        </div>
+    </section>
 
-            <div class="mt-5 flex justify-end">
-                <button id="saveNotificationBtn" type="button" class="px-4 py-2 rounded-xl bg-green-500 text-white hover:bg-green-600 text-xs font-black transition-all shadow-lg shadow-green-500/20">
-                    ذخیره تنظیم اعلان‌ها
+    <section class="rounded-3xl border border-white/40 dark:border-white/5 bg-white/80 dark:bg-slate-800/80 p-6 shadow-sm sm:p-8">
+        <div class="flex flex-col gap-2 mb-8">
+            <h2 class="flex items-center gap-3 text-xl font-black text-slate-800 dark:text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6 text-primary">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
+                </svg>
+                ارسال ایمیل سفارشی
+            </h2>
+            <p class="text-sm font-medium text-slate-500 dark:text-slate-400">
+                برای یک یا چند گیرنده، متن دلخواه بفرست. گیرنده‌ها را با ویرگول یا خط جدید جدا کن.
+            </p>
+        </div>
+
+        <form method="post" class="space-y-6 lg:space-y-0 lg:grid lg:grid-cols-12 lg:gap-8">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="send_custom_email">
+            
+            <div class="flex flex-col gap-6 lg:col-span-5">
+                <div class="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-5 dark:border-white/10 dark:bg-slate-900/40">
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                            <h3 class="text-sm font-black text-slate-800 dark:text-white">انتخاب کاربران سایت</h3>
+                            <p class="mt-1 text-xs font-medium leading-relaxed text-slate-500 dark:text-slate-400">
+                                کاربرانی که انتخاب می‌کنید به‌صورت خودکار به لیست گیرنده‌ها اضافه می‌شوند.
+                            </p>
+                        </div>
+                        <span id="selected-email-users-count" class="shrink-0 inline-flex items-center justify-center rounded-xl bg-primary/10 px-3 py-1.5 text-xs font-black text-primary">
+                            0 کاربر انتخاب شده
+                        </span>
+                    </div>
+
+                    <div class="mt-5">
+                        <div class="relative">
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-slate-400">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                                </svg>
+                            </div>
+                            <input
+                                type="text"
+                                id="email-user-search"
+                                class="w-full rounded-2xl border border-slate-300 bg-white py-3 pl-4 pr-11 text-sm text-slate-900 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-white/10 dark:bg-slate-900/50 dark:text-white dark:focus:ring-primary/20"
+                                placeholder="جستجو نام، شماره یا ایمیل..."
+                            >
+                        </div>
+                    </div>
+
+                    <div class="mt-4 max-h-[22rem] space-y-2 overflow-y-auto pr-1 pl-1" id="email-users-list">
+                        {% for user in email_users %}
+                        <label class="email-user-option flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200/80 bg-white p-3.5 transition hover:border-primary/40 hover:bg-primary/5 dark:border-white/10 dark:bg-slate-800/80 dark:hover:border-primary/40"
+                            data-search="{{ user.name }} {{ user.phone_number }} {{ user.email }}">
+                            <input
+                                type="checkbox"
+                                name="selected_user_ids"
+                                value="{{ user.id }}"
+                                data-email-user-checkbox
+                                class="mt-0.5 h-4 w-4 rounded border-slate-300 text-primary transition focus:ring-primary dark:border-white/20 dark:bg-slate-900"
+                            >
+                            <span class="min-w-0 flex-1">
+                                <span class="block text-sm font-black text-slate-800 dark:text-white">{{ user.name }}</span>
+                                <span class="mt-1 flex items-center justify-between gap-2">
+                                    <span class="block text-xs font-medium text-slate-500 dark:text-slate-400">{{ user.phone_number|default:"بدون شماره" }}</span>
+                                    <span class="block truncate text-left text-xs font-bold text-slate-700 dark:text-slate-300" dir="ltr">{{ user.email }}</span>
+                                </span>
+                            </span>
+                        </label>
+                        {% empty %}
+                        <div class="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 px-4 py-8 text-center dark:border-white/10">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-slate-400 mb-2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+                            </svg>
+                            <span class="text-sm font-bold text-slate-500 dark:text-slate-400">کاربری با ایمیل معتبر یافت نشد.</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div>
+                    <label class="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">گیرنده‌های دستی (دلخواه)</label>
+                    <textarea
+                        name="custom_recipients"
+                        rows="3"
+                        class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-left text-sm text-slate-900 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-white/10 dark:bg-slate-900/50 dark:text-white dark:focus:ring-primary/20"
+                        dir="ltr"
+                        placeholder="example1@mail.com, example2@mail.com"
+                    ></textarea>
+                    <p class="mt-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+                        ایمیل‌ها را با ویرگول از هم جدا کنید.
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-6 lg:col-span-7 bg-slate-50/50 dark:bg-slate-900/20 p-5 sm:p-6 rounded-3xl border border-slate-100 dark:border-white/5">
+                <div>
+                    <label class="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">موضوع ایمیل</label>
+                    <input
+                        type="text"
+                        name="custom_subject"
+                        class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3.5 text-sm text-slate-900 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-white/10 dark:bg-slate-900/50 dark:text-white dark:focus:ring-primary/20"
+                        placeholder="مثلا: خبرنامه دی‌ماه آرت‌پنل..."
+                    >
+                </div>
+
+                <div class="flex-1 flex flex-col">
+                    <label class="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">متن پیام</label>
+                    <textarea
+                        name="custom_message"
+                        class="w-full flex-1 min-h-[250px] rounded-2xl border border-slate-300 bg-white px-4 py-4 text-sm text-slate-900 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10 dark:border-white/10 dark:bg-slate-900/50 dark:text-white dark:focus:ring-primary/20 resize-y"
+                        placeholder="متن پیام خود را اینجا بنویسید..."
+                    ></textarea>
+                </div>
+
+                <button type="submit" class="group relative flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-6 py-4 text-sm font-black text-white transition-all hover:bg-slate-800 hover:shadow-lg hover:shadow-slate-900/20 focus:ring-4 focus:ring-slate-900/20 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 dark:hover:shadow-white/10 dark:focus:ring-white/20 mt-auto">
+                    <span>ارسال ایمیل به گیرندگان</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 transition-transform group-hover:-translate-x-1">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+                    </svg>
                 </button>
             </div>
-        </div>
-    </div>
+            
+        </form>
+    </section>
 
-    <div class="bg-admin-surface-light dark:bg-admin-surface-dark rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-white/5">
-        <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5 mb-5">
-            <div>
-                <h4 class="font-black text-text-main dark:text-white">فیلترهای ذخیره‌شده</h4>
-                <p class="text-xs font-bold text-text-muted mt-1">برای صفحات مختلف پنل، فیلترهای آماده بسازید و در صورت نیاز یکی را پیش‌فرض کنید.</p>
-            </div>
-        </div>
-
-        <div class="grid grid-cols-1 xl:grid-cols-[360px_minmax(0,1fr)] gap-5">
-            <form id="savedFilterForm" class="rounded-2xl border border-gray-100 dark:border-white/5 bg-admin-bg-light dark:bg-admin-bg-dark p-4 space-y-4">
-                <div>
-                    <label for="filterName" class="block text-xs font-black text-text-main dark:text-white mb-2">نام فیلتر</label>
-                    <input id="filterName" type="text" class="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-admin-surface-dark px-4 py-2.5 text-sm text-text-main dark:text-white focus:outline-none focus:border-primary transition-colors" placeholder="مثلاً کاربران فعال امروز">
-                </div>
-
-                <div>
-                    <label for="filterPage" class="block text-xs font-black text-text-main dark:text-white mb-2">صفحه</label>
-                    <select id="filterPage" class="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-admin-surface-dark px-4 py-2.5 text-sm text-text-main dark:text-white focus:outline-none focus:border-primary transition-colors">
-                        <option value="dashboard">داشبورد</option>
-                        <option value="products">محصولات</option>
-                        <option value="requests">درخواست‌ها</option>
-                        <option value="users">کاربران</option>
-                        <option value="reports">گزارشات</option>
-                        <option value="settings">تنظیمات</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label for="filterJson" class="block text-xs font-black text-text-main dark:text-white mb-2">فیلترها به صورت JSON</label>
-                    <textarea id="filterJson" rows="7" class="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-admin-surface-dark px-4 py-3 text-sm text-text-main dark:text-white focus:outline-none focus:border-primary transition-colors font-mono" placeholder='{"status":"active","search":"ali"}'></textarea>
-                </div>
-
-                <label class="flex items-center gap-2 text-xs font-bold text-text-muted">
-                    <input id="filterIsDefault" type="checkbox" class="rounded border-gray-300 text-primary focus:ring-primary">
-                    به عنوان فیلتر پیش‌فرض ذخیره شود
-                </label>
-
-                <button type="submit" class="w-full px-4 py-3 rounded-xl bg-primary text-white hover:bg-primary-glow text-sm font-black transition-all">
-                    ذخیره فیلتر
-                </button>
-            </form>
-
-            <div class="rounded-2xl border border-gray-100 dark:border-white/5 overflow-hidden">
-                <div class="overflow-x-auto custom-scrollbar">
-                    <table class="w-full text-right border-collapse">
-                        <thead class="bg-admin-bg-light dark:bg-admin-bg-dark border-b border-gray-100 dark:border-white/5 text-[11px] font-black text-text-muted">
-                            <tr>
-                                <th class="p-4">نام فیلتر</th>
-                                <th class="p-4">صفحه</th>
-                                <th class="p-4 text-center">وضعیت</th>
-                                <th class="p-4 text-center">عملیات</th>
-                            </tr>
-                        </thead>
-                        <tbody id="savedFiltersBody" class="text-xs font-bold text-text-main dark:text-gray-300 divide-y divide-gray-100 dark:divide-white/5">
-                            <tr>
-                                <td colspan="4" class="p-8 text-center text-text-muted">در حال دریافت فیلترها...</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-    const endpoints = {
-        settings: "{% url 'admin_panel:settings-get' %}",
-        notifications: "{% url 'admin_panel:settings-notifications' %}",
-        filters: "{% url 'admin_panel:settings-filters' %}",
-        filterDefaultBase: "{% url 'admin_panel:settings-filters' %}",
-    };
+    document.addEventListener('DOMContentLoaded', () => {
+        const searchInput = document.getElementById('email-user-search');
+        const countElement = document.getElementById('selected-email-users-count');
+        const options = Array.from(document.querySelectorAll('.email-user-option'));
+        const checkboxes = Array.from(document.querySelectorAll('[data-email-user-checkbox]'));
 
-    const pageNames = {
-        dashboard: 'داشبورد',
-        products: 'محصولات',
-        requests: 'درخواست‌ها',
-        users: 'کاربران',
-        reports: 'گزارشات',
-        settings: 'تنظیمات'
-    };
-
-    const settingsInfoGrid = document.getElementById('settingsInfoGrid');
-    const emailToggle = document.getElementById('emailToggle');
-    const browserToggle = document.getElementById('browserToggle');
-    const savedFiltersBody = document.getElementById('savedFiltersBody');
-    const savedFilterForm = document.getElementById('savedFilterForm');
-    const saveNotificationBtn = document.getElementById('saveNotificationBtn');
-
-    function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === `${name}=`) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
-                }
-            }
-        }
-        return cookieValue;
-    }
-
-    function toPersianDigits(value) {
-        return String(value).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[d]);
-    }
-
-    function notify(key, type = 'success', params = {}, fallback = '') {
-        const message = window.getNotificationMessage
-            ? window.getNotificationMessage(key, params, fallback)
-            : fallback;
-        if (!message || !window.showNotificationText) return;
-        window.showNotificationText(message, { type, position: 'bottom-left' });
-    }
-
-    function createInfoCard(label, value) {
-        return `
-            <div class="rounded-2xl border border-gray-100 dark:border-white/5 bg-admin-bg-light dark:bg-admin-bg-dark p-4">
-                <p class="text-[11px] font-black text-text-muted">${label}</p>
-                <p class="mt-2 text-sm font-black text-text-main dark:text-white break-words">${value}</p>
-            </div>
-        `;
-    }
-
-    async function loadMainSettings() {
-        settingsInfoGrid.innerHTML = '<div class="sm:col-span-2 text-center text-text-muted py-6">در حال دریافت اطلاعات...</div>';
-        try {
-            const response = await fetch(endpoints.settings, { credentials: 'include' });
-            if (!response.ok) throw new Error('settings failed');
+        function updateSelectedCount() {
+            const selectedCount = checkboxes.filter((checkbox) => checkbox.checked).length;
+            countElement.textContent = `${selectedCount} کاربر انتخاب شده`;
             
-            const data = await response.json();
-            settingsInfoGrid.innerHTML = [
-                createInfoCard('HttpOnly', data.session_cookie_httponly ? 'فعال' : 'غیرفعال'),
-                createInfoCard('Secure Cookie', data.session_cookie_secure ? 'فعال' : 'غیرفعال'),
-                createInfoCard('SameSite', data.session_cookie_samesite || '-'),
-                createInfoCard('Session Age', `${toPersianDigits(data.session_cookie_age || 0)} ثانیه`),
-                createInfoCard('Cache Backend', data.cache_backend || '-'),
-            ].join('');
-        } catch (error) {
-            settingsInfoGrid.innerHTML = '<div class="sm:col-span-2 text-center text-red-500 py-6">خطا در دریافت تنظیمات سیستم</div>';
-        }
-    }
-
-    async function loadNotifications() {
-        try {
-            const response = await fetch(endpoints.notifications, { credentials: 'include' });
-            if (!response.ok) throw new Error('notifications failed');
-            
-            const data = await response.json();
-            emailToggle.checked = Boolean(data.email);
-            browserToggle.checked = Boolean(data.browser);
-        } catch (error) {
-            notify('admin.settings.notifications_load_error', 'error');
-        }
-    }
-
-    async function saveNotifications() {
-        const originalText = saveNotificationBtn.textContent;
-        saveNotificationBtn.textContent = 'در حال ذخیره...';
-        saveNotificationBtn.disabled = true;
-
-        try {
-            const response = await fetch(endpoints.notifications, {
-                method: 'POST',
-                credentials: 'include',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken') || '',
-                },
-                body: JSON.stringify({
-                    email: emailToggle.checked,
-                    browser: browserToggle.checked,
-                }),
-            });
-            
-            if (!response.ok) throw new Error('save notifications failed');
-            
-            await loadNotifications();
-            notify('admin.settings.notifications_saved');
-        } catch (error) {
-            notify('admin.settings.notifications_save_error', 'error');
-        } finally {
-            saveNotificationBtn.textContent = originalText;
-            saveNotificationBtn.disabled = false;
-        }
-    }
-
-    async function loadFilters() {
-        savedFiltersBody.innerHTML = '<tr><td colspan="4" class="p-8 text-center text-text-muted">در حال دریافت فیلترها...</td></tr>';
-        try {
-            const response = await fetch(endpoints.filters, { credentials: 'include' });
-            if (!response.ok) throw new Error('filters failed');
-            
-            const data = await response.json();
-            const filters = data.filters || [];
-
-            if (!filters.length) {
-                savedFiltersBody.innerHTML = '<tr><td colspan="4" class="p-8 text-center text-text-muted">هنوز فیلتری ذخیره نشده است.</td></tr>';
-                return;
-            }
-
-            savedFiltersBody.innerHTML = filters.map((item) => `
-                <tr class="hover:bg-admin-bg-light/50 dark:hover:bg-white/[0.02] transition-colors">
-                    <td class="p-4">${item.name}</td>
-                    <td class="p-4">${pageNames[item.filter_type] || item.filter_type}</td>
-                    <td class="p-4 text-center">
-                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg ${item.is_default ? 'bg-green-500/10 text-green-600 dark:text-green-400' : 'bg-gray-100 dark:bg-white/5 text-text-muted'}">
-                            ${item.is_default ? 'پیش‌فرض' : 'عادی'}
-                        </span>
-                    </td>
-                    <td class="p-4 text-center">
-                        <div class="flex items-center justify-center gap-2">
-                            ${!item.is_default ? `
-                                <button type="button" class="set-default-btn px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-white text-[11px] font-black transition-all" data-id="${item.id}">
-                                    پیش‌فرض
-                                </button>
-                            ` : ''}
-                            <button type="button" class="delete-filter-btn px-3 py-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white text-[11px] font-black transition-all" data-id="${item.id}">
-                                حذف
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `).join('');
-        } catch (error) {
-            savedFiltersBody.innerHTML = '<tr><td colspan="4" class="p-8 text-center text-red-500">خطا در دریافت فیلترهای ذخیره‌شده</td></tr>';
-        }
-    }
-
-    async function createFilter(event) {
-        event.preventDefault();
-        const name = document.getElementById('filterName').value.trim();
-        const page = document.getElementById('filterPage').value;
-        const filterJson = document.getElementById('filterJson').value.trim();
-        const isDefault = document.getElementById('filterIsDefault').checked;
-
-        if (!name) {
-            notify('admin.settings.filter_name_required', 'error');
-            return;
-        }
-
-        let parsedFilters = {};
-        if (filterJson) {
-            try {
-                parsedFilters = JSON.parse(filterJson);
-            } catch (error) {
-                notify('admin.settings.filter_invalid_json', 'error');
-                return;
+            // Highlight counter if users are selected
+            if (selectedCount > 0) {
+                countElement.classList.add('bg-primary', 'text-white');
+                countElement.classList.remove('bg-primary/10', 'text-primary');
+            } else {
+                countElement.classList.remove('bg-primary', 'text-white');
+                countElement.classList.add('bg-primary/10', 'text-primary');
             }
         }
 
-        const submitBtn = event.target.querySelector('button[type="submit"]');
-        const originalText = submitBtn.textContent;
-        submitBtn.textContent = 'در حال ذخیره...';
-        submitBtn.disabled = true;
-
-        try {
-            const response = await fetch(endpoints.filters, {
-                method: 'POST',
-                credentials: 'include',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken') || '',
-                },
-                body: JSON.stringify({
-                    name: name,
-                    page: page,
-                    filters: parsedFilters,
-                    is_default: isDefault,
-                }),
+        function filterUsers() {
+            const term = (searchInput.value || '').trim().toLowerCase();
+            options.forEach((option) => {
+                const haystack = (option.dataset.search || '').toLowerCase();
+                option.classList.toggle('hidden', Boolean(term) && !haystack.includes(term));
             });
-            
-            if (!response.ok) throw new Error('create failed');
-            
-            savedFilterForm.reset();
-            await loadFilters();
-            notify('admin.settings.filter_saved');
-        } catch (error) {
-            notify('admin.settings.filter_save_error', 'error');
-        } finally {
-            submitBtn.textContent = originalText;
-            submitBtn.disabled = false;
-        }
-    }
-
-    async function setDefaultFilter(filterId) {
-        try {
-            const response = await fetch(`${endpoints.filterDefaultBase}${filterId}/set-default/`, {
-                method: 'POST',
-                credentials: 'include',
-                headers: {
-                    'X-CSRFToken': getCookie('csrftoken') || '',
-                },
-            });
-            
-            if (!response.ok) throw new Error('default failed');
-            
-            await loadFilters();
-            notify('admin.settings.filter_default_saved');
-        } catch (error) {
-            notify('admin.settings.filter_default_save_error', 'error');
-        }
-    }
-
-    async function deleteFilter(filterId) {
-        if (!confirm('آیا از حذف این فیلتر اطمینان دارید؟')) return;
-
-        try {
-            const response = await fetch(`${endpoints.filters}${filterId}/`, {
-                method: 'DELETE',
-                credentials: 'include',
-                headers: {
-                    'X-CSRFToken': getCookie('csrftoken') || '',
-                },
-            });
-            
-            if (!response.ok) throw new Error('delete failed');
-            
-            await loadFilters();
-            notify('admin.settings.filter_deleted');
-        } catch (error) {
-            notify('admin.settings.filter_delete_error', 'error');
-        }
-    }
-
-    saveNotificationBtn.addEventListener('click', saveNotifications);
-    savedFilterForm.addEventListener('submit', createFilter);
-
-    savedFiltersBody.addEventListener('click', (event) => {
-        const defaultButton = event.target.closest('.set-default-btn');
-        if (defaultButton) {
-            setDefaultFilter(defaultButton.dataset.id);
-            return;
         }
 
-        const deleteButton = event.target.closest('.delete-filter-btn');
-        if (deleteButton) {
-            deleteFilter(deleteButton.dataset.id);
+        if (searchInput) {
+            searchInput.addEventListener('input', filterUsers);
         }
+
+        checkboxes.forEach((checkbox) => {
+            checkbox.addEventListener('change', updateSelectedCount);
+        });
+
+        updateSelectedCount();
     });
-
-    loadMainSettings();
-    loadNotifications();
-    loadFilters();
-});
 </script>
-{% endblock %}
+{% endblock %} {% endcomment %}
