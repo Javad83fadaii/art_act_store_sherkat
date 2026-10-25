@@ -403,6 +403,7 @@
                     <a href="{{ url_auction }}" 
                        data-nav-tab="auction"
                        data-nav-path="{{ url_auction }}"
+                       data-native="1"
                        class="bottom-nav-item flex-1 min-w-0 flex flex-col items-center justify-center py-1.5 relative z-10 select-none group {% if request.resolver_match.namespace == 'auction' or request.path == url_auction %}is-active{% endif %}">
                         <div class="bottom-nav-icon-wrap relative flex items-center justify-center w-11 h-11 rounded-full will-change-transform">
                             <span class="material-symbols-outlined bottom-nav-icon text-[22px] transition-colors duration-200">gavel</span>
@@ -415,6 +416,7 @@
                     <a href="{{ url_store }}" 
                        data-nav-tab="store"
                        data-nav-path="{{ url_store }}"
+                       data-native="1"
                        class="bottom-nav-item flex-1 min-w-0 flex flex-col items-center justify-center py-1.5 relative z-10 select-none group {% if request.resolver_match.namespace == 'store' or request.path == url_store %}is-active{% endif %}">
                         <div class="bottom-nav-icon-wrap relative flex items-center justify-center w-11 h-11 rounded-full transition-transform duration-300 will-change-transform">
                             <span class="material-symbols-outlined bottom-nav-icon text-[22px] transition-colors duration-200">storefront</span>
@@ -669,9 +671,56 @@
     </script>
 
     <!-- JS Files -->
-    <script src="{% static 'js/notifications.js' %}"></script>
-    <script src="{% static 'js/app.js' %}"></script>
-    <script src="{% static 'js/spa-nav.js' %}"></script>
+    <script src="{% static 'js/notifications.js' %}?v=20261025"></script>
+    <script src="{% static 'js/app.js' %}?v=20261025"></script>
+    <script src="{% static 'js/spa-nav.js' %}?v=20261025"></script>
+
+    <!-- محافظ ناوبری: صفحات مزایده و فروشگاه باید حتماً بارگذاری کامل (native) داشته باشند
+         تا اسکریپت‌های اختصاصی صفحه (تایمر، اسکرول بی‌نهایت، گالری) اجرا شوند. -->
+    <script>
+        (function () {
+            'use strict';
+
+            const NATIVE_PATH_PREFIXES = ['/auction', '/store'];
+
+            function needsNativeNavigation(pathname) {
+                if (!pathname) return false;
+                return NATIVE_PATH_PREFIXES.some(function (prefix) {
+                    return pathname === prefix || pathname.indexOf(prefix + '/') === 0;
+                });
+            }
+
+            // هر کلیک روی لینک مزایده/فروشگاه را از ناوبری SPA خارج می‌کنیم
+            // (spa-nav.js فقط لینک‌های دارای data-native را رها می‌کند)
+            document.addEventListener('click', function (event) {
+                if (event.defaultPrevented) return;
+                if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+                const link = event.target.closest('a[href]');
+                if (!link) return;
+                if ((link.getAttribute('target') || '').toLowerCase() === '_blank') return;
+                if (link.hasAttribute('download')) return;
+
+                let url;
+                try {
+                    url = new URL(link.href, window.location.origin);
+                } catch (_) {
+                    return;
+                }
+                if (url.origin !== window.location.origin) return;
+                if (!needsNativeNavigation(url.pathname)) return;
+
+                link.dataset.native = '1';
+            }, true);
+
+            // دکمه بازگشت/جلوی مرورگر روی این صفحات، به‌جای تعویض محتوا، رفرش واقعی انجام دهد
+            window.addEventListener('popstate', function () {
+                if (needsNativeNavigation(window.location.pathname)) {
+                    window.location.reload();
+                }
+            });
+        })();
+    </script>
     <script>
         (function () {
             'use strict';
