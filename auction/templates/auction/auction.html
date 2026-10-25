@@ -134,7 +134,7 @@
             </div>
 
             {% if auction and page_obj %}
-                <div class="mt-8 flex flex-col items-center justify-center gap-4">
+                <div class="mt-8 flex flex-col items-center justify-center gap-3">
                     <div id="infinite-scroll-loader" class="hidden items-center gap-2 rounded-full border border-[#E6DFD5] dark:border-zinc-700 bg-white/90 dark:bg-zinc-900/90 px-4 py-2 text-sm font-normal text-neutral-600 dark:text-neutral-300 shadow-sm backdrop-blur">
                         <span class="material-symbols-outlined animate-spin-custom text-base">progress_activity</span>
                         در حال بارگذاری آثار بیشتر...
@@ -142,12 +142,8 @@
                     <div id="infinite-scroll-end" class="{% if page_obj.has_next or not products %}hidden{% endif %} text-xs font-normal text-neutral-400 dark:text-neutral-500">
                         همه محصولات بارگذاری شدند.
                     </div>
-                    <button type="button" id="btn-load-more-manual" class="{% if not page_obj.has_next %}hidden{% endif %} inline-flex items-center gap-2 px-6 py-2.5 rounded-full border border-[#AB8C58]/60 bg-[#FAF7F2] dark:bg-zinc-800 text-[#AB8C58] hover:bg-[#AB8C58] hover:text-white text-xs font-semibold transition-all shadow-sm" onclick="loadMoreProducts()">
-                        <span class="material-symbols-outlined text-[18px]">expand_more</span>
-                        <span>بارگذاری آثار بیشتر</span>
-                    </button>
                     <div id="infinite-scroll-sentinel"
-                         class="{% if not page_obj.has_next %}hidden{% endif %} h-8 w-full"
+                         class="{% if not page_obj.has_next %}hidden{% endif %} h-6 w-full"
                          data-has-next="{% if page_obj.has_next %}1{% else %}0{% endif %}"
                          data-next-page="{% if page_obj.has_next %}{{ page_obj.next_page_number }}{% endif %}"
                          data-endpoint="{{ request.path }}"></div>
@@ -653,15 +649,10 @@
             const loader = getInfiniteScrollLoader();
             const sentinel = getInfiniteScrollSentinel();
             const end = getInfiniteScrollEnd();
-            const manualBtn = document.getElementById('btn-load-more-manual');
 
             if (loader) {
                 loader.classList.toggle('hidden', !loading);
                 loader.classList.toggle('flex', loading);
-            }
-
-            if (manualBtn) {
-                manualBtn.classList.toggle('hidden', loading || !hasNext);
             }
 
             if (sentinel) {
@@ -698,8 +689,8 @@
             const rect = sentinel.getBoundingClientRect();
             const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 800;
 
-            // ۱. بررسی موقعیت مکانی سنتینل در پنجره نمایش یا نزدیک آن (تا ۳۵۰ پیکسل قبل از رسیدن)
-            if (rect.top <= viewportHeight + 350) {
+            // ۱. بررسی موقعیت مکانی سنتینل در پنجره نمایش یا نزدیک آن (تا ۵۰۰ پیکسل قبل از رسیدن)
+            if (rect.top <= viewportHeight + 500) {
                 loadMoreProducts();
                 return;
             }
@@ -710,7 +701,7 @@
                 document.documentElement.scrollHeight || 0,
                 document.body.scrollHeight || 0
             );
-            if (scrollHeight > viewportHeight && (scrollHeight - (scrollTop + viewportHeight)) <= 550) {
+            if (scrollHeight > viewportHeight && (scrollHeight - (scrollTop + viewportHeight)) <= 700) {
                 loadMoreProducts();
             }
         }
@@ -771,6 +762,11 @@
                 clearTimeout(abortTimeout);
 
                 if (!response.ok) throw new Error('بارگذاری محصولات بیشتر انجام نشد.');
+
+                const contentType = (response.headers.get('content-type') || '').toLowerCase();
+                if (!contentType.includes('application/json')) {
+                    throw new Error('پاسخ سرور برای بارگذاری آثار بیشتر معتبر نیست.');
+                }
 
                 const data = await response.json();
                 if (data && data.html) {
@@ -835,7 +831,7 @@
                             loadMoreProducts();
                         }
                     });
-                }, { rootMargin: '250px 0px' });
+                }, { rootMargin: '500px 0px' });
 
                 infiniteScrollObserver.observe(sentinel);
             }
@@ -879,6 +875,11 @@
             requestAnimationFrame(() => {
                 checkScrollPosition();
             });
+
+            // بررسی مجدد پس از بارگذاری کامل منابع صفحه (تصاویر و فونت‌ها)
+            if (document.readyState !== 'complete') {
+                window.addEventListener('load', () => checkScrollPosition(), { once: true });
+            }
         }
 
         async function syncSingleProduct(productId) {
