@@ -1,0 +1,20 @@
+.git
+.gitignore
+.env
+.env.*
+venv
+.venv
+__pycache__
+*.py[cod]
+*.sqlite3
+backup.sql
+*.sql
+*.sql.gz
+static_collected
+media
+cron.log
+
+# Large static assets are mounted from persistent server storage
+static/images/artwork/
+static/images/action/
+static/catalogs/
