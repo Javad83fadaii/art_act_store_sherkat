@@ -73,3 +73,4 @@ packaging==26.0
 typing_extensions==4.15.0
 colorama==0.4.6
 attrs==25.4.0
+whitenoise==6.9.0
